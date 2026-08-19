@@ -12,7 +12,8 @@
 - **修复**：
   - **moon 图元颜色丢失/继承 stars**：根因 `normPart` 只判 `'fill' in p`——legacy `fill:true` **布尔占用 fill 键**未转换 → 渲染 `ctx.fillStyle = true`（非法）→ 继承上一图层（stars）填充色；修复：`typeof p.fill === 'boolean'` 先行转换（true→fill=color / false→stroke=color），渲染与 [编辑] partForm 统一
   - **程序元素 part 无法画布选中**：part 命中此前只遍历 `state.elements`（素材层）——新增程序元素（HOME_SCENE 顶层键）的 parts 命中（moon 等迁移/叠加图元可选中拖动）
-  - **非 moon/train 元素 +图元无效**：新增图元默认 8×8 落在元素原点（无 x/y 的程序元素原点=0,0 → 画布角落不可见）；改为 16×16 可见 + 画布可选中拖动
+  - **非 moon/train 元素 +图元无效**：根因 `elVal` 对缺失 x/y 返回 `undefined` → `part.x -= undefined = NaN`（signal 有 x 无 y → y=NaN；stars/clouds 等无坐标 → 双 NaN）；修复：`elVal`/`val` 缺失键按 **0**（图元以画布绝对坐标落位、随元素 scroll 偏移滚动），所有程序元素均可加图元
+  - **进入 [编辑] 自动暂停**：开启图元面板时若正在播放则自动暂停（冻结移动带作为图元定位锚点）；图元随元素滚动**平铺**语义保持不变（决策确认）
   - **色板点色即关闭**：颜色 input 的 `input` 事件此前触发 DOM 重建（buildLayerList）→ 原生拾色器被替换关闭；改为 input 只刷新画布、不重建 DOM（拾色器可停留拖动），change 才记历史
 - **包围盒归一化**：新建图元元素 x/y/w/h = parts bbox（选中框框住图形）；[编辑] 点击自动展开卡片并滚动定位
 - 说明：动态图元（如信号灯时间变色）暂不支持（parts 静态色），后续关键帧扩展；**旋转手柄/镜像按钮/Ctrl 多选**见 PLAN（待实现）

@@ -507,7 +507,7 @@ const HomeScene = (() => {
       const off = (t * e.scroll.speed) % sp;
       ox = e.scroll.dir === 'right' ? off : -off;
     }
-    const x0 = val(e, 'x', t), y0 = val(e, 'y', t);
+    const x0 = val(e, 'x', t) || 0, y0 = val(e, 'y', t) || 0; // 缺失键按 0（无 x/y 的程序元素图元以画布绝对坐标 + scroll 落位）
     let alpha = e.alpha != null ? e.alpha : 1;
     if (e.anim === 'blink') { const on = Math.floor(t * 1000 / Math.max(50, e.animMs || 700)) % 2 === 0; alpha *= on ? 1 : 0.25; }
     let scale = 1;

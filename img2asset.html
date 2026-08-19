@@ -743,6 +743,7 @@ window.addEventListener('keydown', ev => {
 /* ---------------- 矢量绘制：工具栏 + 提交 ---------------- */
 function elVal(el, k) {
   const v = el[k];
+  if (v == null) return 0; // 缺失键按 0：无 x/y 的程序元素图元以画布绝对坐标落位（不再 NaN）
   return Array.isArray(v) ? v[Math.max(0, Math.min(tlCurScene < 0 ? 0 : tlCurScene, v.length - 1))] : v;
 }
 /* 新建图元元素包围盒归一化：元素 x/y/w/h = parts 包围盒，parts 转相对坐标 → 选中框正好框住图形 */
@@ -1546,6 +1547,7 @@ function buildLayerList(cfg) {
         if (btn.dataset.act === 'show') toggleShowPopup(el, cfg, btn);
         else if (btn.dataset.act === 'hide') toggleHidden(el, cfg);
         else if (btn.dataset.act === 'edit') {
+          if (state.playing) togglePlay(); // 进入编辑自动暂停：冻结移动带作为图元定位锚点
           partsOpenEl = (partsOpenEl === el) ? null : el; // 同时只能开启一个 [编辑]
           if (partsOpenEl) {
             // 自动展开卡片并滚动到图元部分；矢量绘制目标锁定为该元素
