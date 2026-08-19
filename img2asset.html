@@ -178,8 +178,9 @@
       <button class="small dbtn" data-mode="ellipse">椭圆</button>
       <button class="small dbtn" data-mode="poly">多边形</button>
       <span class="sf-sep"></span>
-      <label class="sf-l nm">色</label><input id="draw-color" class="sf-c" type="color" value="#ffd23f">
-      <label class="sf-l nm">填充</label><input id="draw-fill" type="checkbox" checked>
+      <label class="sf-l nm">填</label><input id="draw-fillc" class="sf-c" type="color" value="#ffd23f">
+      <label class="sf-l nm">描</label><input id="draw-strokeon" type="checkbox" title="启用描边"><input id="draw-strokec" class="sf-c" type="color" value="#000000">
+      <label class="sf-l nm">线</label><input id="draw-strokew" class="sf-n" type="number" value="1" min="0">
       <label class="sf-l nm">目标</label>
       <select id="draw-target" class="sf-n" style="width:86px"><option value="new">新建元素</option><option value="sel">当前选中</option></select>
       <span class="hint-inline" id="draw-hint"></span>
@@ -237,12 +238,15 @@ const state = {
   zoom: 1,            // 画布内容缩放（Alt+滚轮；1=适应显示框）
   asmBg: '#09132c',   // 装配模式背景色（图层栏顶部「背景」行，随场景模式切到 cfg.bg）
   drawMode: 'select', // 矢量绘制：select|rect|line|ellipse|poly
-  drawColor: '#ffd23f',
-  drawFill: true,
-  drawTarget: 'new',  // new=新建元素 | sel=写入当前选中元素
+  drawFillColor: '#ffd23f',
+  drawStrokeColor: '#000000',
+  drawStrokeOn: false,
+  drawStrokeW: 1,
+  drawTarget: 'new',  // new=新建元素 | sel=写入当前选中元素（[编辑] 开启时自动锁定）
   drawShape: null,    // 绘制中的形状（预览）
   drawPts: [],        // 多边形顶点
   drawDrag: false,
+  clipboard: null,    // Ctrl+C 复制：{kind:'part',data} | {kind:'el',data}
 };
 
 /* ---------------- 像素化管线 ---------------- */
@@ -343,8 +347,7 @@ function addElement(src) {
   state.selEl = el.id;
   ensureImage(el);
   buildLayerList(layerCfg());
-  renderStage();
-  renderTimeline();
+  refreshStage();
   $('m-stage').textContent = '已添加 ' + el.name + '——拖拽调位置，点击卡片/画布展开参数' + (state.sceneParamsMode ? '（将随场景配置一起保存）' : '');
 }
 function selEl() { return state.elements.find(e => e.id === state.selEl); }
@@ -439,7 +442,16 @@ function renderStage() {
     ctx.fillRect(Math.round(sel.x + ox + sel.w - 3), Math.round(sel.y + sel.h - 3), 7, 7);
   }
 }
-/* 装配模式图元渲染（与 home-scene drawParts 同语义） */
+/* 装配模式图元渲染（与 home-scene drawParts 同语义；AI 式描边/填充） */
+function normPart(p) {
+  if (!('fill' in p)) {
+    if (p.color) { if (p.fill !== false) p.fill = p.color; else p.stroke = p.color; }
+    else p.fill = null;
+  }
+  if (!('stroke' in p)) p.stroke = null;
+  if (!('strokeWidth' in p)) p.strokeWidth = p.width || 1;
+  return p;
+}
 function drawPartsTool(ctx, e, t) {
   let ox = 0;
   if (e.scroll && e.scroll.speed) {
@@ -449,27 +461,40 @@ function drawPartsTool(ctx, e, t) {
   }
   const x0 = elVal(e, 'x') + ox, y0 = elVal(e, 'y');
   ctx.globalAlpha = e.alpha != null ? e.alpha : 1;
-  for (const p of (e.parts || [])) {
-    const X = Math.round(x0 + (p.x || 0)), Y = Math.round(y0 + (p.y || 0));
-    ctx.fillStyle = p.color || '#fff';
-    ctx.strokeStyle = p.color || '#fff';
-    ctx.lineWidth = p.width || 1;
-    if (p.type === 'rect') {
-      if (p.fill !== false) ctx.fillRect(X, Y, p.w || 1, p.h || 1);
-      else ctx.strokeRect(X, Y, p.w || 1, p.h || 1);
-    } else if (p.type === 'line') {
-      ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(Math.round(x0 + (p.x2 || 0)), Math.round(y0 + (p.y2 || 0))); ctx.stroke();
-    } else if (p.type === 'ellipse') {
-      ctx.beginPath();
-      ctx.ellipse(X + (p.w || 1) / 2, Y + (p.h || 1) / 2, (p.w || 1) / 2, (p.h || 1) / 2, 0, 0, Math.PI * 2);
-      if (p.fill !== false) ctx.fill(); else ctx.stroke();
-    } else if (p.type === 'poly' && (p.points || []).length >= 2) {
-      ctx.beginPath();
-      ctx.moveTo(X + p.points[0][0], Y + p.points[0][1]);
-      for (let i = 1; i < p.points.length; i++) ctx.lineTo(X + p.points[i][0], Y + p.points[i][1]);
-      ctx.closePath();
-      if (p.fill !== false) ctx.fill(); else ctx.stroke();
+  const blit = dx => {
+    const X = x0 + dx;
+    for (const p of (e.parts || [])) {
+      const q = normPart(p);
+      const PX = Math.round(X + (q.x || 0)), PY = Math.round(y0 + (q.y || 0));
+      const hasStroke = q.stroke && q.strokeWidth > 0;
+      if (q.type === 'rect') {
+        if (q.fill) ctx.fillRect(PX, PY, q.w || 1, q.h || 1);
+        if (hasStroke) { ctx.strokeStyle = q.stroke; ctx.lineWidth = q.strokeWidth; ctx.strokeRect(PX, PY, q.w || 1, q.h || 1); }
+      } else if (q.type === 'line') {
+        ctx.strokeStyle = q.stroke || q.fill || '#fff';
+        ctx.lineWidth = q.strokeWidth || 1;
+        ctx.beginPath(); ctx.moveTo(PX, PY); ctx.lineTo(Math.round(X + (q.x2 || 0)), Math.round(y0 + (q.y2 || 0))); ctx.stroke();
+      } else if (q.type === 'ellipse') {
+        ctx.beginPath();
+        ctx.ellipse(PX + (q.w || 1) / 2, PY + (q.h || 1) / 2, (q.w || 1) / 2, (q.h || 1) / 2, 0, 0, Math.PI * 2);
+        if (q.fill) ctx.fill();
+        if (hasStroke) { ctx.strokeStyle = q.stroke; ctx.lineWidth = q.strokeWidth; ctx.stroke(); }
+      } else if (q.type === 'poly' && (q.points || []).length >= 2) {
+        ctx.beginPath();
+        ctx.moveTo(PX + q.points[0][0], PY + q.points[0][1]);
+        for (let i = 1; i < q.points.length; i++) ctx.lineTo(PX + q.points[i][0], PY + q.points[i][1]);
+        ctx.closePath();
+        if (q.fill) ctx.fill();
+        if (hasStroke) { ctx.strokeStyle = q.stroke; ctx.lineWidth = q.strokeWidth; ctx.stroke(); }
+      }
     }
+  };
+  if (e.scroll && e.scroll.speed && e.scroll.span) {
+    const dir = e.scroll.dir === 'right' ? 1 : -1;
+    const n = Math.ceil(state.cw / e.scroll.span) + 3;
+    for (let j = 0; j < n; j++) blit(j * e.scroll.span * dir - ox * dir);
+  } else {
+    blit(ox);
   }
   ctx.globalAlpha = 1;
 }
@@ -681,7 +706,8 @@ stage.addEventListener('pointerup', ev => {
     renderStage();
     return;
   }
-  if (drag) refreshStage(); drag = null;
+  if (drag) { pushHistory(); refreshStage(); } // 移动/缩放/图元拖动各记一步
+  drag = null;
 });
 stage.addEventListener('pointerleave', () => { if (drag) refreshStage(); drag = null; state.drawDrag = false; });
 stage.addEventListener('dblclick', ev => {
@@ -769,34 +795,43 @@ document.querySelectorAll('#draw-row .dbtn').forEach(b => b.addEventListener('cl
   hint.textContent = state.drawMode === 'select' ? '' : (state.drawMode === 'poly' ? '单击加顶点 · 双击/回车闭合 · Esc 取消' : '拖拽绘制 · Esc 取消');
   renderStage();
 }));
-$('draw-color').addEventListener('input', () => { state.drawColor = $('draw-color').value; });
-$('draw-fill').addEventListener('change', () => { state.drawFill = $('draw-fill').checked; });
+$('draw-fillc').addEventListener('input', () => { state.drawFillColor = $('draw-fillc').value; });
+$('draw-strokec').addEventListener('input', () => { state.drawStrokeColor = $('draw-strokec').value; });
+$('draw-strokeon').addEventListener('change', () => { state.drawStrokeOn = $('draw-strokeon').checked; });
+$('draw-strokew').addEventListener('change', () => { state.drawStrokeW = Math.max(0, parseInt($('draw-strokew').value) || 0); });
 $('draw-target').addEventListener('change', () => { state.drawTarget = $('draw-target').value; });
+function drawTargetEl() {
+  // 目标解析：开启 [编辑] 时锁定为编辑元素；否则按目标选择器
+  if (partsOpenEl) return partsOpenEl;
+  return (state.drawTarget === 'sel' && state.selEl) ? selEl() : null;
+}
 function commitDrawShape() {
   const s = state.drawShape; if (!s) return;
   let part = null;
-  const C = state.drawColor;
+  const FC = state.drawFillColor;
+  const SC = state.drawStrokeOn ? state.drawStrokeColor : null;
+  const SW = state.drawStrokeW;
   if (s.type === 'rect' || s.type === 'ellipse') {
     const x = Math.round(Math.min(s.x0, s.x0 + s.w)), y = Math.round(Math.min(s.y0, s.y0 + s.h));
-    part = { type: s.type, x: x, y: y, w: Math.max(1, Math.round(Math.abs(s.w))), h: Math.max(1, Math.round(Math.abs(s.h))), color: C, fill: state.drawFill };
+    part = { type: s.type, x: x, y: y, w: Math.max(1, Math.round(Math.abs(s.w))), h: Math.max(1, Math.round(Math.abs(s.h))), fill: FC, stroke: SC, strokeWidth: SW };
   } else if (s.type === 'line') {
-    part = { type: 'line', x: Math.round(s.x0), y: Math.round(s.y0), x2: Math.round(s.x2), y2: Math.round(s.y2), color: C, width: 1 };
+    part = { type: 'line', x: Math.round(s.x0), y: Math.round(s.y0), x2: Math.round(s.x2), y2: Math.round(s.y2), fill: null, stroke: SC || FC, strokeWidth: Math.max(1, SW) };
   } else if (s.type === 'poly' && state.drawPts.length >= 2) {
-    part = { type: 'poly', points: state.drawPts.map(pt => [pt[0], pt[1]]), color: C, fill: state.drawFill };
+    part = { type: 'poly', points: state.drawPts.map(pt => [pt[0], pt[1]]), fill: FC, stroke: SC, strokeWidth: SW };
   }
   if (!part) { state.drawPts = []; return; }
-  if (state.drawTarget === 'sel' && state.selEl) {
-    const el = selEl();
-    if (el) {
-      const ex = elVal(el, 'x'), ey = elVal(el, 'y');
-      if (part.type === 'line') { part.x -= ex; part.y -= ey; part.x2 -= ex; part.y2 -= ey; }
-      else if (part.type === 'poly') { part.points = part.points.map(pt => [pt[0] - ex, pt[1] - ey]); }
-      else { part.x -= ex; part.y -= ey; }
-      el.parts = el.parts || [];
-      el.parts.push(part);
-      buildLayerList(layerCfg());
-      refreshStage();
-    }
+  const tgt = drawTargetEl();
+  if (tgt) {
+    const ex = elVal(tgt, 'x'), ey = elVal(tgt, 'y');
+    if (part.type === 'line') { part.x -= ex; part.y -= ey; part.x2 -= ex; part.y2 -= ey; }
+    else if (part.type === 'poly') { part.points = part.points.map(pt => [pt[0] - ex, pt[1] - ey]); }
+    else { part.x -= ex; part.y -= ey; }
+    if (!tgt.parts || !tgt.parts.length) tgt.partsMode = 'overlay'; // 原绘制 + 图元叠加
+    pushHistory();
+    tgt.parts = tgt.parts || [];
+    tgt.parts.push(part);
+    buildLayerList(layerCfg());
+    refreshStage();
   } else {
     // 新建图元元素（原点 0,0）
     const n = {
@@ -807,6 +842,7 @@ function commitDrawShape() {
     state.elements.push(n);
     if (state.sceneParamsMode && window.HOME_SCENE) (window.HOME_SCENE.images = window.HOME_SCENE.images || []).push(n);
     normalizePartsEl(n); // 包围盒归一化：选中框框住图形、整体移动/缩放 parts 有意义
+    pushHistory();
     state.selEl = n.id;
     buildLayerList(layerCfg());
     refreshStage();
@@ -890,7 +926,7 @@ $('btn-del-src').addEventListener('click', () => {
   state.selSrc = state.sources.length ? state.sources[0].id : null;
   renderLib();
 });
-$('btn-play').addEventListener('click', () => {
+function togglePlay() {
   state.playing = !state.playing;
   $('btn-play').textContent = state.playing ? '⏸' : '▶';
   if (state.playing) {
@@ -899,6 +935,98 @@ $('btn-play').addEventListener('click', () => {
     if (window.HomeScene) HomeScene.start(); // 场景层（home-scene 动画）同步播放
   } else {
     if (window.HomeScene) HomeScene.stop(); // 场景层同步暂停
+  }
+}
+$('btn-play').addEventListener('click', togglePlay);
+
+/* ---------------- 历史（撤销 Ctrl+Z，保留 5 步）与剪贴板（Ctrl+C/V/X） ---------------- */
+const undoStack = [];
+function pushHistory() {
+  const snap = window.HOME_SCENE ? JSON.stringify(window.HOME_SCENE) : JSON.stringify(state.elements);
+  undoStack.push(snap);
+  if (undoStack.length > 5) undoStack.shift();
+}
+function undo() {
+  if (!undoStack.length) return;
+  const snap = undoStack.pop();
+  if (window.HOME_SCENE) {
+    window.HOME_SCENE = JSON.parse(snap);
+    window.HOME_SCENE.images = window.HOME_SCENE.images || [];
+    state.elements = window.HOME_SCENE.images.map(e => { if (!e.id) e.id = 'e' + Math.random().toString(36).slice(2, 7); e._img = null; return e; });
+    if (window.HomeScene && HomeScene.resize) HomeScene.resize();
+  } else {
+    state.elements = JSON.parse(snap);
+  }
+  partsOpenEl = null;
+  state.selEl = null;
+  state.partSel = null;
+  buildLayerList(layerCfg());
+  renderSceneBar();
+  refreshStage();
+}
+function copySel() {
+  if (state.partSel && state.partSel.el.parts[state.partSel.index]) {
+    state.clipboard = { kind: 'part', data: JSON.parse(JSON.stringify(state.partSel.el.parts[state.partSel.index])) };
+  } else if (state.selEl) {
+    const e = selEl();
+    if (e) state.clipboard = { kind: 'el', data: JSON.parse(JSON.stringify(e)) };
+  }
+}
+function cutSel() {
+  if (state.partSel && state.partSel.el.parts[state.partSel.index]) {
+    copySel(); pushHistory();
+    const el = state.partSel.el;
+    el.parts.splice(state.partSel.index, 1);
+    state.partSel = null;
+    buildLayerList(layerCfg()); refreshStage();
+  } else if (state.selEl) {
+    copySel(); delElement(selEl());
+  }
+}
+function pasteClip() {
+  const c = state.clipboard;
+  if (!c) return;
+  pushHistory();
+  if (c.kind === 'part') {
+    const tgt = drawTargetEl() || selEl();
+    if (tgt) {
+      tgt.parts = tgt.parts || [];
+      tgt.parts.push(JSON.parse(JSON.stringify(c.data)));
+      buildLayerList(layerCfg()); refreshStage();
+    }
+  } else if (c.kind === 'el') {
+    const n = JSON.parse(JSON.stringify(c.data));
+    n.id = 'e' + Math.random().toString(36).slice(2, 7);
+    n.x = (n.x || 0) + 8; n.y = (n.y || 0) + 8; n._img = null;
+    state.elements.push(n);
+    if (state.sceneParamsMode && window.HOME_SCENE) (window.HOME_SCENE.images = window.HOME_SCENE.images || []).push(n);
+    state.selEl = n.id;
+    buildLayerList(layerCfg()); ensureImage(n); refreshStage();
+  }
+}
+window.addEventListener('keydown', ev => {
+  const tag = ev.target && ev.target.tagName;
+  if (tag && /INPUT|SELECT|TEXTAREA/.test(tag)) return; // 输入框内不拦截热键
+  if (ev.code === 'Space') { ev.preventDefault(); togglePlay(); return; }
+  if (ev.key === 'Delete' || ev.key === 'Backspace') {
+    ev.preventDefault();
+    if (state.partSel && state.partSel.el && state.partSel.el.parts[state.partSel.index]) {
+      pushHistory();
+      const el = state.partSel.el;
+      el.parts.splice(state.partSel.index, 1);
+      state.partSel = null;
+      buildLayerList(layerCfg()); refreshStage();
+    } else if (state.selEl) {
+      delElement(selEl());
+    }
+    return;
+  }
+  if (ev.ctrlKey || ev.metaKey) {
+    const k = ev.key.toLowerCase();
+    if (k === 'z') { ev.preventDefault(); undo(); }
+    else if (k === 'c') { ev.preventDefault(); copySel(); }
+    else if (k === 'v') { ev.preventDefault(); pasteClip(); }
+    else if (k === 'x') { ev.preventDefault(); cutSel(); }
   }
 });
 /* buildExportText 供「保存 js」（装配模式）使用；导出 UI 已移除（页面内改写替代复制粘贴） */
@@ -1113,7 +1241,7 @@ function syncGlobals() {
 /* ---------------- PS 式图层列表（元素卡片栏：收起/展开/拖拽排序写 z） ---------------- */
 const PROG_SKIP = ['w', 'h', 'loop', 'bg', 'images'];
 let layerOpen = {};
-let partsOpen = {};    // 卡片 [编辑]：图元 parts 子面板展开态
+let partsOpenEl = null;  // 唯一开启的 [编辑] 图元面板（同时只能一个；开启时矢量绘制锁定到该元素）
 let tlCurScene = -1;   // 图层栏当前编辑场景（播放头所在段；-1=无 scenes）
 const rowS = {};       // 参数行 [s] 开关：key = cardKey|path（开=改动只写当前场景槽）
 const normColor = c => (c && c.length === 4 ? '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3] : c);
@@ -1156,6 +1284,7 @@ function walkForm(obj, path, box, cardKey) {
       const curVal = isNumArr ? v[Math.min(idx(), v.length - 1)] : v;
       const inp = document.createElement('input'); inp.type = 'number'; inp.value = curVal;
       inp.addEventListener('change', () => {
+        pushHistory();
         const nv = parseFloat(inp.value);
         if (isNaN(nv)) return;
         if (curS >= 0 && rowS[rk(k)]) {
@@ -1170,6 +1299,7 @@ function walkForm(obj, path, box, cardKey) {
     } else if (typeof v === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)) {
       const inp = document.createElement('input'); inp.type = 'color'; inp.value = normColor(v);
       inp.addEventListener('input', () => { obj[k] = inp.value; refreshStage(); }); // 拾色器拖动实时生效
+      inp.addEventListener('change', pushHistory); // 松开拾色器记一步历史
       add(path + k, inp, sBtn(k));
     } else if (Array.isArray(v) && v.length && v.every(x => typeof x === 'string' && /^#/.test(x))) {
       // 按场景颜色数组：显示当前场景色，默认激活 [s]
@@ -1184,11 +1314,11 @@ function walkForm(obj, path, box, cardKey) {
       add(path + k, inp, sBtn(k));
     } else if (typeof v === 'string') {
       const inp = document.createElement('input'); inp.type = 'text'; inp.value = v;
-      inp.addEventListener('change', () => { obj[k] = inp.value; refreshStage(); });
+      inp.addEventListener('change', () => { pushHistory(); obj[k] = inp.value; refreshStage(); });
       add(path + k, inp, sBtn(k));
     } else if (typeof v === 'boolean') {
       const inp = document.createElement('input'); inp.type = 'checkbox'; inp.checked = v;
-      inp.addEventListener('change', () => { obj[k] = inp.checked; refreshStage(); });
+      inp.addEventListener('change', () => { pushHistory(); obj[k] = inp.checked; refreshStage(); });
       add(path + k, inp);
     } else if (Array.isArray(v)) {
       const d = document.createElement('div'); d.className = 'cf-ro';
@@ -1232,6 +1362,7 @@ function imgForm(el, box, cardKey) {
     if (step) inp.step = step;
     if (min != null) inp.min = min;
     inp.addEventListener('change', () => {
+      pushHistory();
       const v = parseFloat(inp.value);
       if (isNaN(v)) return;
       if (curS >= 0 && rowS[rkey]) {
@@ -1256,7 +1387,7 @@ function imgForm(el, box, cardKey) {
     const inp = document.createElement('input'); inp.type = 'text';
     inp.value = getPath(el, key) || '';
     if (ph) inp.placeholder = ph;
-    inp.addEventListener('change', () => { setPath(el, key, inp.value); refreshStage(); });
+    inp.addEventListener('change', () => { pushHistory(); setPath(el, key, inp.value); refreshStage(); });
     add(label, inp, hint);
   };
   const pick = (label, key, opts, hint) => {
@@ -1266,7 +1397,7 @@ function imgForm(el, box, cardKey) {
       if (String(getPath(el, key)) === String(v)) o.selected = true;
       s.appendChild(o);
     }
-    s.addEventListener('change', () => { setPath(el, key, s.value); refreshStage(); });
+    s.addEventListener('change', () => { pushHistory(); setPath(el, key, s.value); refreshStage(); });
     add(label, s, hint);
   };
   txt('名称', 'name');
@@ -1372,7 +1503,7 @@ function buildLayerList(cfg) {
       '<span class="layer-name">' + escapeHtml(nm) + '</span>' +
       '<button class="hb" data-act="show" title="显示时间（每场景显隐 + 场景内窗口）">S</button>' +
       '<button class="hb' + (isHid ? ' hid' : '') + '" data-act="hide" title="' + (isHid ? '显示该元素' : '调试隐藏（独立于场景可见性，保存为 hidden:true）') + '">' + (isHid ? '显示' : '隐藏') + '</button>' +
-      '<button class="hb' + (partsOpen[cardKey] ? ' on' : '') + '" data-act="edit" title="编辑：图元 parts 子面板（矢量绘制/逐图元调参）">编辑</button>' +
+      '<button class="hb' + (partsOpenEl === el ? ' on' : '') + '" data-act="edit" title="编辑：图元 parts 子面板（矢量绘制/逐图元调参）">编辑</button>' +
       '<button class="hb" data-act="del" title="删除该元素">删除</button>';
     card.appendChild(head);
     if (open) {
@@ -1380,7 +1511,7 @@ function buildLayerList(cfg) {
       body.className = 'layer-body';
       if (item.kind === 'img') imgForm(el, body, cardKey); // 素材卡片：中文说明表单（滚动/动画/多帧）
       else walkForm(el, '', body, cardKey);                // 程序元素：通用参数表单
-      if (partsOpen[cardKey]) partsEditor(el, body, cardKey); // [编辑]：图元 parts 子面板
+      if (partsOpenEl === el) partsEditor(el, body, cardKey); // [编辑]：图元 parts 子面板
       if (item.kind === 'img') {
         const ops = document.createElement('div');
         ops.className = 'cf-row';
@@ -1398,10 +1529,11 @@ function buildLayerList(cfg) {
         if (btn.dataset.act === 'show') toggleShowPopup(el, cfg, btn);
         else if (btn.dataset.act === 'hide') toggleHidden(el, cfg);
         else if (btn.dataset.act === 'edit') {
-          partsOpen[cardKey] = !partsOpen[cardKey];
-          if (partsOpen[cardKey]) {
-            // 自动展开卡片并滚动到图元部分
+          partsOpenEl = (partsOpenEl === el) ? null : el; // 同时只能开启一个 [编辑]
+          if (partsOpenEl) {
+            // 自动展开卡片并滚动到图元部分；矢量绘制目标锁定为该元素
             if (item.kind === 'prog') layerOpen[nm] = true; else state.selEl = el.id;
+            state.drawTarget = 'sel';
             buildLayerList(cfg);
             const tgt = item.kind === 'img' ? '[data-elid="' + el.id + '"]' : '[data-key="' + item.key + '"]';
             const cardEl = $('cfgform').querySelector(tgt);
@@ -1450,6 +1582,7 @@ function buildLayerList(cfg) {
 function toggleHidden(el, cfg) {
   // 独立于场景可见性的「调试隐藏」：只切换 el.hidden（全局覆盖，不影响 show 窗口）；
   // 保存时仍为隐藏状态则写最外层 hidden:true。
+  pushHistory();
   el.hidden = !el.hidden;
   buildLayerList(cfg);
   refreshStage();
@@ -1620,6 +1753,7 @@ function toggleShowPopup(el, cfg, anchorBtn) {
         (wins[i] ? '<span class="cnt">' + wins[i].length + '段</span>' : '');
       row.addEventListener('click', ev => {
         ev.stopPropagation();
+        pushHistory();
         const w2 = normShowWindows(el.show, n);
         w2[i] = w2[i] ? null : [[0, 1]];
         if (windowsAllFull(w2)) delete el.show; else el.show = w2;
@@ -1687,12 +1821,55 @@ function focusLayerCard(elId) {
   const card = $('cfgform').querySelector('[data-elid="' + elId + '"]');
   if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
-/* [编辑] 图元 parts 子面板：逐图元 walkForm（坐标/颜色/填充）+ 删除 + 新增 */
+/* [编辑] 图元 parts 子面板：AI 式描边/填充（色+线宽）+ 坐标 + 删除 + 新增 */
+function partForm(p, box, rebuild) {
+  const add = (label, el, extra) => {
+    const w = document.createElement('div');
+    w.className = 'cf-row';
+    const l = document.createElement('label');
+    l.textContent = label;
+    w.appendChild(l);
+    w.appendChild(el);
+    if (extra) w.appendChild(extra);
+    box.appendChild(w);
+  };
+  const commit = () => { rebuild(); refreshStage(); };
+  // 填充（颜色 + 无填充开关）
+  const fOn = document.createElement('input'); fOn.type = 'checkbox'; fOn.checked = !!p.fill;
+  const fC = document.createElement('input'); fC.type = 'color'; fC.value = normColor(p.fill || '#000000'); fC.disabled = !p.fill;
+  fOn.addEventListener('change', () => { p.fill = fOn.checked ? fC.value : null; fC.disabled = !p.fill; commit(); });
+  fC.addEventListener('input', () => { p.fill = fC.value; fOn.checked = true; fC.disabled = false; commit(); });
+  const fWrap = document.createElement('div'); fWrap.className = 'cf-arr'; fWrap.appendChild(fOn); fWrap.appendChild(fC);
+  add('填充', fWrap);
+  // 描边（颜色 + 无描边开关 + 线宽）
+  const sOn = document.createElement('input'); sOn.type = 'checkbox'; sOn.checked = !!p.stroke;
+  const sC = document.createElement('input'); sC.type = 'color'; sC.value = normColor(p.stroke || '#000000'); sC.disabled = !p.stroke;
+  sOn.addEventListener('change', () => { p.stroke = sOn.checked ? sC.value : null; sC.disabled = !p.stroke; commit(); });
+  sC.addEventListener('input', () => { p.stroke = sC.value; sOn.checked = true; sC.disabled = false; commit(); });
+  const sW = document.createElement('input'); sW.type = 'number'; sW.value = p.strokeWidth != null ? p.strokeWidth : 1; sW.min = 0; sW.style.width = '38px';
+  sW.addEventListener('change', () => { p.strokeWidth = Math.max(0, parseInt(sW.value) || 0); commit(); });
+  const sWrap = document.createElement('div'); sWrap.className = 'cf-arr'; sWrap.appendChild(sOn); sWrap.appendChild(sC); sWrap.appendChild(sW);
+  add('描边', sWrap);
+  // 坐标（按类型）
+  const num = (label, key) => {
+    const inp = document.createElement('input'); inp.type = 'number'; inp.value = p[key] != null ? p[key] : 0; inp.style.width = '46px';
+    inp.addEventListener('change', () => { const v = parseFloat(inp.value); if (!isNaN(v)) p[key] = v; commit(); });
+    add(label, inp);
+  };
+  if (p.type === 'rect' || p.type === 'ellipse') { num('x', 'x'); num('y', 'y'); num('w', 'w'); num('h', 'h'); }
+  else if (p.type === 'line') { num('x', 'x'); num('y', 'y'); num('x2', 'x2'); num('y2', 'y2'); }
+  else if (p.type === 'poly') {
+    const d = document.createElement('div'); d.className = 'cf-ro';
+    d.textContent = '顶点 ' + (p.points || []).length + '（画布拖动）';
+    add('points', d);
+  }
+}
 function partsEditor(el, body, cardKey) {
   const g = document.createElement('div');
   g.className = 'cf-group';
-  g.textContent = '图元 parts（矢量绘制落点；坐标相对元素原点）';
+  g.textContent = '图元 parts（坐标相对元素原点；绘制目标已锁定到本元素）';
   body.appendChild(g);
+  const rebuild = () => buildLayerList(layerCfg());
   (el.parts || []).forEach((p, i) => {
     const box = document.createElement('div');
     box.className = 'cf-box';
@@ -1700,33 +1877,38 @@ function partsEditor(el, body, cardKey) {
     hd.className = 'cf-ro';
     hd.textContent = '#' + i + ' · ' + p.type;
     const del = document.createElement('button'); del.className = 'hb'; del.textContent = '删除';
-    del.addEventListener('click', ev => { ev.stopPropagation(); el.parts.splice(i, 1); buildLayerList(layerCfg()); refreshStage(); });
+    del.addEventListener('click', ev => { ev.stopPropagation(); pushHistory(); el.parts.splice(i, 1); buildLayerList(layerCfg()); refreshStage(); });
     hd.appendChild(del);
     box.appendChild(hd);
-    walkForm(p, '', box, cardKey + ':part' + i);
+    partForm(p, box, rebuild);
     body.appendChild(box);
   });
   const add = document.createElement('button');
   add.className = 'small';
   add.textContent = '+ 图元';
   add.addEventListener('click', () => {
+    if (!el.parts || !el.parts.length) el.partsMode = 'overlay'; // 程序元素原绘制 + 图元叠加
+    pushHistory();
     el.parts = el.parts || [];
-    el.parts.push({ type: 'rect', x: 0, y: 0, w: 8, h: 8, color: state.drawColor || '#ffd23f', fill: true });
+    el.parts.push({ type: 'rect', x: 0, y: 0, w: 8, h: 8, fill: state.drawFillColor, stroke: state.drawStrokeOn ? state.drawStrokeColor : null, strokeWidth: state.drawStrokeW });
     buildLayerList(layerCfg());
     refreshStage();
   });
   body.appendChild(add);
 }
 function delElement(e) {
+  pushHistory();
   state.elements = state.elements.filter(x => x.id !== e.id);
   if (state.sceneParamsMode && window.HOME_SCENE) {
     window.HOME_SCENE.images = (window.HOME_SCENE.images || []).filter(x => x !== e);
   }
+  if (partsOpenEl === e) partsOpenEl = null;
   state.selEl = null;
   buildLayerList(layerCfg());
-  renderStage();
+  refreshStage();
 }
 function dupElement(e) {
+  pushHistory();
   const n = Object.assign({}, e, { id: 'e' + Math.random().toString(36).slice(2, 7), x: e.x + 8, y: e.y + 8, _img: null });
   state.elements.push(n);
   if (state.sceneParamsMode && window.HOME_SCENE) {
@@ -1735,9 +1917,10 @@ function dupElement(e) {
   state.selEl = n.id;
   buildLayerList(layerCfg());
   ensureImage(n);
-  renderStage();
+  refreshStage();
 }
 function reorderLayers(cfg, srcKind, srcKey, dstItem) {
+  pushHistory();
   const order = layerOrderOf(cfg);
   const srcIdx = order.findIndex(x => x.kind === srcKind && String(x.kind === 'prog' ? x.key : x.idx) === String(srcKey));
   const dstIdx = order.findIndex(x => x.kind === dstItem.kind && (dstItem.kind === 'prog' ? x.key === dstItem.key : x.idx === dstItem.idx));
@@ -2151,6 +2334,7 @@ function jumpScene(i) {
 }
 function addScene() {
   const cfg = window.HOME_SCENE; if (!cfg) return;
+  pushHistory();
   cfg.scenes = cfg.scenes || [];
   const oldN = cfg.scenes.length;
   const v = window.prompt('新场景名：', '场景' + (oldN + 1));
@@ -2164,6 +2348,7 @@ function addScene() {
 }
 function deleteScene(i) {
   const cfg = window.HOME_SCENE; if (!cfg) return;
+  pushHistory();
   const oldN = cfg.scenes.length;
   cfg.scenes.splice(i, 1);
   if (!cfg.scenes.length) cfg.scenes = ['场景'];
