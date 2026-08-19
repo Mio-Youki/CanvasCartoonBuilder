@@ -516,6 +516,7 @@ const HomeScene = (() => {
       const X = x0 + dx;
       for (const p of (e.parts || [])) {
         const q = normPart(p);
+        ctx.globalAlpha = alpha * (q.alpha != null ? q.alpha : 1); // 元素级 × 图元级透明度
         const PX = Math.round(X + (q.x || 0)), PY = Math.round(y0 + (q.y || 0));
         const hasStroke = q.stroke && q.strokeWidth > 0;
         if (q.type === 'rect') {
@@ -542,8 +543,8 @@ const HomeScene = (() => {
       }
     };
     ctx.globalAlpha = alpha;
-    // 带元素判定：speed/span 可能在顶层（程序元素）或 scroll 对象（图片素材）
-    const bSpeed = (e.scroll && e.scroll.speed) || e.speed || 0;
+    // 带元素判定：speed/span 可能在顶层（程序元素，含按场景数组）或 scroll 对象（图片素材）
+    const bSpeed = (e.scroll && e.scroll.speed) || val(e, 'speed', t) || 0;
     const bSpan = (e.scroll && e.scroll.span) || e.span || e.w || 1;
     if (e.partsBand && bSpeed && bSpan) {
       // 带元素：母带同款 wrap 公式逐瓦片（图元 x 为瓦片相位偏移，随带同步滚动，不漂移）

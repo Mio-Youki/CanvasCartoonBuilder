@@ -428,7 +428,7 @@ function renderStage() {
     ctx.strokeRect(bb.x - 1, bb.y - 1, bb.w + 2, bb.h + 2);
     ctx.setLineDash([]);
   }
-  // 选中图元高亮（part 级）：青色虚线包围盒
+  // 选中图元高亮（part 级）：青色虚线包围盒 + 黄色缩放手柄（与元素选中一致；带元素/多边形暂不支持手柄）
   if (state.partSel && state.partSel.el && state.partSel.el.parts && state.partSel.el.parts[state.partSel.index]) {
     const pe = state.partSel.el;
     const p = pe.parts[state.partSel.index];
@@ -439,6 +439,10 @@ function renderStage() {
     ctx.setLineDash([2, 2]);
     ctx.strokeRect(bb.x - 1, bb.y - 1, bb.w + 2, bb.h + 2);
     ctx.setLineDash([]);
+    if (!pe.partsBand && p.type !== 'poly') {
+      ctx.fillStyle = '#ffd23f';
+      ctx.fillRect(bb.x + bb.w - 3, bb.y + bb.h - 3, 7, 7);
+    }
   }
   // 选中高亮 + 缩放手柄（不依赖素材图，位置来自数据）
   const sel = selEl();
@@ -478,6 +482,7 @@ function drawPartsTool(ctx, e, t) {
     const X = x0 + dx;
     for (const p of (e.parts || [])) {
       const q = normPart(p);
+      ctx.globalAlpha = (e.alpha != null ? e.alpha : 1) * (q.alpha != null ? q.alpha : 1); // 元素级 × 图元级透明度
       const PX = Math.round(X + (q.x || 0)), PY = Math.round(y0 + (q.y || 0));
       const hasStroke = q.stroke && q.strokeWidth > 0;
       if (q.type === 'rect') {
@@ -653,11 +658,17 @@ stage.addEventListener('pointerdown', ev => {
   const pickPartDrag = (e, i) => {
     state.partSel = { el: e, index: i };
     const pp = e.parts[i];
-    drag = {
-      type: 'partmove', el: e, index: i, sx: p.x, sy: p.y,
-      px: pp.x || 0, py: pp.y || 0, px2: pp.x2 || 0, py2: pp.y2 || 0,
-      pts: (pp.points || []).map(a => [a[0], a[1]]),
-    };
+    const bb = e.partsBand ? null : partBBox(pp, elVal(e, 'x') + scrollOffset(e, state.t), elVal(e, 'y'));
+    const onHandle = bb && p.x >= bb.x + bb.w - 12 && p.y >= bb.y + bb.h - 12 && pp.type !== 'poly';
+    if (onHandle) {
+      drag = { type: 'partresize', el: e, index: i, sx: p.x, sy: p.y, ow: Math.max(1, bb.w), oh: Math.max(1, bb.h), orig: JSON.parse(JSON.stringify(pp)) };
+    } else {
+      drag = {
+        type: 'partmove', el: e, index: i, sx: p.x, sy: p.y,
+        px: pp.x || 0, py: pp.y || 0, px2: pp.x2 || 0, py2: pp.y2 || 0,
+        pts: (pp.points || []).map(a => [a[0], a[1]]),
+      };
+    }
     renderStage();
   };
   if (partsOpenEl) {
@@ -695,6 +706,8 @@ stage.addEventListener('pointerdown', ev => {
           x0: Array.isArray(pe.x) ? pe.x.slice() : pe.x, y0: Array.isArray(pe.y) ? pe.y.slice() : pe.y,
           parts0: (pe.parts || []).map(pp => JSON.parse(JSON.stringify(pp))),
         };
+        layerOpen[k] = true; // 展开对应卡片（与图片元素选中一致）
+        buildLayerList(layerCfg());
         const cardEl = $('cfgform').querySelector('[data-key="' + k + '"]');
         if (cardEl && cardEl.scrollIntoView) cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         renderStage();
@@ -756,6 +769,17 @@ stage.addEventListener('pointermove', ev => {
         else if (q.type === 'poly') q.points = q.points.map(pt => [pt[0] + dxi, pt[1] + dyi]);
         return q;
       });
+    }
+    refreshStage();
+    return;
+  }
+  if (drag.type === 'partresize') {
+    // 子图元缩放：按比例缩放（复用 scalePart，基于拖拽起点副本无累积误差）
+    const part = e.parts[drag.index];
+    if (part) {
+      const nw = Math.max(1, drag.ow + (p.x - drag.sx));
+      const nh = Math.max(1, drag.oh + (p.y - drag.sy));
+      e.parts[drag.index] = scalePart(drag.orig, nw / drag.ow, nh / drag.oh);
     }
     refreshStage();
     return;
@@ -891,11 +915,12 @@ function partsBBox(e, t) {
   if (!isFinite(minX)) { minX = 0; minY = 0; maxX = 1; maxY = 1; }
   return { x: Math.round(minX), y: Math.round(minY), w: Math.round(maxX - minX), h: Math.round(maxY - minY) };
 }
-/* 带元素判定：speed/span 可能在顶层（程序元素）或 scroll 对象（图片素材） */
-function bandSpeed(el) { return (el.scroll && el.scroll.speed) || el.speed || 0; }
+/* 带元素判定：speed/span 可能在顶层（程序元素，含按场景数组）或 scroll 对象（图片素材） */
+function bandSpeed(el) { return (el.scroll && el.scroll.speed) || elVal(el, 'speed') || 0; }
 function bandSpan(el) { return (el.scroll && el.scroll.span) || el.span || el.w || 1; }
 function isBandEl(el) {
-  return !('x' in el) && !('y' in el) && bandSpeed(el) && bandSpan(el);
+  // 规则：x/y 任一缺失即触发带相对模型（作为状态持久化 partsBand，考虑后续 speed/span 自定义）
+  return (!('x' in el) || !('y' in el)) && bandSpeed(el) && bandSpan(el);
 }
 /* 带元素图元：把画布绝对 x 转换为瓦片相位偏移（参照母带 span/offset，随带同步滚动） */
 function convertBandPart(el, part) {
@@ -1975,6 +2000,10 @@ function partForm(p, box, rebuild) {
   sW.addEventListener('change', () => { p.strokeWidth = Math.max(0, parseInt(sW.value) || 0); commit(); });
   const sWrap = document.createElement('div'); sWrap.className = 'cf-arr'; sWrap.appendChild(sOn); sWrap.appendChild(sC); sWrap.appendChild(sW);
   add('描边', sWrap);
+  // 透明度（图元级，与元素级相乘）
+  const aInp = document.createElement('input'); aInp.type = 'number'; aInp.value = p.alpha != null ? p.alpha : 1; aInp.min = 0; aInp.max = 1; aInp.step = 0.05; aInp.style.width = '46px';
+  aInp.addEventListener('change', () => { p.alpha = Math.max(0, Math.min(1, parseFloat(aInp.value) || 1)); commit(); });
+  add('透明度', aInp);
   // 坐标（按类型）
   const num = (label, key) => {
     const inp = document.createElement('input'); inp.type = 'number'; inp.value = p[key] != null ? p[key] : 0; inp.style.width = '46px';
