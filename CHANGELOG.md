@@ -2,6 +2,10 @@
 
 > 独立于游戏本体的 CHANGELOG。工具版本独立演进，与游戏版本号无关。
 
+## v2.4 补 —— 填充/描边取消勾选颜色保留
+- **[编辑] 图元面板填充/描边取消勾选后颜色不再丢失变黑**：此前取消勾选置 `fill/stroke=null` 后 `commit()` 重建表单，色板控件以 `|| '#000000'` 初始化 → 重新勾选变黑；现取消时原色保留到 `_fillColor`/`_strokeColor`（表单重建/重开 js 均可恢复），重新勾选还原原色；序列化保留该字段（随配置写回）
+- 渲染端同步：`public/home-scene.js` → `tools/home-scene.js`（vendored）一致
+
 ## v2.4 —— 动态元素 parts 化 + SCENE_SPEC Agent 规范（①）
 - **train 列车 parts 化**：静态车身（车体/驾驶室/车厢/底盘/轮子/车窗/车头/车尾 = 17 个 rect）拆为 parts（坐标相对元素原点 x,y）；新增元素级动画 `anim:'bob'`（1px 垂直轻震，drawParts 内应用，与 fx 同步）；时间动画保留为**动态覆盖 fx**：车窗灯闪烁（`trainFx` 在 6 个窗位覆盖 lampLit/lampDim）+ 车头灯光束（beam 三角，长度按场景 beamLen）
 - **signal 信号灯 parts 化**：杆/臂拆为 parts（相对 x,y=54）；绿/红灯切换保留为 `signalFx` 动态覆盖

@@ -2522,18 +2522,28 @@ function partForm(p, box, rebuild) {
     box.appendChild(w);
   };
   const commit = () => { rebuild(); refreshStage(); };
-  // 填充（颜色 + 无填充开关）
+  // 填充（颜色 + 无填充开关）：取消勾选时原色保留在 _fillColor（重建/重开后恢复，不再变黑）
   const fOn = document.createElement('input'); fOn.type = 'checkbox'; fOn.checked = !!p.fill;
-  const fC = document.createElement('input'); fC.type = 'color'; fC.value = normColor(p.fill || '#000000'); fC.disabled = !p.fill;
-  fOn.addEventListener('change', () => { p.fill = fOn.checked ? fC.value : null; fC.disabled = !p.fill; commit(); });
-  fC.addEventListener('input', () => { p.fill = fC.value; fOn.checked = true; fC.disabled = false; refreshStage(); }); // 实时改色不重建 DOM（保持拾色器打开）
+  const fC = document.createElement('input'); fC.type = 'color'; fC.value = normColor(p.fill || p._fillColor || '#000000'); fC.disabled = !p.fill;
+  fOn.addEventListener('change', () => {
+    if (fOn.checked) { p.fill = (p._fillColor != null ? p._fillColor : fC.value) || fC.value; delete p._fillColor; }
+    else { p._fillColor = p.fill || fC.value; p.fill = null; }
+    fC.disabled = !fOn.checked;
+    commit();
+  });
+  fC.addEventListener('input', () => { p.fill = fC.value; delete p._fillColor; fOn.checked = true; fC.disabled = false; refreshStage(); }); // 实时改色不重建 DOM（保持拾色器打开）
   const fWrap = document.createElement('div'); fWrap.className = 'cf-arr'; fWrap.appendChild(fOn); fWrap.appendChild(fC);
   add('填充', fWrap);
-  // 描边（颜色 + 无描边开关 + 线宽）
+  // 描边（颜色 + 无描边开关 + 线宽）：同填充——原色保留在 _strokeColor
   const sOn = document.createElement('input'); sOn.type = 'checkbox'; sOn.checked = !!p.stroke;
-  const sC = document.createElement('input'); sC.type = 'color'; sC.value = normColor(p.stroke || '#000000'); sC.disabled = !p.stroke;
-  sOn.addEventListener('change', () => { p.stroke = sOn.checked ? sC.value : null; sC.disabled = !p.stroke; commit(); });
-  sC.addEventListener('input', () => { p.stroke = sC.value; sOn.checked = true; sC.disabled = false; refreshStage(); }); // 同上：不重建
+  const sC = document.createElement('input'); sC.type = 'color'; sC.value = normColor(p.stroke || p._strokeColor || '#000000'); sC.disabled = !p.stroke;
+  sOn.addEventListener('change', () => {
+    if (sOn.checked) { p.stroke = (p._strokeColor != null ? p._strokeColor : sC.value) || sC.value; delete p._strokeColor; }
+    else { p._strokeColor = p.stroke || sC.value; p.stroke = null; }
+    sC.disabled = !sOn.checked;
+    commit();
+  });
+  sC.addEventListener('input', () => { p.stroke = sC.value; delete p._strokeColor; sOn.checked = true; sC.disabled = false; refreshStage(); }); // 同上：不重建
   const sW = document.createElement('input'); sW.type = 'number'; sW.value = p.strokeWidth != null ? p.strokeWidth : 1; sW.min = 0; sW.style.width = '38px';
   sW.addEventListener('change', () => { p.strokeWidth = Math.max(0, parseInt(sW.value) || 0); commit(); });
   const sWrap = document.createElement('div'); sWrap.className = 'cf-arr'; sWrap.appendChild(sOn); sWrap.appendChild(sC); sWrap.appendChild(sW);
