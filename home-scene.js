@@ -518,12 +518,13 @@ const HomeScene = (() => {
         const q = normPart(p);
         ctx.globalAlpha = alpha * (q.alpha != null ? q.alpha : 1); // 元素级 × 图元级透明度
         const PX = Math.round(X + (q.x || 0)), PY = Math.round(y0 + (q.y || 0));
-        const rot = q.rot || 0;
-        if (rot) {
+        const rot = q.rot || 0, fh = q.flipH ? -1 : 1, fv = q.flipV ? -1 : 1;
+        if (rot || fh < 0 || fv < 0) {
           const cx = X + (q.x || 0) + (q.w || 1) / 2, cy = y0 + (q.y || 0) + (q.h || 1) / 2;
           ctx.save();
           ctx.translate(cx, cy);
-          ctx.rotate(rot * Math.PI / 180);
+          ctx.scale(fh, fv);
+          if (rot) ctx.rotate(rot * Math.PI / 180);
           ctx.translate(-cx, -cy);
         }
         const hasStroke = q.stroke && q.strokeWidth > 0;
@@ -548,7 +549,7 @@ const HomeScene = (() => {
           if (q.fill) ctx.fill();
           if (hasStroke) { ctx.strokeStyle = q.stroke; ctx.lineWidth = q.strokeWidth; ctx.stroke(); }
         }
-        if (rot) ctx.restore();
+        if (rot || fh < 0 || fv < 0) ctx.restore();
       }
     };
     ctx.globalAlpha = alpha;
@@ -591,7 +592,19 @@ const HomeScene = (() => {
     if (e.anim === 'pulse') scale = 1 + 0.15 * Math.sin(t * 1000 / Math.max(200, e.animMs || 700) * Math.PI * 2);
     const w = e.w * scale, h = e.h * scale;
     ctx.globalAlpha = alpha;
-    const blit = (dx, dy) => ctx.drawImage(img, srcX, 0, sw, img.height, Math.round(dx), Math.round(dy), w, h);
+    const rot = e.rot || 0, fh = e.flipH ? -1 : 1, fv = e.flipV ? -1 : 1;
+    const blit = (dx, dy) => {
+      if (rot || fh < 0 || fv < 0) {
+        ctx.save();
+        ctx.translate(dx + w / 2, dy + h / 2);
+        ctx.scale(fh, fv);
+        if (rot) ctx.rotate(rot * Math.PI / 180);
+        ctx.drawImage(img, srcX, 0, sw, img.height, -w / 2, -h / 2, w, h);
+        ctx.restore();
+      } else {
+        ctx.drawImage(img, srcX, 0, sw, img.height, Math.round(dx), Math.round(dy), w, h);
+      }
+    };
     if (e.scroll && e.scroll.speed && e.scroll.span) {
       const sp = e.scroll.span, dir = e.scroll.dir === 'right' ? 1 : -1;
       const n = Math.ceil(W / sp) + 3;

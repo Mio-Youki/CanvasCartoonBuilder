@@ -422,7 +422,19 @@ function drawElement(ctx, e, t, imgMap) {
   const w = e.w * scale, h = e.h * scale;
   const ox = scrollOffset(e, t);
   ctx.globalAlpha = elementAlpha(e, t);
-  const blit = (dx, dy) => ctx.drawImage(img, fx * sw, 0, sw, img.height, Math.round(dx), Math.round(dy), w, h);
+  const rot = e.rot || 0, fh = e.flipH ? -1 : 1, fv = e.flipV ? -1 : 1;
+  const blit = (dx, dy) => {
+    if (rot || fh < 0 || fv < 0) {
+      ctx.save();
+      ctx.translate(dx + w / 2, dy + h / 2);
+      ctx.scale(fh, fv);
+      if (rot) ctx.rotate(rot * Math.PI / 180);
+      ctx.drawImage(img, fx * sw, 0, sw, img.height, -w / 2, -h / 2, w, h);
+      ctx.restore();
+    } else {
+      ctx.drawImage(img, fx * sw, 0, sw, img.height, Math.round(dx), Math.round(dy), w, h);
+    }
+  };
   if (e.scroll && e.scroll.speed && e.scroll.span) {
     const span = e.scroll.span;
     const dir = e.scroll.dir === 'right' ? 1 : -1;
@@ -471,44 +483,24 @@ function renderStage() {
       ctx.setLineDash([]);
     });
   }
-  // 程序元素整体选中（选择模式）：黄色虚线包围盒 + 四角手柄
+  // 程序元素整体选中（选择模式）：黄色虚线包围盒 + 四角手柄（统一选中框；带元素仅画框）
   if (state.selProg && state.selProg.parts && state.selProg.parts.length) {
-    const bb = partsBBox(state.selProg, state.t);
-    ctx.strokeStyle = '#ffd23f';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([3, 2]);
-    ctx.strokeRect(bb.x - 1, bb.y - 1, bb.w + 2, bb.h + 2);
-    ctx.setLineDash([]);
-    drawCorners(ctx, bb.x, bb.y, bb.w, bb.h, '#ffd23f');
-    if (!state.selProg.partsBand) drawRotationHandle(ctx, bb, '#ffd23f');
+    drawSelBox(ctx, partsBBox(state.selProg, state.t), '#ffd23f', state.selProg.partsBand ? { noHandles: true } : {});
   }
-  // 选中图元高亮（part 级）：青色虚线包围盒 + 四角手柄（带元素/多边形暂不缩放手柄）
+  // 选中图元高亮（part 级）：青色选中框（子图元仅颜色不同；带元素/多边形不显示缩放手柄与旋转 ●）
   if (state.partSel && state.partSel.el && state.partSel.el.parts && state.partSel.el.parts[state.partSel.index]) {
     const pe = state.partSel.el;
     const p = pe.parts[state.partSel.index];
     const ex0 = elVal(pe, 'x') + scrollOffset(pe, state.t), ey0 = elVal(pe, 'y');
     const bb = partBBox(p, ex0, ey0);
-    ctx.strokeStyle = '#4dc3ff';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([2, 2]);
-    ctx.strokeRect(bb.x - 1, bb.y - 1, bb.w + 2, bb.h + 2);
-    ctx.setLineDash([]);
-    if (!pe.partsBand && p.type !== 'poly') {
-      drawCorners(ctx, bb.x, bb.y, bb.w, bb.h, '#4dc3ff');
-      drawRotationHandle(ctx, bb, '#4dc3ff');
-    }
+    const noPoly = p.type === 'poly' || pe.partsBand;
+    drawSelBox(ctx, bb, '#4dc3ff', { dash: [2, 2], noCorners: noPoly, noRot: noPoly, noMirror: pe.partsBand });
   }
   // 选中高亮 + 四角缩放手柄（不依赖素材图，位置来自数据）
   const sel = selEl();
   if (sel) {
     const ox = scrollOffset(sel, state.t);
-    ctx.strokeStyle = '#ffd23f';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([3, 2]);
-    ctx.strokeRect(Math.round(sel.x + ox) - 1, Math.round(sel.y) - 1, sel.w + 2, sel.h + 2);
-    ctx.setLineDash([]);
-    drawCorners(ctx, Math.round(sel.x + ox), Math.round(sel.y), sel.w, sel.h, '#ffd23f');
-    if (sel.parts && sel.parts.length) drawRotationHandle(ctx, { x: Math.round(sel.x + ox), y: Math.round(sel.y), w: sel.w, h: sel.h }, '#ffd23f');
+    drawSelBox(ctx, { x: Math.round(sel.x + ox), y: Math.round(sel.y), w: sel.w, h: sel.h }, '#ffd23f', sel.partsBand ? { noHandles: true } : {});
   }
 }
 /* 装配模式图元渲染（与 home-scene drawParts 同语义；AI 式描边/填充） */
@@ -538,12 +530,13 @@ function drawPartsTool(ctx, e, t) {
       const q = normPart(p);
       ctx.globalAlpha = (e.alpha != null ? e.alpha : 1) * (q.alpha != null ? q.alpha : 1); // 元素级 × 图元级透明度
       const PX = Math.round(X + (q.x || 0)), PY = Math.round(y0 + (q.y || 0));
-      const rot = q.rot || 0;
-      if (rot) {
+      const rot = q.rot || 0, fh = q.flipH ? -1 : 1, fv = q.flipV ? -1 : 1;
+      if (rot || fh < 0 || fv < 0) {
         const cx = X + (q.x || 0) + (q.w || 1) / 2, cy = y0 + (q.y || 0) + (q.h || 1) / 2;
         ctx.save();
         ctx.translate(cx, cy);
-        ctx.rotate(rot * Math.PI / 180);
+        ctx.scale(fh, fv);
+        if (rot) ctx.rotate(rot * Math.PI / 180);
         ctx.translate(-cx, -cy);
       }
       const hasStroke = q.stroke && q.strokeWidth > 0;
@@ -567,7 +560,7 @@ function drawPartsTool(ctx, e, t) {
         if (q.fill) ctx.fill();
         if (hasStroke) { ctx.strokeStyle = q.stroke; ctx.lineWidth = q.strokeWidth; ctx.stroke(); }
       }
-      if (rot) ctx.restore();
+      if (rot || fh < 0 || fv < 0) ctx.restore();
     }
   };
   if (e.partsBand && bandSpeed(e) && bandSpan(e)) {
@@ -584,6 +577,20 @@ function drawPartsTool(ctx, e, t) {
     blit(ox);
   }
   ctx.globalAlpha = 1;
+}
+/* 统一选中框绘制：虚线包围盒 + 四角手柄 + 旋转 ● + 镜像按钮 [|]/[一]（opts.noHandles 整体关闭）
+   —— 图片元素/矢量元素/子图元共用同一套框与手柄（子图元仅颜色不同，青色 #4dc3ff） */
+function drawSelBox(ctx, box, color, opts) {
+  opts = opts || {};
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.setLineDash(opts.dash || [3, 2]);
+  ctx.strokeRect(box.x - 1, box.y - 1, box.w + 2, box.h + 2);
+  ctx.setLineDash([]);
+  if (opts.noHandles) return;
+  if (!opts.noCorners) drawCorners(ctx, box.x, box.y, box.w, box.h, color);
+  if (!opts.noRot) drawRotationHandle(ctx, box, color);
+  if (!opts.noMirror) drawMirrorButtons(ctx, box, color);
 }
 /* 选择框四角缩放手柄点 */
 function drawCorners(ctx, x, y, w, h, color) {
@@ -781,12 +788,22 @@ stage.addEventListener('pointerdown', ev => {
     renderStage();
   };
   if (partsOpenEl) {
-    // [编辑] 模式：旋转手柄（当前选中图元，手柄在包围盒上方）优先命中
+    // [编辑] 模式：旋转手柄 + 镜像按钮（当前选中图元，手柄在包围盒上方）优先命中
     if (state.partSel && state.partSel.el === partsOpenEl) {
       const ps = state.partSel;
       const pp = ps.el.parts[ps.index];
       if (pp) {
         const bb = partBBox(pp, elVal(ps.el, 'x') + scrollOffset(ps.el, state.t), elVal(ps.el, 'y'));
+        const mh = (!ps.el.partsBand && mirrorBtnHit(p, bb, 'h')) ? 1 : 0;
+        const mv = (!ps.el.partsBand && mirrorBtnHit(p, bb, 'v')) ? 1 : 0;
+        // 镜像按钮在旋转 ● 上方，先于旋转手柄命中（两者命中区相邻）
+        if (mh || mv) {
+          // 图元级镜像：翻转参数 + 旋转取反（渲染端绕图元中心翻转）
+          pushHistory();
+          mirrorPartFlip(pp, mh ? 'h' : 'v');
+          refreshStage();
+          return;
+        }
         const rh = (!ps.el.partsBand && pp.type !== 'poly') ? rotHandleHit(p, bb) : null;
         if (rh) {
           const cx = bb.x + bb.w / 2, cy = bb.y + bb.h / 2;
@@ -812,10 +829,20 @@ stage.addEventListener('pointerdown', ev => {
       if (pe === partsOpenEl) continue;
       const bb = partsBBox(pe, state.t);
       const rotD = (!pe.partsBand && rotHandleHit(p, bb)) ? 1 : 0;
-      if (rotD || (p.x >= bb.x && p.x <= bb.x + bb.w && p.y >= bb.y && p.y <= bb.y + bb.h)) {
+      const mh = (!pe.partsBand && mirrorBtnHit(p, bb, 'h')) ? 1 : 0;
+      const mv = (!pe.partsBand && mirrorBtnHit(p, bb, 'v')) ? 1 : 0;
+      if (mh || mv || rotD || (p.x >= bb.x && p.x <= bb.x + bb.w && p.y >= bb.y && p.y <= bb.y + bb.h)) {
         state.selEl = null;
         state.selProg = pe;
         state.partSel = null;
+        if (mh || mv) {
+          // 元素级镜像：图元坐标绕包围盒中心镜像 + rot 取反（图片元素 → flipH/flipV + rot 取反）
+          pushHistory();
+          mirrorElement(pe, mh ? 'h' : 'v');
+          buildLayerList(layerCfg());
+          refreshStage();
+          return;
+        }
         if (rotD) {
           const cx = bb.x + bb.w / 2, cy = bb.y + bb.h / 2;
           drag = { type: 'elrot', el: pe, cx: cx, cy: cy, a0: Math.atan2(p.y - cy, p.x - cx), rot0: (pe.parts[0] && pe.parts[0].rot) || 0 };
@@ -838,9 +865,14 @@ stage.addEventListener('pointerdown', ev => {
   for (const e of sorted) {
     const ox = scrollOffset(e, state.t);
     const x0 = e.x + ox, y0 = e.y;
-    if (p.x >= x0 && p.x <= x0 + e.w && p.y >= y0 && p.y <= y0 + e.h) {
+    const box = { x: x0, y: y0, w: e.w, h: e.h };
+    // 旋转手柄 + 镜像按钮（在包围盒外/上方）：优先于框内命中（图片元素与矢量元素共用）
+    const rotD = (!e.partsBand && rotHandleHit(p, box)) ? 1 : 0;
+    const mh = (!e.partsBand && mirrorBtnHit(p, box, 'h')) ? 1 : 0;
+    const mv = (!e.partsBand && mirrorBtnHit(p, box, 'v')) ? 1 : 0;
+    if (rotD || mh || mv || (p.x >= x0 && p.x <= x0 + e.w && p.y >= y0 && p.y <= y0 + e.h)) {
       // Ctrl 多选：点击切换；多选中的元素非 ctrl 拖动 = 整体移动多选集
-      if (ev.ctrlKey) {
+      if (!rotD && !mh && !mv && ev.ctrlKey) {
         const idx = state.multi.indexOf(e);
         if (idx >= 0) state.multi.splice(idx, 1); else state.multi.push(e);
         state.selEl = state.multi.length === 1 ? e.id : null;
@@ -849,7 +881,7 @@ stage.addEventListener('pointerdown', ev => {
         renderStage();
         return;
       }
-      if (state.multi.length > 1 && state.multi.indexOf(e) >= 0) {
+      if (!rotD && !mh && !mv && state.multi.length > 1 && state.multi.indexOf(e) >= 0) {
         drag = { type: 'mmove', els: state.multi, sx: p.x, sy: p.y, orig: state.multi.map(m => ({ x: m.x, y: m.y })) };
         renderStage();
         return;
@@ -858,14 +890,21 @@ stage.addEventListener('pointerdown', ev => {
       state.selEl = e.id;
       state.selProg = null;
       state.partSel = null;
-      const rotD = (e.parts && e.parts.length) ? rotHandleHit(p, { x: x0, y: y0, w: e.w, h: e.h }) : null;
+      if (mh || mv) {
+        // 元素级镜像：图片元素 flipH/flipV + rot 取反；图元元素坐标镜像 + rot 取反
+        pushHistory();
+        mirrorElement(e, mh ? 'h' : 'v');
+        buildLayerList(layerCfg());
+        refreshStage();
+        return;
+      }
       if (rotD) {
         const cx = x0 + e.w / 2, cy = y0 + e.h / 2;
-        drag = { type: 'elrot', el: e, cx: cx, cy: cy, a0: Math.atan2(p.y - cy, p.x - cx), rot0: (e.parts[0] && e.parts[0].rot) || 0 };
+        drag = { type: 'elrot', el: e, cx: cx, cy: cy, a0: Math.atan2(p.y - cy, p.x - cx), rot0: (e.parts && e.parts.length) ? ((e.parts[0] && e.parts[0].rot) || 0) : (e.rot || 0) };
         renderStage();
         return;
       }
-      const corner = hitCorner(p, { x: x0, y: y0, w: e.w, h: e.h });
+      const corner = hitCorner(p, box);
       if (corner) {
         drag = { type: 'resize', el: e, corner: corner, sx: p.x, sy: p.y, ow: e.w, oh: e.h, x0: x0, y0: y0, parts0: (e.parts && e.parts.length) ? JSON.parse(JSON.stringify(e.parts)) : null };
       } else {
@@ -909,7 +948,8 @@ stage.addEventListener('pointermove', ev => {
     let deg = (drag.rot0 + (ang - drag.a0) * 180 / Math.PI) % 360;
     if (deg < 0) deg += 360;
     if (drag.type === 'partrot') { const part = e.parts[drag.index]; if (part) part.rot = Math.round(deg); }
-    else rotPartsCoords(e, deg);
+    else if (e.parts && e.parts.length) rotPartsCoords(e, deg);
+    else e.rot = Math.round(deg); // 图片元素：e.rot（渲染端绕自身中心旋转）
     refreshStage();
     return;
   }
@@ -2245,10 +2285,8 @@ function partForm(p, box, rebuild) {
     add('points', d);
   }
 }
-/* 图元镜像：围绕自身包围盒中心翻转坐标 */
-function mirrorPart(p, axis) {
-  const bb = partBBox(p, 0, 0);
-  const cx = bb.x + bb.w / 2, cy = bb.y + bb.h / 2;
+/* 图元坐标镜像：围绕指定中心翻转坐标（h=水平翻转→绕竖轴镜像 x；v=垂直翻转→绕横轴镜像 y） */
+function mirrorPartAt(p, axis, cx, cy) {
   const m = (x, y) => (axis === 'h' ? [2 * cx - x, y] : [x, 2 * cy - y]);
   if (p.type === 'rect' || p.type === 'ellipse') {
     const [x1, y1] = m(p.x || 0, p.y || 0);
@@ -2260,8 +2298,60 @@ function mirrorPart(p, axis) {
     const [x2, y2] = m(p.x2 || 0, p.y2 || 0);
     p.x = Math.round(x1); p.y = Math.round(y1); p.x2 = Math.round(x2); p.y2 = Math.round(y2);
   } else if (p.type === 'poly') {
-    p.points = (p.points || []).map(pt => [Math.round(m(pt[0], pt[1])[0]), Math.round(m(pt[0], pt[1])[1])]);
+    p.points = (p.points || []).map(pt => { const r = m(pt[0], pt[1]); return [Math.round(r[0]), Math.round(r[1])]; });
   }
+}
+/* 图元级镜像（[编辑] 青色框按钮）：翻转参数 + 旋转取反；渲染端绕图元自身中心翻转，rot 取反保证镜像角度正确 */
+function mirrorPartFlip(p, axis) {
+  if (axis === 'h') p.flipH = !p.flipH; else p.flipV = !p.flipV;
+  if (p.rot) p.rot = -p.rot;
+}
+/* 元素级镜像（黄色框按钮）：图元元素 → parts 坐标绕元素包围盒中心镜像 + 各 part rot 取反；
+   图片元素 → flipH/flipV 参数 + rot 取反（渲染端绕自身中心翻转） */
+function mirrorElement(el, axis) {
+  if (el.parts && el.parts.length) {
+    // 局部包围盒（不滚动；parts 相对元素原点）
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const ext = (x, y) => { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); };
+    (el.parts || []).forEach(p => {
+      if (p.type === 'rect' || p.type === 'ellipse') { ext(p.x || 0, p.y || 0); ext((p.x || 0) + (p.w || 1), (p.y || 0) + (p.h || 1)); }
+      else if (p.type === 'line') { ext(p.x || 0, p.y || 0); ext(p.x2 || 0, p.y2 || 0); }
+      else if (p.type === 'poly') (p.points || []).forEach(pt => ext(pt[0], pt[1]));
+    });
+    if (isFinite(minX)) {
+      const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+      (el.parts || []).forEach(p => { mirrorPartAt(p, axis, cx, cy); if (p.rot) p.rot = -p.rot; });
+    }
+  } else {
+    if (axis === 'h') el.flipH = !el.flipH; else el.flipV = !el.flipV;
+    if (el.rot) el.rot = -el.rot;
+  }
+}
+/* 镜像按钮（7×7 方框）：[|] 垂直镜像在旋转 ● 上方，[一] 水平镜像在包围盒中心右侧 */
+function mirrorBtnHit(p, box, axis) {
+  if (axis === 'h') {
+    const bx = box.x + box.w / 2, by = box.y - 17;
+    return p.x >= bx - 4 && p.x <= bx + 4 && p.y >= by - 4 && p.y <= by + 4;
+  }
+  const hx = box.x + box.w + 9, hy = box.y + box.h / 2;
+  return p.x >= hx - 4 && p.x <= hx + 4 && p.y >= hy - 4 && p.y <= hy + 4;
+}
+function drawMirrorButtons(ctx, box, color) {
+  // [|] 垂直镜像（绕竖轴）：旋转 ●（y-8）上方 y-17
+  const bx = box.x + box.w / 2, by = box.y - 17;
+  ctx.fillStyle = '#20262e';
+  ctx.fillRect(Math.round(bx - 3.5), Math.round(by - 3.5), 7, 7);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(Math.round(bx - 3.5), Math.round(by - 3.5), 7, 7);
+  ctx.beginPath(); ctx.moveTo(Math.round(bx), Math.round(by - 2)); ctx.lineTo(Math.round(bx), Math.round(by + 2)); ctx.stroke();
+  // [一] 水平镜像（绕横轴）：包围盒中心右侧 x+w+9
+  const hx = box.x + box.w + 9, hy = box.y + box.h / 2;
+  ctx.fillStyle = '#20262e';
+  ctx.fillRect(Math.round(hx - 3.5), Math.round(hy - 3.5), 7, 7);
+  ctx.strokeStyle = color;
+  ctx.strokeRect(Math.round(hx - 3.5), Math.round(hy - 3.5), 7, 7);
+  ctx.beginPath(); ctx.moveTo(Math.round(hx - 2), Math.round(hy)); ctx.lineTo(Math.round(hx + 2), Math.round(hy)); ctx.stroke();
 }
 function partsEditor(el, body, cardKey) {
   const g = document.createElement('div');
@@ -2297,7 +2387,7 @@ function partsEditor(el, body, cardKey) {
     refreshStage();
   });
   body.appendChild(add);
-  // 选中图元操作：水平/垂直镜像、旋转复位（为图元级变换；选中框旋转手柄 = 旋转）
+  // 选中图元操作：旋转复位（镜像已移至选中框按钮 [|]/[一]；旋转手柄 = 旋转）
   const ops = document.createElement('div');
   ops.className = 'cf-row';
   const mk = (txt, fn) => {
@@ -2305,16 +2395,6 @@ function partsEditor(el, body, cardKey) {
     b.addEventListener('click', ev => { ev.stopPropagation(); fn(); });
     ops.appendChild(b);
   };
-  mk('水平镜像', () => {
-    const ps = state.partSel;
-    if (!ps || ps.el !== el || !el.parts[ps.index]) return;
-    pushHistory(); mirrorPart(el.parts[ps.index], 'h'); buildLayerList(layerCfg()); refreshStage();
-  });
-  mk('垂直镜像', () => {
-    const ps = state.partSel;
-    if (!ps || ps.el !== el || !el.parts[ps.index]) return;
-    pushHistory(); mirrorPart(el.parts[ps.index], 'v'); buildLayerList(layerCfg()); refreshStage();
-  });
   mk('旋转复位', () => {
     const ps = state.partSel;
     if (ps && ps.el === el && el.parts[ps.index]) { pushHistory(); el.parts[ps.index].rot = 0; }
