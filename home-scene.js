@@ -545,8 +545,8 @@ const HomeScene = (() => {
       if (e.alphaMode === 'remove' || e.alphaMode === 'boost') {
         const aid = og.getImageData(0, 0, oc.width, oc.height);
         const ad = aid.data;
-        if (e.alphaMode === 'remove') { for (let ai = 3; ai < ad.length; ai += 4) if (ad[ai] > 0 && ad[ai] < 128) ad[ai] = 0; }
-        else { for (let ai = 3; ai < ad.length; ai += 4) if (ad[ai] > 128) ad[ai] = 255; }
+        if (e.alphaMode === 'remove') { for (let ai = 3; ai < ad.length; ai += 4) { const av = ad[ai]; if (av > 0 && av < 128) ad[ai] = 0; else if (av >= 128) ad[ai] = 255; } }
+        else { for (let ai = 3; ai < ad.length; ai += 4) if (ad[ai] > 0) ad[ai] = 255; }
         og.putImageData(aid, 0, 0);
       }
       let elAlpha = e.alpha != null ? e.alpha : 1;

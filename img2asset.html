@@ -144,7 +144,7 @@
         <option value="4">1/4</option>
         <option value="8">1/8</option>
       </select>
-      <select id="alpha-mode" title="边缘透明像素（128 分界）：保留=默认软边；消除=淡半透明(<128)变透明；增强=实半透明(>128)拉满">
+      <select id="alpha-mode" title="边缘透明像素：保留=默认软边；消除=alpha&lt;128 变透明 + alpha&gt;=128 拉满（一步到位只剩透明/不透明）；增强=全部半透明拉满">
         <option value="keep">边缘:保留</option>
         <option value="remove">边缘:消除</option>
         <option value="boost">边缘:增强</option>
@@ -338,22 +338,23 @@ function pixelate(img, w, h, opts) {
       d[i + 1] = Math.round(Math.round(d[i + 1] / k) * k);
       d[i + 2] = Math.round(Math.round(d[i + 2] / k) * k);
     }
-    // 边缘透明像素（128 分界温和版）：remove=淡半透明(<128)消除；boost=实半透明(>128)拉满
+    // 边缘透明像素：remove = alpha<128 透明 + alpha>=128 拉满（一步到位只剩 {0,255}）；boost = 全部半透明拉满
     const am = opts && opts.alphaMode;
-    if (am === 'remove') { if (d[i + 3] > 0 && d[i + 3] < 128) d[i + 3] = 0; }
-    else if (am === 'boost') { if (d[i + 3] > 128) d[i + 3] = 255; }
+    if (am === 'remove') { const a = d[i + 3]; if (a > 0 && a < 128) d[i + 3] = 0; else if (a >= 128) d[i + 3] = 255; }
+    else if (am === 'boost') { if (d[i + 3] > 0) d[i + 3] = 255; }
   }
   g.putImageData(data, 0, 0);
   return c;
 }
-/* 边缘透明像素处理（对已有 canvas 的 alpha 后处理；用于元素级离屏重采样） */
+/* 边缘透明像素处理（对已有 canvas 的 alpha 后处理；用于元素级离屏重采样）：
+   remove = alpha<128 透明 + alpha>=128 拉满；boost = 全部半透明拉满（透明像素保持） */
 function applyAlphaMode(canvas, mode) {
   if (mode !== 'remove' && mode !== 'boost') return;
   const g = canvas.getContext('2d');
   const id = g.getImageData(0, 0, canvas.width, canvas.height);
   const d = id.data;
-  if (mode === 'remove') { for (let i = 3; i < d.length; i += 4) if (d[i] > 0 && d[i] < 128) d[i] = 0; }
-  else { for (let i = 3; i < d.length; i += 4) if (d[i] > 128) d[i] = 255; }
+  if (mode === 'remove') { for (let i = 3; i < d.length; i += 4) { const a = d[i]; if (a > 0 && a < 128) d[i] = 0; else if (a >= 128) d[i] = 255; } }
+  else { for (let i = 3; i < d.length; i += 4) if (d[i] > 0) d[i] = 255; }
   g.putImageData(id, 0, 0);
 }
 
@@ -425,7 +426,7 @@ function addSource(img, name, frames) {
     styleOn: $('style-on').checked !== false, // 关 = 原样 1:1 显示
     divisor: parseInt($('divisor').value) || 2, // 采样除数：采样尺寸 = 基图 ÷ 除数
     palette: $('palette').value, quant: parseInt($('quant').value) || 0, bgtol: parseInt($('bgtol').value) || 0,
-    alphaMode: $('alpha-mode').value || 'keep', // 边缘透明像素：keep/remove/boost
+    alphaMode: $('alpha-mode').value || 'keep', // 边缘透明像素：keep/remove（<128透明+>=128拉满）/boost（全拉满）
     _canvas: null, _dataUrl: null, // 惰性采样缓存
   };
   const sz = sourceSampleSize(src);
@@ -638,7 +639,7 @@ function drawPartsToolDiv(ctx, e, t, div) {
   og.scale(1 / div, 1 / div);
   og.translate(-bx, -by);
   drawPartsToolRaw(og, e, t, 1); // 离屏画不透明版（元素级 alpha 移到放大时应用，避免与边缘透明处理冲突）
-  applyAlphaMode(oc, e.alphaMode); // 边缘透明像素：remove/boost（128 分界）
+  applyAlphaMode(oc, e.alphaMode); // 边缘透明像素：remove（<128 透明 + >=128 拉满）/ boost（全拉满）
   ctx.save();
   ctx.globalAlpha = e.alpha != null ? e.alpha : 1;
   ctx.imageSmoothingEnabled = false;
@@ -1990,7 +1991,7 @@ function getPath(o, p) { return p.split('.').reduce((a, k) => (a == null ? undef
 function setPath(o, p, v) { const ks = p.split('.'); let a = o; for (let i = 0; i < ks.length - 1; i++) a = a[ks[i]] = a[ks[i]] || {}; a[ks[ks.length - 1]] = v; }
 /* 素材卡片专用表单：中文说明（滚动/动画/多帧），单值显示 + [s] 单场景编辑；显示时间走卡片头 [S] 弹窗 */
 /* 像素化除数控件（元素级重采样）：程序元素（walkForm）与绘制生成的矢量元素（imgForm）共用；
-   右侧带边缘透明像素下拉（128 分界温和版） */
+   右侧带边缘透明像素下拉（保留/消除/增强）+ 阈值（0-255，默认 128；255=彻底消除 / 0=彻底增强） */
 function pixelDivControl(el) {
   const wrap = document.createElement('div');
   wrap.className = 'cf-row-inline';
@@ -2015,11 +2016,11 @@ function pixelDivControl(el) {
     if ((el.alphaMode || 'keep') === v) o.selected = true;
     am.appendChild(o);
   });
-  am.title = '边缘透明像素（128 分界）：保留=默认软边；消除=淡半透明(<128)变透明；增强=实半透明(>128)拉满';
+  am.title = '边缘透明像素：保留=默认软边；消除=alpha&lt;128 变透明 + alpha&gt;=128 拉满；增强=全部半透明拉满';
   am.addEventListener('change', () => {
     pushHistory();
-    const v = am.value;
-    if (v === 'keep') delete el.alphaMode; else el.alphaMode = v;
+    const m = am.value;
+    if (m === 'keep') delete el.alphaMode; else el.alphaMode = m;
     refreshStage();
   });
   wrap.appendChild(sel);
