@@ -540,9 +540,19 @@ const HomeScene = (() => {
       og.translate(-bx, -by);
       const savedCtx = ctx;
       ctx = og;
-      drawPartsRaw(e, t);
+      drawPartsRaw(e, t, 1); // 离屏画不透明版（元素 alpha 移到放大时应用，避免与边缘透明处理冲突）
       ctx = savedCtx;
+      if (e.alphaMode === 'remove' || e.alphaMode === 'boost') {
+        const aid = og.getImageData(0, 0, oc.width, oc.height);
+        const ad = aid.data;
+        if (e.alphaMode === 'remove') { for (let ai = 3; ai < ad.length; ai += 4) if (ad[ai] > 0 && ad[ai] < 128) ad[ai] = 0; }
+        else { for (let ai = 3; ai < ad.length; ai += 4) if (ad[ai] > 128) ad[ai] = 255; }
+        og.putImageData(aid, 0, 0);
+      }
+      let elAlpha = e.alpha != null ? e.alpha : 1;
+      if (e.anim === 'blink') { const on = Math.floor(t * 1000 / Math.max(50, e.animMs || 700)) % 2 === 0; elAlpha *= on ? 1 : 0.25; }
       ctx.save();
+      ctx.globalAlpha = elAlpha; // 元素级透明度（含 blink）在放大时应用
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(oc, 0, 0, W, H, Math.round(bx), Math.round(by), Math.round(lb.w), Math.round(lb.h));
       ctx.restore();
@@ -550,7 +560,7 @@ const HomeScene = (() => {
     }
     drawPartsRaw(e, t);
   }
-  function drawPartsRaw(e, t) {
+  function drawPartsRaw(e, t, alphaOverride) {
     let ox = 0;
     if (e.scroll && e.scroll.speed) {
       const sp = e.scroll.span || e.w || 1;
@@ -558,7 +568,7 @@ const HomeScene = (() => {
       ox = e.scroll.dir === 'right' ? off : -off;
     }
     const x0 = val(e, 'x', t) || 0, y0 = val(e, 'y', t) || 0; // 缺失键按 0（无 x/y 的程序元素图元以画布绝对坐标 + scroll 落位）
-    let alpha = e.alpha != null ? e.alpha : 1;
+    let alpha = alphaOverride != null ? alphaOverride : (e.alpha != null ? e.alpha : 1);
     if (e.anim === 'blink') { const on = Math.floor(t * 1000 / Math.max(50, e.animMs || 700)) % 2 === 0; alpha *= on ? 1 : 0.25; }
     let scale = 1;
     if (e.anim === 'pulse') scale = 1 + 0.15 * Math.sin(t * 1000 / Math.max(200, e.animMs || 700) * Math.PI * 2);

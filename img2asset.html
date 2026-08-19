@@ -114,6 +114,7 @@
   .cf-box { border: 1px dashed #2c3560; padding: 2px 4px; margin: 3px 0; }
   .layer-body { border-top: 1px dashed #2c3560; padding: 4px 6px 6px; }
   .cf-row { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+  .cf-row-inline { display: flex; align-items: center; gap: 6px; flex: 1; }
   .cf-row label { flex: 1; margin: 0; font-size: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cf-row input[type=number] { width: 76px; }
   .cf-row input[type=text] { width: 110px; }
@@ -142,6 +143,11 @@
         <option value="2" selected>1/2</option>
         <option value="4">1/4</option>
         <option value="8">1/8</option>
+      </select>
+      <select id="alpha-mode" title="边缘透明像素（128 分界）：保留=默认软边；消除=淡半透明(<128)变透明；增强=实半透明(>128)拉满">
+        <option value="keep">边缘:保留</option>
+        <option value="remove">边缘:消除</option>
+        <option value="boost">边缘:增强</option>
       </select>
     </div>
     <label>减色色板（映射到有限色板最近色）</label>
@@ -332,9 +338,23 @@ function pixelate(img, w, h, opts) {
       d[i + 1] = Math.round(Math.round(d[i + 1] / k) * k);
       d[i + 2] = Math.round(Math.round(d[i + 2] / k) * k);
     }
+    // 边缘透明像素（128 分界温和版）：remove=淡半透明(<128)消除；boost=实半透明(>128)拉满
+    const am = opts && opts.alphaMode;
+    if (am === 'remove') { if (d[i + 3] > 0 && d[i + 3] < 128) d[i + 3] = 0; }
+    else if (am === 'boost') { if (d[i + 3] > 128) d[i + 3] = 255; }
   }
   g.putImageData(data, 0, 0);
   return c;
+}
+/* 边缘透明像素处理（对已有 canvas 的 alpha 后处理；用于元素级离屏重采样） */
+function applyAlphaMode(canvas, mode) {
+  if (mode !== 'remove' && mode !== 'boost') return;
+  const g = canvas.getContext('2d');
+  const id = g.getImageData(0, 0, canvas.width, canvas.height);
+  const d = id.data;
+  if (mode === 'remove') { for (let i = 3; i < d.length; i += 4) if (d[i] > 0 && d[i] < 128) d[i] = 0; }
+  else { for (let i = 3; i < d.length; i += 4) if (d[i] > 128) d[i] = 255; }
+  g.putImageData(id, 0, 0);
 }
 
 /* 素材 = 原图（基图）+ 参数快照（样式化开关/采样除数/色板/量化/去背景）；采样结果惰性缓存。
@@ -349,7 +369,7 @@ function sourceSampleSize(s) {
 function getSourceCanvas(s) {
   if (!s._canvas) {
     const div = (s.styleOn !== false && s.divisor) ? s.divisor : 1;
-    const opts = { palette: s.palette, quant: s.quant, bgtol: s.bgtol };
+    const opts = { palette: s.palette, quant: s.quant, bgtol: s.bgtol, alphaMode: s.alphaMode };
     const sz = sourceSampleSize(s);
     if (s.frames > 1) {
       // 多帧 sheet：切帧恒用基图帧宽（s.img.width/frames，导入时固定——改除数不破坏帧边界），
@@ -405,6 +425,7 @@ function addSource(img, name, frames) {
     styleOn: $('style-on').checked !== false, // 关 = 原样 1:1 显示
     divisor: parseInt($('divisor').value) || 2, // 采样除数：采样尺寸 = 基图 ÷ 除数
     palette: $('palette').value, quant: parseInt($('quant').value) || 0, bgtol: parseInt($('bgtol').value) || 0,
+    alphaMode: $('alpha-mode').value || 'keep', // 边缘透明像素：keep/remove/boost
     _canvas: null, _dataUrl: null, // 惰性采样缓存
   };
   const sz = sourceSampleSize(src);
@@ -616,8 +637,10 @@ function drawPartsToolDiv(ctx, e, t, div) {
   og.imageSmoothingEnabled = false;
   og.scale(1 / div, 1 / div);
   og.translate(-bx, -by);
-  drawPartsToolRaw(og, e, t);
+  drawPartsToolRaw(og, e, t, 1); // 离屏画不透明版（元素级 alpha 移到放大时应用，避免与边缘透明处理冲突）
+  applyAlphaMode(oc, e.alphaMode); // 边缘透明像素：remove/boost（128 分界）
   ctx.save();
+  ctx.globalAlpha = e.alpha != null ? e.alpha : 1;
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(oc, 0, 0, W, H, Math.round(bx), Math.round(by), Math.round(bw), Math.round(bh));
   ctx.restore();
@@ -644,7 +667,7 @@ function partCenter(p) {
   }
   return { cx: (p.x || 0) + 0.5, cy: (p.y || 0) + 0.5 };
 }
-function drawPartsToolRaw(ctx, e, t) {
+function drawPartsToolRaw(ctx, e, t, alphaOverride) {
   let ox = 0;
   if (e.scroll && e.scroll.speed) {
     const sp = e.scroll.span || e.w || 1;
@@ -652,7 +675,7 @@ function drawPartsToolRaw(ctx, e, t) {
     ox = e.scroll.dir === 'right' ? off : -off;
   }
   const x0 = elVal(e, 'x') + ox, y0 = elVal(e, 'y');
-  ctx.globalAlpha = e.alpha != null ? e.alpha : 1;
+  ctx.globalAlpha = alphaOverride != null ? alphaOverride : (e.alpha != null ? e.alpha : 1);
   const blit = dx => {
     const X = x0 + dx;
     for (const p of (e.parts || [])) {
@@ -1440,6 +1463,7 @@ function loadFiles(files) {
       styleOn: $('style-on').checked !== false,
       divisor: parseInt($('divisor').value) || 2,
       palette: $('palette').value, quant: parseInt($('quant').value) || 0, bgtol: parseInt($('bgtol').value) || 0,
+      alphaMode: $('alpha-mode').value || 'keep',
       _canvas: null, _dataUrl: null,
     };
     const sz = sourceSampleSize(src);
@@ -1459,9 +1483,11 @@ function applyStyleToSource(s, rebuildLib) {
     palette: $('palette').value,
     quant: parseInt($('quant').value) || 0,
     bgtol: parseInt($('bgtol').value) || 0,
+    alphaMode: $('alpha-mode').value || 'keep',
   };
-  const changed = p.palette !== s.palette || p.quant !== s.quant || p.bgtol !== s.bgtol || div !== s.divisor || on !== s.styleOn;
+  const changed = p.palette !== s.palette || p.quant !== s.quant || p.bgtol !== s.bgtol || p.alphaMode !== s.alphaMode || div !== s.divisor || on !== s.styleOn;
   s.palette = p.palette; s.quant = p.quant; s.bgtol = p.bgtol;
+  s.alphaMode = p.alphaMode;
   s.divisor = div; s.styleOn = on;
   if (!changed) return;
   invalidateSource(s); // 采样缓存失效 + 引用元素 _asset 清空（渲染实时取新采样）
@@ -1477,10 +1503,12 @@ function renderStyleCtl() {
     $('palette').value = s.palette || '';
     $('quant').value = s.quant || 0;
     $('bgtol').value = s.bgtol || 0;
+    $('alpha-mode').value = s.alphaMode || 'keep';
   }
 }
 $('style-on').addEventListener('change', () => { const s = selSource(); if (s) applyStyleToSource(s, true); });
 $('divisor').addEventListener('change', () => { const s = selSource(); if (s) applyStyleToSource(s, true); });
+$('alpha-mode').addEventListener('change', () => { const s = selSource(); if (s) applyStyleToSource(s, true); });
 $('palette').addEventListener('input', () => { const s = selSource(); if (s) applyStyleToSource(s, false); });
 $('quant').addEventListener('input', () => { const s = selSource(); if (s) applyStyleToSource(s, false); });
 $('bgtol').addEventListener('input', () => { const s = selSource(); if (s) applyStyleToSource(s, false); });
@@ -1898,21 +1926,7 @@ function walkForm(obj, path, box, cardKey) {
   const idx = () => Math.min(curS < 0 ? 0 : curS, 31);
   // 程序元素（含 parts）：像素化除数（元素级重采样，1=平滑）——离屏缩小 N 倍采样再最近邻放大（椭圆等边缘出锯齿）
   if (obj && obj.parts && Array.isArray(obj.parts)) {
-    const sel = document.createElement('select');
-    [1, 2, 4].forEach(d => {
-      const o = document.createElement('option');
-      o.value = d; o.textContent = '1/' + d + (d === 1 ? ' 平滑' : '');
-      if ((obj.pixelDiv || 1) === d) o.selected = true;
-      sel.appendChild(o);
-    });
-    sel.title = '元素级重采样：parts 缩小 N 倍采样再最近邻放大（边缘锯齿感）；1/1=平滑（默认）';
-    sel.addEventListener('change', () => {
-      pushHistory();
-      const v = parseInt(sel.value) || 1;
-      if (v > 1) obj.pixelDiv = v; else delete obj.pixelDiv;
-      refreshStage();
-    });
-    add('像素化除数', sel);
+    add('像素化除数', pixelDivControl(obj));
   }
   for (const [k, v] of Object.entries(obj)) {
     if (k === 'show' || k === 'parts') continue; // show=弹窗管理；parts=图元编辑面板
@@ -1975,6 +1989,43 @@ function walkForm(obj, path, box, cardKey) {
 function getPath(o, p) { return p.split('.').reduce((a, k) => (a == null ? undefined : a[k]), o); }
 function setPath(o, p, v) { const ks = p.split('.'); let a = o; for (let i = 0; i < ks.length - 1; i++) a = a[ks[i]] = a[ks[i]] || {}; a[ks[ks.length - 1]] = v; }
 /* 素材卡片专用表单：中文说明（滚动/动画/多帧），单值显示 + [s] 单场景编辑；显示时间走卡片头 [S] 弹窗 */
+/* 像素化除数控件（元素级重采样）：程序元素（walkForm）与绘制生成的矢量元素（imgForm）共用；
+   右侧带边缘透明像素下拉（128 分界温和版） */
+function pixelDivControl(el) {
+  const wrap = document.createElement('div');
+  wrap.className = 'cf-row-inline';
+  const sel = document.createElement('select');
+  [1, 2, 4].forEach(d => {
+    const o = document.createElement('option');
+    o.value = d; o.textContent = '1/' + d + (d === 1 ? ' 平滑' : '');
+    if ((el.pixelDiv || 1) === d) o.selected = true;
+    sel.appendChild(o);
+  });
+  sel.title = '元素级重采样：parts 缩小 N 倍采样再最近邻放大（边缘锯齿感）；1/1=平滑（默认）';
+  sel.addEventListener('change', () => {
+    pushHistory();
+    const v = parseInt(sel.value) || 1;
+    if (v > 1) el.pixelDiv = v; else delete el.pixelDiv;
+    refreshStage();
+  });
+  const am = document.createElement('select');
+  [['keep', '边缘:保留'], ['remove', '边缘:消除'], ['boost', '边缘:增强']].forEach(([v, t]) => {
+    const o = document.createElement('option');
+    o.value = v; o.textContent = t;
+    if ((el.alphaMode || 'keep') === v) o.selected = true;
+    am.appendChild(o);
+  });
+  am.title = '边缘透明像素（128 分界）：保留=默认软边；消除=淡半透明(<128)变透明；增强=实半透明(>128)拉满';
+  am.addEventListener('change', () => {
+    pushHistory();
+    const v = am.value;
+    if (v === 'keep') delete el.alphaMode; else el.alphaMode = v;
+    refreshStage();
+  });
+  wrap.appendChild(sel);
+  wrap.appendChild(am);
+  return wrap;
+}
 function imgForm(el, box, cardKey) {
   const sc = sceneNames();
   const curS = tlCurScene;
@@ -1989,6 +2040,10 @@ function imgForm(el, box, cardKey) {
     if (extra) w.appendChild(extra);
     box.appendChild(w);
   };
+  // 绘制生成的矢量元素（含 parts，属 images 层）：同样提供像素化除数（元素级重采样）
+  if (el.parts && el.parts.length) {
+    add('像素化除数', pixelDivControl(el), '元素级重采样：parts 缩小 N 倍采样再最近邻放大（边缘锯齿感）；1/1=平滑（默认）');
+  }
   const num = (label, key, step, min, hint) => {
     const raw = getPath(el, key);
     const isArr = Array.isArray(raw);
