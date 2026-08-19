@@ -599,8 +599,8 @@ function renderStage() {
     const p = pe.parts[state.partSel.index];
     const ex0 = elVal(pe, 'x') + scrollOffset(pe, state.t), ey0 = elVal(pe, 'y');
     const bb = partBBox(p, ex0, ey0);
-    const noPoly = p.type === 'poly' || pe.partsBand;
-    drawSelBox(ctx, bb, '#4dc3ff', { dash: [2, 2], noCorners: noPoly, noRot: noPoly, noMirror: pe.partsBand });
+    // 选中图元高亮（part 级）：青色选中框 + 四角缩放 + 旋转 ●（多边形同支持；带元素仅画框）
+    drawSelBox(ctx, bb, '#4dc3ff', { dash: [2, 2], noCorners: pe.partsBand, noRot: pe.partsBand, noMirror: pe.partsBand });
   }
   // 选中高亮 + 四角缩放手柄（不依赖素材图，位置来自数据）
   const sel = selEl();
@@ -924,12 +924,12 @@ stage.addEventListener('pointerdown', ev => {
     state.partSel = { el: e, index: i };
     const pp = e.parts[i];
     const bb = e.partsBand ? null : partBBox(pp, elVal(e, 'x') + scrollOffset(e, state.t), elVal(e, 'y'));
-    const rh = bb && !e.partsBand && pp.type !== 'poly' ? rotHandleHit(p, bb) : null;
+    const rh = bb && !e.partsBand ? rotHandleHit(p, bb) : null;
     if (rh) {
       const cx = bb.x + bb.w / 2, cy = bb.y + bb.h / 2;
       drag = { type: 'partrot', el: e, index: i, cx: cx, cy: cy, a0: Math.atan2(p.y - cy, p.x - cx), rot0: pp.rot || 0 };
     } else {
-      const corner = bb && pp.type !== 'poly' ? hitCorner(p, bb) : null;
+      const corner = bb ? hitCorner(p, bb) : null;
       if (corner) {
         drag = { type: 'partresize', el: e, index: i, corner: corner, sx: p.x, sy: p.y, ow: Math.max(1, bb.w), oh: Math.max(1, bb.h), bx: bb.x, by: bb.y, orig: JSON.parse(JSON.stringify(pp)) };
       } else {
@@ -959,7 +959,7 @@ stage.addEventListener('pointerdown', ev => {
           refreshStage();
           return;
         }
-        const rh = (!ps.el.partsBand && pp.type !== 'poly') ? rotHandleHit(p, bb) : null;
+        const rh = (!ps.el.partsBand) ? rotHandleHit(p, bb) : null;
         if (rh) {
           const cx = bb.x + bb.w / 2, cy = bb.y + bb.h / 2;
           drag = { type: 'partrot', el: ps.el, index: ps.index, cx: cx, cy: cy, a0: Math.atan2(p.y - cy, p.x - cx), rot0: pp.rot || 0 };
@@ -1133,13 +1133,14 @@ stage.addEventListener('pointermove', ev => {
     return;
   }
   if (drag.type === 'partresize') {
-    // 子图元四角缩放：锚定对角缩放（基于起点副本无累积误差）
+    // 子图元四角缩放：锚定对角（拖 br 锚 tl，拖 bl 锚 tr…）基于起点副本无累积误差
     const part = e.parts[drag.index];
     if (part) {
       const r = cornerResize({ x: drag.bx, y: drag.by, w: drag.ow, h: drag.oh }, drag.corner, p.x - drag.sx, p.y - drag.sy);
       const origBB = partBBox(drag.orig, 0, 0);
-      const ax = origBB.x + (drag.corner === 'br' || drag.corner === 'tr' ? origBB.w : 0);
-      const ay = origBB.y + (drag.corner === 'br' || drag.corner === 'bl' ? origBB.h : 0);
+      // 对角锚点（拖动的角的对角固定）
+      const ax = (drag.corner === 'bl' || drag.corner === 'tl') ? origBB.w : 0;
+      const ay = (drag.corner === 'tr' || drag.corner === 'tl') ? origBB.h : 0;
       e.parts[drag.index] = scalePartAround(drag.orig, ax, ay, r.nw / drag.ow, r.nh / drag.oh);
     }
     refreshStage();
@@ -1176,9 +1177,9 @@ stage.addEventListener('pointermove', ev => {
       r = { nx, ny, nw, nh };
     }
     if (drag.parts0) {
-      // 锚点（对角）在 parts 相对空间 = 元素 bbox 的对角
-      const ax = drag.corner === 'br' || drag.corner === 'tr' ? drag.ow : 0;
-      const ay = drag.corner === 'br' || drag.corner === 'bl' ? drag.oh : 0;
+      // 锚点（对角）在 parts 相对空间 = 元素 bbox 的对角（拖 br 锚 tl…）
+      const ax = (drag.corner === 'bl' || drag.corner === 'tl') ? drag.ow : 0;
+      const ay = (drag.corner === 'tr' || drag.corner === 'tl') ? drag.oh : 0;
       const rw = r.nw / drag.ow, rh = r.nh / drag.oh;
       e.parts = drag.parts0.map(pp => scalePartAround(pp, ax, ay, rw, rh));
     }
@@ -1191,12 +1192,12 @@ stage.addEventListener('pointermove', ev => {
 stage.addEventListener('pointerup', ev => {
   if (state.drawShape && state.drawDrag) {
     state.drawDrag = false;
-    // 单击（几乎无位移）不生成图元——只有拖动才生成，防误触
+    // 单击（几乎无位移）不生成图元——只有拖动才生成，防误触；且自动切回[选择]
     const s = state.drawShape;
     const tiny = s.type === 'line' ? Math.hypot(s.x2 - s.x0, s.y2 - s.y0) < 3
       : Math.abs(s.w) < 3 && Math.abs(s.h) < 3;
     if (!tiny) commitDrawShape();
-    state.drawShape = null;
+    else setDrawMode('select'); // 单击未创建图形 → 绘制状态自动变回[选择]
     renderStage();
     return;
   }
@@ -1326,15 +1327,16 @@ function convertBandPart(el, part) {
   else part.x = ph(part.x);
   return part;
 }
-document.querySelectorAll('#draw-row .dbtn').forEach(b => b.addEventListener('click', () => {
-  state.drawMode = b.dataset.mode;
-  if (state.drawMode !== 'poly') { state.drawPts = []; }
+function setDrawMode(mode) {
+  state.drawMode = mode;
+  if (mode !== 'poly') state.drawPts = [];
   state.drawShape = null; state.drawDrag = false;
-  document.querySelectorAll('#draw-row .dbtn').forEach(x => x.classList.toggle('active', x === b));
+  document.querySelectorAll('#draw-row .dbtn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
   const hint = $('draw-hint');
-  hint.textContent = state.drawMode === 'select' ? '' : (state.drawMode === 'poly' ? '单击加顶点 · 双击/回车闭合 · Esc 取消' : '拖拽绘制 · Esc 取消');
+  hint.textContent = mode === 'select' ? '' : (mode === 'poly' ? '单击加顶点 · 双击/回车闭合 · Esc 取消' : '拖拽绘制 · Esc 取消');
   renderStage();
-}));
+}
+document.querySelectorAll('#draw-row .dbtn').forEach(b => b.addEventListener('click', () => setDrawMode(b.dataset.mode)));
 $('draw-fillc').addEventListener('input', () => { state.drawFillColor = $('draw-fillc').value; });
 $('draw-strokec').addEventListener('input', () => { state.drawStrokeColor = $('draw-strokec').value; });
 $('draw-strokeon').addEventListener('change', () => { state.drawStrokeOn = $('draw-strokeon').checked; });
