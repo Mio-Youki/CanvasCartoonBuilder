@@ -129,28 +129,12 @@
 <div class="sub">任意图片 → 像素化 → 拖拽装配（滚动/闪烁/脉动）→ 打开/保存场景 js（页面内直接改写配置，无需复制粘贴）。开发工具，不随游戏发布。</div>
 
 <div class="cols">
-  <!-- 左：素材导入与像素化 -->
+  <!-- 左：素材导入与素材库 -->
   <div class="panel p-import">
     <label>导入素材（任意图片，非 8bit 亦可）</label>
     <div id="drop" class="drop">拖入图片 / 点击选择</div>
     <input id="file" type="file" accept="image/*" multiple hidden>
-    <label>像素化分辨率（宽，高按比例）</label>
-    <div class="row">
-      <input id="pw" type="number" min="8" value="160">
-      <button id="btn-repx" class="primary" style="margin-top:0">重像素化选中素材</button>
-    </div>
-    <label>减色色板</label>
-    <select id="palette">
-      <option value="">无（保持原色）</option>
-      <option value="pico8">PICO-8 · 32 色</option>
-      <option value="gb">Game Boy · 4 色</option>
-      <option value="vga">VGA · 16 色</option>
-    </select>
-    <label>均匀量化（每通道色阶，0=关）</label>
-    <input id="quant" type="range" min="0" max="8" value="0">
-    <label>去背景容差（0=关；按左上角颜色抠除）</label>
-    <input id="bgtol" type="range" min="0" max="60" value="0">
-    <label>素材库（点击选中，再"添加到场景"）</label>
+    <label>素材库（点击选中，再"添加到场景"；样式化参数在顶部工具栏）</label>
     <div id="lib" class="lib"></div>
     <button id="btn-add" class="primary">添加到场景 →</button>
     <button id="btn-del-src">删除选中素材</button>
@@ -169,6 +153,24 @@
       <label class="sf-l nm">周期</label><input id="gloop" class="sf-n" type="number" value="48">
       <label class="sf-l"><input type="checkbox" id="showscene"> 场景层</label>
       <button id="btn-play" class="small primary sf-play">⏸</button>
+    </div>
+    <div class="sf-row" id="style-row" title="素材样式化：作用于选中素材（原图保留，可随时还原/重采样）">
+      <span class="sf-sep"></span>
+      <label class="sf-l nm">素材样式化</label>
+      <label class="sf-l nm">采样宽</label><input id="pw" class="sf-n" type="number" min="8" value="160">
+      <label class="sf-l nm">色板</label>
+      <select id="palette" class="sf-n" style="width:86px">
+        <option value="">无（保持原色）</option>
+        <option value="pico8">PICO-8 · 32 色</option>
+        <option value="gb">Game Boy · 4 色</option>
+        <option value="vga">VGA · 16 色</option>
+      </select>
+      <label class="sf-l nm" title="每通道色阶，0=关（如 4 = 4×4×4 = 64 色）">量化</label>
+      <input id="quant" class="sf-n" type="range" min="0" max="8" value="0" style="width:60px">
+      <label class="sf-l nm" title="按左上角颜色抠除背景，0=关">去背景</label>
+      <input id="bgtol" class="sf-n" type="range" min="0" max="60" value="0" style="width:60px">
+      <button id="btn-repx" class="small">应用选中素材</button>
+      <canvas id="style-preview" width="128" height="48" title="左=原图 右=采样效果"></canvas>
     </div>
     <div class="draw-row" id="draw-row">
       <label class="sf-l nm">绘制</label>
@@ -300,7 +302,7 @@ function nearestPalette(r, g, b, pal) {
   }
   return pal[bi];
 }
-function pixelate(img, w, h) {
+function pixelate(img, w, h, opts) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   const g = c.getContext('2d');
   g.imageSmoothingEnabled = false;
@@ -308,9 +310,10 @@ function pixelate(img, w, h) {
   g.drawImage(img, 0, 0, w, h);
   const data = g.getImageData(0, 0, w, h);
   const d = data.data;
-  const pal = PALETTES[$('palette').value] || null;
-  const quant = parseInt($('quant').value) || 0;
-  const tol = (parseInt($('bgtol').value) || 0) * 3;
+  // 参数快照：素材级（opts）优先，缺省读控件（导入默认）
+  const pal = (opts && opts.palette !== undefined) ? PALETTES[opts.palette] : PALETTES[$('palette').value] || null;
+  const quant = (opts && opts.quant !== undefined) ? opts.quant : parseInt($('quant').value) || 0;
+  const tol = ((opts && opts.bgtol !== undefined) ? opts.bgtol : parseInt($('bgtol').value) || 0) * 3;
   const bg = tol > 0 ? [d[0], d[1], d[2]] : null;
   const k = quant > 1 ? 255 / (quant - 1) : 0;
   for (let i = 0; i < d.length; i += 4) {
@@ -331,16 +334,71 @@ function pixelate(img, w, h) {
   return c;
 }
 
+/* 素材 = 原图 + 参数快照（采样宽/色板/量化/容差）；采样结果惰性缓存。
+   原图始终保留 = 风格化/恢复的依据；改参数 → invalidateSource 重建采样。 */
+function sourceAspect(img) { return (img.naturalHeight || img.height) / Math.max(1, img.naturalWidth || img.width); }
+function getSourceCanvas(s) {
+  if (!s._canvas) {
+    const opts = { palette: s.palette, quant: s.quant, bgtol: s.bgtol };
+    if (s.frames > 1) {
+      // 多帧 sheet：逐帧采样再横向拼接（保持帧结构；基图每帧 = s.w×s.h）
+      const c = document.createElement('canvas');
+      c.width = s.w * s.frames; c.height = s.h;
+      const g = c.getContext('2d');
+      g.imageSmoothingEnabled = false;
+      for (let f = 0; f < s.frames; f++) {
+        const fc = document.createElement('canvas');
+        fc.width = s.w; fc.height = s.h;
+        const fg = fc.getContext('2d');
+        fg.imageSmoothingEnabled = false;
+        fg.drawImage(s.img, f * s.w, 0, s.w, s.h, 0, 0, s.w, s.h);
+        g.drawImage(pixelate(fc, s.w, s.h, opts), f * s.w, 0);
+      }
+      s._canvas = c;
+    } else {
+      s._canvas = pixelate(s.img, s.w, s.h, opts);
+    }
+  }
+  return s._canvas;
+}
+function getSourceDataUrl(s) {
+  if (!s._dataUrl) s._dataUrl = getSourceCanvas(s).toDataURL('image/png');
+  return s._dataUrl;
+}
+function invalidateSource(s) {
+  s._canvas = null; s._dataUrl = null;
+  // 引用该素材的元素采样缓存失效（渲染时按 srcId 实时取新采样）
+  state.elements.forEach(el => { if (el.srcId === s.id) el._asset = null; });
+}
+/* 渲染前同步：元素 srcId → 素材采样 canvas（home-scene 场景层读 e._asset）；
+   无 srcId（旧配置/载入 js 的硬编码 dataUrl）→ 保持 _img/imgCache 路径 */
+function syncElementAssets() {
+  for (const el of state.elements) {
+    if (el.srcId) {
+      const src = state.sources.find(s => s.id === el.srcId);
+      el._asset = src ? getSourceCanvas(src) : null;
+    }
+  }
+}
+
 /* ---------------- 素材库 ---------------- */
 function addSource(img, name, frames) {
   const w = Math.max(8, parseInt($('pw').value) || 160);
-  const h = Math.max(4, Math.round(w * (img.naturalHeight / Math.max(1, img.naturalWidth))));
-  const c = pixelate(img, w, h);
-  const src = { id: 's' + Math.random().toString(36).slice(2, 7), name: name || 'src' + (state.sources.length + 1), img: img, dataUrl: c.toDataURL('image/png'), w: w, h: h, frames: frames || 1 };
+  const h = Math.max(4, Math.round(w * sourceAspect(img)));
+  const src = {
+    id: 's' + Math.random().toString(36).slice(2, 7),
+    name: name || 'src' + (state.sources.length + 1),
+    img: img, // 原图（风格化/恢复的依据，始终保留）
+    w: w, h: h, // 采样尺寸（元素显示尺寸默认 = 采样尺寸，靠拉伸）
+    frames: frames || 1,
+    palette: $('palette').value, quant: parseInt($('quant').value) || 0, bgtol: parseInt($('bgtol').value) || 0,
+    _canvas: null, _dataUrl: null, // 惰性采样缓存
+  };
   state.sources.push(src);
   state.selSrc = src.id;
   renderLib();
-  $('m-import').textContent = '已导入 ' + src.name + '（像素化 ' + w + '×' + h + (src.frames > 1 ? ' · ' + src.frames + '帧' : '') + '）——点「添加到场景」';
+  renderStyleCtl();
+  $('m-import').textContent = '已导入 ' + src.name + '（采样 ' + w + '×' + h + (src.frames > 1 ? ' · ' + src.frames + '帧' : '') + '）——点「添加到场景」';
 }
 function renderLib() {
   const lib = $('lib');
@@ -354,13 +412,13 @@ function renderLib() {
     g.imageSmoothingEnabled = false;
     const im = new Image();
     im.onload = () => { g.clearRect(0, 0, s.w, s.h); g.drawImage(im, 0, 0); };
-    im.src = s.dataUrl;
+    im.src = getSourceDataUrl(s);
     const nm = document.createElement('div');
     nm.className = 'nm';
     nm.textContent = s.name + ' ' + s.w + '×' + s.h;
     d.appendChild(cv);
     d.appendChild(nm);
-    d.onclick = () => { state.selSrc = s.id; renderLib(); };
+    d.onclick = () => { state.selSrc = s.id; renderLib(); renderStyleCtl(); };
     lib.appendChild(d);
   }
   $('btn-add').disabled = !state.sources.length;
@@ -372,13 +430,15 @@ function addElement(src) {
   const el = {
     id: 'e' + Math.random().toString(36).slice(2, 7),
     name: src.name,
-    src: src.dataUrl,
+    srcId: src.id,              // 引用素材（原图+参数快照）：渲染实时采样，改参数自动同步
+    src: getSourceDataUrl(src), // 当前采样 dataUrl（旧路径兼容 + 保存时冻结硬编码）
     x: Math.floor((state.cw - src.w) / 2), y: Math.floor((state.ch - src.h) / 2),
-    w: src.w, h: src.h,
+    w: src.w, h: src.h,         // 显示尺寸默认 = 采样尺寸，靠用户拉伸（放大仍像素风：最近邻）
     alpha: 1, z: 99, // 素材浮于程序化场景之上（home-scene 的 images 画在程序化层之后）
     scroll: { speed: 0, span: src.w, dir: 'left' },
     anim: 'static', animMs: 700,
     frames: src.frames || 1, fps: 8,
+    _asset: null, // 采样 canvas（渲染用，不序列化；syncElementAssets 维护）
   };
   state.elements.push(el);
   if (state.sceneParamsMode && window.HOME_SCENE) {
@@ -386,7 +446,7 @@ function addElement(src) {
     (window.HOME_SCENE.images = window.HOME_SCENE.images || []).push(el);
   }
   state.selEl = el.id;
-  ensureImage(el);
+  syncElementAssets();
   buildLayerList(layerCfg());
   refreshStage();
   $('m-stage').textContent = '已添加 ' + el.name + '——拖拽调位置，点击卡片/画布展开参数' + (state.sceneParamsMode ? '（将随场景配置一起保存）' : '');
@@ -412,7 +472,8 @@ function elementScale(e, t) {
   return 1;
 }
 function drawElement(ctx, e, t, imgMap) {
-  const img = imgMap[e.id] || e._img;
+  // 素材采样 canvas 优先（_asset：按 srcId 实时采样）；否则 _img / imgMap（旧路径硬编码 dataUrl）
+  const img = e._asset || imgMap[e.id] || e._img;
   if (!img || !img.width) return;
   // 多帧（sprite sheet 横向）：frames > 1 时按 fps 取帧
   const frames = e.frames > 1 ? e.frames : 1;
@@ -447,6 +508,7 @@ function drawElement(ctx, e, t, imgMap) {
   ctx.globalAlpha = 1;
 }
 function renderStage() {
+  syncElementAssets(); // 元素 srcId → 素材采样 canvas（场景层 home-scene 读 e._asset）；初始化缓存失效判定在此
   const cv = $('stage');
   cv.width = state.cw; cv.height = state.ch;
   const ctx = cv.getContext('2d');
@@ -1300,38 +1362,99 @@ function loadFiles(files) {
     sheet.width = w * imgs.length; sheet.height = h;
     const g = sheet.getContext('2d');
     g.imageSmoothingEnabled = false;
-    imgs.forEach((im, i) => g.drawImage(pixelate(im, w, h), i * w, 0));
+    // 干净基图：每帧最近邻缩到采样尺寸（不应用色板/量化/去背景——风格化在 getSourceCanvas 逐帧应用）
+    imgs.forEach((im, i) => g.drawImage(im, i * w, 0, w, h));
     const src = {
       id: 's' + Math.random().toString(36).slice(2, 7),
       name: (list[0].name.replace(/\.[^.$]+$/, '').slice(0, 8) || 'frame') + '×' + imgs.length,
       img: sheet,
-      dataUrl: sheet.toDataURL('image/png'),
       w: w, h: h, frames: imgs.length,
+      palette: $('palette').value, quant: parseInt($('quant').value) || 0, bgtol: parseInt($('bgtol').value) || 0,
+      _canvas: null, _dataUrl: null,
     };
     state.sources.push(src);
     state.selSrc = src.id;
     renderLib();
+    renderStyleCtl();
     $('m-import').textContent = '已合成 ' + imgs.length + ' 帧素材「' + src.name + '」（' + w + '×' + h + ' ×' + imgs.length + ' 帧）——点「添加到场景」';
   }
 }
+/* 素材样式化（顶部工具栏）：参数作用于选中素材（素材级快照），原图保留可还原 */
+function styleParamsFromCtl() {
+  return {
+    w: Math.max(8, parseInt($('pw').value) || 160),
+    palette: $('palette').value,
+    quant: parseInt($('quant').value) || 0,
+    bgtol: parseInt($('bgtol').value) || 0,
+  };
+}
+function applyStyleToSource(s, rebuildLib) {
+  const p = styleParamsFromCtl();
+  const changed = p.palette !== s.palette || p.quant !== s.quant || p.bgtol !== s.bgtol || p.w !== s.w;
+  s.palette = p.palette; s.quant = p.quant; s.bgtol = p.bgtol;
+  if (p.w !== s.w) { s.w = p.w; s.h = Math.max(4, Math.round(p.w * sourceAspect(s.img))); }
+  if (!changed) return;
+  invalidateSource(s); // 采样缓存失效 + 引用元素 _asset 清空（渲染实时取新采样）
+  if (window.HomeScene && HomeScene.clearImageCache) HomeScene.clearImageCache();
+  if (rebuildLib) renderLib();
+  renderStyleCtlPreview();
+  refreshStage();
+}
+function renderStyleCtl() {
+  const s = selSource();
+  if (s) {
+    $('pw').value = s.w;
+    $('palette').value = s.palette || '';
+    $('quant').value = s.quant || 0;
+    $('bgtol').value = s.bgtol || 0;
+  }
+  renderStyleCtlPreview();
+}
+function renderStyleCtlPreview() {
+  const cv = $('style-preview');
+  if (!cv) return;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#0a0e22'; g.fillRect(0, 0, cv.width, cv.height);
+  const s = selSource();
+  if (!s) {
+    g.fillStyle = '#1a2350'; g.fillRect(1, 1, cv.width - 2, cv.height - 2);
+    g.fillStyle = '#f2f3f8'; g.font = '10px monospace';
+    g.fillText('未选中素材', 12, 27);
+    return;
+  }
+  const hw = s.img.naturalWidth || s.img.width, hh = s.img.naturalHeight || s.img.height;
+  const aspect = hh / Math.max(1, hw);
+  g.imageSmoothingEnabled = false;
+  const w1 = 60, h1 = Math.max(1, Math.round(w1 * aspect));
+  g.drawImage(s.img, 0, Math.floor((48 - h1) / 2), w1, h1); // 左：原图
+  const w2 = 60, h2 = Math.max(1, Math.round(w2 * s.h / Math.max(1, s.w)));
+  g.drawImage(getSourceCanvas(s), 60, Math.floor((48 - h2) / 2), w2, h2); // 右：采样效果
+  g.strokeStyle = '#f2f3f8'; g.beginPath(); g.moveTo(62, 2); g.lineTo(62, 46); g.stroke();
+}
+$('palette').addEventListener('input', () => { const s = selSource(); if (s) applyStyleToSource(s, false); else renderStyleCtlPreview(); });
+$('quant').addEventListener('input', () => { const s = selSource(); if (s) applyStyleToSource(s, false); else renderStyleCtlPreview(); });
+$('bgtol').addEventListener('input', () => { const s = selSource(); if (s) applyStyleToSource(s, false); else renderStyleCtlPreview(); });
+['palette', 'quant', 'bgtol'].forEach(id => $(id).addEventListener('change', () => { if (selSource()) renderLib(); }));
+$('pw').addEventListener('change', () => { const s = selSource(); if (s) applyStyleToSource(s, true); });
 $('btn-repx').addEventListener('click', () => {
   const s = selSource();
-  if (!s) { $('m-import').textContent = '先选中素材'; return; }
-  const w = Math.max(8, parseInt($('pw').value) || 160);
-  const h = Math.max(4, Math.round(w * (s.h / s.w)));
-  const c = pixelate(s.img, w, h);
-  s.dataUrl = c.toDataURL('image/png');
-  s.w = w; s.h = h;
-  renderLib();
-  $('m-import').textContent = '已按新参数重新像素化 ' + s.name;
+  if (!s) { $('m-import').textContent = '先选中素材（素材库点击）'; return; }
+  applyStyleToSource(s, true);
+  $('m-import').textContent = '素材「' + s.name + '」已按新样式重采样（采样 ' + s.w + '×' + s.h + '）；画布引用元素实时同步';
 });
 $('btn-add').addEventListener('click', () => { const s = selSource(); if (s) addElement(s); });
 $('btn-del-src').addEventListener('click', () => {
   const s = selSource();
   if (!s) return;
   state.sources = state.sources.filter(x => x.id !== s.id);
+  // 引用该素材的元素：解除 srcId 引用，回退到冻结的 el.src dataUrl（重新加载渲染）
+  state.elements.forEach(el => {
+    if (el.srcId === s.id) { el.srcId = null; el._asset = null; ensureImage(el); }
+  });
   state.selSrc = state.sources.length ? state.sources[0].id : null;
   renderLib();
+  renderStyleCtl();
+  refreshStage();
 });
 function togglePlay() {
   state.playing = !state.playing;
@@ -1476,15 +1599,20 @@ window.addEventListener('keydown', ev => {
 
 /* ---------------- 装配模式导出：自包含动画代码 ---------------- */
 function buildExportText() {
-  const els = state.elements.map(e => ({
-    name: e.name, src: e.src, x: e.x, y: e.y, w: e.w, h: e.h,
-    alpha: e.alpha, z: e.z,
-    scroll: { speed: e.scroll.speed, span: e.scroll.span || e.w, dir: e.scroll.dir },
-    anim: e.anim, animMs: e.animMs,
-    frames: e.frames > 1 ? e.frames : undefined, fps: e.frames > 1 ? (e.fps || 8) : undefined,
-    show: e.show,
-    hidden: e.hidden ? true : undefined, // 调试隐藏：导出保留最外层 hidden:true
-  }));
+  const els = state.elements.map(e => {
+    // 引用素材的元素：导出冻结为当前采样 dataUrl（素材参数快照不入导出）
+    let src = e.src;
+    if (e.srcId) { const s = state.sources.find(x => x.id === e.srcId); if (s) src = getSourceDataUrl(s); }
+    return {
+      name: e.name, src: src, x: e.x, y: e.y, w: e.w, h: e.h,
+      alpha: e.alpha, z: e.z,
+      scroll: { speed: e.scroll.speed, span: e.scroll.span || e.w, dir: e.scroll.dir },
+      anim: e.anim, animMs: e.animMs,
+      frames: e.frames > 1 ? e.frames : undefined, fps: e.frames > 1 ? (e.fps || 8) : undefined,
+      show: e.show,
+      hidden: e.hidden ? true : undefined, // 调试隐藏：导出保留最外层 hidden:true
+    };
+  });
   const cfg = { w: state.cw, h: state.ch, bg: state.asmBg, fps: 12, elements: els };
   return (
     '/* 像素风小动画 · Pixel Scene Builder 生成（自包含，零依赖） */\n' +
@@ -1584,6 +1712,9 @@ function loadAssembly(s) {
   renderStage();
   renderTimeline();
   $('m-stage').textContent = '已载入装配器 SCENE：' + state.elements.length + ' 个元素（' + state.cw + '×' + state.ch + '）——可直接拖拽/调参，再「保存 js」';
+  syncElementAssets();
+  if (window.HomeScene && HomeScene.clearImageCache) HomeScene.clearImageCache();
+  renderStyleCtl();
 }
 
 function loadSceneParams(hs, rawStart, rawEnd) {
@@ -1618,6 +1749,10 @@ function loadSceneParams(hs, rawStart, rawEnd) {
     $('m-props').textContent = '⚠ 规范自检 ' + warns.length + ' 项：\n- ' + warns.join('\n- ');
     $('m-stage').textContent = '已载入场景配置（' + (hs.obj.w || '?') + '×' + (hs.obj.h || '?') + '，素材层 ' + state.elements.length + ' 项）⚠ 规范自检 ' + warns.length + ' 项';
   }
+  // 初始化缓存失效判定：元素引用素材 → _asset 同步；无引用 → 渲染缓存清空（素材库原图+参数始终保留）
+  syncElementAssets();
+  if (window.HomeScene && HomeScene.clearImageCache) HomeScene.clearImageCache();
+  renderStyleCtl();
 }
 
 /* ---------------- 规范自检（详见 SCENE_SPEC.md） ---------------- */
@@ -2508,8 +2643,14 @@ function loadJs(text) {
 }
 $('btn-save').addEventListener('click', () => {
   if (window.HOME_SCENE && cfgStart >= 0 && fileText) {
-    // 场景参数模式：序列化 window.HOME_SCENE（剥掉内部 _img）写回原文件的配置段
-    const json = JSON.stringify(window.HOME_SCENE, (k, v) => (k === '_img' ? undefined : v), 2);
+    // 场景参数模式：先把引用素材的元素冻结为硬编码 dataUrl（素材参数快照不入配置），再序列化写回
+    (window.HOME_SCENE.images || []).forEach(el => {
+      if (el.srcId) {
+        const s = state.sources.find(x => x.id === el.srcId);
+        if (s) el.src = getSourceDataUrl(s);
+      }
+    });
+    const json = JSON.stringify(window.HOME_SCENE, (k, v) => (k === '_img' || k === '_asset' || k === 'srcId') ? undefined : v, 2);
     const newText = fileText.slice(0, cfgStart) + json + fileText.slice(cfgEnd);
     // 保存前自检：写回后的文件必须能被重新提取解析（防写坏文件导致下次导入失败）
     const check = extractObj(newText, 'SCENE') || extractObj(newText, 'HOME_SCENE') || extractObj(newText, 'DEFAULT_HOME_SCENE');
@@ -2924,6 +3065,7 @@ if (!window.HomeScene) {
   document.head.appendChild(fb);
 }
 renderLib();
+renderStyleCtl();
 syncGlobals();
 ensureAllImages();
 renderSceneBar();

@@ -585,8 +585,9 @@ const HomeScene = (() => {
   }
   function drawOneImage(e, t) {
     if (!elShown(e, t)) return;
-    const img = imgCache[e.name] || (imgCache[e.name] = (() => { const i = new Image(); i.src = e.src; return i; })());
-    if (!img.width) return;
+    // 工具注入的采样画布优先（_asset，同步可用）；否则按 src 缓存（键 = src：同名不同素材不串图）
+    const img = e._asset || (e.src && (imgCache[e.src] || (imgCache[e.src] = (() => { const i = new Image(); i.src = e.src; return i; })())));
+    if (!img || !img.width) return;
     // 多帧（sprite sheet 横向）：frames > 1 时按 fps 取帧
     const frames = e.frames > 1 ? e.frames : 1;
     const fps = e.fps || 8;
@@ -631,8 +632,10 @@ const HomeScene = (() => {
 
   // 时间轴跳转：设置动画时钟并立即渲染（工具时间轴点击/拖动用）
   function seek(t) { elapsed = t % LOOPv(); if (ctx) draw(elapsed); }
+  // 清空图片缓存（工具重像素化/素材失效时调用；键 = src，按引用重建）
+  function clearImageCache() { Object.keys(imgCache).forEach(k => { delete imgCache[k]; }); }
 
-  return { init, resize, start, stop, draw, seek, W, H, LOOP };
+  return { init, resize, start, stop, draw, seek, clearImageCache, W, H, LOOP };
 })();
 
 window.HomeScene = HomeScene;
