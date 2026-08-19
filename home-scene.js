@@ -518,6 +518,14 @@ const HomeScene = (() => {
         const q = normPart(p);
         ctx.globalAlpha = alpha * (q.alpha != null ? q.alpha : 1); // 元素级 × 图元级透明度
         const PX = Math.round(X + (q.x || 0)), PY = Math.round(y0 + (q.y || 0));
+        const rot = q.rot || 0;
+        if (rot) {
+          const cx = X + (q.x || 0) + (q.w || 1) / 2, cy = y0 + (q.y || 0) + (q.h || 1) / 2;
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(rot * Math.PI / 180);
+          ctx.translate(-cx, -cy);
+        }
         const hasStroke = q.stroke && q.strokeWidth > 0;
         if (q.type === 'rect') {
           const w = Math.round((q.w || 1) * scale), h = Math.round((q.h || 1) * scale);
@@ -540,6 +548,7 @@ const HomeScene = (() => {
           if (q.fill) ctx.fill();
           if (hasStroke) { ctx.strokeStyle = q.stroke; ctx.lineWidth = q.strokeWidth; ctx.stroke(); }
         }
+        if (rot) ctx.restore();
       }
     };
     ctx.globalAlpha = alpha;
