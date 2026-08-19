@@ -33,6 +33,14 @@ const DEFAULT_HOME_SCENE = {
   show: [null, [[0.2, 0.8]], null, [[0, 0.5], [0.7, 0.85]]],
   //       每场景一段：null=隐藏；[[f0,f1],…]=该场景一个或多个显示窗口（f 为场景内 0~1 比例）
   //       单窗口可简写 [f0,f1]（工具/渲染端自动归一为 [[f0,f1]]）
+  // —— 矢量图元（可选；有 parts 时按 parts 绘制，否则走程序化绘制）——
+  parts: [
+    { type: 'rect',    x: -7, y: -7, w: 15, h: 15, color: '#d5d8bb', fill: true },
+    { type: 'line',    x: 0, y: 0, x2: 10, y2: 10, color: '#fff', width: 1 },
+    { type: 'ellipse', x: 20, y: 0, w: 12, h: 8, color: '#ffd23f', fill: false },
+    { type: 'poly',    points: [[0,0],[10,0],[5,8]], color: '#7dff5f', fill: true },
+  ],
+  //       坐标相对元素原点 (x,y)+滚动偏移；fill=false 为描边；width=描边宽（line）
   // —— 任意参数，值必须是以下类型之一 ——
 }
 ```

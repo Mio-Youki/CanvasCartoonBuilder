@@ -76,7 +76,14 @@ const DEFAULT_HOME_SCENE = {
     "dark": "#9ba69d",
     "x": [253, 253, 253, 68],
     "y": [17, 17, 23, 17],
-    "show": [[[0, 1]], null, [[0, 1]], [[0, 1]]]
+    "show": [[[0, 1]], null, [[0, 1]], [[0, 1]]],
+    "parts": [
+      { "type": "rect", "x": -7, "y": -7, "w": 15, "h": 15, "color": "#d5d8bb", "fill": true },
+      { "type": "rect", "x": -9, "y": -4, "w": 19, "h": 9, "color": "#d5d8bb", "fill": true },
+      { "type": "rect", "x": -4, "y": -9, "w": 9, "h": 19, "color": "#d5d8bb", "fill": true },
+      { "type": "rect", "x": 4, "y": -3, "w": 4, "h": 4, "color": "#9ba69d", "fill": true },
+      { "type": "rect", "x": -5, "y": 4, "w": 3, "h": 3, "color": "#9ba69d", "fill": true }
+    ]
   },
   "clouds": {
     "z": 3,
@@ -280,7 +287,7 @@ const HomeScene = (() => {
     // 所有元素统一尊重 elShown（show 窗口数组 / legacy {scenes}/[t0,t1]）。
     const layers = [
       CFG.stars && { z: CFG.stars.z || 1, hidden: CFG.stars.hidden, fn: () => { if (elShown(CFG.stars, t)) stars(t, part); } },
-      CFG.moon && { z: CFG.moon.z || 2, hidden: CFG.moon.hidden, fn: () => { if (elShown(CFG.moon, t)) moon(part); } },
+      CFG.moon && { z: CFG.moon.z || 2, hidden: CFG.moon.hidden, fn: () => { if (elShown(CFG.moon, t)) (CFG.moon.parts && CFG.moon.parts.length ? drawParts(CFG.moon, t) : moon(part)); } },
       CFG.clouds && { z: CFG.clouds.z || 3, hidden: CFG.clouds.hidden, fn: () => { if (elShown(CFG.clouds, t)) clouds(t, part); } },
       CFG.mountains && { z: CFG.mountains.z || 4, hidden: CFG.mountains.hidden, fn: () => { if (elShown(CFG.mountains, t)) mountains(t, part); } },
       CFG.farForest && { z: CFG.farForest.z || 5, hidden: CFG.farForest.hidden, fn: () => { if (elShown(CFG.farForest, t)) farForest(t, part); } },
@@ -291,7 +298,7 @@ const HomeScene = (() => {
       CFG.fog && { z: CFG.fog.z || 10, hidden: CFG.fog.hidden, fn: () => { if (elShown(CFG.fog, t)) fogBank(t); } },
       CFG.signal && { z: CFG.signal.z || 10, hidden: CFG.signal.hidden, fn: () => { if (elShown(CFG.signal, t)) signal(t); } },
       CFG.bridge && { z: CFG.bridge.z || 10, hidden: CFG.bridge.hidden, fn: () => { if (elShown(CFG.bridge, t)) bridge(t); } },
-      ...(CFG.images || []).filter(e => !e.hidden).map(e => ({ z: e.z != null ? e.z : 99, fn: () => drawOneImage(e, t) })),
+      ...(CFG.images || []).filter(e => !e.hidden).map(e => ({ z: e.z != null ? e.z : 99, fn: () => (e.parts && e.parts.length ? drawParts(e, t) : drawOneImage(e, t)) })),
     ].filter(Boolean).filter(l => !l.hidden);
     layers.sort((a, b) => a.z - b.z).forEach(l => l.fn());
     // 极短的场景交接：暗场闪切而非平滑淡入，符合像素风。
@@ -469,6 +476,46 @@ const HomeScene = (() => {
       return lt >= a && lt < b;
     }
     return true;
+  }
+  // 矢量图元集合渲染（parts）：局部坐标，以元素原点 (x,y)+滚动偏移平移；
+  // 支持 rect / line / ellipse / poly，颜色/描边/填充逐图元；元素级 alpha/anim 仍生效
+  function drawParts(e, t) {
+    let ox = 0;
+    if (e.scroll && e.scroll.speed) {
+      const sp = e.scroll.span || e.w || 1;
+      const off = (t * e.scroll.speed) % sp;
+      ox = e.scroll.dir === 'right' ? off : -off;
+    }
+    const x0 = val(e, 'x', t) + ox, y0 = val(e, 'y', t);
+    let alpha = e.alpha != null ? e.alpha : 1;
+    if (e.anim === 'blink') { const on = Math.floor(t * 1000 / Math.max(50, e.animMs || 700)) % 2 === 0; alpha *= on ? 1 : 0.25; }
+    let scale = 1;
+    if (e.anim === 'pulse') scale = 1 + 0.15 * Math.sin(t * 1000 / Math.max(200, e.animMs || 700) * Math.PI * 2);
+    ctx.globalAlpha = alpha;
+    for (const p of (e.parts || [])) {
+      const X = Math.round(x0 + (p.x || 0)), Y = Math.round(y0 + (p.y || 0));
+      ctx.fillStyle = p.color || '#fff';
+      ctx.strokeStyle = p.color || '#fff';
+      ctx.lineWidth = p.width || 1;
+      if (p.type === 'rect') {
+        const w = Math.round((p.w || 1) * scale), h = Math.round((p.h || 1) * scale);
+        if (p.fill !== false) rect(X, Y, w, h, p.color);
+        else ctx.strokeRect(X, Y, w, h);
+      } else if (p.type === 'line') {
+        ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(Math.round(x0 + (p.x2 || 0)), Math.round(y0 + (p.y2 || 0))); ctx.stroke();
+      } else if (p.type === 'ellipse') {
+        ctx.beginPath();
+        ctx.ellipse(X + (p.w || 1) / 2, Y + (p.h || 1) / 2, (p.w || 1) / 2, (p.h || 1) / 2, 0, 0, Math.PI * 2);
+        if (p.fill !== false) ctx.fill(); else ctx.stroke();
+      } else if (p.type === 'poly' && (p.points || []).length >= 2) {
+        ctx.beginPath();
+        ctx.moveTo(X + p.points[0][0], Y + p.points[0][1]);
+        for (let i = 1; i < p.points.length; i++) ctx.lineTo(X + p.points[i][0], Y + p.points[i][1]);
+        ctx.closePath();
+        if (p.fill !== false) ctx.fill(); else ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
   }
   function drawOneImage(e, t) {
     if (!elShown(e, t)) return;

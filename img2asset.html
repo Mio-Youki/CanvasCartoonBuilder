@@ -79,6 +79,11 @@
   .sf-n { width: 38px; padding: 3px 4px; font-size: 10px; }
   .sf-c { width: 28px; height: 22px; padding: 0; border: 2px solid var(--dim); }
   .sf-play { margin-left: auto; flex: none; }
+  .draw-row { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 6px; padding: 4px 0; border-bottom: 1px dashed #1a2350; }
+  .draw-row .small { margin: 0; padding: 3px 7px; min-height: 22px; font-size: 8px; }
+  .draw-row .dbtn.active { background: var(--yellow); color: #0b1026; border-color: #8a6d00; }
+  .draw-row select.sf-n { width: 86px; padding: 2px 4px; font-size: 9px; }
+  .hint-inline { font-size: 8px; color: var(--dim); }
   .hint { font-size: 9px; color: var(--dim); line-height: 1.8; margin-top: 8px; }
   .hint b { color: var(--yellow); }
   .meta { font-size: 9px; color: var(--cyan); min-height: 12px; margin-top: 6px; }
@@ -105,6 +110,8 @@
   .lcarr { color: var(--yellow); font-size: 8px; width: 8px; }
   .layer-head .hb { margin: 0; padding: 1px 5px; min-height: 16px; font-size: 8px; line-height: 1; }
   .layer-head .hb.hid { background: #33270f; color: var(--dim); }
+  .layer-head .hb.on { background: #33270f; color: var(--yellow); }
+  .cf-box { border: 1px dashed #2c3560; padding: 2px 4px; margin: 3px 0; }
   .layer-body { border-top: 1px dashed #2c3560; padding: 4px 6px 6px; }
   .cf-row { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
   .cf-row label { flex: 1; margin: 0; font-size: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -163,6 +170,20 @@
       <label class="sf-l"><input type="checkbox" id="showscene"> 场景层</label>
       <button id="btn-play" class="small primary sf-play">⏸</button>
     </div>
+    <div class="draw-row" id="draw-row">
+      <label class="sf-l nm">绘制</label>
+      <button class="small dbtn active" data-mode="select">选择</button>
+      <button class="small dbtn" data-mode="rect">矩形</button>
+      <button class="small dbtn" data-mode="line">直线</button>
+      <button class="small dbtn" data-mode="ellipse">椭圆</button>
+      <button class="small dbtn" data-mode="poly">多边形</button>
+      <span class="sf-sep"></span>
+      <label class="sf-l nm">色</label><input id="draw-color" class="sf-c" type="color" value="#ffd23f">
+      <label class="sf-l nm">填充</label><input id="draw-fill" type="checkbox" checked>
+      <label class="sf-l nm">目标</label>
+      <select id="draw-target" class="sf-n" style="width:86px"><option value="new">新建元素</option><option value="sel">当前选中</option></select>
+      <span class="hint-inline" id="draw-hint"></span>
+    </div>
     <div id="stage-wrap" class="stage-wrap">
       <canvas id="home-scene"></canvas>
       <canvas id="stage" class="stage"></canvas>
@@ -215,6 +236,13 @@ const state = {
   lastTlScene: -1,    // 图层栏跟随时间轴：当前编辑场景（播放头所在段）
   zoom: 1,            // 画布内容缩放（Alt+滚轮；1=适应显示框）
   asmBg: '#09132c',   // 装配模式背景色（图层栏顶部「背景」行，随场景模式切到 cfg.bg）
+  drawMode: 'select', // 矢量绘制：select|rect|line|ellipse|poly
+  drawColor: '#ffd23f',
+  drawFill: true,
+  drawTarget: 'new',  // new=新建元素 | sel=写入当前选中元素
+  drawShape: null,    // 绘制中的形状（预览）
+  drawPts: [],        // 多边形顶点
+  drawDrag: false,
 };
 
 /* ---------------- 像素化管线 ---------------- */
@@ -373,16 +401,19 @@ function renderStage() {
     ctx.fillRect(0, 0, state.cw, state.ch);
   }
   // 场景参数模式：素材由场景层（home-scene 的 images 层）渲染，本画布不重复绘制；
-  // 装配模式：素材由本画布渲染。
+  // 装配模式：素材由本画布渲染（图元元素走 drawPartsTool）。
   if (!state.sceneParamsMode) {
     const imgMap = {};
     for (const e of state.elements) if (e._img) imgMap[e.id] = e._img;
     const sorted = [...state.elements].sort((a, b) => a.z - b.z);
     for (const e of sorted) {
       if (e.hidden) continue; // 隐藏：图层栏按钮切换，装配模式画布不绘制
-      drawElement(ctx, e, state.t, imgMap);
+      if (e.parts && e.parts.length) drawPartsTool(ctx, e, state.t);
+      else drawElement(ctx, e, state.t, imgMap);
     }
   }
+  // 矢量绘制预览（进行中的形状）
+  if (state.drawShape) drawShapePreview(ctx, state.drawShape);
   // 选中高亮 + 缩放手柄（不依赖素材图，位置来自数据）
   const sel = selEl();
   if (sel) {
@@ -395,6 +426,61 @@ function renderStage() {
     ctx.fillStyle = '#ffd23f';
     ctx.fillRect(Math.round(sel.x + ox + sel.w - 3), Math.round(sel.y + sel.h - 3), 7, 7);
   }
+}
+/* 装配模式图元渲染（与 home-scene drawParts 同语义） */
+function drawPartsTool(ctx, e, t) {
+  let ox = 0;
+  if (e.scroll && e.scroll.speed) {
+    const sp = e.scroll.span || e.w || 1;
+    const off = (t * e.scroll.speed) % sp;
+    ox = e.scroll.dir === 'right' ? off : -off;
+  }
+  const x0 = elVal(e, 'x') + ox, y0 = elVal(e, 'y');
+  ctx.globalAlpha = e.alpha != null ? e.alpha : 1;
+  for (const p of (e.parts || [])) {
+    const X = Math.round(x0 + (p.x || 0)), Y = Math.round(y0 + (p.y || 0));
+    ctx.fillStyle = p.color || '#fff';
+    ctx.strokeStyle = p.color || '#fff';
+    ctx.lineWidth = p.width || 1;
+    if (p.type === 'rect') {
+      if (p.fill !== false) ctx.fillRect(X, Y, p.w || 1, p.h || 1);
+      else ctx.strokeRect(X, Y, p.w || 1, p.h || 1);
+    } else if (p.type === 'line') {
+      ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(Math.round(x0 + (p.x2 || 0)), Math.round(y0 + (p.y2 || 0))); ctx.stroke();
+    } else if (p.type === 'ellipse') {
+      ctx.beginPath();
+      ctx.ellipse(X + (p.w || 1) / 2, Y + (p.h || 1) / 2, (p.w || 1) / 2, (p.h || 1) / 2, 0, 0, Math.PI * 2);
+      if (p.fill !== false) ctx.fill(); else ctx.stroke();
+    } else if (p.type === 'poly' && (p.points || []).length >= 2) {
+      ctx.beginPath();
+      ctx.moveTo(X + p.points[0][0], Y + p.points[0][1]);
+      for (let i = 1; i < p.points.length; i++) ctx.lineTo(X + p.points[i][0], Y + p.points[i][1]);
+      ctx.closePath();
+      if (p.fill !== false) ctx.fill(); else ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+/* 绘制中形状预览（虚线黄框） */
+function drawShapePreview(ctx, s) {
+  ctx.strokeStyle = '#ffd23f';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 3]);
+  if (s.type === 'rect' || s.type === 'ellipse') {
+    const x = Math.min(s.x0, s.x0 + s.w), y = Math.min(s.y0, s.y0 + s.h);
+    const w = Math.abs(s.w), h = Math.abs(s.h);
+    if (s.type === 'rect') ctx.strokeRect(Math.round(x), Math.round(y), w, h);
+    else { ctx.beginPath(); ctx.ellipse(Math.round(x + w / 2), Math.round(y + h / 2), w / 2, h / 2, 0, 0, Math.PI * 2); ctx.stroke(); }
+  } else if (s.type === 'line') {
+    ctx.beginPath(); ctx.moveTo(Math.round(s.x0), Math.round(s.y0)); ctx.lineTo(Math.round(s.x2), Math.round(s.y2)); ctx.stroke();
+  } else if (s.type === 'poly' && (s.points || []).length) {
+    ctx.beginPath();
+    ctx.moveTo(s.points[0][0], s.points[0][1]);
+    for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i][0], s.points[i][1]);
+    ctx.stroke();
+    s.points.forEach(pt => { ctx.fillStyle = '#ffd23f'; ctx.fillRect(pt[0] - 1, pt[1] - 1, 3, 3); });
+  }
+  ctx.setLineDash([]);
 }
 function loop(now) {
   if (!state.playing) { state.raf = 0; return; }
@@ -479,6 +565,18 @@ function stagePos(ev) {
 }
 stage.addEventListener('pointerdown', ev => {
   const p = stagePos(ev);
+  // 矢量绘制模式：矩形/直线/椭圆 按下开始；多边形 单击加顶点
+  if (state.drawMode !== 'select') {
+    if (state.drawMode === 'poly') {
+      state.drawPts.push([Math.round(p.x), Math.round(p.y)]);
+      state.drawShape = { type: 'poly', points: state.drawPts.slice() };
+    } else {
+      state.drawShape = { type: state.drawMode, x0: p.x, y0: p.y, x: p.x, y: p.y, x2: p.x, y2: p.y, w: 0, h: 0 };
+      state.drawDrag = true;
+    }
+    renderStage();
+    return;
+  }
   const sorted = [...state.elements].sort((a, b) => b.z - a.z);
   for (const e of sorted) {
     const ox = scrollOffset(e, state.t);
@@ -503,6 +601,13 @@ stage.addEventListener('pointerdown', ev => {
   renderStage();
 });
 stage.addEventListener('pointermove', ev => {
+  if (state.drawShape && state.drawDrag) {
+    const p = stagePos(ev);
+    if (state.drawShape.type === 'line') { state.drawShape.x2 = p.x; state.drawShape.y2 = p.y; }
+    else { state.drawShape.w = p.x - state.drawShape.x0; state.drawShape.h = p.y - state.drawShape.y0; }
+    renderStage();
+    return;
+  }
   if (!drag) return;
   const p = stagePos(ev);
   const e = drag.el;
@@ -516,8 +621,87 @@ stage.addEventListener('pointermove', ev => {
   }
   renderStage();
 });
-stage.addEventListener('pointerup', () => { if (drag) refreshStage(); drag = null; });
-stage.addEventListener('pointerleave', () => { if (drag) refreshStage(); drag = null; });
+stage.addEventListener('pointerup', ev => {
+  if (state.drawShape && state.drawDrag) {
+    state.drawDrag = false;
+    commitDrawShape();
+    state.drawShape = null;
+    renderStage();
+    return;
+  }
+  if (drag) refreshStage(); drag = null;
+});
+stage.addEventListener('pointerleave', () => { if (drag) refreshStage(); drag = null; state.drawDrag = false; });
+stage.addEventListener('dblclick', ev => {
+  // 多边形：双击闭合提交
+  if (state.drawMode === 'poly' && state.drawPts.length >= 2) {
+    commitDrawShape();
+    state.drawShape = null;
+    renderStage();
+  }
+});
+window.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape') { state.drawShape = null; state.drawPts = []; renderStage(); }
+  if (ev.key === 'Enter' && state.drawMode === 'poly' && state.drawShape && state.drawPts.length >= 2) { commitDrawShape(); state.drawShape = null; renderStage(); }
+});
+
+/* ---------------- 矢量绘制：工具栏 + 提交 ---------------- */
+function elVal(el, k) {
+  const v = el[k];
+  return Array.isArray(v) ? v[Math.max(0, Math.min(tlCurScene < 0 ? 0 : tlCurScene, v.length - 1))] : v;
+}
+document.querySelectorAll('#draw-row .dbtn').forEach(b => b.addEventListener('click', () => {
+  state.drawMode = b.dataset.mode;
+  if (state.drawMode !== 'poly') { state.drawPts = []; }
+  state.drawShape = null; state.drawDrag = false;
+  document.querySelectorAll('#draw-row .dbtn').forEach(x => x.classList.toggle('active', x === b));
+  const hint = $('draw-hint');
+  hint.textContent = state.drawMode === 'select' ? '' : (state.drawMode === 'poly' ? '单击加顶点 · 双击/回车闭合 · Esc 取消' : '拖拽绘制 · Esc 取消');
+  renderStage();
+}));
+$('draw-color').addEventListener('input', () => { state.drawColor = $('draw-color').value; });
+$('draw-fill').addEventListener('change', () => { state.drawFill = $('draw-fill').checked; });
+$('draw-target').addEventListener('change', () => { state.drawTarget = $('draw-target').value; });
+function commitDrawShape() {
+  const s = state.drawShape; if (!s) return;
+  let part = null;
+  const C = state.drawColor;
+  if (s.type === 'rect' || s.type === 'ellipse') {
+    const x = Math.round(Math.min(s.x0, s.x0 + s.w)), y = Math.round(Math.min(s.y0, s.y0 + s.h));
+    part = { type: s.type, x: x, y: y, w: Math.max(1, Math.round(Math.abs(s.w))), h: Math.max(1, Math.round(Math.abs(s.h))), color: C, fill: state.drawFill };
+  } else if (s.type === 'line') {
+    part = { type: 'line', x: Math.round(s.x0), y: Math.round(s.y0), x2: Math.round(s.x2), y2: Math.round(s.y2), color: C, width: 1 };
+  } else if (s.type === 'poly' && state.drawPts.length >= 2) {
+    part = { type: 'poly', points: state.drawPts.map(pt => [pt[0], pt[1]]), color: C, fill: state.drawFill };
+  }
+  if (!part) { state.drawPts = []; return; }
+  if (state.drawTarget === 'sel' && state.selEl) {
+    const el = selEl();
+    if (el) {
+      const ex = elVal(el, 'x'), ey = elVal(el, 'y');
+      if (part.type === 'line') { part.x -= ex; part.y -= ey; part.x2 -= ex; part.y2 -= ey; }
+      else if (part.type === 'poly') { part.points = part.points.map(pt => [pt[0] - ex, pt[1] - ey]); }
+      else { part.x -= ex; part.y -= ey; }
+      el.parts = el.parts || [];
+      el.parts.push(part);
+      buildLayerList(layerCfg());
+      refreshStage();
+    }
+  } else {
+    // 新建图元元素（原点 0,0）
+    const n = {
+      id: 'e' + Math.random().toString(36).slice(2, 7),
+      name: '矢量' + (state.elements.length + 1), x: 0, y: 0, w: 8, h: 8,
+      alpha: 1, z: 99, parts: [part],
+    };
+    state.elements.push(n);
+    if (state.sceneParamsMode && window.HOME_SCENE) (window.HOME_SCENE.images = window.HOME_SCENE.images || []).push(n);
+    state.selEl = n.id;
+    buildLayerList(layerCfg());
+    refreshStage();
+  }
+  state.drawPts = [];
+}
 
 /* ---------------- 导入 / 按钮 ---------------- */
 const drop = $('drop');
@@ -818,6 +1002,7 @@ function syncGlobals() {
 /* ---------------- PS 式图层列表（元素卡片栏：收起/展开/拖拽排序写 z） ---------------- */
 const PROG_SKIP = ['w', 'h', 'loop', 'bg', 'images'];
 let layerOpen = {};
+let partsOpen = {};    // 卡片 [编辑]：图元 parts 子面板展开态
 let tlCurScene = -1;   // 图层栏当前编辑场景（播放头所在段；-1=无 scenes）
 const rowS = {};       // 参数行 [s] 开关：key = cardKey|path（开=改动只写当前场景槽）
 const normColor = c => (c && c.length === 4 ? '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3] : c);
@@ -852,7 +1037,7 @@ function walkForm(obj, path, box, cardKey) {
   };
   const idx = () => Math.min(curS < 0 ? 0 : curS, 31);
   for (const [k, v] of Object.entries(obj)) {
-    if (k === 'show') continue; // 显示时间由卡片头 [S] 弹窗管理
+    if (k === 'show' || k === 'parts') continue; // show=弹窗管理；parts=图元编辑面板
     const isNumArr = Array.isArray(v) && v.length && v.every(x => typeof x === 'number');
     if (typeof v === 'number' || isNumArr) {
       // 导入即按场景数组的参数：默认激活 [s]（只改当前场景槽，不破坏数组）
@@ -1076,6 +1261,7 @@ function buildLayerList(cfg) {
       '<span class="layer-name">' + escapeHtml(nm) + '</span>' +
       '<button class="hb" data-act="show" title="显示时间（每场景显隐 + 场景内窗口）">S</button>' +
       '<button class="hb' + (isHid ? ' hid' : '') + '" data-act="hide" title="' + (isHid ? '显示该元素' : '调试隐藏（独立于场景可见性，保存为 hidden:true）') + '">' + (isHid ? '显示' : '隐藏') + '</button>' +
+      '<button class="hb' + (partsOpen[cardKey] ? ' on' : '') + '" data-act="edit" title="编辑：图元 parts 子面板（矢量绘制/逐图元调参）">编辑</button>' +
       '<button class="hb" data-act="del" title="删除该元素">删除</button>';
     card.appendChild(head);
     if (open) {
@@ -1083,6 +1269,7 @@ function buildLayerList(cfg) {
       body.className = 'layer-body';
       if (item.kind === 'img') imgForm(el, body, cardKey); // 素材卡片：中文说明表单（滚动/动画/多帧）
       else walkForm(el, '', body, cardKey);                // 程序元素：通用参数表单
+      if (partsOpen[cardKey]) partsEditor(el, body, cardKey); // [编辑]：图元 parts 子面板
       if (item.kind === 'img') {
         const ops = document.createElement('div');
         ops.className = 'cf-row';
@@ -1099,6 +1286,7 @@ function buildLayerList(cfg) {
       if (btn) {
         if (btn.dataset.act === 'show') toggleShowPopup(el, cfg, btn);
         else if (btn.dataset.act === 'hide') toggleHidden(el, cfg);
+        else if (btn.dataset.act === 'edit') { partsOpen[cardKey] = !partsOpen[cardKey]; buildLayerList(cfg); }
         else if (btn.dataset.act === 'del') {
           if (item.kind === 'prog') delProgElement(cfg, item.key);
           else delElement(el);
@@ -1375,6 +1563,36 @@ function delProgElement(cfg, key) {
 function focusLayerCard(elId) {
   const card = $('cfgform').querySelector('[data-elid="' + elId + '"]');
   if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+/* [编辑] 图元 parts 子面板：逐图元 walkForm（坐标/颜色/填充）+ 删除 + 新增 */
+function partsEditor(el, body, cardKey) {
+  const g = document.createElement('div');
+  g.className = 'cf-group';
+  g.textContent = '图元 parts（矢量绘制落点；坐标相对元素原点）';
+  body.appendChild(g);
+  (el.parts || []).forEach((p, i) => {
+    const box = document.createElement('div');
+    box.className = 'cf-box';
+    const hd = document.createElement('div');
+    hd.className = 'cf-ro';
+    hd.textContent = '#' + i + ' · ' + p.type;
+    const del = document.createElement('button'); del.className = 'hb'; del.textContent = '删除';
+    del.addEventListener('click', ev => { ev.stopPropagation(); el.parts.splice(i, 1); buildLayerList(layerCfg()); refreshStage(); });
+    hd.appendChild(del);
+    box.appendChild(hd);
+    walkForm(p, '', box, cardKey + ':part' + i);
+    body.appendChild(box);
+  });
+  const add = document.createElement('button');
+  add.className = 'small';
+  add.textContent = '+ 图元';
+  add.addEventListener('click', () => {
+    el.parts = el.parts || [];
+    el.parts.push({ type: 'rect', x: 0, y: 0, w: 8, h: 8, color: state.drawColor || '#ffd23f', fill: true });
+    buildLayerList(layerCfg());
+    refreshStage();
+  });
+  body.appendChild(add);
 }
 function delElement(e) {
   state.elements = state.elements.filter(x => x.id !== e.id);
