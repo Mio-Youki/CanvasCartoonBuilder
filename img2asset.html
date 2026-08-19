@@ -143,7 +143,6 @@
         <option value="4">1/4</option>
         <option value="8">1/8</option>
       </select>
-      <button id="btn-repx" class="primary" style="margin-top:0">应用选中素材</button>
     </div>
     <label>减色色板（映射到有限色板最近色）</label>
     <select id="palette">
@@ -444,15 +443,20 @@ function selSource() { return state.sources.find(s => s.id === state.selSrc); }
 /* ---------------- 元素 ---------------- */
 function addElement(src) {
   const sz = sourceSampleSize(src);
+  // 默认显示尺寸：最大边 ≤ 画布较小边的一半（如 320×118 → 最大边 59），保持原比例；用户可再拉伸
+  const maxDim = Math.max(4, Math.floor(Math.min(state.cw, state.ch) / 2));
+  const fit = Math.min(1, maxDim / Math.max(1, Math.max(sz.w, sz.h)));
+  const w = Math.max(1, Math.round(sz.w * fit));
+  const h = Math.max(1, Math.round(sz.h * fit));
   const el = {
     id: 'e' + Math.random().toString(36).slice(2, 7),
     name: src.name,
     srcId: src.id,              // 引用素材（原图+参数快照）：渲染实时采样，改参数自动同步
     src: getSourceDataUrl(src), // 当前采样 dataUrl（旧路径兼容 + 保存时冻结硬编码）
-    x: Math.floor((state.cw - sz.w) / 2), y: Math.floor((state.ch - sz.h) / 2),
-    w: sz.w, h: sz.h,           // 显示尺寸默认 = 采样尺寸，靠用户拉伸（放大仍像素风：最近邻）
+    x: Math.floor((state.cw - w) / 2), y: Math.floor((state.ch - h) / 2),
+    w: w, h: h,                 // 显示尺寸（默认 ≤ 较小边/2，靠用户拉伸：放大仍像素风）
     alpha: 1, z: 99, // 素材浮于程序化场景之上（home-scene 的 images 画在程序化层之后）
-    scroll: { speed: 0, span: sz.w, dir: 'left' },
+    scroll: { speed: 0, span: w, dir: 'left' },
     anim: 'static', animMs: 700,
     frames: src.frames || 1, fps: 8,
     _asset: null, // 采样 canvas（渲染用，不序列化；syncElementAssets 维护）
@@ -1133,9 +1137,20 @@ stage.addEventListener('pointermove', ev => {
     e.x = Math.round(drag.ox + (p.x - drag.sx) - drag.scrollOx);
     e.y = Math.round(drag.oy + (p.y - drag.sy));
   } else if (drag.type === 'resize') {
-    // 四角缩放：锚定对角；图元元素按对角锚点缩放 parts
+    // 四角缩放：默认等比（保持宽高比，Shift 自由）；图元元素按对角锚点缩放 parts
     const dx = p.x - drag.sx, dy = p.y - drag.sy;
-    const r = cornerResize({ x: drag.x0, y: drag.y0, w: drag.ow, h: drag.oh }, drag.corner, dx, dy);
+    let r = cornerResize({ x: drag.x0, y: drag.y0, w: drag.ow, h: drag.oh }, drag.corner, dx, dy);
+    if (!ev.shiftKey) {
+      // 等比：以主拖动方向（位移更大的一维）比例为准，另一维跟随 ow/oh
+      const sx = r.nw / drag.ow, sy = r.nh / drag.oh;
+      const prop = Math.abs(r.nw - drag.ow) >= Math.abs(r.nh - drag.oh) ? sx : sy;
+      const nw = Math.max(4, Math.round(drag.ow * prop));
+      const nh = Math.max(4, Math.round(drag.oh * prop));
+      let nx = drag.x0, ny = drag.y0;
+      if (drag.corner === 'bl' || drag.corner === 'tl') nx = drag.x0 + (drag.ow - nw);
+      if (drag.corner === 'tr' || drag.corner === 'tl') ny = drag.y0 + (drag.oh - nh);
+      r = { nx, ny, nw, nh };
+    }
     if (drag.parts0) {
       // 锚点（对角）在 parts 相对空间 = 元素 bbox 的对角
       const ax = drag.corner === 'br' || drag.corner === 'tr' ? drag.ow : 0;
