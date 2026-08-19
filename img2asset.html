@@ -675,7 +675,7 @@ function drawPartsToolRaw(ctx, e, t, alphaOverride) {
     const off = (t * e.scroll.speed) % sp;
     ox = e.scroll.dir === 'right' ? off : -off;
   }
-  const x0 = elVal(e, 'x') + ox, y0 = elVal(e, 'y');
+  const x0 = elVal(e, 'x') + ox, y0 = elVal(e, 'y') + (e.anim === 'bob' ? Math.floor(t * 6) % 2 : 0);
   ctx.globalAlpha = alphaOverride != null ? alphaOverride : (e.alpha != null ? e.alpha : 1);
   const blit = dx => {
     const X = x0 + dx;

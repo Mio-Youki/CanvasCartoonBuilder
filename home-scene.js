@@ -142,7 +142,27 @@ const DEFAULT_HOME_SCENE = {
     "beam": ["rgba(255,222,125,.14)", "rgba(255,222,125,.24)", "rgba(255,222,125,.14)", "rgba(255,222,125,.14)"],
     "beamLen": [40, 62, 40, 40],
     "head": "#fff1a7",
-    "tail": "#c14d57"
+    "tail": "#c14d57",
+    "anim": "bob",
+    "parts": [
+      { "type": "rect", "x": 0, "y": 0, "w": 110, "h": 24, "fill": "#12283b" },
+      { "type": "rect", "x": 8, "y": -6, "w": 38, "h": 30, "fill": "#17334a" },
+      { "type": "rect", "x": 50, "y": -2, "w": 69, "h": 26, "fill": "#183148" },
+      { "type": "rect", "x": 5, "y": 22, "w": 116, "h": 4, "fill": "#08131f" },
+      { "type": "rect", "x": 4, "y": 26, "w": 11, "h": 4, "fill": "#050b12" },
+      { "type": "rect", "x": 72, "y": 26, "w": 12, "h": 4, "fill": "#050b12" },
+      { "type": "rect", "x": 111, "y": 26, "w": 10, "h": 4, "fill": "#050b12" },
+      { "type": "rect", "x": 9, "y": 2, "w": 22, "h": 13, "fill": "#091923" },
+      { "type": "rect", "x": 12, "y": 5, "w": 4, "h": 4, "fill": "#a5d8ff" },
+      { "type": "rect", "x": 38, "y": 5, "w": 7, "h": 7, "fill": "#45516a" },
+      { "type": "rect", "x": 51, "y": 5, "w": 7, "h": 7, "fill": "#45516a" },
+      { "type": "rect", "x": 64, "y": 5, "w": 7, "h": 7, "fill": "#45516a" },
+      { "type": "rect", "x": 77, "y": 5, "w": 7, "h": 7, "fill": "#45516a" },
+      { "type": "rect", "x": 90, "y": 5, "w": 7, "h": 7, "fill": "#45516a" },
+      { "type": "rect", "x": 103, "y": 5, "w": 7, "h": 7, "fill": "#45516a" },
+      { "type": "rect", "x": 7, "y": 9, "w": 4, "h": 4, "fill": "#fff1a7" },
+      { "type": "rect", "x": 0, "y": 16, "w": 3, "h": 4, "fill": "#c14d57" }
+    ]
   },
   "foreground": {
     "z": 9,
@@ -164,10 +184,15 @@ const DEFAULT_HOME_SCENE = {
   "signal": {
     "z": 10,
     "x": 161,
+    "y": 54,
     "body": "#182537",
     "arm": "#21324c",
     "green": "#7dff5f",
-    "red": "#ff4d5e"
+    "red": "#ff4d5e",
+    "parts": [
+      { "type": "rect", "x": 0, "y": 0, "w": 3, "h": 48, "fill": "#182537" },
+      { "type": "rect", "x": -6, "y": 2, "w": 15, "h": 8, "fill": "#21324c" }
+    ]
   },
   "bridge": {
     "z": 10,
@@ -298,10 +323,10 @@ const HomeScene = (() => {
       CFG.farForest && { z: CFG.farForest.z || 5, hidden: CFG.farForest.hidden, fn: () => { if (elShown(CFG.farForest, t)) elDraw(CFG.farForest, farForest, t, part); } },
       CFG.poles && { z: CFG.poles.z || 6, hidden: CFG.poles.hidden, fn: () => { if (elShown(CFG.poles, t)) elDraw(CFG.poles, poles, t, part); } },
       CFG.rail && { z: CFG.rail.z || 7, hidden: CFG.rail.hidden, fn: () => { if (elShown(CFG.rail, t)) elDraw(CFG.rail, rail, t, part); } },
-      CFG.train && { z: CFG.train.z || 8, hidden: CFG.train.hidden, fn: () => { if (elShown(CFG.train, t)) elDraw(CFG.train, train, t, part); } },
+      CFG.train && { z: CFG.train.z || 8, hidden: CFG.train.hidden, fn: () => { if (elShown(CFG.train, t)) { if (CFG.train.parts && CFG.train.parts.length && CFG.train.partsMode !== 'overlay') { drawParts(CFG.train, t); trainFx(t); } else train(t, part); } } },
       CFG.foreground && { z: CFG.foreground.z || 9, hidden: CFG.foreground.hidden, fn: () => { if (elShown(CFG.foreground, t)) elDraw(CFG.foreground, foreground, t, part); } },
       CFG.fog && { z: CFG.fog.z || 10, hidden: CFG.fog.hidden, fn: () => { if (elShown(CFG.fog, t)) elDraw(CFG.fog, fogBank, t, part); } },
-      CFG.signal && { z: CFG.signal.z || 10, hidden: CFG.signal.hidden, fn: () => { if (elShown(CFG.signal, t)) elDraw(CFG.signal, signal, t, part); } },
+      CFG.signal && { z: CFG.signal.z || 10, hidden: CFG.signal.hidden, fn: () => { if (elShown(CFG.signal, t)) { if (CFG.signal.parts && CFG.signal.parts.length && CFG.signal.partsMode !== 'overlay') { drawParts(CFG.signal, t); signalFx(t); } else signal(t, part); } } },
       CFG.bridge && { z: CFG.bridge.z || 10, hidden: CFG.bridge.hidden, fn: () => { if (elShown(CFG.bridge, t)) elDraw(CFG.bridge, bridge, t, part); } },
       ...(CFG.images || []).filter(e => !e.hidden).map(e => ({
         z: e.z != null ? e.z : 99,
@@ -393,6 +418,13 @@ const HomeScene = (() => {
   }
 
   function train(t, part) {
+    // 有 parts（工具编辑的车身）→ drawParts 画静态车身（含 bob 轻震），本函数只画动态覆盖（灯闪/光束）
+    if (CFG.train.parts && CFG.train.parts.length && CFG.train.partsMode !== 'overlay') {
+      drawParts(CFG.train, t);
+      trainFx(t);
+      return;
+    }
+    // 无 parts（旧配置/未编辑）：原全量绘制
     const T = CFG.train;
     const x = T.x, bob = Math.floor(t * 6) % 2;
     // 列车保持画面右侧；只以一像素轻震传递运行状态（动态保留）。
@@ -411,6 +443,16 @@ const HomeScene = (() => {
     ctx.beginPath(); ctx.moveTo(x + 9, T.y + 9 + bob); ctx.lineTo(x - beam, T.y + 21); ctx.lineTo(x - beam, T.y + 5); ctx.closePath(); ctx.fill();
     rect(x + 7, T.y + 9 + bob, 4, 4, T.head);
     rect(x + 0, T.y + 16 + bob, 3, 4, T.tail);
+  }
+  // 列车动态覆盖（parts 模式）：车窗灯闪烁 + 车头灯（坐标相对元素原点 x,y，与 drawParts 的 bob 同步）
+  function trainFx(t) {
+    const T = CFG.train;
+    const x = T.x, bob = Math.floor(t * 6) % 2;
+    const lit = Math.floor(t * 3) % 7 !== 0;
+    for (let wx = x + 38; wx < x + 113; wx += 13) rect(wx, T.y + 5 + bob, 7, 7, lit ? T.lampLit : T.lampDim);
+    const beam = val(T, 'beamLen', t);
+    ctx.fillStyle = val(T, 'beam', t);
+    ctx.beginPath(); ctx.moveTo(x + 9, T.y + 9 + bob); ctx.lineTo(x - beam, T.y + 21); ctx.lineTo(x - beam, T.y + 5); ctx.closePath(); ctx.fill();
   }
 
   function foreground(t, part) {
@@ -435,10 +477,22 @@ const HomeScene = (() => {
   }
 
   function signal(t) {
+    // 有 parts → drawParts 画杆/臂（相对 x,y=54），本函数只画动态信号灯
+    if (CFG.signal.parts && CFG.signal.parts.length && CFG.signal.partsMode !== 'overlay') {
+      drawParts(CFG.signal, t);
+      signalFx(t);
+      return;
+    }
     const x = CFG.signal.x;
     rect(x, 54, 3, 48, CFG.signal.body); rect(x - 6, 56, 15, 8, CFG.signal.arm);
     const green = Math.floor(t * 2) % 8 > 1;
     rect(x - 3, 58, 4, 4, green ? CFG.signal.green : CFG.signal.red);
+  }
+  // 信号灯动态（parts 模式）：绿/红切换（相对元素原点 x, y=54）
+  function signalFx(t) {
+    const S = CFG.signal;
+    const green = Math.floor(t * 2) % 8 > 1;
+    rect(S.x - 3, (S.y || 54) + 4, 4, 4, green ? S.green : S.red);
   }
 
   function bridge(t) {
@@ -567,7 +621,7 @@ const HomeScene = (() => {
       const off = (t * e.scroll.speed) % sp;
       ox = e.scroll.dir === 'right' ? off : -off;
     }
-    const x0 = val(e, 'x', t) || 0, y0 = val(e, 'y', t) || 0; // 缺失键按 0（无 x/y 的程序元素图元以画布绝对坐标 + scroll 落位）
+    const x0 = val(e, 'x', t) || 0, y0 = (val(e, 'y', t) || 0) + (e.anim === 'bob' ? Math.floor(t * 6) % 2 : 0); // 缺失键按 0；bob=1px 垂直轻震
     let alpha = alphaOverride != null ? alphaOverride : (e.alpha != null ? e.alpha : 1);
     if (e.anim === 'blink') { const on = Math.floor(t * 1000 / Math.max(50, e.animMs || 700)) % 2 === 0; alpha *= on ? 1 : 0.25; }
     let scale = 1;

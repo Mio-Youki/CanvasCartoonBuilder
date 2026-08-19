@@ -2,6 +2,14 @@
 
 > 独立于游戏本体的 CHANGELOG。工具版本独立演进，与游戏版本号无关。
 
+## v2.4 —— 动态元素 parts 化 + SCENE_SPEC Agent 规范（①）
+- **train 列车 parts 化**：静态车身（车体/驾驶室/车厢/底盘/轮子/车窗/车头/车尾 = 17 个 rect）拆为 parts（坐标相对元素原点 x,y）；新增元素级动画 `anim:'bob'`（1px 垂直轻震，drawParts 内应用，与 fx 同步）；时间动画保留为**动态覆盖 fx**：车窗灯闪烁（`trainFx` 在 6 个窗位覆盖 lampLit/lampDim）+ 车头灯光束（beam 三角，长度按场景 beamLen）
+- **signal 信号灯 parts 化**：杆/臂拆为 parts（相对 x,y=54）；绿/红灯切换保留为 `signalFx` 动态覆盖
+- **渲染顺序修正**：train/signal 的 layer 回调绕过 elDraw（其「有 parts 即只画 parts」会吞掉动态 fx），改为 `drawParts → fx` 直接组合——这是本轮的**关键 bug 修复**（此前 fx 永不执行，灯/光束丢失）
+- **像素级验证**：拆解前后三帧（t=0/0.55/1.2，覆盖 bob 两相/灯亮灭/雾幕光束）渲染 **DIFF=0**——视觉完全一致；旧配置（无 parts）走原全量绘制，向后兼容
+- **SCENE_SPEC §七「动态元素 parts 化」**：Agent 拆解规则——静态几何 → parts（逐像素一致）；时间动画 → 保留代码 fx（渲染端内建，Agent 无需生成）；元素级动画字段 `anim`（blink/pulse/bob）；复杂关键帧动画建议 images 多帧素材；工具内建能力补充 pixelDiv/alphaMode
+- 渲染端同步：`public/home-scene.js` → `tools/home-scene.js`（vendored）一致
+
 ## v2.3 补四 —— 四角缩放锚点修复 + 多边形手柄 + 单击自动切回选择
 - **修复四角缩放锚点反了**：partresize（子图元青框）与 resize（元素黄框，parts 元素）的缩放锚点此前**锚的是拖动角自身**而非对角——拖 br 角时图形向左上跑偏（椭圆等表现为"无法缩放/位置乱跳"）；现锚定对角（拖 br 锚 tl / 拖 bl 锚 tr / 拖 tr 锚 bl / 拖 tl 锚 br），位置与尺寸同时正确
 - **多边形（poly）四角缩放 + 旋转手柄**：此前 poly 的选中框不显示缩放手柄/旋转 ●（`pp.type !== 'poly'` 排除）；现放开——poly 顶点缩放（`scalePartAround` 已支持）与旋转（`partCenter` 顶点包围盒中心）可用
