@@ -414,6 +414,18 @@ function renderStage() {
   }
   // 矢量绘制预览（进行中的形状）
   if (state.drawShape) drawShapePreview(ctx, state.drawShape);
+  // 选中图元高亮（part 级）：青色虚线包围盒
+  if (state.partSel && state.partSel.el && state.partSel.el.parts && state.partSel.el.parts[state.partSel.index]) {
+    const pe = state.partSel.el;
+    const p = pe.parts[state.partSel.index];
+    const ex0 = elVal(pe, 'x') + scrollOffset(pe, state.t), ey0 = elVal(pe, 'y');
+    const bb = partBBox(p, ex0, ey0);
+    ctx.strokeStyle = '#4dc3ff';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    ctx.strokeRect(bb.x - 1, bb.y - 1, bb.w + 2, bb.h + 2);
+    ctx.setLineDash([]);
+  }
   // 选中高亮 + 缩放手柄（不依赖素材图，位置来自数据）
   const sel = selEl();
   if (sel) {
@@ -578,13 +590,35 @@ stage.addEventListener('pointerdown', ev => {
     return;
   }
   const sorted = [...state.elements].sort((a, b) => b.z - a.z);
+  // 图元级命中：先试 parts（part 级选中/拖动）
+  for (const e of sorted) {
+    if (!e.parts || !e.parts.length) continue;
+    const ox0 = scrollOffset(e, state.t);
+    const ex = elVal(e, 'x') + ox0, ey = elVal(e, 'y');
+    for (let i = 0; i < e.parts.length; i++) {
+      if (hitPart(e.parts[i], ex, ey, p)) {
+        state.selEl = e.id;
+        state.partSel = { el: e, index: i };
+        const pp = e.parts[i];
+        drag = {
+          type: 'partmove', el: e, index: i, sx: p.x, sy: p.y,
+          px: pp.x || 0, py: pp.y || 0, px2: pp.x2 || 0, py2: pp.y2 || 0,
+          pts: (pp.points || []).map(a => [a[0], a[1]]),
+        };
+        if (window.HOME_SCENE || state.elements.length) { buildLayerList(layerCfg()); focusLayerCard(e.id); }
+        renderStage();
+        return;
+      }
+    }
+  }
   for (const e of sorted) {
     const ox = scrollOffset(e, state.t);
     const x0 = e.x + ox, y0 = e.y;
     if (p.x >= x0 && p.x <= x0 + e.w && p.y >= y0 && p.y <= y0 + e.h) {
       state.selEl = e.id;
+      state.partSel = null;
       if (p.x >= x0 + e.w - 12 && p.y >= y0 + e.h - 12) {
-        drag = { type: 'resize', el: e, sx: p.x, sy: p.y, ow: e.w, oh: e.h };
+        drag = { type: 'resize', el: e, sx: p.x, sy: p.y, ow: e.w, oh: e.h, parts0: (e.parts && e.parts.length) ? JSON.parse(JSON.stringify(e.parts)) : null };
       } else {
         drag = { type: 'move', el: e, sx: p.x, sy: p.y, ox: e.x, oy: e.y, scrollOx: ox };
       }
@@ -597,6 +631,7 @@ stage.addEventListener('pointerdown', ev => {
     }
   }
   state.selEl = null;
+  state.partSel = null;
   if (window.HOME_SCENE || state.elements.length) buildLayerList(layerCfg());
   renderStage();
 });
@@ -611,6 +646,18 @@ stage.addEventListener('pointermove', ev => {
   if (!drag) return;
   const p = stagePos(ev);
   const e = drag.el;
+  if (drag.type === 'partmove') {
+    // 图元级拖动：平移当前 part（相对坐标）
+    const dx = p.x - drag.sx, dy = p.y - drag.sy;
+    const part = e.parts[drag.index];
+    if (part) {
+      if (part.type === 'rect' || part.type === 'ellipse') { part.x = Math.round(drag.px + dx); part.y = Math.round(drag.py + dy); }
+      else if (part.type === 'line') { part.x = Math.round(drag.px + dx); part.y = Math.round(drag.py + dy); part.x2 = Math.round(drag.px2 + dx); part.y2 = Math.round(drag.py2 + dy); }
+      else if (part.type === 'poly') part.points = drag.pts.map(a => [Math.round(a[0] + dx), Math.round(a[1] + dy)]);
+    }
+    refreshStage(); // 场景模式：seek 重绘场景层一帧
+    return;
+  }
   if (drag.type === 'move') {
     e.x = Math.round(drag.ox + (p.x - drag.sx) - drag.scrollOx);
     e.y = Math.round(drag.oy + (p.y - drag.sy));
@@ -618,6 +665,11 @@ stage.addEventListener('pointermove', ev => {
     e.w = Math.max(4, Math.round(drag.ow + (p.x - drag.sx)));
     e.h = Math.max(4, Math.round(drag.oh + (p.y - drag.sy)));
     e.scroll.span = e.w;
+    if (drag.parts0) {
+      // 图元元素缩放：parts 相对坐标按比例缩放（基于拖拽起点副本，无累积误差）
+      const rw = e.w / drag.ow, rh = e.h / drag.oh;
+      e.parts = drag.parts0.map(pp => scalePart(pp, rw, rh));
+    }
   }
   renderStage();
 });
@@ -649,6 +701,64 @@ window.addEventListener('keydown', ev => {
 function elVal(el, k) {
   const v = el[k];
   return Array.isArray(v) ? v[Math.max(0, Math.min(tlCurScene < 0 ? 0 : tlCurScene, v.length - 1))] : v;
+}
+/* 新建图元元素包围盒归一化：元素 x/y/w/h = parts 包围盒，parts 转相对坐标 → 选中框正好框住图形 */
+function normalizePartsEl(el) {
+  if (!el.parts || !el.parts.length) return;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const ext = (x, y) => { if (x < minX) minX = x; if (y < minY) minY = y; if (x > maxX) maxX = x; if (y > maxY) maxY = y; };
+  for (const p of el.parts) {
+    if (p.type === 'rect' || p.type === 'ellipse') { ext(p.x, p.y); ext(p.x + p.w, p.y + p.h); }
+    else if (p.type === 'line') { ext(p.x, p.y); ext(p.x2, p.y2); }
+    else if (p.type === 'poly') (p.points || []).forEach(pt => ext(pt[0], pt[1]));
+  }
+  if (!isFinite(minX)) return;
+  el.x = Math.round(minX); el.y = Math.round(minY);
+  el.w = Math.max(2, Math.round(maxX - minX)); el.h = Math.max(2, Math.round(maxY - minY));
+  for (const p of el.parts) {
+    if (p.type === 'rect' || p.type === 'ellipse') { p.x -= minX; p.y -= minY; }
+    else if (p.type === 'line') { p.x -= minX; p.y -= minY; p.x2 -= minX; p.y2 -= minY; }
+    else if (p.type === 'poly') p.points = p.points.map(pt => [pt[0] - minX, pt[1] - minY]);
+  }
+}
+/* 图元按比例缩放（元素缩放时，parts 相对坐标整体缩放） */
+function scalePart(p, rw, rh) {
+  const q = Object.assign({}, p);
+  if (q.type === 'rect' || q.type === 'ellipse') { q.x = q.x * rw; q.y = q.y * rh; q.w = q.w * rw; q.h = q.h * rh; }
+  else if (q.type === 'line') { q.x = q.x * rw; q.y = q.y * rh; q.x2 = q.x2 * rw; q.y2 = q.y2 * rh; }
+  else if (q.type === 'poly') q.points = q.points.map(pt => [pt[0] * rw, pt[1] * rh]);
+  return q;
+}
+/* part 命中测试（绝对坐标） */
+function distToSeg(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1, l2 = dx * dx + dy * dy;
+  if (l2 === 0) return Math.hypot(px - x1, py - y1);
+  const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / l2));
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+}
+function pointInPoly(x, y, pts) {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const xi = pts[i][0], yi = pts[i][1], xj = pts[j][0], yj = pts[j][1];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function hitPart(p, ex, ey, pt) {
+  const px = ex + (p.x || 0), py = ey + (p.y || 0);
+  if (p.type === 'rect') return pt.x >= px && pt.x <= px + p.w && pt.y >= py && pt.y <= py + p.h;
+  if (p.type === 'ellipse') { const rx = p.w / 2, ry = p.h / 2; const cx = px + rx, cy = py + ry; return ((pt.x - cx) / rx) ** 2 + ((pt.y - cy) / ry) ** 2 <= 1; }
+  if (p.type === 'line') return distToSeg(pt.x, pt.y, px, py, ex + (p.x2 || 0), ey + (p.y2 || 0)) <= 3;
+  if (p.type === 'poly') return pointInPoly(pt.x, pt.y, (p.points || []).map(a => [ex + a[0], ey + a[1]]));
+  return false;
+}
+function partBBox(p, ex, ey) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const ext = (x, y) => { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); };
+  if (p.type === 'rect' || p.type === 'ellipse') { ext(ex + p.x, ey + p.y); ext(ex + p.x + p.w, ey + p.y + p.h); }
+  else if (p.type === 'line') { ext(ex + p.x, ey + p.y); ext(ex + p.x2, ey + p.y2); }
+  else if (p.type === 'poly') (p.points || []).forEach(pt => ext(ex + pt[0], ey + pt[1]));
+  return { x: Math.round(minX), y: Math.round(minY), w: Math.round(maxX - minX), h: Math.round(maxY - minY) };
 }
 document.querySelectorAll('#draw-row .dbtn').forEach(b => b.addEventListener('click', () => {
   state.drawMode = b.dataset.mode;
@@ -696,6 +806,7 @@ function commitDrawShape() {
     };
     state.elements.push(n);
     if (state.sceneParamsMode && window.HOME_SCENE) (window.HOME_SCENE.images = window.HOME_SCENE.images || []).push(n);
+    normalizePartsEl(n); // 包围盒归一化：选中框框住图形、整体移动/缩放 parts 有意义
     state.selEl = n.id;
     buildLayerList(layerCfg());
     refreshStage();
@@ -1058,14 +1169,14 @@ function walkForm(obj, path, box, cardKey) {
       add(path + k, inp, sBtn(k));
     } else if (typeof v === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)) {
       const inp = document.createElement('input'); inp.type = 'color'; inp.value = normColor(v);
-      inp.addEventListener('change', () => { obj[k] = inp.value; refreshStage(); });
+      inp.addEventListener('input', () => { obj[k] = inp.value; refreshStage(); }); // 拾色器拖动实时生效
       add(path + k, inp, sBtn(k));
     } else if (Array.isArray(v) && v.length && v.every(x => typeof x === 'string' && /^#/.test(x))) {
       // 按场景颜色数组：显示当前场景色，默认激活 [s]
       if (curS >= 0 && !(rk(k) in rowS)) rowS[rk(k)] = true;
       const curVal = v[Math.min(idx(), v.length - 1)];
       const inp = document.createElement('input'); inp.type = 'color'; inp.value = normColor(curVal);
-      inp.addEventListener('change', () => {
+      inp.addEventListener('input', () => {
         if (curS >= 0 && rowS[rk(k)]) v[Math.min(curS, v.length - 1)] = inp.value;
         else obj[k] = inp.value;
         refreshStage();
@@ -1203,7 +1314,7 @@ function renderBgRow(cfg, box) {
   inp.type = 'color';
   inp.value = normColor(curVal || '#000000');
   inp.title = inScene ? '当前场景背景色；[s] 开=只改当前场景，关=所有场景同色' : '装配模式背景色';
-  inp.addEventListener('change', () => {
+  inp.addEventListener('input', () => { // 拾色器拖动实时生效
     const v = inp.value;
     if (inScene) {
       if (curS >= 0 && rowS[rk]) {
@@ -1286,7 +1397,19 @@ function buildLayerList(cfg) {
       if (btn) {
         if (btn.dataset.act === 'show') toggleShowPopup(el, cfg, btn);
         else if (btn.dataset.act === 'hide') toggleHidden(el, cfg);
-        else if (btn.dataset.act === 'edit') { partsOpen[cardKey] = !partsOpen[cardKey]; buildLayerList(cfg); }
+        else if (btn.dataset.act === 'edit') {
+          partsOpen[cardKey] = !partsOpen[cardKey];
+          if (partsOpen[cardKey]) {
+            // 自动展开卡片并滚动到图元部分
+            if (item.kind === 'prog') layerOpen[nm] = true; else state.selEl = el.id;
+            buildLayerList(cfg);
+            const tgt = item.kind === 'img' ? '[data-elid="' + el.id + '"]' : '[data-key="' + item.key + '"]';
+            const cardEl = $('cfgform').querySelector(tgt);
+            if (cardEl && cardEl.scrollIntoView) cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          } else {
+            buildLayerList(cfg);
+          }
+        }
         else if (btn.dataset.act === 'del') {
           if (item.kind === 'prog') delProgElement(cfg, item.key);
           else delElement(el);
@@ -2034,7 +2157,8 @@ function addScene() {
   if (!v || !v.trim()) return;
   cfg.scenes.push(v.trim());
   cfg.sceneBorders = equalBorders(cfg, cfg.scenes.length);
-  syncSceneArrays(cfg, oldN, cfg.scenes.length);
+  syncSceneArrays(cfg, oldN, cfg.scenes.length); // 各按场景数组沿用末位（bg 为字符串拷贝，独立可改）
+  buildLayerList(layerCfg());
   renderSceneBar(); renderTimeline();
   if (window.HomeScene && HomeScene.seek) HomeScene.seek(state.t);
 }
@@ -2045,6 +2169,7 @@ function deleteScene(i) {
   if (!cfg.scenes.length) cfg.scenes = ['场景'];
   cfg.sceneBorders = equalBorders(cfg, cfg.scenes.length);
   syncSceneArrays(cfg, oldN, cfg.scenes.length);
+  buildLayerList(layerCfg());
   renderSceneBar(); renderTimeline();
   if (window.HomeScene && HomeScene.seek) HomeScene.seek(state.t);
 }

@@ -3,9 +3,12 @@
 > 独立于游戏本体的 CHANGELOG。工具版本独立演进，与游戏版本号无关。
 
 ## v2.0 —— 图元层（parts）+ 矢量绘制（v2 主线第一步）
-- **parts 图元模型**：元素可含 `parts: [{type:'rect'|'line'|'ellipse'|'poly', x,y,w,h,x2,y2,points?,color,fill,width}]`（局部坐标，相对元素原点 x/y）；home-scene 新增 `drawParts` 渲染器（元素级 scroll/alpha/anim 仍生效），图层表与素材层均支持「有 parts 走 drawParts，否则原绘制」；moon 样板迁移（5 个 rect，视觉不变）
-- **矢量绘制工具栏**（画布上方）：选择 / 矩形 / 直线 / 椭圆 / 多边形 + 颜色 / 填充 / 目标（新建元素 or 当前选中）；拖拽绘制、多边形单击加顶点·双击/回车闭合·Esc 取消；绘制中虚线预览；提交为 parts（目标=选中 → 相对元素原点追加）
-- **[编辑] 二级封装层**（卡片头 [隐藏] 右侧）：展开「图元 parts」子面板——逐图元 walkForm（坐标/颜色/填充/描边）+ 删除 + `+ 图元` 新增；walkForm 跳过 parts 键；无 parts 的元素也可由此从零搭建
+- **parts 图元模型**：元素可含 `parts: [{type:'rect'|'line'|'ellipse'|'poly', x,y,w,h,x2,y2,points?,color,fill,width}]`（局部坐标，相对元素原点 x/y）；home-scene 新增 `drawParts` 渲染器（元素级 scroll/alpha/anim 仍生效，**支持滚动平铺**——scroll.speed+span 与图片素材同语义重复），图层表与素材层均支持「有 parts 走 drawParts，否则原绘制」；moon 样板迁移（5 个 rect，视觉不变）
+- **矢量绘制工具栏**（画布上方）：选择 / 矩形 / 直线 / 椭圆 / 多边形 + 颜色 / 填充 / 目标（新建元素 or 当前选中）；拖拽绘制、多边形单击加顶点·双击/回车闭合·Esc 取消；绘制中虚线预览；提交为 parts（目标=选中 → 相对元素原点追加；目标=新建 → **包围盒归一化**：元素 x/y/w/h = parts bbox，选中框正好框住图形）
+- **[编辑] 二级封装层**（卡片头 [隐藏] 右侧）：**点击自动展开卡片并滚动到图元部分**；逐图元 walkForm（坐标/颜色/填充/描边）+ 删除 + `+ 图元` 新增；walkForm 跳过 parts 键；无 parts 的元素也可从零搭建
+- **图元级坐标拖拽**：选择模式直接命中单个 part（矩形/椭圆/线段距离/多边形包含）→ 青色虚线包围盒高亮 → 拖动平移（相对坐标）；元素缩放时 parts 按比例整体缩放（基于拖拽起点副本，无累积误差）
+- **程序元素全部 parts 化接线**：所有元素（stars/clouds/…）有 parts 走 drawParts，否则原绘制；**图片元素 = 图片 + parts 叠加渲染**（加图元不消失）
+- **颜色实时同步**：拾色器监听 `input`（拖动即生效），不再等关闭；`addScene/deleteScene` 重建图层栏（新场景沿用上一场景 bg 的字符串拷贝，[s] 开时独立修改）
 - 装配模式同步：renderStage 绘制 parts 元素（drawPartsTool）+ 绘制中预览（drawShapePreview）
 - 说明：动态图元（如信号灯时间变色）暂不支持（parts 为静态颜色），后续关键帧扩展
 

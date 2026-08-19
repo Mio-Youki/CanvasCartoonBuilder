@@ -284,21 +284,24 @@ const HomeScene = (() => {
     rect(0, 0, W, H, Array.isArray(CFG.bg) ? CFG.bg[Math.min(part, CFG.bg.length - 1)] : CFG.bg);
     // 图层按 z 排序渲染（z 越大越靠上；素材 images 默认 99）
     // 工具图层栏可删除程序元素（cfg 键缺失则跳过）、隐藏元素（hidden 为真则不绘制）；
-    // 所有元素统一尊重 elShown（show 窗口数组 / legacy {scenes}/[t0,t1]）。
+    // 所有元素统一尊重 elShown（show 窗口数组 / legacy {scenes}/[t0,t1]）；有 parts 走 drawParts，否则原绘制
     const layers = [
-      CFG.stars && { z: CFG.stars.z || 1, hidden: CFG.stars.hidden, fn: () => { if (elShown(CFG.stars, t)) stars(t, part); } },
+      CFG.stars && { z: CFG.stars.z || 1, hidden: CFG.stars.hidden, fn: () => { if (elShown(CFG.stars, t)) (CFG.stars.parts && CFG.stars.parts.length ? drawParts(CFG.stars, t) : stars(t, part)); } },
       CFG.moon && { z: CFG.moon.z || 2, hidden: CFG.moon.hidden, fn: () => { if (elShown(CFG.moon, t)) (CFG.moon.parts && CFG.moon.parts.length ? drawParts(CFG.moon, t) : moon(part)); } },
-      CFG.clouds && { z: CFG.clouds.z || 3, hidden: CFG.clouds.hidden, fn: () => { if (elShown(CFG.clouds, t)) clouds(t, part); } },
-      CFG.mountains && { z: CFG.mountains.z || 4, hidden: CFG.mountains.hidden, fn: () => { if (elShown(CFG.mountains, t)) mountains(t, part); } },
-      CFG.farForest && { z: CFG.farForest.z || 5, hidden: CFG.farForest.hidden, fn: () => { if (elShown(CFG.farForest, t)) farForest(t, part); } },
-      CFG.poles && { z: CFG.poles.z || 6, hidden: CFG.poles.hidden, fn: () => { if (elShown(CFG.poles, t)) poles(t, part); } },
-      CFG.rail && { z: CFG.rail.z || 7, hidden: CFG.rail.hidden, fn: () => { if (elShown(CFG.rail, t)) rail(t); } },
-      CFG.train && { z: CFG.train.z || 8, hidden: CFG.train.hidden, fn: () => { if (elShown(CFG.train, t)) train(t, part); } },
-      CFG.foreground && { z: CFG.foreground.z || 9, hidden: CFG.foreground.hidden, fn: () => { if (elShown(CFG.foreground, t)) foreground(t, part); } },
-      CFG.fog && { z: CFG.fog.z || 10, hidden: CFG.fog.hidden, fn: () => { if (elShown(CFG.fog, t)) fogBank(t); } },
-      CFG.signal && { z: CFG.signal.z || 10, hidden: CFG.signal.hidden, fn: () => { if (elShown(CFG.signal, t)) signal(t); } },
-      CFG.bridge && { z: CFG.bridge.z || 10, hidden: CFG.bridge.hidden, fn: () => { if (elShown(CFG.bridge, t)) bridge(t); } },
-      ...(CFG.images || []).filter(e => !e.hidden).map(e => ({ z: e.z != null ? e.z : 99, fn: () => (e.parts && e.parts.length ? drawParts(e, t) : drawOneImage(e, t)) })),
+      CFG.clouds && { z: CFG.clouds.z || 3, hidden: CFG.clouds.hidden, fn: () => { if (elShown(CFG.clouds, t)) (CFG.clouds.parts && CFG.clouds.parts.length ? drawParts(CFG.clouds, t) : clouds(t, part)); } },
+      CFG.mountains && { z: CFG.mountains.z || 4, hidden: CFG.mountains.hidden, fn: () => { if (elShown(CFG.mountains, t)) (CFG.mountains.parts && CFG.mountains.parts.length ? drawParts(CFG.mountains, t) : mountains(t, part)); } },
+      CFG.farForest && { z: CFG.farForest.z || 5, hidden: CFG.farForest.hidden, fn: () => { if (elShown(CFG.farForest, t)) (CFG.farForest.parts && CFG.farForest.parts.length ? drawParts(CFG.farForest, t) : farForest(t, part)); } },
+      CFG.poles && { z: CFG.poles.z || 6, hidden: CFG.poles.hidden, fn: () => { if (elShown(CFG.poles, t)) (CFG.poles.parts && CFG.poles.parts.length ? drawParts(CFG.poles, t) : poles(t, part)); } },
+      CFG.rail && { z: CFG.rail.z || 7, hidden: CFG.rail.hidden, fn: () => { if (elShown(CFG.rail, t)) (CFG.rail.parts && CFG.rail.parts.length ? drawParts(CFG.rail, t) : rail(t)); } },
+      CFG.train && { z: CFG.train.z || 8, hidden: CFG.train.hidden, fn: () => { if (elShown(CFG.train, t)) (CFG.train.parts && CFG.train.parts.length ? drawParts(CFG.train, t) : train(t, part)); } },
+      CFG.foreground && { z: CFG.foreground.z || 9, hidden: CFG.foreground.hidden, fn: () => { if (elShown(CFG.foreground, t)) (CFG.foreground.parts && CFG.foreground.parts.length ? drawParts(CFG.foreground, t) : foreground(t, part)); } },
+      CFG.fog && { z: CFG.fog.z || 10, hidden: CFG.fog.hidden, fn: () => { if (elShown(CFG.fog, t)) (CFG.fog.parts && CFG.fog.parts.length ? drawParts(CFG.fog, t) : fogBank(t)); } },
+      CFG.signal && { z: CFG.signal.z || 10, hidden: CFG.signal.hidden, fn: () => { if (elShown(CFG.signal, t)) (CFG.signal.parts && CFG.signal.parts.length ? drawParts(CFG.signal, t) : signal(t)); } },
+      CFG.bridge && { z: CFG.bridge.z || 10, hidden: CFG.bridge.hidden, fn: () => { if (elShown(CFG.bridge, t)) (CFG.bridge.parts && CFG.bridge.parts.length ? drawParts(CFG.bridge, t) : bridge(t)); } },
+      ...(CFG.images || []).filter(e => !e.hidden).map(e => ({
+        z: e.z != null ? e.z : 99,
+        fn: () => { drawOneImage(e, t); if (e.parts && e.parts.length && elShown(e, t)) drawParts(e, t); }, // 图片 + 图元叠加
+      })),
     ].filter(Boolean).filter(l => !l.hidden);
     layers.sort((a, b) => a.z - b.z).forEach(l => l.fn());
     // 极短的场景交接：暗场闪切而非平滑淡入，符合像素风。
@@ -478,7 +481,7 @@ const HomeScene = (() => {
     return true;
   }
   // 矢量图元集合渲染（parts）：局部坐标，以元素原点 (x,y)+滚动偏移平移；
-  // 支持 rect / line / ellipse / poly，颜色/描边/填充逐图元；元素级 alpha/anim 仍生效
+  // 支持 rect / line / ellipse / poly；与图片素材同语义的滚动平铺（scroll.speed+span 重复）
   function drawParts(e, t) {
     let ox = 0;
     if (e.scroll && e.scroll.speed) {
@@ -486,34 +489,44 @@ const HomeScene = (() => {
       const off = (t * e.scroll.speed) % sp;
       ox = e.scroll.dir === 'right' ? off : -off;
     }
-    const x0 = val(e, 'x', t) + ox, y0 = val(e, 'y', t);
+    const x0 = val(e, 'x', t), y0 = val(e, 'y', t);
     let alpha = e.alpha != null ? e.alpha : 1;
     if (e.anim === 'blink') { const on = Math.floor(t * 1000 / Math.max(50, e.animMs || 700)) % 2 === 0; alpha *= on ? 1 : 0.25; }
     let scale = 1;
     if (e.anim === 'pulse') scale = 1 + 0.15 * Math.sin(t * 1000 / Math.max(200, e.animMs || 700) * Math.PI * 2);
-    ctx.globalAlpha = alpha;
-    for (const p of (e.parts || [])) {
-      const X = Math.round(x0 + (p.x || 0)), Y = Math.round(y0 + (p.y || 0));
-      ctx.fillStyle = p.color || '#fff';
-      ctx.strokeStyle = p.color || '#fff';
-      ctx.lineWidth = p.width || 1;
-      if (p.type === 'rect') {
-        const w = Math.round((p.w || 1) * scale), h = Math.round((p.h || 1) * scale);
-        if (p.fill !== false) rect(X, Y, w, h, p.color);
-        else ctx.strokeRect(X, Y, w, h);
-      } else if (p.type === 'line') {
-        ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(Math.round(x0 + (p.x2 || 0)), Math.round(y0 + (p.y2 || 0))); ctx.stroke();
-      } else if (p.type === 'ellipse') {
-        ctx.beginPath();
-        ctx.ellipse(X + (p.w || 1) / 2, Y + (p.h || 1) / 2, (p.w || 1) / 2, (p.h || 1) / 2, 0, 0, Math.PI * 2);
-        if (p.fill !== false) ctx.fill(); else ctx.stroke();
-      } else if (p.type === 'poly' && (p.points || []).length >= 2) {
-        ctx.beginPath();
-        ctx.moveTo(X + p.points[0][0], Y + p.points[0][1]);
-        for (let i = 1; i < p.points.length; i++) ctx.lineTo(X + p.points[i][0], Y + p.points[i][1]);
-        ctx.closePath();
-        if (p.fill !== false) ctx.fill(); else ctx.stroke();
+    const blit = dx => {
+      const X = x0 + dx;
+      for (const p of (e.parts || [])) {
+        const PX = Math.round(X + (p.x || 0)), PY = Math.round(y0 + (p.y || 0));
+        ctx.fillStyle = p.color || '#fff';
+        ctx.strokeStyle = p.color || '#fff';
+        ctx.lineWidth = p.width || 1;
+        if (p.type === 'rect') {
+          const w = Math.round((p.w || 1) * scale), h = Math.round((p.h || 1) * scale);
+          if (p.fill !== false) rect(PX, PY, w, h, p.color);
+          else ctx.strokeRect(PX, PY, w, h);
+        } else if (p.type === 'line') {
+          ctx.beginPath(); ctx.moveTo(PX, PY); ctx.lineTo(Math.round(X + (p.x2 || 0)), Math.round(y0 + (p.y2 || 0))); ctx.stroke();
+        } else if (p.type === 'ellipse') {
+          ctx.beginPath();
+          ctx.ellipse(PX + (p.w || 1) / 2, PY + (p.h || 1) / 2, (p.w || 1) / 2, (p.h || 1) / 2, 0, 0, Math.PI * 2);
+          if (p.fill !== false) ctx.fill(); else ctx.stroke();
+        } else if (p.type === 'poly' && (p.points || []).length >= 2) {
+          ctx.beginPath();
+          ctx.moveTo(PX + p.points[0][0], PY + p.points[0][1]);
+          for (let i = 1; i < p.points.length; i++) ctx.lineTo(PX + p.points[i][0], PY + p.points[i][1]);
+          ctx.closePath();
+          if (p.fill !== false) ctx.fill(); else ctx.stroke();
+        }
       }
+    };
+    ctx.globalAlpha = alpha;
+    if (e.scroll && e.scroll.speed && e.scroll.span) {
+      const dir = e.scroll.dir === 'right' ? 1 : -1;
+      const n = Math.ceil(W / e.scroll.span) + 3;
+      for (let j = 0; j < n; j++) blit(j * e.scroll.span * dir - ox * dir);
+    } else {
+      blit(ox);
     }
     ctx.globalAlpha = 1;
   }
