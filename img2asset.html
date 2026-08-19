@@ -444,9 +444,11 @@ function renderStage() {
 }
 /* 装配模式图元渲染（与 home-scene drawParts 同语义；AI 式描边/填充） */
 function normPart(p) {
-  if (!('fill' in p)) {
-    if (p.color) { if (p.fill !== false) p.fill = p.color; else p.stroke = p.color; }
-    else p.fill = null;
+  if (typeof p.fill === 'boolean') {
+    if (p.fill) p.fill = p.color || null;
+    else { p.stroke = p.color || null; p.fill = null; }
+  } else if (!('fill' in p)) {
+    p.fill = p.color || null;
   }
   if (!('stroke' in p)) p.stroke = null;
   if (!('strokeWidth' in p)) p.strokeWidth = p.width || 1;
@@ -615,25 +617,40 @@ stage.addEventListener('pointerdown', ev => {
     return;
   }
   const sorted = [...state.elements].sort((a, b) => b.z - a.z);
-  // 图元级命中：先试 parts（part 级选中/拖动）
-  for (const e of sorted) {
-    if (!e.parts || !e.parts.length) continue;
+  // 图元级命中：先试 parts（素材层元素）
+  const hitParts = (e, idx0) => {
+    if (!e.parts || !e.parts.length) return -1;
     const ox0 = scrollOffset(e, state.t);
     const ex = elVal(e, 'x') + ox0, ey = elVal(e, 'y');
-    for (let i = 0; i < e.parts.length; i++) {
-      if (hitPart(e.parts[i], ex, ey, p)) {
-        state.selEl = e.id;
-        state.partSel = { el: e, index: i };
-        const pp = e.parts[i];
-        drag = {
-          type: 'partmove', el: e, index: i, sx: p.x, sy: p.y,
-          px: pp.x || 0, py: pp.y || 0, px2: pp.x2 || 0, py2: pp.y2 || 0,
-          pts: (pp.points || []).map(a => [a[0], a[1]]),
-        };
-        if (window.HOME_SCENE || state.elements.length) { buildLayerList(layerCfg()); focusLayerCard(e.id); }
-        renderStage();
-        return;
-      }
+    for (let i = 0; i < e.parts.length; i++) if (hitPart(e.parts[i], ex, ey, p)) return i;
+    return -1;
+  };
+  const pickPartDrag = (e, i) => {
+    state.partSel = { el: e, index: i };
+    const pp = e.parts[i];
+    drag = {
+      type: 'partmove', el: e, index: i, sx: p.x, sy: p.y,
+      px: pp.x || 0, py: pp.y || 0, px2: pp.x2 || 0, py2: pp.y2 || 0,
+      pts: (pp.points || []).map(a => [a[0], a[1]]),
+    };
+    renderStage();
+  };
+  for (const e of sorted) {
+    const i = hitParts(e);
+    if (i >= 0) {
+      state.selEl = e.id;
+      pickPartDrag(e, i);
+      if (window.HOME_SCENE || state.elements.length) { buildLayerList(layerCfg()); focusLayerCard(e.id); }
+      return;
+    }
+  }
+  // 程序元素（HOME_SCENE 顶层键）的 parts 命中（moon 等迁移/叠加图元）
+  if (state.sceneParamsMode && window.HOME_SCENE) {
+    for (const k of Object.keys(window.HOME_SCENE)) {
+      const pe = window.HOME_SCENE[k];
+      if (!pe || typeof pe !== 'object' || Array.isArray(pe) || k === 'images' || !pe.parts || !pe.parts.length) continue;
+      const i = hitParts(pe);
+      if (i >= 0) { pickPartDrag(pe, i); return; }
     }
   }
   for (const e of sorted) {
@@ -1445,7 +1462,7 @@ function renderBgRow(cfg, box) {
   inp.type = 'color';
   inp.value = normColor(curVal || '#000000');
   inp.title = inScene ? '当前场景背景色；[s] 开=只改当前场景，关=所有场景同色' : '装配模式背景色';
-  inp.addEventListener('input', () => { // 拾色器拖动实时生效
+  inp.addEventListener('input', () => { // 拾色器拖动实时生效（不重建 DOM，保持拾色器打开）
     const v = inp.value;
     if (inScene) {
       if (curS >= 0 && rowS[rk]) {
@@ -1458,8 +1475,8 @@ function renderBgRow(cfg, box) {
       state.asmBg = v;
     }
     refreshStage();
-    buildLayerList(cfg);
   });
+  inp.addEventListener('change', pushHistory); // 松开拾色器记一步历史
   head.appendChild(nm);
   head.appendChild(inp);
   if (curS >= 0) {
@@ -1823,6 +1840,7 @@ function focusLayerCard(elId) {
 }
 /* [编辑] 图元 parts 子面板：AI 式描边/填充（色+线宽）+ 坐标 + 删除 + 新增 */
 function partForm(p, box, rebuild) {
+  normPart(p); // 就地归一（legacy fill:bool → fill/stroke），面板与渲染同语义
   const add = (label, el, extra) => {
     const w = document.createElement('div');
     w.className = 'cf-row';
@@ -1838,14 +1856,14 @@ function partForm(p, box, rebuild) {
   const fOn = document.createElement('input'); fOn.type = 'checkbox'; fOn.checked = !!p.fill;
   const fC = document.createElement('input'); fC.type = 'color'; fC.value = normColor(p.fill || '#000000'); fC.disabled = !p.fill;
   fOn.addEventListener('change', () => { p.fill = fOn.checked ? fC.value : null; fC.disabled = !p.fill; commit(); });
-  fC.addEventListener('input', () => { p.fill = fC.value; fOn.checked = true; fC.disabled = false; commit(); });
+  fC.addEventListener('input', () => { p.fill = fC.value; fOn.checked = true; fC.disabled = false; refreshStage(); }); // 实时改色不重建 DOM（保持拾色器打开）
   const fWrap = document.createElement('div'); fWrap.className = 'cf-arr'; fWrap.appendChild(fOn); fWrap.appendChild(fC);
   add('填充', fWrap);
   // 描边（颜色 + 无描边开关 + 线宽）
   const sOn = document.createElement('input'); sOn.type = 'checkbox'; sOn.checked = !!p.stroke;
   const sC = document.createElement('input'); sC.type = 'color'; sC.value = normColor(p.stroke || '#000000'); sC.disabled = !p.stroke;
   sOn.addEventListener('change', () => { p.stroke = sOn.checked ? sC.value : null; sC.disabled = !p.stroke; commit(); });
-  sC.addEventListener('input', () => { p.stroke = sC.value; sOn.checked = true; sC.disabled = false; commit(); });
+  sC.addEventListener('input', () => { p.stroke = sC.value; sOn.checked = true; sC.disabled = false; refreshStage(); }); // 同上：不重建
   const sW = document.createElement('input'); sW.type = 'number'; sW.value = p.strokeWidth != null ? p.strokeWidth : 1; sW.min = 0; sW.style.width = '38px';
   sW.addEventListener('change', () => { p.strokeWidth = Math.max(0, parseInt(sW.value) || 0); commit(); });
   const sWrap = document.createElement('div'); sWrap.className = 'cf-arr'; sWrap.appendChild(sOn); sWrap.appendChild(sC); sWrap.appendChild(sW);
@@ -1890,7 +1908,7 @@ function partsEditor(el, body, cardKey) {
     if (!el.parts || !el.parts.length) el.partsMode = 'overlay'; // 程序元素原绘制 + 图元叠加
     pushHistory();
     el.parts = el.parts || [];
-    el.parts.push({ type: 'rect', x: 0, y: 0, w: 8, h: 8, fill: state.drawFillColor, stroke: state.drawStrokeOn ? state.drawStrokeColor : null, strokeWidth: state.drawStrokeW });
+    el.parts.push({ type: 'rect', x: 0, y: 0, w: 16, h: 16, fill: state.drawFillColor, stroke: state.drawStrokeOn ? state.drawStrokeColor : null, strokeWidth: state.drawStrokeW });
     buildLayerList(layerCfg());
     refreshStage();
   });

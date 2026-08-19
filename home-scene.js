@@ -486,10 +486,13 @@ const HomeScene = (() => {
     return true;
   }
   // 图元归一化（AI 式描边/填充）：legacy {color, fill:bool} → {fill, stroke, strokeWidth}
+  // 注意：legacy fill 是布尔（true=用 color 填充 / false=用 color 描边），必须先于 'fill' in p 判断转换
   function normPart(p) {
-    if (!('fill' in p)) {
-      if (p.color) { if (p.fill !== false) p.fill = p.color; else p.stroke = p.color; }
-      else p.fill = null;
+    if (typeof p.fill === 'boolean') {
+      if (p.fill) p.fill = p.color || null;
+      else { p.stroke = p.color || null; p.fill = null; }
+    } else if (!('fill' in p)) {
+      p.fill = p.color || null;
     }
     if (!('stroke' in p)) p.stroke = null;
     if (!('strokeWidth' in p)) p.strokeWidth = p.width || 1;
