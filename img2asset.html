@@ -54,8 +54,8 @@
   .scene-chip.active { border-color: var(--yellow); color: var(--yellow); background: #33270f; }
   .scene-chip.add { border-style: dashed; border-color: var(--dim); color: var(--dim); }
   .scene-chip .x { color: #ff5f7d; margin-left: 3px; }
-  .layer-body .hb.sbtn { margin: 0; padding: 2px 4px; min-height: 18px; font-size: 8px; line-height: 1; color: var(--dim); background: #1a2350; }
-  .layer-body .hb.sbtn.on { background: var(--yellow); color: #0b1026; }
+  .hb.sbtn { margin: 0; padding: 1px 5px; min-height: 16px; font-size: 8px; line-height: 1; color: var(--dim); background: #1a2350; }
+  .hb.sbtn.on { background: var(--yellow); color: #0b1026; }
   .show-pop { z-index: 99; background: #101736; border: 2px solid var(--yellow); padding: 6px; min-width: 170px; box-shadow: 4px 4px 0 #000; }
   .show-pop-title { font-size: 8px; color: var(--dim); margin-bottom: 4px; }
   .show-row-wrap { margin-bottom: 5px; }
@@ -160,7 +160,6 @@
       <label class="sf-l nm">宽</label><input id="gw" class="sf-n" type="number" value="320">
       <label class="sf-l nm">高</label><input id="gh" class="sf-n" type="number" value="118">
       <label class="sf-l nm">周期</label><input id="gloop" class="sf-n" type="number" value="48">
-      <label class="sf-l nm">背景</label><input id="gbg" class="sf-c" type="color" value="#09132c">
       <label class="sf-l"><input type="checkbox" id="showscene"> 场景层</label>
       <button id="btn-play" class="small primary sf-play">⏸</button>
     </div>
@@ -215,6 +214,7 @@ const state = {
   sceneParamsMode: false, // 已打开参数化场景（HOME_SCENE）：素材写入其 images 层，保存随配置写回
   lastTlScene: -1,    // 图层栏跟随时间轴：当前编辑场景（播放头所在段）
   zoom: 1,            // 画布内容缩放（Alt+滚轮；1=适应显示框）
+  asmBg: '#09132c',   // 装配模式背景色（图层栏顶部「背景」行，随场景模式切到 cfg.bg）
 };
 
 /* ---------------- 像素化管线 ---------------- */
@@ -369,7 +369,7 @@ function renderStage() {
   if (state.showScene) {
     ctx.clearRect(0, 0, state.cw, state.ch); // 透明：透出底层场景层（home-scene 实时动画）
   } else {
-    ctx.fillStyle = $('gbg').value || '#000';
+    ctx.fillStyle = state.asmBg;
     ctx.fillRect(0, 0, state.cw, state.ch);
   }
   // 场景参数模式：素材由场景层（home-scene 的 images 层）渲染，本画布不重复绘制；
@@ -619,7 +619,7 @@ function buildExportText() {
     show: e.show,
     hidden: e.hidden ? true : undefined, // 调试隐藏：导出保留最外层 hidden:true
   }));
-  const cfg = { w: state.cw, h: state.ch, bg: $('gbg').value || '#000', fps: 12, elements: els };
+  const cfg = { w: state.cw, h: state.ch, bg: state.asmBg, fps: 12, elements: els };
   return (
     '/* 像素风小动画 · Pixel Scene Builder 生成（自包含，零依赖） */\n' +
     '/* 目标网页放 <canvas id="scene-canvas"></canvas> 后粘贴本脚本 */\n' +
@@ -701,7 +701,7 @@ function loadAssembly(s) {
   syncCanvasSize();
   state.cw = s.obj.w || 320; state.ch = s.obj.h || 118;
   $('gw').value = state.cw; $('gh').value = state.ch;
-  $('gbg').value = s.obj.bg || '#000';
+  state.asmBg = s.obj.bg || '#000';
   state.elements = (s.obj.elements || []).map(e => ({
     id: 'e' + Math.random().toString(36).slice(2, 7),
     name: e.name, src: e.src, x: e.x || 0, y: e.y || 0,
@@ -784,15 +784,12 @@ function checkSceneSpec(cfg) {
   return warns;
 }
 
-/* ---------------- 全局设置（场景文件区顶部：w/h/loop/bg） ---------------- */
+/* ---------------- 全局设置（场景文件区顶部：w/h/loop） ---------------- */
 function syncGlobals() {
   const cfg = window.HOME_SCENE;
   const w = cfg ? cfg.w : state.cw, h = cfg ? cfg.h : state.ch;
   const loop = cfg ? (cfg.loop || 48) : 48;
-  const bg = cfg ? (Array.isArray(cfg.bg) ? cfg.bg[0] : cfg.bg) : ($('gbg').value || '#000');
   $('gw').value = w; $('gh').value = h; $('gloop').value = loop;
-  const nb = String(bg || '#000');
-  $('gbg').value = nb.length === 4 ? '#' + nb[1] + nb[1] + nb[2] + nb[2] + nb[3] + nb[3] : nb;
 }
 ['gw', 'gh', 'gloop'].forEach(id => $(id).addEventListener('change', () => {
   const v = Math.max(1, parseInt($(id).value) || 1);
@@ -817,13 +814,6 @@ function syncGlobals() {
   renderStage();
   renderTimeline();
 }));
-$('gbg').addEventListener('change', () => {
-  if (window.HOME_SCENE) {
-    if (Array.isArray(window.HOME_SCENE.bg)) window.HOME_SCENE.bg[0] = $('gbg').value;
-    else window.HOME_SCENE.bg = $('gbg').value;
-  }
-  renderStage();
-});
 
 /* ---------------- PS 式图层列表（元素卡片栏：收起/展开/拖拽排序写 z） ---------------- */
 const PROG_SKIP = ['w', 'h', 'loop', 'bg', 'images'];
@@ -1005,10 +995,62 @@ function layerCfg() {
   // 图层栏的配置源：场景参数模式读 HOME_SCENE（程序元素+素材）；装配模式素材即元素
   return (state.sceneParamsMode && window.HOME_SCENE) ? window.HOME_SCENE : { images: state.elements };
 }
+/* 图层栏顶部「背景」行：跟随当前场景（播放头所在段）显示该场景背景色；
+   [s] 默认开（bg 是数组）：开=只改当前场景槽，关=所有场景同色；装配模式为单一背景色 */
+function renderBgRow(cfg, box) {
+  const sc = sceneNames();
+  const curS = tlCurScene;
+  const rk = 'p:bg';
+  const inScene = state.sceneParamsMode && window.HOME_SCENE;
+  const bg = inScene ? cfg.bg : state.asmBg;
+  const isArr = inScene && Array.isArray(bg);
+  if (isArr && curS >= 0 && !(rk in rowS)) rowS[rk] = true; // bg 数组 → 默认单场景编辑
+  const on = curS >= 0 && !!rowS[rk];
+  const curVal = isArr ? bg[Math.min(curS < 0 ? 0 : curS, bg.length - 1)] : bg;
+  const card = document.createElement('div');
+  card.className = 'layer-card bg-card';
+  const head = document.createElement('div');
+  head.className = 'layer-head';
+  const nm = document.createElement('span');
+  nm.className = 'layer-name';
+  nm.textContent = '背景 bg' + (curS >= 0 ? '（' + (sc[curS] || curS) + '）' : '');
+  const inp = document.createElement('input');
+  inp.type = 'color';
+  inp.value = normColor(curVal || '#000000');
+  inp.title = inScene ? '当前场景背景色；[s] 开=只改当前场景，关=所有场景同色' : '装配模式背景色';
+  inp.addEventListener('change', () => {
+    const v = inp.value;
+    if (inScene) {
+      if (curS >= 0 && rowS[rk]) {
+        if (!Array.isArray(cfg.bg)) cfg.bg = sc.map(() => cfg.bg);
+        cfg.bg[Math.min(curS, cfg.bg.length - 1)] = v;
+      } else {
+        cfg.bg = sc.length ? sc.map(() => v) : v; // 全局：所有场景同色
+      }
+    } else {
+      state.asmBg = v;
+    }
+    refreshStage();
+    buildLayerList(cfg);
+  });
+  head.appendChild(nm);
+  head.appendChild(inp);
+  if (curS >= 0) {
+    const b = document.createElement('button');
+    b.className = 'hb sbtn' + (on ? ' on' : '');
+    b.textContent = 's';
+    b.title = on ? '单场景背景：只改「' + (sc[curS] || curS) + '」' : '全局背景：所有场景同色；点击开启=每场景不同色';
+    b.addEventListener('click', () => { rowS[rk] = !rowS[rk]; buildLayerList(cfg); });
+    head.appendChild(b);
+  }
+  card.appendChild(head);
+  box.appendChild(card);
+}
 function buildLayerList(cfg) {
   const box = $('cfgform');
   box.innerHTML = '';
   tlCurScene = tlScene(); // 图层栏跟随时间轴：显示当前场景值
+  renderBgRow(cfg, box);  // 顶部「背景」行（跟随当前场景，[s] 控制全局/单场景）
   const order = layerOrderOf(cfg);
   const imgs = cfg.images || [];
   for (const item of order) {

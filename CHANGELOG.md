@@ -24,6 +24,7 @@
   - **[S] 弹窗真正影响画布**：根因是 home-scene 图层表仅 fog/signal/bridge 尊重 `elShown`——现**所有程序元素**统一包裹 `elShown` 检查（show 窗口对每个元素生效）
   - **暂停时修改不同步**：新增 `refreshStage()`（renderStage + renderTimeline + `HomeScene.seek(t)` 强制场景层重绘一帧），walkForm/imgForm 全部编辑、[隐藏]、[S] 弹窗、画布拖拽结束（pointerup）均调用——暂停态改动立即可见
   - **导入识别场景专属参数**：数值/颜色**按场景数组在导入时自动激活 [s]**（`rowS` 初始化），显示当前场景值且编辑只写当前槽，不破坏数组；常量参数 [s] 默认置灰
+- **背景跟随场景 + 移入图层栏顶部**：画布顶部工具栏的「背景」移除，改为**图层栏顶部单独成行的「背景 bg」卡片**——跟随播放头所在场景显示/编辑该场景背景色（`cfg.bg` 按场景数组），右侧 **[s] 开关**（数组默认开=只改当前场景槽，关=所有场景同色；装配模式为单一背景 `state.asmBg`）；home-scene 渲染支持 `bg` 常量或数组（`Array.isArray` 分支）
 - **自包含兜底（独立仓库铺路）**：`tools/home-scene.js` 内置副本（与游戏 `public/home-scene.js` 手动同步）；`img2asset.html` 优先加载 `../public`、缺失自动回退本地副本并手动 `HomeScene.init()`；home-scene.js `init` 幂等保护——工具可脱离游戏仓库独立运行（为拆分 CanvasCartoonBuilder 仓库铺路，已验证独立环境正常渲染）
 - 场景 chip 样式区分：active=实线黄框，`+ 场景`=虚线置灰（不再误读为激活）
 

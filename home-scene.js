@@ -274,7 +274,7 @@ const HomeScene = (() => {
     syncCfg(); // 每帧同步外部注入的配置（工具实时调参生效的关键）
     const local = t % LOOPv();
     const part = scene(t);
-    rect(0, 0, W, H, CFG.bg[part]);
+    rect(0, 0, W, H, Array.isArray(CFG.bg) ? CFG.bg[Math.min(part, CFG.bg.length - 1)] : CFG.bg);
     // 图层按 z 排序渲染（z 越大越靠上；素材 images 默认 99）
     // 工具图层栏可删除程序元素（cfg 键缺失则跳过）、隐藏元素（hidden 为真则不绘制）；
     // 所有元素统一尊重 elShown（show 窗口数组 / legacy {scenes}/[t0,t1]）。
