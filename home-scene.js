@@ -500,6 +500,17 @@ const HomeScene = (() => {
   }
   // 矢量图元集合渲染（parts）：局部坐标，以元素原点 (x,y)+滚动偏移平移；
   // 支持 rect / line / ellipse / poly；描边(色+线宽)/填充(色) 独立；滚动平铺（scroll.speed+span）
+  // 图元变换中心：矩形/椭圆 = 中心；线段 = 中点；多边形 = 顶点包围盒中心
+  function partCenter(p) {
+    if (p.type === 'rect' || p.type === 'ellipse') return { cx: (p.x || 0) + (p.w || 1) / 2, cy: (p.y || 0) + (p.h || 1) / 2 };
+    if (p.type === 'line') return { cx: ((p.x || 0) + (p.x2 || 0)) / 2, cy: ((p.y || 0) + (p.y2 || 0)) / 2 };
+    if (p.type === 'poly' && (p.points || []).length) {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      p.points.forEach(pt => { if (pt[0] < minX) minX = pt[0]; if (pt[1] < minY) minY = pt[1]; if (pt[0] > maxX) maxX = pt[0]; if (pt[1] > maxY) maxY = pt[1]; });
+      return { cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 };
+    }
+    return { cx: (p.x || 0) + 0.5, cy: (p.y || 0) + 0.5 };
+  }
   function drawParts(e, t) {
     let ox = 0;
     if (e.scroll && e.scroll.speed) {
@@ -520,11 +531,13 @@ const HomeScene = (() => {
         const PX = Math.round(X + (q.x || 0)), PY = Math.round(y0 + (q.y || 0));
         const rot = q.rot || 0, fh = q.flipH ? -1 : 1, fv = q.flipV ? -1 : 1;
         if (rot || fh < 0 || fv < 0) {
-          const cx = X + (q.x || 0) + (q.w || 1) / 2, cy = y0 + (q.y || 0) + (q.h || 1) / 2;
+          const c = partCenter(q);
+          const cx = X + c.cx, cy = y0 + c.cy;
           ctx.save();
           ctx.translate(cx, cy);
-          ctx.scale(fh, fv);
+          // 先翻转后旋转（镜像作用于旋转角度；flip·R(rot) = R(-rot)·flip）
           if (rot) ctx.rotate(rot * Math.PI / 180);
+          ctx.scale(fh, fv);
           ctx.translate(-cx, -cy);
         }
         const hasStroke = q.stroke && q.strokeWidth > 0;
@@ -539,14 +552,14 @@ const HomeScene = (() => {
         } else if (q.type === 'ellipse') {
           ctx.beginPath();
           ctx.ellipse(PX + (q.w || 1) / 2, PY + (q.h || 1) / 2, (q.w || 1) / 2, (q.h || 1) / 2, 0, 0, Math.PI * 2);
-          if (q.fill) ctx.fill();
+          if (q.fill) { ctx.fillStyle = q.fill; ctx.fill(); }
           if (hasStroke) { ctx.strokeStyle = q.stroke; ctx.lineWidth = q.strokeWidth; ctx.stroke(); }
         } else if (q.type === 'poly' && (q.points || []).length >= 2) {
           ctx.beginPath();
           ctx.moveTo(PX + q.points[0][0], PY + q.points[0][1]);
           for (let i = 1; i < q.points.length; i++) ctx.lineTo(PX + q.points[i][0], PY + q.points[i][1]);
           ctx.closePath();
-          if (q.fill) ctx.fill();
+          if (q.fill) { ctx.fillStyle = q.fill; ctx.fill(); }
           if (hasStroke) { ctx.strokeStyle = q.stroke; ctx.lineWidth = q.strokeWidth; ctx.stroke(); }
         }
         if (rot || fh < 0 || fv < 0) ctx.restore();
@@ -597,8 +610,9 @@ const HomeScene = (() => {
       if (rot || fh < 0 || fv < 0) {
         ctx.save();
         ctx.translate(dx + w / 2, dy + h / 2);
-        ctx.scale(fh, fv);
+        // 先翻转后旋转（镜像作用于旋转角度；flip·R(rot) = R(-rot)·flip）
         if (rot) ctx.rotate(rot * Math.PI / 180);
+        ctx.scale(fh, fv);
         ctx.drawImage(img, srcX, 0, sw, img.height, -w / 2, -h / 2, w, h);
         ctx.restore();
       } else {

@@ -254,7 +254,7 @@ const state = {
 function wrapMod(x, m) { return ((x % m) + m) % m; }
 /* 选择框四角命中：tl/tr/bl/br */
 function hitCorner(p, box, t) {
-  t = t || 12;
+  t = t || 6;
   if (p.x >= box.x && p.x <= box.x + t && p.y >= box.y && p.y <= box.y + t) return 'tl';
   if (p.x >= box.x + box.w - t && p.x <= box.x + box.w && p.y >= box.y && p.y <= box.y + t) return 'tr';
   if (p.x >= box.x && p.x <= box.x + t && p.y >= box.y + box.h - t && p.y <= box.y + box.h) return 'bl';
@@ -427,8 +427,9 @@ function drawElement(ctx, e, t, imgMap) {
     if (rot || fh < 0 || fv < 0) {
       ctx.save();
       ctx.translate(dx + w / 2, dy + h / 2);
-      ctx.scale(fh, fv);
+      // 先翻转后旋转：flip·R(rot) = R(-rot)·flip——镜像对旋转角度同样生效（rotate 在 scale 之后调用 = 先作用到图形）
       if (rot) ctx.rotate(rot * Math.PI / 180);
+      ctx.scale(fh, fv);
       ctx.drawImage(img, fx * sw, 0, sw, img.height, -w / 2, -h / 2, w, h);
       ctx.restore();
     } else {
@@ -515,6 +516,17 @@ function normPart(p) {
   if (!('strokeWidth' in p)) p.strokeWidth = p.width || 1;
   return p;
 }
+/* 图元变换中心：矩形/椭圆 = 中心；线段 = 中点；多边形 = 顶点包围盒中心 */
+function partCenter(p) {
+  if (p.type === 'rect' || p.type === 'ellipse') return { cx: (p.x || 0) + (p.w || 1) / 2, cy: (p.y || 0) + (p.h || 1) / 2 };
+  if (p.type === 'line') return { cx: ((p.x || 0) + (p.x2 || 0)) / 2, cy: ((p.y || 0) + (p.y2 || 0)) / 2 };
+  if (p.type === 'poly' && (p.points || []).length) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    p.points.forEach(pt => { if (pt[0] < minX) minX = pt[0]; if (pt[1] < minY) minY = pt[1]; if (pt[0] > maxX) maxX = pt[0]; if (pt[1] > maxY) maxY = pt[1]; });
+    return { cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 };
+  }
+  return { cx: (p.x || 0) + 0.5, cy: (p.y || 0) + 0.5 };
+}
 function drawPartsTool(ctx, e, t) {
   let ox = 0;
   if (e.scroll && e.scroll.speed) {
@@ -532,16 +544,18 @@ function drawPartsTool(ctx, e, t) {
       const PX = Math.round(X + (q.x || 0)), PY = Math.round(y0 + (q.y || 0));
       const rot = q.rot || 0, fh = q.flipH ? -1 : 1, fv = q.flipV ? -1 : 1;
       if (rot || fh < 0 || fv < 0) {
-        const cx = X + (q.x || 0) + (q.w || 1) / 2, cy = y0 + (q.y || 0) + (q.h || 1) / 2;
+        const c = partCenter(q);
+        const cx = X + c.cx, cy = y0 + c.cy;
         ctx.save();
         ctx.translate(cx, cy);
-        ctx.scale(fh, fv);
+        // 先翻转后旋转（镜像作用于旋转角度；flip·R(rot) = R(-rot)·flip）
         if (rot) ctx.rotate(rot * Math.PI / 180);
+        ctx.scale(fh, fv);
         ctx.translate(-cx, -cy);
       }
       const hasStroke = q.stroke && q.strokeWidth > 0;
       if (q.type === 'rect') {
-        if (q.fill) ctx.fillRect(PX, PY, q.w || 1, q.h || 1);
+        if (q.fill) { ctx.fillStyle = q.fill; ctx.fillRect(PX, PY, q.w || 1, q.h || 1); }
         if (hasStroke) { ctx.strokeStyle = q.stroke; ctx.lineWidth = q.strokeWidth; ctx.strokeRect(PX, PY, q.w || 1, q.h || 1); }
       } else if (q.type === 'line') {
         ctx.strokeStyle = q.stroke || q.fill || '#fff';
@@ -550,14 +564,14 @@ function drawPartsTool(ctx, e, t) {
       } else if (q.type === 'ellipse') {
         ctx.beginPath();
         ctx.ellipse(PX + (q.w || 1) / 2, PY + (q.h || 1) / 2, (q.w || 1) / 2, (q.h || 1) / 2, 0, 0, Math.PI * 2);
-        if (q.fill) ctx.fill();
+        if (q.fill) { ctx.fillStyle = q.fill; ctx.fill(); }
         if (hasStroke) { ctx.strokeStyle = q.stroke; ctx.lineWidth = q.strokeWidth; ctx.stroke(); }
       } else if (q.type === 'poly' && (q.points || []).length >= 2) {
         ctx.beginPath();
         ctx.moveTo(PX + q.points[0][0], PY + q.points[0][1]);
         for (let i = 1; i < q.points.length; i++) ctx.lineTo(PX + q.points[i][0], PY + q.points[i][1]);
         ctx.closePath();
-        if (q.fill) ctx.fill();
+        if (q.fill) { ctx.fillStyle = q.fill; ctx.fill(); }
         if (hasStroke) { ctx.strokeStyle = q.stroke; ctx.lineWidth = q.strokeWidth; ctx.stroke(); }
       }
       if (rot || fh < 0 || fv < 0) ctx.restore();
@@ -592,25 +606,25 @@ function drawSelBox(ctx, box, color, opts) {
   if (!opts.noRot) drawRotationHandle(ctx, box, color);
   if (!opts.noMirror) drawMirrorButtons(ctx, box, color);
 }
-/* 选择框四角缩放手柄点 */
+/* 选择框四角缩放手柄点（v2.1 缩小为 4×4 = 原 7×7 的 1/2 向上取整） */
 function drawCorners(ctx, x, y, w, h, color) {
   ctx.fillStyle = color;
-  ctx.fillRect(x - 3, y - 3, 7, 7);
-  ctx.fillRect(x + w - 4, y - 3, 7, 7);
-  ctx.fillRect(x - 3, y + h - 4, 7, 7);
-  ctx.fillRect(x + w - 4, y + h - 4, 7, 7);
+  ctx.fillRect(x - 2, y - 2, 4, 4);
+  ctx.fillRect(x + w - 3, y - 2, 4, 4);
+  ctx.fillRect(x - 2, y + h - 3, 4, 4);
+  ctx.fillRect(x + w - 3, y + h - 3, 4, 4);
 }
-/* 旋转手柄：选中框顶部中央的小圆；命中返回 {hx,hy} */
+/* 旋转手柄：选中框顶部中央的小圆；命中返回 {hx,hy}（v2.1 半径 2 = 原 4 的 1/2，命中区 5） */
 function rotHandleHit(p, box) {
   const hx = box.x + box.w / 2, hy = box.y - 8;
-  return Math.hypot(p.x - hx, p.y - hy) <= 10 ? { hx: hx, hy: hy } : null;
+  return Math.hypot(p.x - hx, p.y - hy) <= 5 ? { hx: hx, hy: hy } : null;
 }
 function drawRotationHandle(ctx, box, color) {
   const hx = box.x + box.w / 2, hy = box.y - 8;
   ctx.strokeStyle = color;
   ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(hx, box.y); ctx.lineTo(hx, hy + 4); ctx.stroke();
-  ctx.beginPath(); ctx.arc(hx, hy, 4, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(hx, box.y); ctx.lineTo(hx, hy + 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(hx, hy, 2, 0, Math.PI * 2); ctx.stroke();
 }
 /* 图元集合旋转（相对各自中心的角度统一赋值；渲染端按 part.rot 逐图元旋转） */
 function rotPartsCoords(el, deg) {
@@ -2327,31 +2341,31 @@ function mirrorElement(el, axis) {
     if (el.rot) el.rot = -el.rot;
   }
 }
-/* 镜像按钮（7×7 方框）：[|] 垂直镜像在旋转 ● 上方，[一] 水平镜像在包围盒中心右侧 */
+/* 镜像按钮（4×4 方框 = 原 7×7 的 1/2 向上取整）：[|] 垂直镜像在旋转 ● 上方，[一] 水平镜像在包围盒中心右侧 */
 function mirrorBtnHit(p, box, axis) {
   if (axis === 'h') {
     const bx = box.x + box.w / 2, by = box.y - 17;
-    return p.x >= bx - 4 && p.x <= bx + 4 && p.y >= by - 4 && p.y <= by + 4;
+    return p.x >= bx - 2 && p.x <= bx + 2 && p.y >= by - 2 && p.y <= by + 2;
   }
   const hx = box.x + box.w + 9, hy = box.y + box.h / 2;
-  return p.x >= hx - 4 && p.x <= hx + 4 && p.y >= hy - 4 && p.y <= hy + 4;
+  return p.x >= hx - 2 && p.x <= hx + 2 && p.y >= hy - 2 && p.y <= hy + 2;
 }
 function drawMirrorButtons(ctx, box, color) {
   // [|] 垂直镜像（绕竖轴）：旋转 ●（y-8）上方 y-17
   const bx = box.x + box.w / 2, by = box.y - 17;
   ctx.fillStyle = '#20262e';
-  ctx.fillRect(Math.round(bx - 3.5), Math.round(by - 3.5), 7, 7);
+  ctx.fillRect(Math.round(bx - 2), Math.round(by - 2), 4, 4);
   ctx.strokeStyle = color;
   ctx.lineWidth = 1;
-  ctx.strokeRect(Math.round(bx - 3.5), Math.round(by - 3.5), 7, 7);
-  ctx.beginPath(); ctx.moveTo(Math.round(bx), Math.round(by - 2)); ctx.lineTo(Math.round(bx), Math.round(by + 2)); ctx.stroke();
+  ctx.strokeRect(Math.round(bx - 2), Math.round(by - 2), 4, 4);
+  ctx.beginPath(); ctx.moveTo(Math.round(bx), Math.round(by - 1)); ctx.lineTo(Math.round(bx), Math.round(by + 1)); ctx.stroke();
   // [一] 水平镜像（绕横轴）：包围盒中心右侧 x+w+9
   const hx = box.x + box.w + 9, hy = box.y + box.h / 2;
   ctx.fillStyle = '#20262e';
-  ctx.fillRect(Math.round(hx - 3.5), Math.round(hy - 3.5), 7, 7);
+  ctx.fillRect(Math.round(hx - 2), Math.round(hy - 2), 4, 4);
   ctx.strokeStyle = color;
-  ctx.strokeRect(Math.round(hx - 3.5), Math.round(hy - 3.5), 7, 7);
-  ctx.beginPath(); ctx.moveTo(Math.round(hx - 2), Math.round(hy)); ctx.lineTo(Math.round(hx + 2), Math.round(hy)); ctx.stroke();
+  ctx.strokeRect(Math.round(hx - 2), Math.round(hy - 2), 4, 4);
+  ctx.beginPath(); ctx.moveTo(Math.round(hx - 1), Math.round(hy)); ctx.lineTo(Math.round(hx + 1), Math.round(hy)); ctx.stroke();
 }
 function partsEditor(el, body, cardKey) {
   const g = document.createElement('div');
@@ -2775,17 +2789,23 @@ window.addEventListener('pointermove', ev => {
 window.addEventListener('pointerup', () => { tlDragging = false; tlDragBorder = null; });
 
 /* ---------------- 场景编辑（增/删/改名；时间轴边界拖拽联动） ---------------- */
-function syncSceneArrays(cfg, oldN, newN) {
+function syncSceneArrays(cfg, oldN, newN, delIndex) {
   // 长度 == 旧场景数的数值/字符串数组视为「按场景数组」→ 补齐（取末位）/截断
+  // delIndex 提供时（删场景）：按被删索引移除对应槽位（剩余场景保持各自取值对齐）
   const fix = o => {
     for (const k of Object.keys(o)) {
       const v = o[k];
       if (Array.isArray(v) && v.length === oldN && v.every(x => typeof x === 'number' || typeof x === 'string')) {
-        while (v.length < newN) v.push(v.length ? v[v.length - 1] : 0);
-        if (v.length > newN) v.length = newN;
+        if (delIndex != null && delIndex >= 0 && v.length > newN) {
+          v.splice(delIndex, 1);
+        } else {
+          while (v.length < newN) v.push(v.length ? v[v.length - 1] : 0);
+          if (v.length > newN) v.length = newN;
+        }
       }
     }
   };
+  fix(cfg); // 顶层数组（bg 背景色等）：scene 按顺序取用，增删场景时同步长度（scenes/sceneBorders 长度已为新值，跳过）
   for (const k of Object.keys(cfg)) {
     const v = cfg[k];
     if (v && typeof v === 'object' && !Array.isArray(v)) fix(v);
@@ -2860,7 +2880,7 @@ function deleteScene(i) {
   cfg.scenes.splice(i, 1);
   if (!cfg.scenes.length) cfg.scenes = ['场景'];
   cfg.sceneBorders = equalBorders(cfg, cfg.scenes.length);
-  syncSceneArrays(cfg, oldN, cfg.scenes.length);
+  syncSceneArrays(cfg, oldN, cfg.scenes.length, i);
   buildLayerList(layerCfg());
   renderSceneBar(); renderTimeline();
   if (window.HomeScene && HomeScene.seek) HomeScene.seek(state.t);
