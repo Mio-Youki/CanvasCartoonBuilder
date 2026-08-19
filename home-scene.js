@@ -511,7 +511,46 @@ const HomeScene = (() => {
     }
     return { cx: (p.x || 0) + 0.5, cy: (p.y || 0) + 0.5 };
   }
+  // 图元局部包围盒（pixelDiv 离屏重采样用；不含 scroll 偏移）
+  function partsLocalBox(e) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const ext = (x, y) => { if (x < minX) minX = x; if (y < minY) minY = y; if (x > maxX) maxX = x; if (y > maxY) maxY = y; };
+    (e.parts || []).forEach(p => {
+      if (p.type === 'rect' || p.type === 'ellipse') { ext(p.x || 0, p.y || 0); ext((p.x || 0) + (p.w || 1), (p.y || 0) + (p.h || 1)); }
+      else if (p.type === 'line') { ext(p.x || 0, p.y || 0); ext(p.x2 || 0, p.y2 || 0); }
+      else if (p.type === 'poly') (p.points || []).forEach(pt => ext(pt[0], pt[1]));
+    });
+    if (!isFinite(minX)) return null;
+    return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+  }
   function drawParts(e, t) {
+    // 元素级重采样（pixelDiv > 1）：parts 画到「包围盒 ÷ 除数」离屏小画布 → 最近邻放大（锯齿感）
+    const div = e.pixelDiv || 1;
+    if (div > 1 && !e.partsBand && !(e.scroll && e.scroll.speed && e.scroll.span)) {
+      const ox0 = 0, x0 = val(e, 'x', t) || 0, y0 = val(e, 'y', t) || 0;
+      const lb = partsLocalBox(e);
+      if (!lb) return;
+      const bx = x0 + lb.x, by = y0 + lb.y;
+      const W = Math.max(2, Math.round(lb.w / div)), H = Math.max(2, Math.round(lb.h / div));
+      const oc = document.createElement('canvas');
+      oc.width = W; oc.height = H;
+      const og = oc.getContext('2d');
+      og.imageSmoothingEnabled = false;
+      og.scale(1 / div, 1 / div);
+      og.translate(-bx, -by);
+      const savedCtx = ctx;
+      ctx = og;
+      drawPartsRaw(e, t);
+      ctx = savedCtx;
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(oc, 0, 0, W, H, Math.round(bx), Math.round(by), Math.round(lb.w), Math.round(lb.h));
+      ctx.restore();
+      return;
+    }
+    drawPartsRaw(e, t);
+  }
+  function drawPartsRaw(e, t) {
     let ox = 0;
     if (e.scroll && e.scroll.speed) {
       const sp = e.scroll.span || e.w || 1;

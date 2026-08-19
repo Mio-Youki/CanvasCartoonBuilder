@@ -129,12 +129,34 @@
 <div class="sub">任意图片 → 像素化 → 拖拽装配（滚动/闪烁/脉动）→ 打开/保存场景 js（页面内直接改写配置，无需复制粘贴）。开发工具，不随游戏发布。</div>
 
 <div class="cols">
-  <!-- 左：素材导入与素材库 -->
+  <!-- 左：素材导入 + 样式化 + 素材库 -->
   <div class="panel p-import">
     <label>导入素材（任意图片，非 8bit 亦可）</label>
     <div id="drop" class="drop">拖入图片 / 点击选择</div>
     <input id="file" type="file" accept="image/*" multiple hidden>
-    <label>素材库（点击选中，再"添加到场景"；样式化参数在顶部工具栏）</label>
+    <label><input type="checkbox" id="style-on" checked> 样式化（关 = 原样 1:1 显示）</label>
+    <label>采样除数（原图 ÷ N；像素化 = 缩小 N 倍采样）</label>
+    <div class="row">
+      <select id="divisor" style="flex:1">
+        <option value="1">1/1 原样</option>
+        <option value="2" selected>1/2</option>
+        <option value="4">1/4</option>
+        <option value="8">1/8</option>
+      </select>
+      <button id="btn-repx" class="primary" style="margin-top:0">应用选中素材</button>
+    </div>
+    <label>减色色板（映射到有限色板最近色）</label>
+    <select id="palette">
+      <option value="">无（保持原色）</option>
+      <option value="pico8">PICO-8 · 32 色</option>
+      <option value="gb">Game Boy · 4 色</option>
+      <option value="vga">VGA · 16 色</option>
+    </select>
+    <label>均匀量化（每通道色阶，0=关）</label>
+    <input id="quant" type="range" min="0" max="8" value="0">
+    <label>去背景容差（0=关；按左上角颜色抠除）</label>
+    <input id="bgtol" type="range" min="0" max="60" value="0">
+    <label>素材库（点击选中，再"添加到场景"）</label>
     <div id="lib" class="lib"></div>
     <button id="btn-add" class="primary">添加到场景 →</button>
     <button id="btn-del-src">删除选中素材</button>
@@ -153,24 +175,6 @@
       <label class="sf-l nm">周期</label><input id="gloop" class="sf-n" type="number" value="48">
       <label class="sf-l"><input type="checkbox" id="showscene"> 场景层</label>
       <button id="btn-play" class="small primary sf-play">⏸</button>
-    </div>
-    <div class="sf-row" id="style-row" title="素材样式化：作用于选中素材（原图保留，可随时还原/重采样）">
-      <span class="sf-sep"></span>
-      <label class="sf-l nm">素材样式化</label>
-      <label class="sf-l nm">采样宽</label><input id="pw" class="sf-n" type="number" min="8" value="160">
-      <label class="sf-l nm">色板</label>
-      <select id="palette" class="sf-n" style="width:86px">
-        <option value="">无（保持原色）</option>
-        <option value="pico8">PICO-8 · 32 色</option>
-        <option value="gb">Game Boy · 4 色</option>
-        <option value="vga">VGA · 16 色</option>
-      </select>
-      <label class="sf-l nm" title="每通道色阶，0=关（如 4 = 4×4×4 = 64 色）">量化</label>
-      <input id="quant" class="sf-n" type="range" min="0" max="8" value="0" style="width:60px">
-      <label class="sf-l nm" title="按左上角颜色抠除背景，0=关">去背景</label>
-      <input id="bgtol" class="sf-n" type="range" min="0" max="60" value="0" style="width:60px">
-      <button id="btn-repx" class="small">应用选中素材</button>
-      <canvas id="style-preview" width="128" height="48" title="左=原图 右=采样效果"></canvas>
     </div>
     <div class="draw-row" id="draw-row">
       <label class="sf-l nm">绘制</label>
@@ -334,29 +338,40 @@ function pixelate(img, w, h, opts) {
   return c;
 }
 
-/* 素材 = 原图 + 参数快照（采样宽/色板/量化/容差）；采样结果惰性缓存。
-   原图始终保留 = 风格化/恢复的依据；改参数 → invalidateSource 重建采样。 */
-function sourceAspect(img) { return (img.naturalHeight || img.height) / Math.max(1, img.naturalWidth || img.width); }
+/* 素材 = 原图（基图）+ 参数快照（样式化开关/采样除数/色板/量化/去背景）；采样结果惰性缓存。
+   采样尺寸 = 基图 ÷ 除数（styleOn 关 = 1:1 原样）；基图始终保留 = 风格化/恢复的依据。 */
+function sourceSampleSize(s) {
+  const div = (s.styleOn !== false && s.divisor) ? s.divisor : 1;
+  return {
+    w: Math.max(1, Math.round(s.img.width / div)),
+    h: Math.max(1, Math.round(s.img.height / div)),
+  };
+}
 function getSourceCanvas(s) {
   if (!s._canvas) {
+    const div = (s.styleOn !== false && s.divisor) ? s.divisor : 1;
     const opts = { palette: s.palette, quant: s.quant, bgtol: s.bgtol };
+    const sz = sourceSampleSize(s);
     if (s.frames > 1) {
-      // 多帧 sheet：逐帧采样再横向拼接（保持帧结构；基图每帧 = s.w×s.h）
+      // 多帧 sheet：切帧恒用基图帧宽（s.img.width/frames，导入时固定——改除数不破坏帧边界），
+      // 每帧缩到采样宽再逐帧风格化后横向拼接（输出宽 = 每帧采样宽 × frames）
+      const baseFrameW = s.img.width / s.frames;
+      const frameW = Math.max(1, Math.round(baseFrameW / div));
       const c = document.createElement('canvas');
-      c.width = s.w * s.frames; c.height = s.h;
+      c.width = frameW * s.frames; c.height = sz.h;
       const g = c.getContext('2d');
       g.imageSmoothingEnabled = false;
       for (let f = 0; f < s.frames; f++) {
         const fc = document.createElement('canvas');
-        fc.width = s.w; fc.height = s.h;
+        fc.width = frameW; fc.height = sz.h;
         const fg = fc.getContext('2d');
         fg.imageSmoothingEnabled = false;
-        fg.drawImage(s.img, f * s.w, 0, s.w, s.h, 0, 0, s.w, s.h);
-        g.drawImage(pixelate(fc, s.w, s.h, opts), f * s.w, 0);
+        fg.drawImage(s.img, f * baseFrameW, 0, baseFrameW, s.img.height, 0, 0, frameW, sz.h);
+        g.drawImage(pixelate(fc, frameW, sz.h, opts), f * frameW, 0);
       }
       s._canvas = c;
     } else {
-      s._canvas = pixelate(s.img, s.w, s.h, opts);
+      s._canvas = pixelate(s.img, sz.w, sz.h, opts);
     }
   }
   return s._canvas;
@@ -383,22 +398,22 @@ function syncElementAssets() {
 
 /* ---------------- 素材库 ---------------- */
 function addSource(img, name, frames) {
-  const w = Math.max(8, parseInt($('pw').value) || 160);
-  const h = Math.max(4, Math.round(w * sourceAspect(img)));
   const src = {
     id: 's' + Math.random().toString(36).slice(2, 7),
     name: name || 'src' + (state.sources.length + 1),
-    img: img, // 原图（风格化/恢复的依据，始终保留）
-    w: w, h: h, // 采样尺寸（元素显示尺寸默认 = 采样尺寸，靠拉伸）
+    img: img, // 基图（原图；风格化/恢复的依据，始终保留）
     frames: frames || 1,
+    styleOn: $('style-on').checked !== false, // 关 = 原样 1:1 显示
+    divisor: parseInt($('divisor').value) || 2, // 采样除数：采样尺寸 = 基图 ÷ 除数
     palette: $('palette').value, quant: parseInt($('quant').value) || 0, bgtol: parseInt($('bgtol').value) || 0,
     _canvas: null, _dataUrl: null, // 惰性采样缓存
   };
+  const sz = sourceSampleSize(src);
   state.sources.push(src);
   state.selSrc = src.id;
   renderLib();
   renderStyleCtl();
-  $('m-import').textContent = '已导入 ' + src.name + '（采样 ' + w + '×' + h + (src.frames > 1 ? ' · ' + src.frames + '帧' : '') + '）——点「添加到场景」';
+  $('m-import').textContent = '已导入 ' + src.name + '（采样 ' + sz.w + '×' + sz.h + (src.frames > 1 ? ' · ' + src.frames + '帧' : '') + '）——点「添加到场景」';
 }
 function renderLib() {
   const lib = $('lib');
@@ -407,15 +422,16 @@ function renderLib() {
     const d = document.createElement('div');
     d.className = 'lib-item' + (state.selSrc === s.id ? ' active' : '');
     const cv = document.createElement('canvas');
-    cv.width = s.w; cv.height = s.h;
+    const sz = sourceSampleSize(s);
+    cv.width = sz.w; cv.height = sz.h;
     const g = cv.getContext('2d');
     g.imageSmoothingEnabled = false;
     const im = new Image();
-    im.onload = () => { g.clearRect(0, 0, s.w, s.h); g.drawImage(im, 0, 0); };
+    im.onload = () => { g.clearRect(0, 0, sz.w, sz.h); g.drawImage(im, 0, 0); };
     im.src = getSourceDataUrl(s);
     const nm = document.createElement('div');
     nm.className = 'nm';
-    nm.textContent = s.name + ' ' + s.w + '×' + s.h;
+    nm.textContent = s.name + ' ' + sz.w + '×' + sz.h;
     d.appendChild(cv);
     d.appendChild(nm);
     d.onclick = () => { state.selSrc = s.id; renderLib(); renderStyleCtl(); };
@@ -427,15 +443,16 @@ function selSource() { return state.sources.find(s => s.id === state.selSrc); }
 
 /* ---------------- 元素 ---------------- */
 function addElement(src) {
+  const sz = sourceSampleSize(src);
   const el = {
     id: 'e' + Math.random().toString(36).slice(2, 7),
     name: src.name,
     srcId: src.id,              // 引用素材（原图+参数快照）：渲染实时采样，改参数自动同步
     src: getSourceDataUrl(src), // 当前采样 dataUrl（旧路径兼容 + 保存时冻结硬编码）
-    x: Math.floor((state.cw - src.w) / 2), y: Math.floor((state.ch - src.h) / 2),
-    w: src.w, h: src.h,         // 显示尺寸默认 = 采样尺寸，靠用户拉伸（放大仍像素风：最近邻）
+    x: Math.floor((state.cw - sz.w) / 2), y: Math.floor((state.ch - sz.h) / 2),
+    w: sz.w, h: sz.h,           // 显示尺寸默认 = 采样尺寸，靠用户拉伸（放大仍像素风：最近邻）
     alpha: 1, z: 99, // 素材浮于程序化场景之上（home-scene 的 images 画在程序化层之后）
-    scroll: { speed: 0, span: src.w, dir: 'left' },
+    scroll: { speed: 0, span: sz.w, dir: 'left' },
     anim: 'static', animMs: 700,
     frames: src.frames || 1, fps: 8,
     _asset: null, // 采样 canvas（渲染用，不序列化；syncElementAssets 维护）
@@ -566,7 +583,41 @@ function renderStage() {
     drawSelBox(ctx, { x: Math.round(sel.x + ox), y: Math.round(sel.y), w: sel.w, h: sel.h }, '#ffd23f', sel.partsBand ? { noHandles: true } : {});
   }
 }
-/* 装配模式图元渲染（与 home-scene drawParts 同语义；AI 式描边/填充） */
+/* 装配模式图元渲染（与 home-scene drawParts 同语义；AI 式描边/填充）。
+   元素级重采样（pixelDiv > 1）：parts 画到「包围盒 ÷ 除数」的离屏小画布 → 最近邻放大回显示区域（锯齿感）。 */
+function drawPartsTool(ctx, e, t) {
+  const div = e.pixelDiv || 1;
+  if (div > 1 && !e.partsBand && !(e.scroll && e.scroll.speed && e.scroll.span)) {
+    return drawPartsToolDiv(ctx, e, t, div);
+  }
+  drawPartsToolRaw(ctx, e, t);
+}
+function drawPartsToolDiv(ctx, e, t, div) {
+  // 元素显示包围盒（含 scroll 偏移；band/滚动平铺元素不走此路径）
+  const ox = scrollOffset(e, t);
+  const x0 = elVal(e, 'x') + ox, y0 = elVal(e, 'y');
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const ext = (x, y) => { if (x < minX) minX = x; if (y < minY) minY = y; if (x > maxX) maxX = x; if (y > maxY) maxY = y; };
+  (e.parts || []).forEach(p => {
+    if (p.type === 'rect' || p.type === 'ellipse') { ext(p.x || 0, p.y || 0); ext((p.x || 0) + (p.w || 1), (p.y || 0) + (p.h || 1)); }
+    else if (p.type === 'line') { ext(p.x || 0, p.y || 0); ext(p.x2 || 0, p.y2 || 0); }
+    else if (p.type === 'poly') (p.points || []).forEach(pt => ext(pt[0], pt[1]));
+  });
+  if (!isFinite(minX)) return;
+  const bx = x0 + minX, by = y0 + minY, bw = maxX - minX, bh = maxY - minY;
+  const W = Math.max(2, Math.round(bw / div)), H = Math.max(2, Math.round(bh / div));
+  const oc = document.createElement('canvas');
+  oc.width = W; oc.height = H;
+  const og = oc.getContext('2d');
+  og.imageSmoothingEnabled = false;
+  og.scale(1 / div, 1 / div);
+  og.translate(-bx, -by);
+  drawPartsToolRaw(og, e, t);
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(oc, 0, 0, W, H, Math.round(bx), Math.round(by), Math.round(bw), Math.round(bh));
+  ctx.restore();
+}
 function normPart(p) {
   if (typeof p.fill === 'boolean') {
     if (p.fill) p.fill = p.color || null;
@@ -589,7 +640,7 @@ function partCenter(p) {
   }
   return { cx: (p.x || 0) + 0.5, cy: (p.y || 0) + 0.5 };
 }
-function drawPartsTool(ctx, e, t) {
+function drawPartsToolRaw(ctx, e, t) {
   let ox = 0;
   if (e.scroll && e.scroll.speed) {
     const sp = e.scroll.span || e.w || 1;
@@ -966,6 +1017,9 @@ stage.addEventListener('pointerdown', ev => {
       state.selEl = e.id;
       state.selProg = null;
       state.partSel = null;
+      if (e.srcId) { // ⑤ 画布选中 → 左侧素材同步选中（样式化控件显示该素材参数）
+        if (state.selSrc !== e.srcId) { state.selSrc = e.srcId; renderLib(); renderStyleCtl(); }
+      }
       if (mh || mv) {
         // 元素级镜像：图片元素 flipH/flipV + rot 取反；图元元素坐标镜像 + rot 取反
         pushHistory();
@@ -1356,92 +1410,66 @@ function loadFiles(files) {
     reader.readAsDataURL(f);
   }
   function finishCompose() {
-    const w = Math.max(8, parseInt($('pw').value) || 160);
-    const h = Math.max(4, Math.round(w * (imgs[0].naturalHeight / Math.max(1, imgs[0].naturalWidth))));
+    // 基图 = 每帧最近邻缩到「第一帧原尺寸」的干净 sheet（不风格化；帧宽固定 → 改除数不破坏帧边界）
+    const W0 = imgs[0].naturalWidth || imgs[0].width, H0 = imgs[0].naturalHeight || imgs[0].height;
     const sheet = document.createElement('canvas');
-    sheet.width = w * imgs.length; sheet.height = h;
+    sheet.width = W0 * imgs.length; sheet.height = H0;
     const g = sheet.getContext('2d');
     g.imageSmoothingEnabled = false;
-    // 干净基图：每帧最近邻缩到采样尺寸（不应用色板/量化/去背景——风格化在 getSourceCanvas 逐帧应用）
-    imgs.forEach((im, i) => g.drawImage(im, i * w, 0, w, h));
+    imgs.forEach((im, i) => g.drawImage(im, i * W0, 0, W0, H0));
     const src = {
       id: 's' + Math.random().toString(36).slice(2, 7),
       name: (list[0].name.replace(/\.[^.$]+$/, '').slice(0, 8) || 'frame') + '×' + imgs.length,
       img: sheet,
-      w: w, h: h, frames: imgs.length,
+      frames: imgs.length,
+      styleOn: $('style-on').checked !== false,
+      divisor: parseInt($('divisor').value) || 2,
       palette: $('palette').value, quant: parseInt($('quant').value) || 0, bgtol: parseInt($('bgtol').value) || 0,
       _canvas: null, _dataUrl: null,
     };
+    const sz = sourceSampleSize(src);
     state.sources.push(src);
     state.selSrc = src.id;
     renderLib();
     renderStyleCtl();
-    $('m-import').textContent = '已合成 ' + imgs.length + ' 帧素材「' + src.name + '」（' + w + '×' + h + ' ×' + imgs.length + ' 帧）——点「添加到场景」';
+    $('m-import').textContent = '已合成 ' + imgs.length + ' 帧素材「' + src.name + '」（采样 ' + sz.w + '×' + sz.h + ' ×' + imgs.length + ' 帧）——点「添加到场景」';
   }
 }
-/* 素材样式化（顶部工具栏）：参数作用于选中素材（素材级快照），原图保留可还原 */
-function styleParamsFromCtl() {
-  return {
-    w: Math.max(8, parseInt($('pw').value) || 160),
+/* 素材样式化（左侧栏）：参数作用于选中素材（素材级快照），原图保留可还原；
+   样式化开关（关 = 原样 1:1）+ 采样除数（采样尺寸 = 基图 ÷ 除数）——改参数实时生效 */
+function applyStyleToSource(s, rebuildLib) {
+  const div = parseInt($('divisor').value) || 2;
+  const on = $('style-on').checked;
+  const p = {
     palette: $('palette').value,
     quant: parseInt($('quant').value) || 0,
     bgtol: parseInt($('bgtol').value) || 0,
   };
-}
-function applyStyleToSource(s, rebuildLib) {
-  const p = styleParamsFromCtl();
-  const changed = p.palette !== s.palette || p.quant !== s.quant || p.bgtol !== s.bgtol || p.w !== s.w;
+  const changed = p.palette !== s.palette || p.quant !== s.quant || p.bgtol !== s.bgtol || div !== s.divisor || on !== s.styleOn;
   s.palette = p.palette; s.quant = p.quant; s.bgtol = p.bgtol;
-  if (p.w !== s.w) { s.w = p.w; s.h = Math.max(4, Math.round(p.w * sourceAspect(s.img))); }
+  s.divisor = div; s.styleOn = on;
   if (!changed) return;
   invalidateSource(s); // 采样缓存失效 + 引用元素 _asset 清空（渲染实时取新采样）
   if (window.HomeScene && HomeScene.clearImageCache) HomeScene.clearImageCache();
   if (rebuildLib) renderLib();
-  renderStyleCtlPreview();
   refreshStage();
 }
 function renderStyleCtl() {
   const s = selSource();
   if (s) {
-    $('pw').value = s.w;
+    $('style-on').checked = s.styleOn !== false;
+    $('divisor').value = s.divisor || 2;
     $('palette').value = s.palette || '';
     $('quant').value = s.quant || 0;
     $('bgtol').value = s.bgtol || 0;
   }
-  renderStyleCtlPreview();
 }
-function renderStyleCtlPreview() {
-  const cv = $('style-preview');
-  if (!cv) return;
-  const g = cv.getContext('2d');
-  g.fillStyle = '#0a0e22'; g.fillRect(0, 0, cv.width, cv.height);
-  const s = selSource();
-  if (!s) {
-    g.fillStyle = '#1a2350'; g.fillRect(1, 1, cv.width - 2, cv.height - 2);
-    g.fillStyle = '#f2f3f8'; g.font = '10px monospace';
-    g.fillText('未选中素材', 12, 27);
-    return;
-  }
-  const hw = s.img.naturalWidth || s.img.width, hh = s.img.naturalHeight || s.img.height;
-  const aspect = hh / Math.max(1, hw);
-  g.imageSmoothingEnabled = false;
-  const w1 = 60, h1 = Math.max(1, Math.round(w1 * aspect));
-  g.drawImage(s.img, 0, Math.floor((48 - h1) / 2), w1, h1); // 左：原图
-  const w2 = 60, h2 = Math.max(1, Math.round(w2 * s.h / Math.max(1, s.w)));
-  g.drawImage(getSourceCanvas(s), 60, Math.floor((48 - h2) / 2), w2, h2); // 右：采样效果
-  g.strokeStyle = '#f2f3f8'; g.beginPath(); g.moveTo(62, 2); g.lineTo(62, 46); g.stroke();
-}
-$('palette').addEventListener('input', () => { const s = selSource(); if (s) applyStyleToSource(s, false); else renderStyleCtlPreview(); });
-$('quant').addEventListener('input', () => { const s = selSource(); if (s) applyStyleToSource(s, false); else renderStyleCtlPreview(); });
-$('bgtol').addEventListener('input', () => { const s = selSource(); if (s) applyStyleToSource(s, false); else renderStyleCtlPreview(); });
+$('style-on').addEventListener('change', () => { const s = selSource(); if (s) applyStyleToSource(s, true); });
+$('divisor').addEventListener('change', () => { const s = selSource(); if (s) applyStyleToSource(s, true); });
+$('palette').addEventListener('input', () => { const s = selSource(); if (s) applyStyleToSource(s, false); });
+$('quant').addEventListener('input', () => { const s = selSource(); if (s) applyStyleToSource(s, false); });
+$('bgtol').addEventListener('input', () => { const s = selSource(); if (s) applyStyleToSource(s, false); });
 ['palette', 'quant', 'bgtol'].forEach(id => $(id).addEventListener('change', () => { if (selSource()) renderLib(); }));
-$('pw').addEventListener('change', () => { const s = selSource(); if (s) applyStyleToSource(s, true); });
-$('btn-repx').addEventListener('click', () => {
-  const s = selSource();
-  if (!s) { $('m-import').textContent = '先选中素材（素材库点击）'; return; }
-  applyStyleToSource(s, true);
-  $('m-import').textContent = '素材「' + s.name + '」已按新样式重采样（采样 ' + s.w + '×' + s.h + '）；画布引用元素实时同步';
-});
 $('btn-add').addEventListener('click', () => { const s = selSource(); if (s) addElement(s); });
 $('btn-del-src').addEventListener('click', () => {
   const s = selSource();
@@ -1853,6 +1881,24 @@ function walkForm(obj, path, box, cardKey) {
     return b;
   };
   const idx = () => Math.min(curS < 0 ? 0 : curS, 31);
+  // 程序元素（含 parts）：像素化除数（元素级重采样，1=平滑）——离屏缩小 N 倍采样再最近邻放大（椭圆等边缘出锯齿）
+  if (obj && obj.parts && Array.isArray(obj.parts)) {
+    const sel = document.createElement('select');
+    [1, 2, 4].forEach(d => {
+      const o = document.createElement('option');
+      o.value = d; o.textContent = '1/' + d + (d === 1 ? ' 平滑' : '');
+      if ((obj.pixelDiv || 1) === d) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.title = '元素级重采样：parts 缩小 N 倍采样再最近邻放大（边缘锯齿感）；1/1=平滑（默认）';
+    sel.addEventListener('change', () => {
+      pushHistory();
+      const v = parseInt(sel.value) || 1;
+      if (v > 1) obj.pixelDiv = v; else delete obj.pixelDiv;
+      refreshStage();
+    });
+    add('像素化除数', sel);
+  }
   for (const [k, v] of Object.entries(obj)) {
     if (k === 'show' || k === 'parts') continue; // show=弹窗管理；parts=图元编辑面板
     const isNumArr = Array.isArray(v) && v.length && v.every(x => typeof x === 'number');
@@ -2118,6 +2164,9 @@ function buildLayerList(cfg) {
         buildLayerList(cfg);
       } else {
         state.selEl = isSel ? null : el.id; // 点击卡片 = 选中/取消（展开参数）
+        if (!isSel && el.srcId && state.selSrc !== el.srcId) { // ⑤ 图层栏选中 → 左侧素材同步选中
+          state.selSrc = el.srcId; renderLib(); renderStyleCtl();
+        }
         buildLayerList(cfg);
         renderStage();
       }
