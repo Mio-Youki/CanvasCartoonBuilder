@@ -236,6 +236,7 @@ const state = {
   sceneParamsMode: false, // 已打开参数化场景（HOME_SCENE）：素材写入其 images 层，保存随配置写回
   lastTlScene: -1,    // 图层栏跟随时间轴：当前编辑场景（播放头所在段）
   zoom: 1,            // 画布内容缩放（Alt+滚轮；1=适应显示框）
+  pan: { x: 0, y: 0 }, // 内容平移（CSS px；缩放以鼠标为中心时保持光标下坐标不动）
   asmBg: '#09132c',   // 装配模式背景色（图层栏顶部「背景」行，随场景模式切到 cfg.bg）
   drawMode: 'select', // 矢量绘制：select|rect|line|ellipse|poly
   drawFillColor: '#ffd23f',
@@ -440,7 +441,7 @@ function renderStage() {
     ctx.strokeRect(bb.x - 1, bb.y - 1, bb.w + 2, bb.h + 2);
     ctx.setLineDash([]);
     if (!pe.partsBand && p.type !== 'poly') {
-      ctx.fillStyle = '#ffd23f';
+      ctx.fillStyle = '#4dc3ff'; // 与 part 选择框同色（青色）
       ctx.fillRect(bb.x + bb.w - 3, bb.y + bb.h - 3, 7, 7);
     }
   }
@@ -572,9 +573,10 @@ function resizeStageWrap() {
   const maxH = Math.max(100, Math.round(window.innerHeight * 2 / 3));
   const ratioH = boxW * Math.max(1, state.ch) / Math.max(1, state.cw);
   wrap.style.height = Math.max(100, Math.min(maxH, Math.round(ratioH))) + 'px';
+  state.pan = { x: 0, y: 0 }; // 尺寸变化后重置平移
   applyCanvasDisplay();
 }
-// 画布内容显式尺寸 = cfg 尺寸 × (fit × zoom)：zoomed 时超出显示框被容器裁剪（像素化缩放）
+// 画布内容显式尺寸 = cfg 尺寸 × (fit × zoom)，位置 = 平移量 pan（缩放以鼠标为中心时保持光标下坐标不动）
 function applyCanvasDisplay() {
   const wrap = $('stage-wrap');
   if (!wrap) return;
@@ -586,8 +588,8 @@ function applyCanvasDisplay() {
   const ch = Math.max(2, Math.round(state.ch * s));
   const hs = document.getElementById('home-scene');
   const st = document.getElementById('stage');
-  if (hs) { hs.style.width = cw + 'px'; hs.style.height = ch + 'px'; }
-  if (st) { st.style.width = cw + 'px'; st.style.height = ch + 'px'; }
+  if (hs) { hs.style.left = state.pan.x + 'px'; hs.style.top = state.pan.y + 'px'; hs.style.width = cw + 'px'; hs.style.height = ch + 'px'; }
+  if (st) { st.style.left = state.pan.x + 'px'; st.style.top = state.pan.y + 'px'; st.style.width = cw + 'px'; st.style.height = ch + 'px'; }
   const zb = document.getElementById('zoom-badge');
   if (zb) {
     const z = state.zoom || 1;
@@ -598,12 +600,27 @@ function applyCanvasDisplay() {
 $('stage-wrap').addEventListener('wheel', ev => {
   if (!ev.altKey) return;
   ev.preventDefault();
-  state.zoom = Math.max(0.2, Math.min(8, (state.zoom || 1) * (ev.deltaY < 0 ? 1.1 : 1 / 1.1)));
+  const wrap = $('stage-wrap');
+  const r = wrap.getBoundingClientRect();
+  const cx = ev.clientX - r.left, cy = ev.clientY - r.top;
+  const oldZ = state.zoom || 1;
+  const newZ = Math.max(0.2, Math.min(8, oldZ * (ev.deltaY < 0 ? 1.1 : 1 / 1.1)));
+  // 缩放中心 = 鼠标：保持光标下的画布坐标不动（重算平移量）
+  const fit = Math.min(r.width / Math.max(1, state.cw), (parseFloat(wrap.style.height) || 218) / Math.max(1, state.ch));
+  const oldScale = fit * oldZ, newScale = fit * newZ;
+  const ux = (cx - (state.pan.x || 0)) / oldScale;
+  const uy = (cy - (state.pan.y || 0)) / oldScale;
+  state.zoom = newZ;
+  state.pan.x = cx - ux * newScale;
+  state.pan.y = cy - uy * newScale;
   applyCanvasDisplay();
   refreshStage();
 }, { passive: false });
 $('stage-wrap').addEventListener('dblclick', () => {
-  if (Math.abs((state.zoom || 1) - 1) > 0.01) { state.zoom = 1; applyCanvasDisplay(); refreshStage(); }
+  if (Math.abs((state.zoom || 1) - 1) > 0.01 || state.pan.x || state.pan.y) {
+    state.zoom = 1; state.pan = { x: 0, y: 0 };
+    applyCanvasDisplay(); refreshStage();
+  }
 });
 window.addEventListener('resize', () => { resizeStageWrap(); renderStage(); renderTimeline(); });
 function ensureImage(e) {
@@ -814,7 +831,11 @@ stage.addEventListener('pointermove', ev => {
 stage.addEventListener('pointerup', ev => {
   if (state.drawShape && state.drawDrag) {
     state.drawDrag = false;
-    commitDrawShape();
+    // 单击（几乎无位移）不生成图元——只有拖动才生成，防误触
+    const s = state.drawShape;
+    const tiny = s.type === 'line' ? Math.hypot(s.x2 - s.x0, s.y2 - s.y0) < 3
+      : Math.abs(s.w) < 3 && Math.abs(s.h) < 3;
+    if (!tiny) commitDrawShape();
     state.drawShape = null;
     renderStage();
     return;
@@ -832,7 +853,16 @@ stage.addEventListener('dblclick', ev => {
   }
 });
 window.addEventListener('keydown', ev => {
-  if (ev.key === 'Escape') { state.drawShape = null; state.drawPts = []; renderStage(); }
+  if (ev.key === 'Escape') {
+    if (state.drawShape || state.drawPts.length) { state.drawShape = null; state.drawPts = []; renderStage(); }
+    else if (state.partSel) { state.partSel = null; drag = null; renderStage(); }            // 退出子图元编辑（保留黄框）
+    else if (state.selEl || state.selProg) {                                                  // 退出元素选择（黄框）
+      state.selEl = null; state.selProg = null; drag = null;
+      if (partsOpenEl) { partsOpenEl = null; buildLayerList(layerCfg()); }                    // 顺带退出编辑模式
+      renderStage();
+    } else if (partsOpenEl) { partsOpenEl = null; buildLayerList(layerCfg()); renderStage(); } // 仅退出编辑模式
+    return;
+  }
   if (ev.key === 'Enter' && state.drawMode === 'poly' && state.drawShape && state.drawPts.length >= 2) { commitDrawShape(); state.drawShape = null; renderStage(); }
 });
 
