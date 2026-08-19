@@ -247,7 +247,9 @@ const state = {
   drawPts: [],        // 多边形顶点
   drawDrag: false,
   clipboard: null,    // Ctrl+C 复制：{kind:'part',data} | {kind:'el',data}
+  selProg: null,      // 选择模式整体选中的程序元素（带包围盒 + 图层栏跳卡片）
 };
+function wrapMod(x, m) { return ((x % m) + m) % m; }
 
 /* ---------------- 像素化管线 ---------------- */
 function nearestPalette(r, g, b, pal) {
@@ -417,6 +419,15 @@ function renderStage() {
   }
   // 矢量绘制预览（进行中的形状）
   if (state.drawShape) drawShapePreview(ctx, state.drawShape);
+  // 程序元素整体选中（选择模式）：黄色虚线包围盒
+  if (state.selProg && state.selProg.parts && state.selProg.parts.length) {
+    const bb = partsBBox(state.selProg, state.t);
+    ctx.strokeStyle = '#ffd23f';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 2]);
+    ctx.strokeRect(bb.x - 1, bb.y - 1, bb.w + 2, bb.h + 2);
+    ctx.setLineDash([]);
+  }
   // 选中图元高亮（part 级）：青色虚线包围盒
   if (state.partSel && state.partSel.el && state.partSel.el.parts && state.partSel.el.parts[state.partSel.index]) {
     const pe = state.partSel.el;
@@ -491,7 +502,13 @@ function drawPartsTool(ctx, e, t) {
       }
     }
   };
-  if (e.scroll && e.scroll.speed && e.scroll.span) {
+  if (e.partsBand && bandSpeed(e) && bandSpan(e)) {
+    // 带元素：母带同款 wrap 公式逐瓦片（图元 x 为瓦片相位偏移）
+    const span = bandSpan(e);
+    const offset = wrapMod(t * bandSpeed(e), span);
+    const n = Math.ceil(state.cw / span) + 3;
+    for (let j = -1; j < n; j++) blit(j * span - offset);
+  } else if (e.scroll && e.scroll.speed && e.scroll.span) {
     const dir = e.scroll.dir === 'right' ? 1 : -1;
     const n = Math.ceil(state.cw / e.scroll.span) + 3;
     for (let j = 0; j < n; j++) blit(j * e.scroll.span * dir - ox * dir);
@@ -617,9 +634,17 @@ stage.addEventListener('pointerdown', ev => {
     return;
   }
   const sorted = [...state.elements].sort((a, b) => b.z - a.z);
-  // 图元级命中：先试 parts（素材层元素）
-  const hitParts = (e, idx0) => {
+  // 子图元命中：仅 [编辑] 模式（partsOpenEl）——选择模式只做整体选中，防误拖
+  const hitParts = (e) => {
     if (!e.parts || !e.parts.length) return -1;
+    if (e.partsBand) {
+      // 带元素：瓦片相位反解（点击点换算到瓦片相位空间再命中）
+      const span = bandSpan(e);
+      const off = wrapMod(state.t * bandSpeed(e), span);
+      const relX = wrapMod(p.x + off, span);
+      for (let i = 0; i < e.parts.length; i++) if (hitPart(e.parts[i], 0, 0, { x: relX, y: p.y })) return i;
+      return -1;
+    }
     const ox0 = scrollOffset(e, state.t);
     const ex = elVal(e, 'x') + ox0, ey = elVal(e, 'y');
     for (let i = 0; i < e.parts.length; i++) if (hitPart(e.parts[i], ex, ey, p)) return i;
@@ -635,7 +660,17 @@ stage.addEventListener('pointerdown', ev => {
     };
     renderStage();
   };
+  if (partsOpenEl) {
+    // [编辑] 模式：子图元可选中拖动（仅编辑中的元素）
+    const i = hitParts(partsOpenEl);
+    if (i >= 0) {
+      pickPartDrag(partsOpenEl, i);
+      const cardEl = $('cfgform').querySelector('[data-elid="' + partsOpenEl.id + '"], [data-key="' + partsOpenEl.id + '"]');
+      return;
+    }
+  }
   for (const e of sorted) {
+    if (partsOpenEl === e) continue; // [编辑] 中的元素子图元已在上面处理
     const i = hitParts(e);
     if (i >= 0) {
       state.selEl = e.id;
@@ -644,13 +679,27 @@ stage.addEventListener('pointerdown', ev => {
       return;
     }
   }
-  // 程序元素（HOME_SCENE 顶层键）的 parts 命中（moon 等迁移/叠加图元）
+  // 程序元素整体选中（选择模式）：点击 parts 包围盒 → selProg + 整体移动
   if (state.sceneParamsMode && window.HOME_SCENE) {
     for (const k of Object.keys(window.HOME_SCENE)) {
       const pe = window.HOME_SCENE[k];
       if (!pe || typeof pe !== 'object' || Array.isArray(pe) || k === 'images' || !pe.parts || !pe.parts.length) continue;
-      const i = hitParts(pe);
-      if (i >= 0) { pickPartDrag(pe, i); return; }
+      if (pe === partsOpenEl) continue;
+      const bb = partsBBox(pe, state.t);
+      if (p.x >= bb.x && p.x <= bb.x + bb.w && p.y >= bb.y && p.y <= bb.y + bb.h) {
+        state.selEl = null;
+        state.selProg = pe;
+        state.partSel = null;
+        drag = {
+          type: 'progmove', el: pe, sx: p.x, sy: p.y,
+          x0: Array.isArray(pe.x) ? pe.x.slice() : pe.x, y0: Array.isArray(pe.y) ? pe.y.slice() : pe.y,
+          parts0: (pe.parts || []).map(pp => JSON.parse(JSON.stringify(pp))),
+        };
+        const cardEl = $('cfgform').querySelector('[data-key="' + k + '"]');
+        if (cardEl && cardEl.scrollIntoView) cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        renderStage();
+        return;
+      }
     }
   }
   for (const e of sorted) {
@@ -658,6 +707,7 @@ stage.addEventListener('pointerdown', ev => {
     const x0 = e.x + ox, y0 = e.y;
     if (p.x >= x0 && p.x <= x0 + e.w && p.y >= y0 && p.y <= y0 + e.h) {
       state.selEl = e.id;
+      state.selProg = null;
       state.partSel = null;
       if (p.x >= x0 + e.w - 12 && p.y >= y0 + e.h - 12) {
         drag = { type: 'resize', el: e, sx: p.x, sy: p.y, ow: e.w, oh: e.h, parts0: (e.parts && e.parts.length) ? JSON.parse(JSON.stringify(e.parts)) : null };
@@ -673,6 +723,7 @@ stage.addEventListener('pointerdown', ev => {
     }
   }
   state.selEl = null;
+  state.selProg = null;
   state.partSel = null;
   if (window.HOME_SCENE || state.elements.length) buildLayerList(layerCfg());
   renderStage();
@@ -688,6 +739,27 @@ stage.addEventListener('pointermove', ev => {
   if (!drag) return;
   const p = stagePos(ev);
   const e = drag.el;
+  if (drag.type === 'progmove') {
+    // 程序元素整体移动：有 x/y → 改坐标（场景数组改当前场景槽）；无 x/y → 平移全部 parts
+    const dx = p.x - drag.sx, dy = p.y - drag.sy;
+    if ('x' in e || 'y' in e) {
+      if (Array.isArray(e.x)) { const c = Math.max(0, Math.min(tlCurScene < 0 ? 0 : tlCurScene, e.x.length - 1)); e.x[c] = Math.round(drag.x0[c] + dx); }
+      else if (typeof e.x === 'number') e.x = Math.round(drag.x0 + dx);
+      if (Array.isArray(e.y)) { const c = Math.max(0, Math.min(tlCurScene < 0 ? 0 : tlCurScene, e.y.length - 1)); e.y[c] = Math.round(drag.y0[c] + dy); }
+      else if (typeof e.y === 'number') e.y = Math.round(drag.y0 + dy);
+    } else if (e.parts && e.parts.length) {
+      const dxi = Math.round(dx), dyi = Math.round(dy);
+      e.parts = drag.parts0.map(pp => {
+        const q = Object.assign({}, pp);
+        if (q.type === 'rect' || q.type === 'ellipse') { q.x = q.x + dxi; q.y = q.y + dyi; }
+        else if (q.type === 'line') { q.x = q.x + dxi; q.y = q.y + dyi; q.x2 = q.x2 + dxi; q.y2 = q.y2 + dyi; }
+        else if (q.type === 'poly') q.points = q.points.map(pt => [pt[0] + dxi, pt[1] + dyi]);
+        return q;
+      });
+    }
+    refreshStage();
+    return;
+  }
   if (drag.type === 'partmove') {
     // 图元级拖动：平移当前 part（相对坐标）
     const dx = p.x - drag.sx, dy = p.y - drag.sy;
@@ -804,6 +876,37 @@ function partBBox(p, ex, ey) {
   else if (p.type === 'poly') (p.points || []).forEach(pt => ext(ex + pt[0], ey + pt[1]));
   return { x: Math.round(minX), y: Math.round(minY), w: Math.round(maxX - minX), h: Math.round(maxY - minY) };
 }
+/* 程序元素整体包围盒（选择模式整体选中用；带元素横向取全范围） */
+function partsBBox(e, t) {
+  const ex = elVal(e, 'x') + (e.partsBand ? 0 : scrollOffset(e, t));
+  const ey = elVal(e, 'y');
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const ext = (x, y) => { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); };
+  (e.parts || []).forEach(p => {
+    if (p.type === 'rect' || p.type === 'ellipse') { ext(ex + p.x, ey + p.y); ext(ex + p.x + p.w, ey + p.y + p.h); }
+    else if (p.type === 'line') { ext(ex + p.x, ey + p.y); ext(ex + p.x2, ey + p.y2); }
+    else if (p.type === 'poly') (p.points || []).forEach(pt => ext(ex + pt[0], ey + pt[1]));
+  });
+  if (e.partsBand) { const bs = bandSpan(e); minX = -bs; maxX = state.cw + bs; }
+  if (!isFinite(minX)) { minX = 0; minY = 0; maxX = 1; maxY = 1; }
+  return { x: Math.round(minX), y: Math.round(minY), w: Math.round(maxX - minX), h: Math.round(maxY - minY) };
+}
+/* 带元素判定：speed/span 可能在顶层（程序元素）或 scroll 对象（图片素材） */
+function bandSpeed(el) { return (el.scroll && el.scroll.speed) || el.speed || 0; }
+function bandSpan(el) { return (el.scroll && el.scroll.span) || el.span || el.w || 1; }
+function isBandEl(el) {
+  return !('x' in el) && !('y' in el) && bandSpeed(el) && bandSpan(el);
+}
+/* 带元素图元：把画布绝对 x 转换为瓦片相位偏移（参照母带 span/offset，随带同步滚动） */
+function convertBandPart(el, part) {
+  const span = bandSpan(el);
+  const off = wrapMod(state.t * bandSpeed(el), span);
+  const ph = x => wrapMod(Math.round(x) + off, span);
+  if (part.type === 'line') { part.x = ph(part.x); part.x2 = ph(part.x2); }
+  else if (part.type === 'poly') part.points = part.points.map(pt => [ph(pt[0]), pt[1]]);
+  else part.x = ph(part.x);
+  return part;
+}
 document.querySelectorAll('#draw-row .dbtn').forEach(b => b.addEventListener('click', () => {
   state.drawMode = b.dataset.mode;
   if (state.drawMode !== 'poly') { state.drawPts = []; }
@@ -844,6 +947,8 @@ function commitDrawShape() {
     if (part.type === 'line') { part.x -= ex; part.y -= ey; part.x2 -= ex; part.y2 -= ey; }
     else if (part.type === 'poly') { part.points = part.points.map(pt => [pt[0] - ex, pt[1] - ey]); }
     else { part.x -= ex; part.y -= ey; }
+    const isBand = isBandEl(tgt);
+    if (isBand) { tgt.partsBand = true; convertBandPart(tgt, part); } // 带元素：x 转瓦片相位
     if (!tgt.parts || !tgt.parts.length) tgt.partsMode = 'overlay'; // 原绘制 + 图元叠加
     pushHistory();
     tgt.parts = tgt.parts || [];
@@ -1908,9 +2013,12 @@ function partsEditor(el, body, cardKey) {
   add.textContent = '+ 图元';
   add.addEventListener('click', () => {
     if (!el.parts || !el.parts.length) el.partsMode = 'overlay'; // 程序元素原绘制 + 图元叠加
+    if (isBandEl(el) && !el.partsBand) el.partsBand = true;
     pushHistory();
     el.parts = el.parts || [];
-    el.parts.push({ type: 'rect', x: 0, y: 0, w: 16, h: 16, fill: state.drawFillColor, stroke: state.drawStrokeOn ? state.drawStrokeColor : null, strokeWidth: state.drawStrokeW });
+    const np = { type: 'rect', x: 0, y: 0, w: 16, h: 16, fill: state.drawFillColor, stroke: state.drawStrokeOn ? state.drawStrokeColor : null, strokeWidth: state.drawStrokeW };
+    if (el.partsBand) convertBandPart(el, np); // 带元素：x 转瓦片相位
+    el.parts.push(np);
     buildLayerList(layerCfg());
     refreshStage();
   });

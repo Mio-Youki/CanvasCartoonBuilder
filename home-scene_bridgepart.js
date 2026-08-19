@@ -22,7 +22,12 @@ const DEFAULT_HOME_SCENE = {
   ],
   "stars": {
     "z": 1,
-    "color": ["#7597c9", "#7597c9", "#7597c9", "#bcd8ff"],
+    "color": [
+      "#7597c9",
+      "#7597c9",
+      "#7597c9",
+      "#bcd8ff"
+    ],
     "points": [
       [
         23,
@@ -74,39 +79,154 @@ const DEFAULT_HOME_SCENE = {
     "z": 2,
     "color": "#d5d8bb",
     "dark": "#9ba69d",
-    "x": [253, 253, 253, 68],
-    "y": [17, 17, 23, 17],
-    "show": [[[0, 1]], null, [[0, 1]], [[0, 1]]],
+    "x": [
+      253,
+      253,
+      253,
+      68
+    ],
+    "y": [
+      17,
+      17,
+      23,
+      17
+    ],
+    "show": [
+      [
+        [
+          0,
+          1
+        ]
+      ],
+      null,
+      [
+        [
+          0,
+          1
+        ]
+      ],
+      [
+        [
+          0,
+          1
+        ]
+      ]
+    ],
     "parts": [
-      { "type": "rect", "x": -7, "y": -7, "w": 15, "h": 15, "color": "#d5d8bb", "fill": true },
-      { "type": "rect", "x": -9, "y": -4, "w": 19, "h": 9, "color": "#d5d8bb", "fill": true },
-      { "type": "rect", "x": -4, "y": -9, "w": 9, "h": 19, "color": "#d5d8bb", "fill": true },
-      { "type": "rect", "x": 4, "y": -3, "w": 4, "h": 4, "color": "#9ba69d", "fill": true },
-      { "type": "rect", "x": -5, "y": 4, "w": 3, "h": 3, "color": "#9ba69d", "fill": true }
+      {
+        "type": "rect",
+        "x": -7,
+        "y": -7,
+        "w": 15,
+        "h": 15,
+        "color": "#d5d8bb",
+        "fill": "#d5d8bb",
+        "stroke": null,
+        "strokeWidth": 1
+      },
+      {
+        "type": "rect",
+        "x": -9,
+        "y": -4,
+        "w": 19,
+        "h": 9,
+        "color": "#d5d8bb",
+        "fill": "#d5d8bb",
+        "stroke": null,
+        "strokeWidth": 1
+      },
+      {
+        "type": "rect",
+        "x": -4,
+        "y": -9,
+        "w": 9,
+        "h": 19,
+        "color": "#d5d8bb",
+        "fill": "#d5d8bb",
+        "stroke": null,
+        "strokeWidth": 1
+      },
+      {
+        "type": "rect",
+        "x": 4,
+        "y": -3,
+        "w": 4,
+        "h": 4,
+        "color": "#9ba69d",
+        "fill": "#9ba69d",
+        "stroke": null,
+        "strokeWidth": 1
+      },
+      {
+        "type": "rect",
+        "x": -5,
+        "y": 4,
+        "w": 3,
+        "h": 3,
+        "color": "#9ba69d",
+        "fill": "#9ba69d",
+        "stroke": null,
+        "strokeWidth": 1
+      }
     ]
   },
   "clouds": {
     "z": 3,
-    "speed": [-5, -13, -5, -5],
+    "speed": [
+      -5,
+      -13,
+      -5,
+      -5
+    ],
     "span": 92,
     "y": 29,
     "yOff": 7,
-    "color": ["#182b4c", "#33445c", "#182b4c", "#182b4c"]
+    "color": [
+      "#182b4c",
+      "#33445c",
+      "#182b4c",
+      "#182b4c"
+    ]
   },
   "mountains": {
     "z": 4,
-    "speed": [-4, -4, -16, -4],
+    "speed": [
+      -4,
+      -4,
+      -16,
+      -4
+    ],
     "span": 170,
     "y": 79,
-    "peak": [39, 39, 26, 39],
-    "color": ["#162b45", "#162b45", "#162b45", "#142848"],
-    "fill2": ["#233a57", "#233a57", "#30496a", "#233a57"]
+    "peak": [
+      39,
+      39,
+      26,
+      39
+    ],
+    "color": [
+      "#162b45",
+      "#162b45",
+      "#162b45",
+      "#142848"
+    ],
+    "fill2": [
+      "#233a57",
+      "#233a57",
+      "#30496a",
+      "#233a57"
+    ]
   },
   "farForest": {
     "z": 5,
     "speed": -11,
     "span": 33,
-    "color": ["#12333b", "#12333b", "#12333b", "#102c3a"],
+    "color": [
+      "#12333b",
+      "#12333b",
+      "#12333b",
+      "#102c3a"
+    ],
     "trunk": "#0c2631",
     "leaf": "#17454a"
   },
@@ -139,8 +259,18 @@ const DEFAULT_HOME_SCENE = {
     "window": "#a5d8ff",
     "lampLit": "#ffd46b",
     "lampDim": "#45516a",
-    "beam": ["rgba(255,222,125,.14)", "rgba(255,222,125,.24)", "rgba(255,222,125,.14)", "rgba(255,222,125,.14)"],
-    "beamLen": [40, 62, 40, 40],
+    "beam": [
+      "rgba(255,222,125,.14)",
+      "rgba(255,222,125,.24)",
+      "rgba(255,222,125,.14)",
+      "rgba(255,222,125,.14)"
+    ],
+    "beamLen": [
+      40,
+      62,
+      40,
+      40
+    ],
     "head": "#fff1a7",
     "tail": "#c14d57"
   },
@@ -148,7 +278,12 @@ const DEFAULT_HOME_SCENE = {
     "z": 9,
     "speed": -43,
     "span": 48,
-    "color": ["#0c2627", "#0c2627", "#0c2627", "#081724"],
+    "color": [
+      "#0c2627",
+      "#0c2627",
+      "#0c2627",
+      "#081724"
+    ],
     "g1": "#12372f",
     "g2": "#154532",
     "g3": "#1d5a3c"
@@ -159,7 +294,9 @@ const DEFAULT_HOME_SCENE = {
     "span": 70,
     "a1": "rgba(111,139,154,.25)",
     "a2": "rgba(132,157,168,.23)",
-    "a3": "rgba(142,168,176,.18)"
+    "a3": "rgba(142,168,176,.18)",
+    "partsMode": "overlay",
+    "parts": []
   },
   "signal": {
     "z": 10,
@@ -174,9 +311,48 @@ const DEFAULT_HOME_SCENE = {
     "speed": -38,
     "span": 26,
     "c1": "#486074",
-    "c2": "#33495b"
+    "c2": "#33495b",
+    "partsMode": "overlay",
+    "parts": [
+      {
+        "type": "rect",
+        "x": 146,
+        "y": 93,
+        "w": 16,
+        "h": 16,
+        "fill": "#ffd23f",
+        "stroke": null,
+        "strokeWidth": 1
+      }
+    ],
+    "show": [
+      [
+        [
+          0,
+          1
+        ]
+      ],
+      null,
+      [
+        [
+          0,
+          1
+        ]
+      ],
+      [
+        [
+          0,
+          1
+        ]
+      ]
+    ]
   },
-  "scenes": ["夜原", "雾", "山口", "桥"],
+  "scenes": [
+    "夜原",
+    "雾",
+    "山口",
+    "桥"
+  ],
   "images": []
 };
 
@@ -542,15 +718,7 @@ const HomeScene = (() => {
       }
     };
     ctx.globalAlpha = alpha;
-    // 带元素判定：speed/span 可能在顶层（程序元素）或 scroll 对象（图片素材）
-    const bSpeed = (e.scroll && e.scroll.speed) || e.speed || 0;
-    const bSpan = (e.scroll && e.scroll.span) || e.span || e.w || 1;
-    if (e.partsBand && bSpeed && bSpan) {
-      // 带元素：母带同款 wrap 公式逐瓦片（图元 x 为瓦片相位偏移，随带同步滚动，不漂移）
-      const offset = wrap(t * bSpeed, bSpan);
-      const n = Math.ceil(W / bSpan) + 3;
-      for (let j = -1; j < n; j++) blit(j * bSpan - offset);
-    } else if (e.scroll && e.scroll.speed && e.scroll.span) {
+    if (e.scroll && e.scroll.speed && e.scroll.span) {
       const dir = e.scroll.dir === 'right' ? 1 : -1;
       const n = Math.ceil(W / e.scroll.span) + 3;
       for (let j = 0; j < n; j++) blit(j * e.scroll.span * dir - ox * dir);

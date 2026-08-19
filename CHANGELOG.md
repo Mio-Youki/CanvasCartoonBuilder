@@ -14,6 +14,8 @@
   - **程序元素 part 无法画布选中**：part 命中此前只遍历 `state.elements`（素材层）——新增程序元素（HOME_SCENE 顶层键）的 parts 命中（moon 等迁移/叠加图元可选中拖动）
   - **非 moon/train 元素 +图元无效**：根因 `elVal` 对缺失 x/y 返回 `undefined` → `part.x -= undefined = NaN`（signal 有 x 无 y → y=NaN；stars/clouds 等无坐标 → 双 NaN）；修复：`elVal`/`val` 缺失键按 **0**（图元以画布绝对坐标落位、随元素 scroll 偏移滚动），所有程序元素均可加图元
   - **进入 [编辑] 自动暂停**：开启图元面板时若正在播放则自动暂停（冻结移动带作为图元定位锚点）；图元随元素滚动**平铺**语义保持不变（决策确认）
+  - **选择模式误改子图元**：子图元命中仅限 [编辑] 模式（partsOpenEl）；选择模式点击 parts 元素 = **整体选中**——程序元素新增 `selProg`（parts 包围盒虚线框 + 图层栏跳卡片），拖动 = 整体移动（有 x/y 改坐标（场景数组改当前槽）/ 无 x/y 平移全部 parts）
+  - **带元素图元不跟随滚动**：根因两套滚动相位公式（程序带 `wrap(t*speed,span)` vs 图元 `(t*speed)%span`）相位不匹配 → 图元漂移；修复：**带相对模型**——speed/span 带元素（顶层或 scroll 字段）加图元时 `partsBand=true`，part.x 存**瓦片相位偏移**（`wrap(画布X + 当前offset, span)`），渲染按母带同款 wrap 公式逐瓦片（`j*span - offset + relX`）随带同步滚动不漂移；y 保持画布绝对（带为水平）
   - **色板点色即关闭**：颜色 input 的 `input` 事件此前触发 DOM 重建（buildLayerList）→ 原生拾色器被替换关闭；改为 input 只刷新画布、不重建 DOM（拾色器可停留拖动），change 才记历史
 - **包围盒归一化**：新建图元元素 x/y/w/h = parts bbox（选中框框住图形）；[编辑] 点击自动展开卡片并滚动定位
 - 说明：动态图元（如信号灯时间变色）暂不支持（parts 静态色），后续关键帧扩展；**旋转手柄/镜像按钮/Ctrl 多选**见 PLAN（待实现）
