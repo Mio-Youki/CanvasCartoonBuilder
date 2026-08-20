@@ -97,6 +97,7 @@
   #cfgform::-webkit-scrollbar-thumb { background: #3a4678; border-radius: 4px; }
   #cfgform::-webkit-scrollbar-thumb:hover { background: #4a5890; }
   .layer-card { border: 2px solid #1a2350; background: #101736; margin: 3px 0; }
+  .layer-card.sel { border-color: var(--yellow); box-shadow: 0 0 0 1px var(--yellow); } /* 选中强调：黄色描线 */
   .layer-card.global { border-color: var(--dim); }
   .layer-card.img { border-color: #2a3a66; }
   .layer-card.drag { opacity: .5; border-color: var(--yellow); }
@@ -985,6 +986,7 @@ stage.addEventListener('pointerdown', ev => {
       }
     }
     renderStage();
+    syncSelUI(true); // ② 画布选中 part → 图层栏跳转并青框高亮 + 左侧动画面板更新
   };
   if (partsOpenEl) {
     // [编辑] 模式：旋转手柄 + 镜像按钮（当前选中图元，手柄在包围盒上方）优先命中
@@ -1056,6 +1058,7 @@ stage.addEventListener('pointerdown', ev => {
         buildLayerList(layerCfg());
         const cardEl = $('cfgform').querySelector('[data-key="' + k + '"]');
         if (cardEl && cardEl.scrollIntoView) cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel();
         renderStage();
         return;
       }
@@ -1116,6 +1119,7 @@ stage.addEventListener('pointerdown', ev => {
         buildLayerList(layerCfg());
         focusLayerCard(e.id);
       }
+      if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel(); // ③ 面板随选中实时刷新（不跨对象）
       renderStage();
       return;
     }
@@ -1124,6 +1128,7 @@ stage.addEventListener('pointerdown', ev => {
   state.selProg = null;
   state.partSel = null;
   if (window.HOME_SCENE || state.elements.length) buildLayerList(layerCfg());
+  if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel();
   renderStage();
 });
 stage.addEventListener('pointermove', ev => {
@@ -1528,6 +1533,18 @@ document.querySelectorAll('.side-tab').forEach(b => b.addEventListener('click', 
   $('side-anim').style.display = b.dataset.panel === 'anim' ? '' : 'none';
   if (b.dataset.panel === 'anim') renderAnimPanel();
 }));
+/* 三端选中同步：图层栏重建（元素黄线/part 青框高亮）+ 左侧动画面板刷新（若可见）；
+   scrollPart=true 时滚动到选中 part 条目 */
+function syncSelUI(scrollPart) {
+  if (window.HOME_SCENE || state.elements.length) buildLayerList(layerCfg());
+  if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel();
+  if (scrollPart) {
+    requestAnimationFrame(() => {
+      const sb = $('cfgform').querySelector('.cf-box.sel');
+      if (sb && sb.scrollIntoView) sb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  }
+}
 /* 动画目标：优先选中图元（[编辑] 青色框），否则选中元素（黄框/卡片） */
 function animTarget() {
   if (state.partSel && state.partSel.el && state.partSel.el.parts && state.partSel.el.parts[state.partSel.index]) {
@@ -2296,8 +2313,7 @@ function buildLayerList(cfg) {
     if (!el) continue;
     const nm = item.kind === 'prog' ? item.key : (el.name || 'img' + item.idx);
     const z = el.z != null ? el.z : (item.kind === 'img' ? 99 : '');
-    const selId = state.selEl;
-    const isSel = item.kind === 'img' && el.id && el.id === selId;
+    const isSel = (item.kind === 'img' && el.id && el.id === state.selEl) || (item.kind === 'prog' && state.selProg === el); // 选中强调（黄线）：素材或程序元素
     const open = item.kind === 'prog' ? !!layerOpen[nm] : isSel;
     const isHid = !!el.hidden;
     const cardKey = item.kind === 'prog' ? 'p:' + item.key : 'i:' + el.id;
@@ -2348,14 +2364,20 @@ function buildLayerList(cfg) {
       }
       if (item.kind === 'prog') {
         layerOpen[nm] = !layerOpen[nm];
+        state.selProg = state.selProg === el ? null : el; // ① 点击程序元素卡片 = 选中（黄线 + 动画面板跟随）
+        state.selEl = null; state.partSel = null;
         buildLayerList(cfg);
+        renderStage();
+        if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel();
       } else {
         state.selEl = isSel ? null : el.id; // 点击卡片 = 选中/取消（展开参数）
+        state.selProg = null; state.partSel = null;
         if (!isSel && el.srcId && state.selSrc !== el.srcId) { // ⑤ 图层栏选中 → 左侧素材同步选中
           state.selSrc = el.srcId; renderLib(); renderStyleCtl();
         }
         buildLayerList(cfg);
         renderStage();
+        if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel(); // ③ 面板随选中实时刷新
       }
     });
     card.addEventListener('dragstart', ev => {
@@ -2764,6 +2786,14 @@ function partsEditor(el, body, cardKey) {
     del.addEventListener('click', ev => { ev.stopPropagation(); pushHistory(); el.parts.splice(i, 1); buildLayerList(layerCfg()); refreshStage(); });
     hd.appendChild(del);
     box.appendChild(hd);
+    box.addEventListener('click', ev => {
+      // ② 点击图层栏 parts 条目 → 画布选中该图元（青框）+ 左侧动画面板更新
+      if (ev.target.closest && (ev.target.closest('input') || ev.target.closest('button') || ev.target.closest('select'))) return;
+      if (state.partSel && state.partSel.el === el && state.partSel.index === i) return;
+      state.partSel = { el: el, index: i };
+      syncSelUI(false);
+      renderStage();
+    });
     partForm(p, box, rebuild);
     body.appendChild(box);
   });
