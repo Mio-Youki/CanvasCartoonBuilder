@@ -2363,7 +2363,7 @@ function syncGlobals() {
 }));
 
 /* ---------------- PS 式图层列表（元素卡片栏：收起/展开/拖拽排序写 z） ---------------- */
-const PROG_SKIP = ['w', 'h', 'loop', 'bg', 'images'];
+const PROG_SKIP = ['w', 'h', 'loop', 'bg', 'images', 'fx']; // fx=后处理面板状态（非场景元素），不渲染成卡片
 let layerOpen = {};
 let partsOpenEl = null;  // 唯一开启的 [编辑] 图元面板（同时只能一个；开启时矢量绘制锁定到该元素）
 let tlCurScene = -1;   // 图层栏当前编辑场景（播放头所在段；-1=无 scenes）
@@ -2612,7 +2612,7 @@ function layerCfg() {
    [s] 默认开（bg 是数组）：开=只改当前场景槽，关=所有场景同色；装配模式为单一背景色 */
 function renderBgRow(cfg, box) {
   const sc = sceneNames();
-  const curS = tlCurScene;
+  const curS = sc.length ? Math.min(Math.max(0, tlCurScene), sc.length - 1) : tlCurScene; // 钳制到有效场景
   const rk = 'p:bg';
   const inScene = state.sceneParamsMode && window.HOME_SCENE;
   const bg = inScene ? cfg.bg : state.asmBg;
@@ -2666,9 +2666,9 @@ function renderBgRow(cfg, box) {
 function renderFxPanel(cfg, box) {
   if (!(state.sceneParamsMode && window.HOME_SCENE)) return; // 装配模式不渲染 fx（无 scene 归属）
   const sc = sceneNames();
-  const curS = Math.max(0, tlCurScene < 0 ? 0 : tlCurScene);
-  const fx = (cfg.fx = cfg.fx || {});
   const n = Math.max(1, (cfg.scenes && cfg.scenes.length) || 1);
+  const curS = Math.max(0, Math.min(tlCurScene < 0 ? 0 : tlCurScene, n - 1)); // 钳制到有效场景（防越界崩溃）
+  const fx = (cfg.fx = cfg.fx || {});
   // segs 归一：fx.segs = [ [ {f:[f0,f1], ...params}, ... ], ... ]（每场景至少一段 [0,1]）
   const ensureSegs = () => {
     if (!fx.segs || !fx.segs.length) {
@@ -3026,7 +3026,7 @@ function renderFxTrack() {
   }
   // 选中段高亮（当前场景 + fx._sel.idx）
   const fx = cfg.fx;
-  const curS = Math.max(0, tlCurScene < 0 ? 0 : tlCurScene);
+  const curS = Math.max(0, Math.min(tlCurScene < 0 ? 0 : tlCurScene, n - 1)); // 钳制（防越界崩溃）
   const selIdx = (fx._sel && fx._sel.scene === curS) ? fx._sel.idx : 0;
   const arr2 = segs[curS] || [{ f: [0, 1] }];
   const sel = arr2[selIdx] || arr2[0];
@@ -3377,6 +3377,8 @@ function toggleShowPopup(el, cfg, anchorBtn) {
 /* ---------------- 旧格式迁移：show 归一为按场景窗口数组；hidden 保留为独立调试隐藏 ---------------- */
 function migrateShow(cfg) {
   const n = (cfg.scenes && cfg.scenes.length) || 4;
+  // 场景边界自愈：边界数必须 = 场景数-1（旧文件可能被「按场景数组补齐」写坏成 n 个 → 播放头越界），删除后走等分
+  if (cfg.sceneBorders && cfg.sceneBorders.length !== n - 1) delete cfg.sceneBorders;
   const fix = e => {
     if (!e || typeof e !== 'object') return;
     // hidden 保留（独立维度，导出写 hidden:true）；仅迁移 show 格式
@@ -3752,8 +3754,8 @@ function tlScene() {
   if (!cfg || !state.sceneParamsMode || !(cfg.scenes && cfg.scenes.length)) return -1;
   const loop = cfg.loop || 48;
   const lt = ((state.t % loop) + loop) % loop;
-  const b = cfg.sceneBorders && cfg.sceneBorders.length ? cfg.sceneBorders : null;
   const n = cfg.scenes.length;
+  const b = cfg.sceneBorders && cfg.sceneBorders.length === n - 1 ? cfg.sceneBorders : null; // 边界数必须 = 场景数-1（防旧文件脏数据越界）
   if (b) { for (let i = 0; i < b.length; i++) if (lt < b[i]) return i; return b.length; }
   return Math.floor(lt / (loop / n));
 }
@@ -3761,7 +3763,7 @@ function tlSceneRange(part) {
   const cfg = window.HOME_SCENE;
   const loop = cfg.loop || 48;
   const n = (cfg.scenes && cfg.scenes.length) || 4;
-  const b = cfg.sceneBorders && cfg.sceneBorders.length ? cfg.sceneBorders : null;
+  const b = cfg.sceneBorders && cfg.sceneBorders.length === n - 1 ? cfg.sceneBorders : null;
   if (b) return [part === 0 ? 0 : b[part - 1], part === b.length ? loop : b[part]];
   return [part * loop / n, (part + 1) * loop / n];
 }
@@ -3986,6 +3988,7 @@ function syncSceneArrays(cfg, oldN, newN, delIndex) {
   // delIndex 提供时（删场景）：按被删索引移除对应槽位（剩余场景保持各自取值对齐）
   const fix = o => {
     for (const k of Object.keys(o)) {
+      if (k === 'sceneBorders') continue; // 边界数组长度 = 场景数-1（增删场景时已由 equalBorders 重算）；勿按场景数组补齐，否则 tlScene 越界
       const v = o[k];
       if (Array.isArray(v) && v.length === oldN && v.every(x => typeof x === 'number' || typeof x === 'string')) {
         if (delIndex != null && delIndex >= 0 && v.length > newN) {
@@ -4082,6 +4085,7 @@ function addScene() {
   cfg.scenes.push(v.trim());
   cfg.sceneBorders = equalBorders(cfg, cfg.scenes.length);
   syncSceneArrays(cfg, oldN, cfg.scenes.length); // 各按场景数组沿用末位（bg 为字符串拷贝，独立可改）
+  if (showPop) { showPop.remove(); showPop = null; showFocusEl = null; } // 场景结构变化：关闭 [S] 弹窗（其行数/窗口按旧场景数构建，重开即按新场景数）
   buildLayerList(layerCfg());
   renderSceneBar(); renderTimeline();
   if (window.HomeScene && HomeScene.seek) HomeScene.seek(state.t);
@@ -4094,6 +4098,7 @@ function deleteScene(i) {
   if (!cfg.scenes.length) cfg.scenes = ['场景'];
   cfg.sceneBorders = equalBorders(cfg, cfg.scenes.length);
   syncSceneArrays(cfg, oldN, cfg.scenes.length, i);
+  if (showPop) { showPop.remove(); showPop = null; showFocusEl = null; } // 场景结构变化：关闭 [S] 弹窗
   buildLayerList(layerCfg());
   renderSceneBar(); renderTimeline();
   if (window.HomeScene && HomeScene.seek) HomeScene.seek(state.t);

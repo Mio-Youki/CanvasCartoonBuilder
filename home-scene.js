@@ -293,8 +293,8 @@ const HomeScene = (() => {
   function LOOPv() { return CFG.loop || LOOP; }
   function scene(t) {
     const lt = ((t % LOOPv()) + LOOPv()) % LOOPv();
-    const b = CFG.sceneBorders && CFG.sceneBorders.length ? CFG.sceneBorders : null;
     const n = (CFG.scenes && CFG.scenes.length) || 4;
+    const b = CFG.sceneBorders && CFG.sceneBorders.length === n - 1 ? CFG.sceneBorders : null; // 边界数必须 = 场景数-1（防脏数据越界：返回 n 会导致 show 隐藏/越界取段）
     if (b) { for (let i = 0; i < b.length; i++) if (lt < b[i]) return i; return b.length; }
     return Math.floor(lt / (LOOPv() / n));
   }
@@ -757,8 +757,8 @@ const HomeScene = (() => {
   // 场景起止秒（按 sceneBorders 或等分）
   function sceneBounds(part) {
     const L = LOOPv();
-    const b = CFG.sceneBorders && CFG.sceneBorders.length ? CFG.sceneBorders : null;
     const n = (CFG.scenes && CFG.scenes.length) || 4;
+    const b = CFG.sceneBorders && CFG.sceneBorders.length === n - 1 ? CFG.sceneBorders : null;
     if (b) return [part === 0 ? 0 : b[part - 1], part === b.length ? L : b[part]];
     return [part * L / n, (part + 1) * L / n];
   }

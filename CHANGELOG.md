@@ -2,6 +2,17 @@
 
 > 独立于游戏本体的 CHANGELOG。工具版本独立演进，与游戏版本号无关。
 
+## v2.7 补六 —— 修复新增场景后右侧面板消失/播放卡死（sceneBorders 被误补长）
+- **根因**：`syncSceneArrays.fix()` 把 **`sceneBorders` 当成"按场景数组"补齐**——增场景后边界数被扩成 `场景数`（应为 `场景数-1`，末位重复）→ `tlScene()` 返回**越界场景号 n** → `renderFxPanel` 读 `segs[n]` undefined → 抛异常 → 图层栏（cfgform）与 FX 面板（#tl-bar）清空后中断、播放循环 rAF 死亡（画布仍由 home-scene 独立 rAF 继续）——即用户报告的：①拖播放头到新场景右侧/底部面板消失；②时间轴场景映射错位、[S] 时间窗不覆盖新场景；③播放到新场景时间轴停住、画布还在动（暂停→播放可临时恢复）
+- **修复**：
+  - `fix()` **跳过 sceneBorders**（增删场景时已由 `equalBorders` 重算）；`migrateShow` 载入自愈（边界数 ≠ 场景数-1 → 删除走等分，旧坏文件打开即恢复）
+  - `tlScene`/`tlSceneRange` **校验边界数**（≠ n-1 则按等分），越界数据不再产生非法场景号
+  - `renderFxPanel`/`renderFxTrack`/`renderBgRow` **钳制 curS** 到有效场景（防任何越界输入崩溃）
+  - 增/删场景时**关闭开着的 [S] 弹窗**（其行数按旧场景数构建，场景结构变化后重开即刷新）
+  - `PROG_SKIP` 增补 `fx`——`cfg.fx` 不再被渲染成右侧图层栏的"fx"元素卡片（含 [S]/删除等无效按钮）
+- **渲染端同步**：`public/home-scene.js` 的 `scene()`/`sceneBounds()` 同样**校验边界数**（脏 sceneBorders 不再产生越界场景号 → show 元素不再被误判隐藏）；valid 配置渲染 DIFF=0，坏边界场景月亮恢复可见
+- **验证**：7 变体全 PASS（默认+fx segs / legacy fx 顶层数组 / 素材 show+选中 / 非等分边界 / fx.segs 空槽 / [编辑] parts 打开 / legacy show 对象）——每变体增场景→拖播放头到新场景→模拟播放 150 帧跨场景均无异常、卡片与 FX 面板完整、边界数=场景数-1、无 fx 卡片；`npm test`（16+ e2e 场景）+ typecheck 全绿
+
 ## v2.7 补五 —— 修复增删场景后素材/FX 丢失 + 过渡未跟随场景边界
 - **① 修复增删场景后素材丢失/FX 消失**：`syncSceneArrays` 只同步"纯数值/字符串数组"，**show 窗口数组与 fx.segs（嵌套数组）未随场景增删调整**——新增场景后元素 `show` 缺槽 → `elShown` 判隐藏 → 图层栏素材"丢失"；FX segs 缺段（面板兜底补但数据不完整）。新增 `fixWin`：show 增场景补 `[[0,1]]`（新场景默认可见）、删场景按索引移除；fx.segs 增场景沿用末段配置、删场景移除槽
 - **② 修复过渡未跟随场景边界**：`applyTransition` 用 `edge = local % (LOOPv()/n)`（**假设每段等长**）——工具拖拽 sceneBorders 后各段不等长，过渡仍在"等分时长"触发 → 错位。改为用 `sceneBounds(part)` 计算**段内相对位置**（按真实 sceneBorders 起点），拖边界后过渡对齐当前场景起点
