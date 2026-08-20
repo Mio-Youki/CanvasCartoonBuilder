@@ -535,12 +535,14 @@ const HomeScene = (() => {
     }
   }
   // 过渡：升级硬编码暗场（fade 默认 = 现状）；scan/wipe 新样式。transition/transitionDur 为场景级（按场景独立，不进时段段）
+  // 段内位置用 sceneBounds（按 sceneBorders/等分）计算——拖拽边界后仍对齐当前场景起点
   function applyTransition(t) {
     const f = CFG.fx;
     const local = ((t % LOOPv()) + LOOPv()) % LOOPv();
-    const n = (CFG.scenes && CFG.scenes.length) || 4;
-    const edge = local % (LOOPv() / n);
     const part = scene(t);
+    const [s0, s1] = sceneBounds(part);
+    const segDur = Math.max(0.001, s1 - s0);
+    const edge = Math.max(0, local - s0); // 段内已过时长（秒）
     const rawDur = (f && f.transitionDur != null) ? f.transitionDur : .25;
     const dur = Array.isArray(rawDur) ? (rawDur[Math.min(part, rawDur.length - 1)] != null ? rawDur[Math.min(part, rawDur.length - 1)] : .25) : rawDur;
     if (edge >= dur) return;

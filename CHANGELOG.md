@@ -2,6 +2,12 @@
 
 > 独立于游戏本体的 CHANGELOG。工具版本独立演进，与游戏版本号无关。
 
+## v2.7 补五 —— 修复增删场景后素材/FX 丢失 + 过渡未跟随场景边界
+- **① 修复增删场景后素材丢失/FX 消失**：`syncSceneArrays` 只同步"纯数值/字符串数组"，**show 窗口数组与 fx.segs（嵌套数组）未随场景增删调整**——新增场景后元素 `show` 缺槽 → `elShown` 判隐藏 → 图层栏素材"丢失"；FX segs 缺段（面板兜底补但数据不完整）。新增 `fixWin`：show 增场景补 `[[0,1]]`（新场景默认可见）、删场景按索引移除；fx.segs 增场景沿用末段配置、删场景移除槽
+- **② 修复过渡未跟随场景边界**：`applyTransition` 用 `edge = local % (LOOPv()/n)`（**假设每段等长**）——工具拖拽 sceneBorders 后各段不等长，过渡仍在"等分时长"触发 → 错位。改为用 `sceneBounds(part)` 计算**段内相对位置**（按真实 sceneBorders 起点），拖边界后过渡对齐当前场景起点
+- **验证**：A1-A4（新增场景 show 补可见/删场景槽移除/卡片/FX 面板）PASS；T1-T3（非等分边界 [6,18,36] 下 scene2@18s/scene3@36s/scene0@0s 过渡在正确起点触发）PASS；`npm test` + typecheck 全绿
+- 渲染端同步：`public/home-scene.js` → `tools/home-scene.js`（vendored）一致
+
 ## v2.7 补四 —— 修复 FX 采样数无效 + 过渡按场景独立
 - **① 修复 FX 采样数无效**：`applyPixelFilter` 早退条件只检查 palette/hue/brightness/contrast/saturation——**纯降采样（仅 pixelDiv>1 无调色）被提前 return**，采样数不生效；补 `pixelDiv` 进早退判断 → 纯降采样进入"缩小→放大"颗粒感路径（元素卡片/图片导入两处采样数本就有效，仅 FX 处受影响）
 - **② 过渡按场景独立**：`transition`/`transitionDur` 改为**按场景数组**（每场景独立值，同一场景的分段共享）——工具端过渡行读/写当前场景槽，home-scene `applyTransition` 按 `scene(t)` 取当前场景值；旧单值兼容

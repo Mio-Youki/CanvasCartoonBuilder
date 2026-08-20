@@ -3997,12 +3997,33 @@ function syncSceneArrays(cfg, oldN, newN, delIndex) {
       }
     }
   };
+  // show 窗口数组 / fx.segs（嵌套数组，长度 == 场景数）：增场景补 null/整段，删场景按索引移除
+  const fixWin = o => {
+    for (const k of Object.keys(o)) {
+      const v = o[k];
+      if (!Array.isArray(v) || v.length !== oldN) continue;
+      // show：槽为 null | [f0,f1] | [[f0,f1],…]；fx.segs：槽为段数组
+      const isShowWin = v.every(x => x === null || (Array.isArray(x) && (typeof x[0] === 'number' || Array.isArray(x[0]))));
+      const isSegs = v.every(x => Array.isArray(x) && x.length && x[0] && typeof x[0] === 'object' && Array.isArray(x[0].f));
+      if (isShowWin || isSegs) {
+        if (delIndex != null && delIndex >= 0 && v.length > newN) {
+          v.splice(delIndex, 1);
+        } else if (isShowWin) {
+          while (v.length < newN) v.push([[0, 1]]); // 新场景默认可见（整段显示）
+          if (v.length > newN) v.length = newN;
+        } else {
+          while (v.length < newN) v.push(JSON.parse(JSON.stringify(v[v.length - 1]))); // 新场景沿用末段配置
+          if (v.length > newN) v.length = newN;
+        }
+      }
+    }
+  };
   fix(cfg); // 顶层数组（bg 背景色等）：scene 按顺序取用，增删场景时同步长度（scenes/sceneBorders 长度已为新值，跳过）
   for (const k of Object.keys(cfg)) {
     const v = cfg[k];
-    if (v && typeof v === 'object' && !Array.isArray(v)) fix(v);
+    if (v && typeof v === 'object' && !Array.isArray(v)) { fix(v); fixWin(v); }
   }
-  (cfg.images || []).forEach(fix);
+  (cfg.images || []).forEach(e => { fix(e); fixWin(e); });
 }
 function renderSceneBar() {
   const bar = $('scene-bar');
