@@ -2,6 +2,13 @@
 
 > 独立于游戏本体的 CHANGELOG。工具版本独立演进，与游戏版本号无关。
 
+## v2.7 补 —— FX 面板移入时间轴下方 + 修复下拉/开关/跨场景更新
+- **① FX 面板 + 背景行移至时间轴下方**：从右侧图层栏（cfgform）移到 **canvas 时间轴下方的 `#tl-bar` 容器**（时间轴 FX 轨之下）——`buildLayerList` 不再向 cfgform 渲染背景/FX，改为渲染到 #tl-bar；右侧栏只留元素卡片；装配模式背景行同样显示在时间轴下方
+- **② 修复下拉无选项**：色板（none/nes/gb）与过渡（fade/scan/wipe）下拉创建 option 后**未 `select.appendChild(o)`** → 下拉恒空；已补
+- **③ 修复开关无法取消**：checkbox 值此前用 `!!fx[key]`——当值为**按场景数组**时数组非空恒 true → 永远勾选、无法取消；改为 `fxOnTool(key)`（取当前场景值），change 时正确写当前场景槽（常量→转数组，其余场景保持）
+- **④ 修复跨场景面板不更新**：同上——`!!fx[key]` 数组恒 true 导致开关不随场景变化；修复后切场景重建，开关/下拉/色相显示当前场景值（buildLayerList 每帧由 tlScene 归位）
+- **验证**：4 项 UI 测试 PASS——#tl-bar 含背景+滤镜FX、下拉有选项、scene0→scene1 开关 false→true、开关取消 true→false
+
 ## v2.7 —— 后处理 FX（CRT/故障/暗角/噪点 + NES/GB 色板 + 色相偏移 + 场景过渡）
 - **全局滤镜配置 `CFG.fx`**：默认无字段 = 全关零开销；每项支持常量 / 按场景数组 / 场景内窗口数组 `[[f0,f1],…]`（与 show 同形态，复用 `val()`/`sceneBounds` 窗口判定）
 - **A 档叠加层（预生成纹理，逐帧 drawImage）**：`crt`（半透明黑横线）/ `vignette`（径向暗角）/ `noise`（噪点逐帧平移，低 alpha）——纹理在 resize/palette/hue 变化时重建缓存；`glitch`（确定性随机水平位移条，随时间种子变化）
