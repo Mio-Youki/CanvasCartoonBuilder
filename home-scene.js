@@ -335,7 +335,29 @@ const HomeScene = (() => {
     const v = valAt({ [k]: f[k] }, k, scene(t));
     return (Array.isArray(v) && v.length && typeof v[0] === 'object' && v[0] !== null && Array.isArray(v[0])) ? def : v;
   }
-  // 预生成纹理缓存：尺寸变化 / palette / hue 变化时重建（fxTex 存 {crt, vignette, noise, lut, hue, palette, w, h}）
+  // 预生成纹理缓存：尺寸变化 / 参数变化时重建（fxTex 存纹理 + LUT + 矩阵 + 参数快照）
+  // 色板定义（与工具 PALETTES 共用值）：pico8 32 色 / nes 16 色 / vga 16 色 / gb 4 色
+  const FX_PALETTES = {
+    pico8: [[0,0,0],[29,43,83],[126,37,83],[0,135,81],[171,82,54],[95,87,79],[194,195,199],[255,241,232],[255,0,77],[255,163,0],[255,236,39],[0,228,54],[41,173,255],[131,118,156],[255,119,168],[255,204,170],[41,54,111],[43,83,120],[112,120,51],[131,143,196],[159,73,28],[83,54,32],[81,31,25],[141,135,123],[79,91,40],[87,79,74],[187,160,119],[142,154,114],[129,156,143],[105,115,98],[178,161,131],[227,204,155]],
+    nes: [[0,0,0],[124,124,124],[248,248,248],[252,60,48],[252,152,56],[252,252,88],[184,248,24],[88,216,84],[32,184,152],[0,136,196],[72,60,168],[168,64,208],[252,60,148],[252,152,192],[64,64,64],[188,188,188]],
+    vga: [[0,0,0],[128,0,0],[0,128,0],[128,128,0],[0,0,128],[128,0,128],[0,128,128],[192,192,192],[128,128,128],[255,0,0],[0,255,0],[255,255,0],[0,0,255],[255,0,255],[0,255,255],[255,255,255]],
+    gb: [[15,56,15],[48,98,48],[139,172,15],[155,188,15]],
+  };
+  // 通用 LUT 构建：任意色板定义 → 65536 项（r5g6b5）查找表
+  function buildLut(pal) {
+    const lut = new Uint8Array(65536 * 3);
+    for (let i = 0; i < 65536; i++) {
+      const r = (i >> 11) << 3, g = ((i >> 5) & 63) << 2, b = (i & 31) << 3;
+      let bi = 0, bd = Infinity;
+      for (let j = 0; j < pal.length; j++) {
+        const dr = r - pal[j][0], dg = g - pal[j][1], db = b - pal[j][2];
+        const d = dr * dr + dg * dg + db * db;
+        if (d < bd) { bd = d; bi = j; }
+      }
+      lut[i * 3] = pal[bi][0]; lut[i * 3 + 1] = pal[bi][1]; lut[i * 3 + 2] = pal[bi][2];
+    }
+    return lut;
+  }
   let fxTex = null;
   function fxEnsureTex(t) {
     const f = CFG.fx;
@@ -343,95 +365,117 @@ const HomeScene = (() => {
     const need = {
       crt: fxOn('crt', t), vignette: fxOn('vignette', t), noise: fxOn('noise', t),
       palette: fxVal('palette', t, 'none'), hue: fxVal('hue', t, 0),
+      brightness: fxVal('brightness', t, 0), contrast: fxVal('contrast', t, 1), saturation: fxVal('saturation', t, 1),
+      noiseAlpha: fxVal('noiseAlpha', t, .1), vignetteStrength: fxVal('vignetteStrength', t, .38),
+      crtOpacity: fxVal('crtOpacity', t, .28), crtSpacing: fxVal('crtSpacing', t, 3),
+      pixelDiv: fxVal('pixelDiv', t, 1),
     };
-    if (fxTex && fxTex.w === W && fxTex.h === H && fxTex.crt === need.crt && fxTex.vignette === need.vignette && fxTex.noise === need.noise && fxTex.palette === need.palette && fxTex.hue === need.hue) return;
-    fxTex = { w: W, h: H, crt: need.crt, vignette: need.vignette, noise: need.noise, palette: need.palette, hue: need.hue };
+    const same = fxTex && fxTex.w === W && fxTex.h === H
+      && ['crt','vignette','noise','palette','hue','brightness','contrast','saturation','noiseAlpha','vignetteStrength','crtOpacity','crtSpacing','pixelDiv'].every(k => fxTex[k] === need[k]);
+    if (same) return;
+    fxTex = Object.assign({ w: W, h: H }, need);
     if (need.crt) {
       const c = document.createElement('canvas'); c.width = W; c.height = H;
       const g = c.getContext('2d');
-      g.fillStyle = 'rgba(0,0,0,.28)';
-      for (let y = 0; y < H; y += 3) g.fillRect(0, y, W, 1);
+      g.fillStyle = 'rgba(0,0,0,' + need.crtOpacity + ')';
+      for (let y = 0; y < H; y += need.crtSpacing) g.fillRect(0, y, W, 1);
       fxTex.crtTex = c;
     }
     if (need.vignette) {
       const c = document.createElement('canvas'); c.width = W; c.height = H;
       const g = c.getContext('2d');
       const gr = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .35, W / 2, H / 2, Math.max(W, H) * .72);
-      gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.38)');
+      gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,' + need.vignetteStrength + ')');
       g.fillStyle = gr; g.fillRect(0, 0, W, H);
       fxTex.vigTex = c;
     }
     if (need.noise) {
-      const c = document.createElement('canvas'); c.width = W; c.height = H;
-      const g = c.getContext('2d');
-      const id = g.createImageData(W, H);
-      const d = id.data;
-      for (let i = 0; i < d.length; i += 4) { const v = Math.random() * 255 | 0; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 26; }
-      g.putImageData(id, 0, 0);
-      fxTex.noiseTex = c;
-    }
-    if (need.palette !== 'none') {
-      // LUT：65536 项（r5g6b5），构建一次缓存
-      const lut = new Uint8Array(65536 * 3);
-      const pal = need.palette === 'gb'
-        ? [[15, 56, 15], [48, 98, 48], [139, 172, 15], [155, 188, 15]]
-        : [ // NES 16 色常用子集
-          [0, 0, 0], [124, 124, 124], [248, 248, 248], [252, 60, 48], [252, 152, 56],
-          [252, 252, 88], [184, 248, 24], [88, 216, 84], [32, 184, 152], [0, 136, 196],
-          [72, 60, 168], [168, 64, 208], [252, 60, 148], [252, 152, 192], [64, 64, 64], [188, 188, 188],
-        ];
-      for (let i = 0; i < 65536; i++) {
-        const r = (i >> 11) << 3, g = ((i >> 5) & 63) << 2, b = (i & 31) << 3;
-        let bi = 0, bd = Infinity;
-        for (let j = 0; j < pal.length; j++) {
-          const dr = r - pal[j][0], dg = g - pal[j][1], db = b - pal[j][2];
-          const d = dr * dr + dg * dg + db * db;
-          if (d < bd) { bd = d; bi = j; }
-        }
-        lut[i * 3] = pal[bi][0]; lut[i * 3 + 1] = pal[bi][1]; lut[i * 3 + 2] = pal[bi][2];
+      // N 帧噪点（noiseFrames，默认 3）：独立随机纹理，逐帧轮换 + 平移 → 更活
+      const nf = Math.max(1, Math.min(8, fxVal('noiseFrames', t, 3) | 0));
+      const arr = [];
+      for (let fi = 0; fi < nf; fi++) {
+        const c = document.createElement('canvas'); c.width = W; c.height = H;
+        const g = c.getContext('2d');
+        const id = g.createImageData(W, H);
+        const d = id.data;
+        const a = Math.round(need.noiseAlpha * 255);
+        for (let i = 0; i < d.length; i += 4) { const v = Math.random() * 255 | 0; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = a; }
+        g.putImageData(id, 0, 0);
+        arr.push(c);
       }
-      fxTex.lut = lut;
+      fxTex.noiseTexes = arr;
+      fxTex.noiseFrames = nf;
     }
+    if (need.palette !== 'none' && FX_PALETTES[need.palette]) fxTex.lut = buildLut(FX_PALETTES[need.palette]);
+    // 调色矩阵：饱和度/对比度/亮度 合成基础矩阵，再与色相旋转级联 → 单个 3×3（每像素 9 次乘加）
+    // 饱和度: v' = lerp(luma, v, sat)；对比度+亮度: v'' = v'*cst + om（om = 128(1-cst)+b）
+    const cst = need.contrast != null ? need.contrast : 1;
+    const sat = need.saturation != null ? need.saturation : 1;
+    const b = (need.brightness || 0); // 亮度偏移（-100~100 直接作用于 0~255 值域）
+    const mo = 128 * (1 - cst) + b;
+    const lumR = .213, lumG = .715, lumB = .072;
+    const sr = (1 - sat) * lumR, sg = (1 - sat) * lumG, sb = (1 - sat) * lumB;
+    let base = [
+      cst * (sat + sr), cst * sg, cst * sb,
+      cst * sr, cst * (sat + sg), cst * sb,
+      cst * sr, cst * sg, cst * (sat + sb),
+    ];
     if (need.hue) {
-      // 色相旋转 3×3 矩阵（线性，无逐像素三角函数）
-      const a = need.hue * Math.PI / 180, s = Math.sin(a), c = Math.cos(a);
-      fxTex.matrix = [
-        .213 + c * .787 - s * .213, .715 - c * .715 - s * .715, .072 - c * .072 + s * .928,
-        .213 - c * .213 + s * .143, .715 + c * .285 + s * .140, .072 - c * .072 - s * .283,
-        .213 - c * .213 - s * .787, .715 - c * .715 + s * .715, .072 + c * .928 + s * .072,
+      const a = need.hue * Math.PI / 180, s = Math.sin(a), c2 = Math.cos(a);
+      const hueM = [
+        .213 + c2 * .787 - s * .213, .715 - c2 * .715 - s * .715, .072 - c2 * .072 + s * .928,
+        .213 - c2 * .213 + s * .143, .715 + c2 * .285 + s * .140, .072 - c2 * .072 - s * .283,
+        .213 - c2 * .213 - s * .787, .715 - c2 * .715 + s * .715, .072 + c2 * .928 + s * .072,
+      ];
+      // base × hueM（先调色再色相）
+      const mm = (a1, a2, a3, b1, b2, b3) => a1 * b1 + a2 * b2 + a3 * b3;
+      base = [
+        mm(base[0], base[1], base[2], hueM[0], hueM[3], hueM[6]),
+        mm(base[0], base[1], base[2], hueM[1], hueM[4], hueM[7]),
+        mm(base[0], base[1], base[2], hueM[2], hueM[5], hueM[8]),
+        mm(base[3], base[4], base[5], hueM[0], hueM[3], hueM[6]),
+        mm(base[3], base[4], base[5], hueM[1], hueM[4], hueM[7]),
+        mm(base[3], base[4], base[5], hueM[2], hueM[5], hueM[8]),
+        mm(base[6], base[7], base[8], hueM[0], hueM[3], hueM[6]),
+        mm(base[6], base[7], base[8], hueM[1], hueM[4], hueM[7]),
+        mm(base[6], base[7], base[8], hueM[2], hueM[5], hueM[8]),
       ];
     }
+    fxTex.matrix = base;
+    fxTex.offset = mo;
   }
-  // B 档像素滤镜：读主画布 → LUT/色相矩阵 → 写回（¼ 降采样可选）
+  // B 档像素滤镜：降采样(pixelDiv) → 调色矩阵 → LUT 色板（在缩小画布上）→ 放大回原尺寸
   function applyPixelFilter(t) {
     const f = CFG.fx;
     if (!f) return;
     const needPalette = fxVal('palette', t, 'none');
     const needHue = fxVal('hue', t, 0);
-    if (needPalette === 'none' && !needHue) return;
+    const needB = fxVal('brightness', t, 0), needC = fxVal('contrast', t, 1), needS = fxVal('saturation', t, 1);
+    if (needPalette === 'none' && !needHue && !needB && needC === 1 && needS === 1) return;
     fxEnsureTex(t);
     if (!fxTex) return;
-    // ¼ 降采样（像素风抗模糊）：先缩到 ¼ 再滤镜再放大
-    const sw = Math.max(2, W >> 1), sh = Math.max(2, H >> 1);
+    // 降采样：pixelDiv=1 不降（全分辨率）；2/4 = 降采样（颗粒感 + 调色开销 ÷ div²）
+    const div = Math.max(1, Math.min(4, fxTex.pixelDiv | 0));
+    const sw = Math.max(2, Math.round(W / div)), sh = Math.max(2, Math.round(H / div));
     const oc = document.createElement('canvas'); oc.width = sw; oc.height = sh;
     const og = oc.getContext('2d');
     og.imageSmoothingEnabled = false;
     og.drawImage(canvas, 0, 0, W, H, 0, 0, sw, sh);
     const id = og.getImageData(0, 0, sw, sh);
     const d = id.data;
+    const m = fxTex.matrix, mo = fxTex.offset || 0;
+    if (m) {
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i], g = d[i + 1], b = d[i + 2];
+        d[i] = Math.min(255, Math.max(0, m[0] * r + m[1] * g + m[2] * b + mo));
+        d[i + 1] = Math.min(255, Math.max(0, m[3] * r + m[4] * g + m[5] * b + mo));
+        d[i + 2] = Math.min(255, Math.max(0, m[6] * r + m[7] * g + m[8] * b + mo));
+      }
+    }
     if (fxTex.lut) {
       for (let i = 0; i < d.length; i += 4) {
         const idx = ((d[i] >> 3) << 11) | ((d[i + 1] >> 2) << 5) | (d[i + 2] >> 3);
         d[i] = fxTex.lut[idx * 3]; d[i + 1] = fxTex.lut[idx * 3 + 1]; d[i + 2] = fxTex.lut[idx * 3 + 2];
-      }
-    }
-    if (fxTex.matrix) {
-      const m = fxTex.matrix;
-      for (let i = 0; i < d.length; i += 4) {
-        const r = d[i], g = d[i + 1], b = d[i + 2];
-        d[i] = Math.min(255, Math.max(0, m[0] * r + m[1] * g + m[2] * b));
-        d[i + 1] = Math.min(255, Math.max(0, m[3] * r + m[4] * g + m[5] * b));
-        d[i + 2] = Math.min(255, Math.max(0, m[6] * r + m[7] * g + m[8] * b));
       }
     }
     og.putImageData(id, 0, 0);
@@ -446,9 +490,13 @@ const HomeScene = (() => {
     if (!fxTex) return;
     if (fxOn('crt', t) && fxTex.crtTex) ctx.drawImage(fxTex.crtTex, 0, 0);
     if (fxOn('vignette', t) && fxTex.vigTex) ctx.drawImage(fxTex.vigTex, 0, 0);
-    if (fxOn('noise', t) && fxTex.noiseTex) {
-      const ox = (Math.random() * 3 | 0) - 1, oy = (Math.random() * 3 | 0) - 1;
-      ctx.drawImage(fxTex.noiseTex, ox, oy);
+    if (fxOn('noise', t) && fxTex.noiseTexes && fxTex.noiseTexes.length) {
+      // N 帧轮换（12fps 阶梯下每帧换帧）+ 确定性小幅平移 → 雪花闪烁感
+      const nf = fxTex.noiseFrames || fxTex.noiseTexes.length;
+      const fi = Math.floor(t * 12) % nf;
+      const seed = (tt => { const s = Math.sin(tt * 127.1) * 43758.5453; return s - Math.floor(s); })(t * 3.1);
+      const ox = (seed * 3 | 0) - 1, oy = (seed * 3 | 0) - 1;
+      ctx.drawImage(fxTex.noiseTexes[fi], ox, oy);
     }
     if (fxOn('glitch', t)) {
       const seed = (tt => { const s = Math.sin(tt * 127.1) * 43758.5453; return s - Math.floor(s); })(t * 13.7);

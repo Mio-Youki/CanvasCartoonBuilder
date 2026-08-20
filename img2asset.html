@@ -164,9 +164,10 @@
       <label>减色色板（映射到有限色板最近色）</label>
       <select id="palette">
         <option value="">无（保持原色）</option>
-        <option value="pico8">PICO-8 · 32 色</option>
-        <option value="gb">Game Boy · 4 色</option>
-        <option value="vga">VGA · 16 色</option>
+        <option value="pico8">PICO-8 · 32 色（色彩丰富）</option>
+        <option value="nes">NES · 16 色（红白机）</option>
+        <option value="vga">VGA · 16 色（DOS 标准）</option>
+        <option value="gb">Game Boy · 4 色（绿灰）</option>
       </select>
       <label>均匀量化（每通道色阶，0=关）</label>
       <input id="quant" type="range" min="0" max="8" value="0">
@@ -245,9 +246,30 @@
 /* ---------------- 色板 ---------------- */
 const PALETTES = {
   pico8: [[0,0,0],[29,43,83],[126,37,83],[0,135,81],[171,82,54],[95,87,79],[194,195,199],[255,241,232],[255,0,77],[255,163,0],[255,236,39],[0,228,54],[41,173,255],[131,118,156],[255,119,168],[255,204,170],[41,54,111],[43,83,120],[112,120,51],[131,143,196],[159,73,28],[83,54,32],[81,31,25],[141,135,123],[79,91,40],[87,79,74],[187,160,119],[142,154,114],[129,156,143],[105,115,98],[178,161,131],[227,204,155]],
-  gb: [[15,56,15],[48,98,48],[139,172,15],[155,188,15]],
+  nes: [[0,0,0],[124,124,124],[248,248,248],[252,60,48],[252,152,56],[252,252,88],[184,248,24],[88,216,84],[32,184,152],[0,136,196],[72,60,168],[168,64,208],[252,60,148],[252,152,192],[64,64,64],[188,188,188]],
   vga: [[0,0,0],[128,0,0],[0,128,0],[128,128,0],[0,0,128],[128,0,128],[0,128,128],[192,192,192],[128,128,128],[255,0,0],[0,255,0],[255,255,0],[0,0,255],[255,0,255],[0,255,255],[255,255,255]],
+  gb: [[15,56,15],[48,98,48],[139,172,15],[155,188,15]],
 };
+// 色板 LUT 缓存（按 palette 名）：素材减色与 FX 色板共用同一构建（r5g6b5 → 映射色）
+const PALETTE_LUTS = {};
+function paletteLut(name) {
+  const pal = PALETTES[name];
+  if (!pal) return null;
+  if (PALETTE_LUTS[name]) return PALETTE_LUTS[name];
+  const lut = new Uint8Array(65536 * 3);
+  for (let i = 0; i < 65536; i++) {
+    const r = (i >> 11) << 3, g = ((i >> 5) & 63) << 2, b = (i & 31) << 3;
+    let bi = 0, bd = Infinity;
+    for (let j = 0; j < pal.length; j++) {
+      const dr = r - pal[j][0], dg = g - pal[j][1], db = b - pal[j][2];
+      const d = dr * dr + dg * dg + db * db;
+      if (d < bd) { bd = d; bi = j; }
+    }
+    lut[i * 3] = pal[bi][0]; lut[i * 3 + 1] = pal[bi][1]; lut[i * 3 + 2] = pal[bi][2];
+  }
+  PALETTE_LUTS[name] = lut;
+  return lut;
+}
 const $ = id => document.getElementById(id);
 
 /* ---------------- 状态 ---------------- */
@@ -340,7 +362,8 @@ function pixelate(img, w, h, opts) {
   const data = g.getImageData(0, 0, w, h);
   const d = data.data;
   // 参数快照：素材级（opts）优先，缺省读控件（导入默认）
-  const pal = (opts && opts.palette !== undefined) ? PALETTES[opts.palette] : PALETTES[$('palette').value] || null;
+  const palName = (opts && opts.palette !== undefined) ? opts.palette : $('palette').value;
+  const pal = palName ? PALETTES[palName] : null;
   const quant = (opts && opts.quant !== undefined) ? opts.quant : parseInt($('quant').value) || 0;
   const tol = ((opts && opts.bgtol !== undefined) ? opts.bgtol : parseInt($('bgtol').value) || 0) * 3;
   const bg = tol > 0 ? [d[0], d[1], d[2]] : null;
@@ -351,8 +374,15 @@ function pixelate(img, w, h, opts) {
       if (dist <= tol) { d[i + 3] = 0; continue; }
     }
     if (pal) {
-      const c2 = nearestPalette(d[i], d[i + 1], d[i + 2], pal);
-      d[i] = c2[0]; d[i + 1] = c2[1]; d[i + 2] = c2[2];
+      // LUT 查表（与 FX 色板共用构建）：比逐像素最近色距离更快且结果一致
+      const lut = paletteLut(palName);
+      if (lut) {
+        const idx = ((d[i] >> 3) << 11) | ((d[i + 1] >> 2) << 5) | (d[i + 2] >> 3);
+        d[i] = lut[idx * 3]; d[i + 1] = lut[idx * 3 + 1]; d[i + 2] = lut[idx * 3 + 2];
+      } else {
+        const c2 = nearestPalette(d[i], d[i + 1], d[i + 2], pal);
+        d[i] = c2[0]; d[i + 1] = c2[1]; d[i + 2] = c2[2];
+      }
     } else if (k) {
       d[i] = Math.round(Math.round(d[i] / k) * k);
       d[i + 1] = Math.round(Math.round(d[i + 1] / k) * k);
@@ -2686,21 +2716,28 @@ function renderFxPanel(cfg, box) {
         refreshStage(); buildLayerList(cfg);
       });
       r.appendChild(inp);
+      // 时段按钮：打开该开关的场景内分段编辑（窗口数组 [[f0,f1],…]）
+      const segBtn = document.createElement('button');
+      segBtn.className = 'hb sbtn';
+      segBtn.textContent = '时段';
+      segBtn.title = '编辑「' + label + '」在场景内的生效时段（双击段删除并入左边；端点共用可拖；点击段内切分）';
+      segBtn.addEventListener('click', ev => { ev.stopPropagation(); fxWinPopup(key, label, cfg); });
+      r.appendChild(segBtn);
       card.appendChild(r);
       return r;
     };
     row('CRT 扫描线', 'crt', '叠加半透明黑横线纹理（预生成，逐帧 drawImage）');
     row('故障 glitch', 'glitch', '随机水平位移条（确定性随机，随时间变化）');
-    row('暗角 vignette', 'vignette', '径向压暗边缘（预生成纹理）');
-    row('噪点 noise', 'noise', '预生成噪点纹理逐帧平移（低 alpha）');
+    row('暗角 vignette', 'vignette', '径向压暗边缘（预生成纹理，强度可调）');
+    row('噪点 noise', 'noise', 'N 帧噪点轮换逐帧切换（雪花闪烁，透明度/帧数可调）');
     const palRow = document.createElement('div');
     palRow.className = 'cf-row';
     const pl = document.createElement('label');
     pl.textContent = '色板';
-    pl.title = '整帧色板映射（LUT 查表，¼ 降采样）：无 / NES 16 色 / GB 4 色';
+    pl.title = '整帧色板映射（LUT 查表）：PICO-8 32色 / NES 16色 / VGA 16色 / GB 4色（与素材减色共用定义）';
     palRow.appendChild(pl);
     const sel = document.createElement('select');
-    [['none', '无'], ['nes', 'NES 16色'], ['gb', 'GB 4色']].forEach(([v, t]) => {
+    [['none', '无'], ['pico8', 'PICO-8 32色'], ['nes', 'NES 16色'], ['vga', 'VGA 16色'], ['gb', 'GB 4色']].forEach(([v, t]) => {
       const o = document.createElement('option');
       o.value = v;
       o.textContent = t;
@@ -2733,6 +2770,44 @@ function renderFxPanel(cfg, box) {
     });
     hueRow.appendChild(hueIn);
     card.appendChild(hueRow);
+    // 数值参数行辅助（按场景数组写入）
+    const numRow = (label, key, step, min, max, def, hint) => {
+      const r = document.createElement('div');
+      r.className = 'cf-row';
+      const l = document.createElement('label');
+      l.textContent = label;
+      if (hint) l.title = hint;
+      r.appendChild(l);
+      const inp = document.createElement('input');
+      inp.type = 'number';
+      inp.step = step;
+      inp.style.width = '52px';
+      if (min != null) inp.min = min;
+      if (max != null) inp.max = max;
+      const cv = fxValTool(key);
+      inp.value = cv != null ? cv : def;
+      inp.addEventListener('change', () => {
+        pushHistory();
+        const v = parseFloat(inp.value);
+        if (isNaN(v)) return;
+        const clamped = max != null ? Math.min(max, Math.max(min != null ? min : -Infinity, v)) : v;
+        inp.value = clamped;
+        fx[key] = sc.length ? sc.map((_, i) => (i === Math.max(0, curS)) ? clamped : (Array.isArray(fx[key]) ? fx[key][Math.min(i, fx[key].length - 1)] : (fx[key] != null ? fx[key] : def))) : clamped;
+        refreshStage(); buildLayerList(cfg);
+      });
+      r.appendChild(inp);
+      card.appendChild(r);
+      return r;
+    };
+    numRow('亮度', 'brightness', 5, -100, 100, 0, '亮度偏移（-100~100，并入调色矩阵，无额外开销）');
+    numRow('对比度', 'contrast', 0.1, 0, 3, 1, '对比度（0~3，1=原样；并入调色矩阵）');
+    numRow('饱和度', 'saturation', 0.1, 0, 2, 1, '饱和度（0~2，1=原样；0=灰度；并入调色矩阵）');
+    numRow('采样除数', 'pixelDiv', 1, 1, 4, 1, '整帧降采样除数（1=全分辨率清晰；2/4=低分辨率颗粒感 + 调色开销÷div²）——先降采样再调色');
+    numRow('噪点帧数', 'noiseFrames', 1, 1, 8, 3, '噪点轮换帧数（默认 3；越多雪花越随机）');
+    numRow('噪点强度', 'noiseAlpha', 0.02, 0, 1, 0.1, '噪点透明度（0~1）');
+    numRow('暗角强度', 'vignetteStrength', 0.05, 0, 1, 0.38, '暗角压暗程度（0~1）');
+    numRow('CRT 透明度', 'crtOpacity', 0.02, 0, 1, 0.28, 'CRT 扫描线黑线透明度（0~1）');
+    numRow('CRT 间距', 'crtSpacing', 1, 2, 12, 3, 'CRT 扫描线间距（像素，每 N 行一条）');
     const trRow = document.createElement('div');
     trRow.className = 'cf-row';
     const tl2 = document.createElement('label');
@@ -2847,6 +2922,172 @@ function renderFxTrack() {
   const px = Math.round(((state.t % loop) / loop) * Wcss);
   ctx.fillStyle = '#e5484d';
   ctx.fillRect(px, 0, 1, Hcss);
+}
+/* FX 场景内时段编辑弹窗：复用 show 窗口条交互（点击段内切分 / 空白加段 / 拖段体移动 / 拖两端缩放共用端点 / 双击删除并入左边）。
+   数据：fx.<key>[scene] = null（隐藏）| [f0,f1]（单段）| [[f0,f1],…]（多段），f 为场景内 0~1 比例 */
+let fxWinPop = null;
+function fxWinPopup(key, label, cfg) {
+  if (fxWinPop && fxWinPop._key === key) { fxWinPop.remove(); fxWinPop = null; return; }
+  if (fxWinPop) fxWinPop.remove();
+  const sc = sceneNames();
+  const n = Math.max(1, (cfg.scenes && cfg.scenes.length) || 1);
+  const curS = Math.max(0, tlCurScene < 0 ? 0 : tlCurScene);
+  const pop = document.createElement('div');
+  pop.className = 'show-pop';
+  pop._key = key;
+  pop.style.position = 'absolute';
+  pop.style.left = '8px';
+  pop.style.top = 'auto';
+  pop.style.bottom = '54px';
+  pop.style.zIndex = 99;
+  const title = document.createElement('div');
+  title.className = 'show-pop-title';
+  title.textContent = label + ' 时段：行=场景开关 · 条=场景内分段（点击切分/拖端点缩放/拖段移动/双击删除并入左）';
+  pop.appendChild(title);
+  // 当前场景内窗口数组（读写归一：null | [[f0,f1],…]）
+  const winsRef = () => {
+    const raw = cfg.fx[key];
+    const v = Array.isArray(raw) ? raw[Math.min(curS, raw.length - 1)] : raw;
+    if (v == null || v === false) return null;
+    if (Array.isArray(v) && v.length && typeof v[0] === 'object' && v[0] !== null && Array.isArray(v[0])) return v.map(s => [s[0], s[1]]);
+    return [[0, 1]]; // 真值常量 = 整段
+  };
+  const write = wins => {
+    const raw = cfg.fx[key];
+    const arr = Array.isArray(raw) ? raw.slice() : null;
+    const cur = wins && wins.length ? wins.map(s => [s[0], s[1]]).sort((a, b) => a[0] - b[0]) : null;
+    if (arr) { arr[Math.min(curS, arr.length - 1)] = cur; cfg.fx[key] = arr; }
+    else cfg.fx[key] = cur;
+    refreshStage(); buildLayerList(cfg);
+    draw();
+  };
+  // 场景开关行
+  const scRow = document.createElement('div');
+  scRow.style.display = 'flex';
+  scRow.style.flexWrap = 'wrap';
+  scRow.style.gap = '4px';
+  scRow.style.marginBottom = '4px';
+  for (let i = 0; i < n; i++) {
+    const chip = document.createElement('button');
+    chip.className = 'hb scene-chip' + (i === curS ? ' active' : '');
+    chip.textContent = sc[i] || ('S' + (i + 1));
+    chip.style.fontSize = '8px';
+    chip.addEventListener('click', () => {
+      tlCurScene = i; state.t = tlSceneRange(i)[0] + 0.1;
+      buildLayerList(cfg); renderTimeline();
+      fxWinPopup(key, label, cfg); // 重开（场景切换）
+    });
+    scRow.appendChild(chip);
+  }
+  pop.appendChild(scRow);
+  // 场景内分段条（win-bar 交互）
+  const wrap = document.createElement('div');
+  wrap.className = 'win-wrap';
+  const bar = document.createElement('div');
+  bar.className = 'win-bar';
+  const draw = () => {
+    const wins = winsRef();
+    bar.innerHTML = '';
+    if (!wins) { const em = document.createElement('div'); em.style.cssText = 'position:absolute;inset:0;color:#8a93a8;font-size:7px;line-height:12px;padding-left:4px;'; em.textContent = '（关——点击空白加段）'; bar.appendChild(em); return; }
+    wins.forEach((seg, si) => {
+      const d = document.createElement('div');
+      d.className = 'win-seg';
+      d.dataset.seg = si;
+      d.style.left = (seg[0] * 100) + '%';
+      d.style.width = Math.max(0.5, (seg[1] - seg[0]) * 100) + '%';
+      const hl = document.createElement('i'); hl.className = 'win-hl';
+      const hr = document.createElement('i'); hr.className = 'win-hr';
+      d.appendChild(hl); d.appendChild(hr);
+      bar.appendChild(d);
+    });
+  };
+  let drag = null, clickPos = null, clickTimer = null;
+  const doClick = fx => {
+    const wins = winsRef() || [];
+    const segAt = wins.findIndex(sg => fx >= sg[0] - 0.001 && fx <= sg[1] + 0.001);
+    if (segAt >= 0) {
+      const seg = wins[segAt];
+      if (fx - seg[0] < 0.02 || seg[1] - fx < 0.02) return;
+      const tail = seg[1];
+      seg[1] = fx;
+      wins.splice(segAt + 1, 0, [fx, tail]);
+    } else {
+      const half = 0.05;
+      wins.push([Math.max(0, fx - half), Math.min(1, fx + half)]);
+    }
+    write(wins);
+  };
+  bar.addEventListener('pointerdown', ev => {
+    ev.stopPropagation();
+    const r = bar.getBoundingClientRect();
+    const fx = Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width)));
+    const segEl = ev.target.closest ? ev.target.closest('.win-seg') : null;
+    const wins = winsRef() || [];
+    if (segEl) {
+      const si = +segEl.dataset.seg;
+      const seg = wins[si];
+      if (!seg) return;
+      const sr = segEl.getBoundingClientRect();
+      const inL = ev.clientX - sr.left < 7;
+      const inR = sr.right - ev.clientX < 7;
+      if (inL || inR) drag = { type: 'resize', si, side: inL ? 'l' : 'r' };
+      else drag = { type: 'move', si, dx: fx - seg[0] };
+      clickPos = null;
+      return;
+    }
+    drag = null;
+    clickPos = { fx };
+  });
+  bar.addEventListener('pointermove', ev => {
+    if (!drag) return;
+    ev.stopPropagation();
+    const r = bar.getBoundingClientRect();
+    const fx = Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width)));
+    const wins = winsRef() || [];
+    const seg = wins[drag.si];
+    if (!seg) return;
+    const prevEnd = drag.si > 0 ? wins[drag.si - 1][1] : 0;
+    const nextStart = drag.si < wins.length - 1 ? wins[drag.si + 1][0] : 1;
+    if (drag.type === 'move') {
+      const w = seg[1] - seg[0];
+      seg[0] = Math.max(prevEnd, Math.min(nextStart - w, fx - drag.dx));
+      seg[1] = seg[0] + w;
+    } else if (drag.type === 'resize') {
+      if (drag.side === 'l') seg[0] = Math.max(prevEnd, Math.min(seg[1] - 0.02, fx));
+      else seg[1] = Math.max(seg[0] + 0.02, Math.min(nextStart, fx));
+    }
+    write(wins);
+  });
+  const up = () => {
+    if (drag) { drag = null; return; }
+    if (clickPos) {
+      const fx = clickPos.fx;
+      clickPos = null;
+      if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; return; }
+      clickTimer = setTimeout(() => { clickTimer = null; doClick(fx); }, 220);
+    }
+  };
+  bar.addEventListener('pointerup', up);
+  bar.addEventListener('pointerleave', () => { drag = null; clickPos = null; });
+  bar.addEventListener('dblclick', ev => {
+    ev.stopPropagation();
+    const segEl = ev.target.closest ? ev.target.closest('.win-seg') : null;
+    if (!segEl) return;
+    if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+    const wins = winsRef() || [];
+    const si = +segEl.dataset.seg;
+    // 删除并入左边：被删段并入左邻（若无左邻则并入右邻；仅一段时清空）
+    const del = wins[si];
+    if (wins.length === 1) { write(null); return; }
+    if (si > 0) { wins[si - 1][1] = del[1]; wins.splice(si, 1); }
+    else { wins[si + 1][0] = del[0]; wins.splice(si, 1); }
+    write(wins);
+  });
+  wrap.appendChild(bar);
+  pop.appendChild(wrap);
+  draw();
+  document.body.appendChild(pop);
+  fxWinPop = pop;
 }
 function buildLayerList(cfg) {
   const box = $('cfgform');
