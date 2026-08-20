@@ -652,15 +652,36 @@ const HomeScene = (() => {
     }
     drawPartsRaw(e, t);
   }
-  // 滚动偏移（支持斜向 scrollAngle）：元素 scroll.angle 或顶层 angle（度；0=水平滚动，90=垂直下落）
+  // 滚动相位窗口起点：元素当前所在显示窗口的起点（秒）；无 show → 0（全局起算）
+  // 窗口模型与 elShown 同一套：新模型 show 数组（每场景窗口，f 为场景内比例）/ legacy scenes / [t0,t1]
+  function scrollWindowStart(e, t) {
+    if (!e.show) return 0;
+    if (Array.isArray(e.show) && e.show.length && (e.show[0] === null || Array.isArray(e.show[0]))) {
+      const p = scene(t);
+      const w = p < e.show.length ? e.show[p] : null;
+      if (!w) return 0;
+      const wins = Array.isArray(w[0]) ? w : [w];
+      const [s0, s1] = sceneBounds(p);
+      const wt = ((t % LOOPv()) + LOOPv()) % LOOPv();
+      const lt = wt - s0;
+      const dur = s1 - s0;
+      // 当前所在窗口段起点；不在任何窗口内（隐藏期）→ 用该场景首段起点（无可见影响）
+      for (const seg of wins) if (lt >= seg[0] * dur && lt < seg[1] * dur) return s0 + seg[0] * dur;
+      return s0 + (wins[0] ? wins[0][0] * dur : 0);
+    }
+    if (e.show && Array.isArray(e.show.scenes)) return sceneBounds(scene(t))[0];
+    if (Array.isArray(e.show)) return e.show[0] || 0;
+    return 0;
+  }
+  // 滚动偏移（支持斜向 scrollAngle）：scroll.angle 完整定义方向（0=右，90=下，180=左，270=上）；
+  // 旧 dir 字段仅兼容：无 angle 时 left→180° / right→0°。相位从当前显示窗口起点归零（无 show → t=0）。
   function scrollOffsets(e, t) {
     if (!e.scroll || !e.scroll.speed) return { x: 0, y: 0 };
     const span = e.scroll.span || e.w || 1;
-    const off = (t * e.scroll.speed) % span;
-    const dir = e.scroll.dir === 'right' ? 1 : -1;
-    const ang = ((e.scroll && e.scroll.angle) || e.angle || 0) * Math.PI / 180;
-    // 位移向量：ox 沿水平 dir；oy = off×sin(angle) 恒正（angle>0 向下落）
-    return { x: dir * off * Math.cos(ang), y: off * Math.sin(ang) };
+    const off = wrap((t - scrollWindowStart(e, t)) * e.scroll.speed, span);
+    const angDeg = (e.scroll && e.scroll.angle != null) ? e.scroll.angle : (e.scroll && e.scroll.dir === 'right' ? 0 : 180);
+    const ang = angDeg * Math.PI / 180;
+    return { x: off * Math.cos(ang), y: off * Math.sin(ang) };
   }
   function drawPartsRaw(e, t, alphaOverride) {
     const so = scrollOffsets(e, t);
@@ -698,7 +719,7 @@ const HomeScene = (() => {
         } else if (q.type === 'line') {
           ctx.strokeStyle = q.stroke || q.fill || '#fff';
           ctx.lineWidth = q.strokeWidth || 1;
-          ctx.beginPath(); ctx.moveTo(PX, PY); ctx.lineTo(Math.round(X + (q.x2 || 0)), Math.round(y0 + (q.y2 || 0))); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(PX, PY); ctx.lineTo(Math.round(X + pa.xOff + (q.x2 || 0)), Math.round(Y + pa.yOff + (q.y2 || 0))); ctx.stroke();
         } else if (q.type === 'ellipse') {
           ctx.beginPath();
           ctx.ellipse(PX + (q.w || 1) / 2, PY + (q.h || 1) / 2, (q.w || 1) / 2, (q.h || 1) / 2, 0, 0, Math.PI * 2);
@@ -732,16 +753,17 @@ const HomeScene = (() => {
       const offset = wrap(t * bSpeed, bSpan);
       const n = Math.ceil(W / bSpan) + 3;
       for (let j = -1; j < n; j++) blit(j * bSpan - offset);
-    } else if (e.scroll && e.scroll.speed && e.scroll.span) {
-      // 瓦片沿 scroll.angle 方向排列（斜向无缝）；位移已在 X0（so.x/so.y）
+    } else if (e.scroll && e.scroll.speed && e.scroll.span && e.scroll.repeat !== false) {
+      // 瓦片沿 scroll.angle 方向排列（斜向无缝）；位移已在 X0/Y0（so.x/so.y），yAdd 只含瓦片间距
       const span = e.scroll.span;
       const angDeg = (e.scroll.angle != null) ? e.scroll.angle : (e.scroll.dir === 'right' ? 0 : 180);
       const ang = angDeg * Math.PI / 180;
       const cosA = Math.cos(ang), sinA = Math.sin(ang);
       const n = Math.ceil(W / span) + 3;
-      for (let j = 0; j < n; j++) blit(j * span * cosA, so.y + j * span * sinA);
+      for (let j = 0; j < n; j++) blit(j * span * cosA, j * span * sinA);
     } else {
-      blit(0, so.y);
+      // 单本体（无 span / repeat:false）：相位位移已在 Y0，不重复叠加
+      blit(0, 0);
     }
     if (wv) ctx.restore();
     ctx.globalAlpha = 1;
@@ -781,8 +803,8 @@ const HomeScene = (() => {
         ctx.drawImage(img, srcX, 0, sw, img.height, Math.round(dxx), Math.round(dyy), w, h);
       }
     };
-    if (e.scroll && e.scroll.speed && e.scroll.span) {
-      // 瓦片沿 scroll.angle 方向排列（位移并入 dx）
+    if (e.scroll && e.scroll.speed && e.scroll.span && e.scroll.repeat !== false) {
+      // 瓦片沿 scroll.angle 方向排列（位移并入 dx）；repeat:false → 单本体
       const sp = e.scroll.span;
       const angDeg = (e.scroll.angle != null) ? e.scroll.angle : (e.scroll.dir === 'right' ? 0 : 180);
       const ang = angDeg * Math.PI / 180;

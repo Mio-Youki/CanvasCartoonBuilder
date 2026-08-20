@@ -136,8 +136,12 @@ anim: { bob: { amp: 1, period: 1/6 }, blink: { period: 2333, duty: 6/7, phase: 1
 **作用顺序（文档化）**：`bob`（平移）→ `wave`（旋转）→ `pulse`（缩放）→ `blink`（透明度）——各原语作用维度独立，可安全叠加。
 **wave 层级语义**：元素级 = **绕元素包围盒中心**摆动；part 级 = 叠加到该 part 的 `rot`（绕自身中心）。
 **元素静态旋转 `e.rot`**（度，工具黄框旋转手柄写入）：渲染端 `totalRot = e.rot（静态）+ wave（动态）`，**绕元素包围盒中心整体旋转**（包裹全部 parts；图片元素同语义）；默认无该字段 = 0，视觉不变。part 级 `rot` 仍为绕自身中心。
-**滚动斜向（scrollAngle）**：素材 `scroll.angle`（度，**完整定义滚动方向**：0=右，90=下（坠落），180=左，270=上；旧 `dir` 字段兼容：无 angle 时 left→180°、right→0°）——
-位移向量 `{x: off×cos(angle), y: off×sin(angle)}`，**瓦片沿同方向排列**（斜向无缝衔接，雨/流星整组斜移）。
+**滚动（scroll）——统一语义（v2.6补四）**：素材 `scroll` 对象 = `{speed, span, angle, repeat}`——
+- `speed`（像素/秒）+ `span`（副本间距 = 相位周期）→ **平铺移动**：本体 + 间隔 span 的副本，整串沿 `angle` 方向平移；
+- **只填 speed 不填 span** → 单本体沿 `angle` 往返（周期 = 元素宽 `e.w`）；
+- `angle`（度，**完整定义滚动方向**：0=右，90=下（坠落），180=左，270=上；旧 `dir` 字段仅兼容：无 angle 时 left→180°、right→0°）——位移向量 `{x: off×cos(angle), y: off×sin(angle)}`，**本体位移与副本排列沿同一方向**（连成直线，无 y 轴对称）；
+- `repeat: false` → **不生成副本**（单本体沿 angle 往返，span = 往返距离）；默认/无该字段 = 开；
+- **相位窗口归零**：`off = wrap((t - t0) × speed, span)`，t0 = 元素**当前 show 窗口起点**——元素在**每个显示窗口的最初以配置坐标 (x,y) 出现**（相位=0），随后沿 angle 运动；无 show 元素 t0=0（从全局 t=0 起算，行为不变）。
 
 **典型组合（示例）**：
 - **两态颜色切换**（如信号灯绿/红）：两个重叠 part + 互补 blink（`green: {period:4000, duty:3/4, phase:1/4, on:1, off:0}` + `red: {period:4000, duty:1/4, phase:0, on:1, off:0}`）

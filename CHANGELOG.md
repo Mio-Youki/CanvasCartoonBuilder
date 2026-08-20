@@ -2,6 +2,15 @@
 
 > 独立于游戏本体的 CHANGELOG。工具版本独立演进，与游戏版本号无关。
 
+## v2.6 补四 —— scroll 语义统一（angle 完整方向）+ 窗口起点相位归零 + [重复] 开关
+- **① 方向语义统一（修复斜角平铺 y 轴对称）**：home-scene `scrollOffsets` 移除 `dir` 对 x 的符号修正，改为与工具端完全一致的 `{x: off×cos(angle), y: off×sin(angle)}`——`angle` 完整定义方向（0=右，90=下，180=左，270=上），**本体位移与副本排列沿同一方向连成线**（此前默认 dir=-1 使本体向左、副本向右 → 斜角时恰好 y 轴对称；90° 倍数因 cos=0 不受影响）。旧 `dir` 字段仅兼容：无 angle 时 left→180°/right→0°
+- **② 斜线滚动两端同步**：`drawPartsRaw` line 分支终点 y 用 `y0`（元素原点）→ 改 `Y + pa.yOff`（含滚动/动画位移）——斜线滚动不再被拉伸变形（工具端本就正确，两端对齐）
+- **③ 斜角轨迹角度修正（去掉 y 双加速）**：parts 瓦片循环 `blit(j×span×cosA, so.y + j×span×sinA)` → `blit(j×span×cosA, j×span×sinA)`——`so.y` 已并入 `Y0`，yAdd 再含一次会双加（45° 时 y 是 x 的两倍速，轨迹角度被拉偏）；单本体 `blit(0, so.y)` → `blit(0, 0)` 同理
+- **④ 窗口起点相位归零（scrollWindowStart）**：滚动相位从**元素当前显示窗口起点**起算——`off = wrap((t - t0) × speed, span)`（t0 = 当前窗口起点）；元素在**每个 show 窗口（单段/多段）的最初以配置坐标 (x,y) 出现**（相位=0），随后沿 angle 运动；无 show 元素 t0=0（行为不变）。工具端复用 `showRanges`/`tlSceneRange` 同语义，装配模式 t0=0
+- **⑤ [重复] 开关（scroll.repeat）**：imgForm「平铺周期」上方新增开关——**开（默认，undefined=开）= 生成副本平铺**（span=副本间距+相位周期）；**关（repeat:false）= 单本体**沿 angle 往返（span=往返距离，不生成副本）；渲染端 `repeat !== false` 判断
+- **像素级验证**：6 项 PASS（45°/135° 方向语义、斜线两端同步、45° 无 y 双加速、窗口起点归零、repeat:false 单本体、repeat 默认平铺）；home-scene 侧 S1/S1b/S3/S4 同语义验证 PASS；**默认配置（无 scroll/无 show）新旧渲染 DIFF=0**
+- 渲染端同步：`public/home-scene.js` → `tools/home-scene.js`（vendored）一致
+
 ## v2.6 补三 —— 程序元素四角缩放 + 矢量缩放中间态 + Ctrl+点击图元多选 + part 多选青框群组
 - **① 程序元素四角缩放修复**：黄框选中程序元素（selProg）时四角拖拽此前**完全失效**（只走整体移动）——pointerdown 程序元素分支缺 `hitCorner` 命中；新增 `presize` 拖拽（锚定对角缩放 parts 坐标，与矢量元素同语义，不写 e.w/h）
 - **② 矢量元素四角缩放中间态修复**：拖动缩放时**只记录起始/最终状态、无中间态**——根因是 resize 处理器 `e.scroll.span = e.w` 在**无 scroll 字段的矢量元素**（commitDrawShape 新建）上抛 TypeError，`renderStage()` 未执行；加 `if (e.scroll)` 守卫 → 拖拽过程实时重绘

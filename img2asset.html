@@ -514,10 +514,22 @@ function addElement(src) {
 function selEl() { return state.elements.find(e => e.id === state.selEl); }
 
 /* ---------------- 场景渲染（预览与导出共用逻辑） ---------------- */
+/* 滚动相位窗口起点：元素当前所在显示窗口的起点（秒）；无 show → 0（全局起算）
+   与 home-scene scrollWindowStart 同语义；复用 showRanges（场景窗口/legacy）求当前窗口 */
+function scrollWindowStart(e, t) {
+  if (!e || !e.show || !window.HOME_SCENE) return 0;
+  const loop = window.HOME_SCENE.loop || tlLoop();
+  const ranges = showRanges(e, loop);
+  if (!ranges || !ranges.length) return 0;
+  const lt = ((t % loop) + loop) % loop;
+  for (const r of ranges) if (lt >= r[0] && lt < r[1]) return r[0];
+  return ranges[0][0]; // 隐藏期（无可见影响）：取首段起点
+}
 function scrollOffsets(e, t) {
   if (!e.scroll || !e.scroll.speed) return { x: 0, y: 0 };
   const span = e.scroll.span || e.w || 1;
-  const off = (t * e.scroll.speed) % span;
+  // 相位从当前显示窗口起点归零（无 show → 全局 t=0 起算，兼容旧行为）
+  const off = wrapMod((t - scrollWindowStart(e, t)) * e.scroll.speed, span);
   // 方向：scroll.angle 完整定义（0=右，90=下，180=左，270=上）；无 angle 时 dir 兼容（left→180°）
   const angDeg = (e.scroll && e.scroll.angle != null) ? e.scroll.angle : (e.scroll && e.scroll.dir === 'right' ? 0 : 180);
   const ang = angDeg * Math.PI / 180;
@@ -555,8 +567,8 @@ function drawElement(ctx, e, t, imgMap) {
       ctx.drawImage(img, fx * sw, 0, sw, img.height, Math.round(dxx), Math.round(dyy), w, h);
     }
   };
-  if (e.scroll && e.scroll.speed && e.scroll.span) {
-    // 瓦片沿 scroll.angle 方向排列（位移并入 dx）
+  if (e.scroll && e.scroll.speed && e.scroll.span && e.scroll.repeat !== false) {
+    // 瓦片沿 scroll.angle 方向排列（位移并入 dx）；repeat:false → 单本体
     const span = e.scroll.span;
     const angDeg = (e.scroll.angle != null) ? e.scroll.angle : (e.scroll.dir === 'right' ? 0 : 180);
     const ang = angDeg * Math.PI / 180;
@@ -812,16 +824,17 @@ function drawPartsToolRaw(ctx, e, t, alphaOverride) {
     const offset = wrapMod(t * bandSpeed(e), span);
     const n = Math.ceil(state.cw / span) + 3;
     for (let j = -1; j < n; j++) blit(j * span - offset);
-  } else if (e.scroll && e.scroll.speed && e.scroll.span) {
-    // 瓦片沿 scroll.angle 方向排列（斜向无缝）；位移已在 X0（so.x/so.y）
+  } else if (e.scroll && e.scroll.speed && e.scroll.span && e.scroll.repeat !== false) {
+    // 瓦片沿 scroll.angle 方向排列（斜向无缝）；位移已在 X0/Y0（so.x/so.y），yAdd 只含瓦片间距
     const span = e.scroll.span;
     const angDeg = (e.scroll.angle != null) ? e.scroll.angle : (e.scroll.dir === 'right' ? 0 : 180);
     const ang = angDeg * Math.PI / 180;
     const cosA = Math.cos(ang), sinA = Math.sin(ang);
     const n = Math.ceil(state.cw / span) + 3;
-    for (let j = 0; j < n; j++) blit(j * span * cosA, so.y + j * span * sinA);
+    for (let j = 0; j < n; j++) blit(j * span * cosA, j * span * sinA);
   } else {
-    blit(0, so.y);
+    // 单本体（无 span / repeat:false）：相位位移已在 Y0，不重复叠加
+    blit(0, 0);
   }
   if (wv) ctx.restore();
   ctx.globalAlpha = 1;
@@ -2528,14 +2541,32 @@ function imgForm(el, box, cardKey) {
     s.addEventListener('change', () => { pushHistory(); setPath(el, key, s.value); refreshStage(); });
     add(label, s, hint);
   };
+  const boolBtn = (label, key, hint) => {
+    // 布尔开关按钮（点击切换）：off 状态序列化写 false；undefined = 默认 on
+    const btn = document.createElement('button');
+    const sync = () => {
+      const on = getPath(el, key) !== false;
+      btn.className = 'hb sbtn' + (on ? ' on' : '');
+      btn.textContent = on ? '重复 ✓' : '重复 ✗';
+      btn.title = hint;
+    };
+    sync();
+    btn.addEventListener('click', () => {
+      pushHistory();
+      setPath(el, key, getPath(el, key) !== false ? false : undefined);
+      buildLayerList(layerCfg());
+    });
+    add(label, btn, hint);
+  };
   txt('名称', 'name');
   num('x', 'x'); num('y', 'y');
   num('宽', 'w', 1, 1); num('高', 'h', 1, 1);
   num('透明度', 'alpha', 0.05, 0, '1=完全不透明');
   num('层级 z', 'z', 1, 0, '越大越靠上');
   num('滚动速度', 'scroll.speed', 1, null, '像素/秒，0=静止');
-  num('平铺周期', 'scroll.span', 1, 1, '滚动无缝平铺的跨度（默认=元素宽）');
-  num('滚动角度', 'scroll.angle', 15, null, '滚动方向角度（度）：0=右，90=下（坠落），180=左，45=斜向（雨/流星整组斜移）；瓦片沿同方向排列');
+  boolBtn('平铺重复', 'scroll.repeat', '[重复] 开=滚动生成副本平铺（span=副本间距+相位周期）；关=单本体沿角度往返（span=往返距离）');
+  num('平铺周期', 'scroll.span', 1, 1, '滚动无缝平铺的跨度（默认=元素宽）；[重复] 关时=单本体往返距离');
+  num('滚动角度', 'scroll.angle', 15, null, '滚动方向角度（度）：0=右，90=下（坠落），180=左，270=上，45=斜向（雨/流星整组斜移）；瓦片沿同方向排列');
   num('动画周期', 'animMs', 50, 50, '毫秒（闪烁/脉动的节拍）');
   num('帧数', 'frames', 1, 1, '多帧 sprite sheet（帧表横向裁切），1=单帧');
   num('帧率', 'fps', 1, 1, '多帧每秒播放帧数');
