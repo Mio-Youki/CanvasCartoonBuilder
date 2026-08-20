@@ -2404,7 +2404,7 @@ function walkForm(obj, path, box, cardKey) {
     add('像素化除数', pixelDivControl(obj));
   }
   for (const [k, v] of Object.entries(obj)) {
-    if (k === 'show' || k === 'parts') continue; // show=弹窗管理；parts=图元编辑面板
+    if (k === 'show' || k === 'parts' || k === 'particle') continue; // show=弹窗管理；parts=图元编辑面板；particle=粒子参数专表
     const isNumArr = Array.isArray(v) && v.length && v.every(x => typeof x === 'number');
     if (typeof v === 'number' || isNumArr) {
       // 导入即按场景数组的参数：默认激活 [s]（只改当前场景槽，不破坏数组）
@@ -2598,6 +2598,99 @@ function imgForm(el, box, cardKey) {
   num('动画周期', 'animMs', 50, 50, '毫秒（闪烁/脉动的节拍）');
   num('帧数', 'frames', 1, 1, '多帧 sprite sheet（帧表横向裁切），1=单帧');
   num('帧率', 'fps', 1, 1, '多帧每秒播放帧数');
+}
+/* 粒子系统参数表单（程序元素含 particle 字段时显示）：实体 = 元素自身 parts；
+   发射区 = 元素 x/y/w/h（空 = 全画布 → 全局雨/雪）；运动参数全部确定性（种子随机，可像素回归） */
+function particleForm(el, box, cardKey) {
+  const add = (label, ctrl, hint) => {
+    const w = document.createElement('div');
+    w.className = 'cf-row';
+    const l = document.createElement('label');
+    l.textContent = label;
+    if (hint) l.title = hint;
+    w.appendChild(l);
+    w.appendChild(ctrl);
+    box.appendChild(w);
+  };
+  const P = (el.particle = el.particle || {});
+  const num = (label, key, step, min, max, def, hint) => {
+    const inp = document.createElement('input'); inp.type = 'number';
+    inp.step = step; inp.style.width = '52px';
+    if (min != null) inp.min = min;
+    if (max != null) inp.max = max;
+    inp.value = P[key] != null ? P[key] : def;
+    inp.title = hint;
+    inp.addEventListener('change', () => {
+      pushHistory();
+      const v = parseFloat(inp.value);
+      if (isNaN(v)) return;
+      const cl = max != null ? Math.min(max, Math.max(min != null ? min : -Infinity, v)) : v;
+      inp.value = cl;
+      P[key] = cl;
+      refreshStage();
+    });
+    add(label, inp, hint);
+  };
+  const bool = (label, key, def, hint) => {
+    const b = document.createElement('input'); b.type = 'checkbox';
+    b.checked = P[key] !== undefined ? !!P[key] : def;
+    b.title = hint;
+    b.addEventListener('change', () => { pushHistory(); P[key] = b.checked; refreshStage(); });
+    add(label, b, hint);
+  };
+  const tip = document.createElement('div');
+  tip.className = 'cf-ro';
+  tip.textContent = '粒子：实体=本元素 parts；发射区=元素 x/y/w/h（空=全画布）；运动确定性（种子随机）';
+  box.appendChild(tip);
+  num('粒子数', 'count', 1, 1, 600, 40, '同时存在的粒子数上限（性能上限 600）');
+  num('补给速率', 'rate', 1, 0, 200, 40, '连续发射速率（个/秒）；0=只发 burst');
+  bool('一次性爆发', 'burst', false, '开=每循环起点一次性爆发（寿命结束后不再补）；关=按速率连续补给');
+  num('寿命', 'life', 0.1, 0.1, 10, 1.5, '每个粒子存活秒数（淡出时长跟随）');
+  num('速度', 'speed', 1, 0, 500, 30, '粒子速度（像素/秒）');
+  num('方向', 'dir', 5, 0, 360, 90, '发射方向（度）：0=右，90=下，180=左，270=上（与滚动角度同语义）');
+  num('扩散', 'spread', 5, 0, 360, 0, '方向扩散锥（度，0=直线；360=全向喷发）');
+  num('重力', 'gravity', 1, 0, 500, 0, '垂直向下加速度（像素/秒²，坠落感）');
+  num('风', 'wind', 1, 0, 300, 0, '水平加速度（像素/秒²，漂移/斜雨）');
+  num('初始自旋', 'spin', 5, 0, 360, 0, '出生时自旋角度（度）');
+  num('自旋速度', 'spinSpeed', 5, 0, 720, 0, '自旋角速度（度/秒，雪花打转）');
+  num('尺寸抖动', 'sizeVar', 0.05, 0, 1, 0.3, '每粒尺寸随机抖动比例（0~1，0=同尺寸）');
+  num('初始透明度', 'alpha', 0.05, 0, 1, 1, '粒子出生透明度（1=不透明）');
+  bool('淡出', 'fade', true, '开=寿命末端透明度渐隐到 0（默认）；关=全程恒透明度');
+  const seedRow = document.createElement('div');
+  seedRow.className = 'cf-row';
+  const sl = document.createElement('label');
+  sl.textContent = '随机种子';
+  sl.title = '确定性随机种子（留空=按元素名自动）；同种子同时间渲染结果完全一致';
+  seedRow.appendChild(sl);
+  const sInp = document.createElement('input'); sInp.type = 'number'; sInp.step = 1; sInp.style.width = '52px';
+  sInp.value = P.seed != null ? P.seed : '';
+  sInp.addEventListener('change', () => {
+    pushHistory();
+    const v = parseFloat(sInp.value);
+    if (isNaN(v)) { delete P.seed; sInp.value = ''; }
+    else { P.seed = Math.max(0, Math.round(v)); sInp.value = P.seed; }
+    refreshStage();
+  });
+  seedRow.appendChild(sInp);
+  box.appendChild(seedRow);
+}
+function dupAsParticle(srcEl, srcKey) {
+  // 「复制为粒子」：以现有元素（程序元素/带 parts 的素材）的图元为实体，生成新的粒子系统元素
+  const cfg = window.HOME_SCENE; if (!cfg) return;
+  const parts = (srcEl.parts || []).map(p => JSON.parse(JSON.stringify(p)));
+  if (!parts.length) return;
+  pushHistory();
+  const base = srcKey || srcEl.name || '元素';
+  let k = base + '粒子';
+  let n = 2;
+  while (cfg[k]) k = base + '粒子' + (n++);
+  cfg[k] = {
+    z: (srcEl.z != null ? srcEl.z : 50) + 1,
+    parts: parts,
+    particle: { count: 40, rate: 40, life: 1.5, speed: 30, dir: 90, spread: 0, gravity: 0, wind: 0, spin: 0, spinSpeed: 0, sizeVar: 0.3, alpha: 1, fade: true },
+  };
+  buildLayerList(cfg);
+  refreshStage();
 }
 function layerOrderOf(cfg) {
   const progKeys = Object.keys(cfg).filter(k => PROG_SKIP.indexOf(k) < 0 && cfg[k] && typeof cfg[k] === 'object' && !Array.isArray(cfg[k]));
@@ -3111,6 +3204,7 @@ function buildLayerList(cfg) {
       body.className = 'layer-body';
       if (item.kind === 'img') imgForm(el, body, cardKey); // 素材卡片：中文说明表单（滚动/动画/多帧）
       else walkForm(el, '', body, cardKey);                // 程序元素：通用参数表单
+      if (el.particle) particleForm(el, body, cardKey);    // 粒子系统：运动参数专表（实体=自身 parts）
       if (partsOpenEl === el) partsEditor(el, body, cardKey); // [编辑]：图元 parts 子面板
       if (item.kind === 'img') {
         const ops = document.createElement('div');
@@ -3118,6 +3212,20 @@ function buildLayerList(cfg) {
         const bp = document.createElement('button'); bp.className = 'small'; bp.textContent = '复制';
         bp.addEventListener('click', () => { dupElement(el); });
         ops.appendChild(bp);
+        if (el.parts && el.parts.length) {
+          const pp = document.createElement('button'); pp.className = 'small'; pp.textContent = '复制为粒子';
+          pp.title = '以本素材的图元为实体，生成粒子系统元素（发射区默认全画布，可改 x/y/w/h）';
+          pp.addEventListener('click', () => { dupAsParticle(el, el.name); });
+          ops.appendChild(pp);
+        }
+        body.appendChild(ops);
+      } else if (el.parts && el.parts.length) {
+        const ops = document.createElement('div');
+        ops.className = 'cf-row';
+        const pp = document.createElement('button'); pp.className = 'small'; pp.textContent = '复制为粒子';
+        pp.title = '以本元素图元为实体，生成粒子系统元素（发射区默认全画布，可改 x/y/w/h）';
+        pp.addEventListener('click', () => { dupAsParticle(el, item.key); });
+        ops.appendChild(pp);
         body.appendChild(ops);
       }
       card.appendChild(body);

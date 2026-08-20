@@ -221,6 +221,10 @@ let CFG = (typeof window !== 'undefined' && window.HOME_SCENE) || DEFAULT_HOME_S
 function syncCfg() {
   if (typeof window !== 'undefined' && window.HOME_SCENE) CFG = window.HOME_SCENE;
 }
+// 内置键（结构性 + 硬编码元素名）：其余顶层对象视为「通用程序元素」（有 parts → 图元渲染；
+// 有 particle → 粒子系统渲染）——工具/Agent 生成的新元素无需改渲染器即可生效
+const SCENE_KEYS = ['w', 'h', 'loop', 'bg', 'scenes', 'sceneBorders', 'images', 'fx',
+  'stars', 'moon', 'clouds', 'mountains', 'farForest', 'poles', 'rail', 'train', 'foreground', 'fog', 'signal', 'bridge'];
 
 const HomeScene = (() => {
   let W = CFG.w, H = CFG.h, LOOP = CFG.loop;
@@ -554,6 +558,70 @@ const HomeScene = (() => {
     if (style === 'wipe') { rect(0, 0, Math.max(1, W * p), H, 'rgba(3,6,15,' + (1 - p) + ')'); return; }
   }
 
+  // —— 粒子系统（程序元素变体）：cfg.<名> = { z, show, x,y,w,h, parts, particle:{...} } ——
+  // 实体 = 元素自身 parts（每粒按粒子参数运动绘制；part 级 anim 仍生效）；x/y/w/h = 发射区（缺省 = 全画布 → 全局雨/雪）。
+  // 确定性：每粒用 rnd(i, salt)（种子随机：显式 seed 优先，否则按元素 key 哈希）→ 同 t 渲染稳定（可像素回归），
+  // 不同元素互不串模式。参数：count 同时粒子数 / rate 连续补给(个/秒) / burst 一次性爆发（每 loop 起点触发一次）/
+  // life 寿命(秒) / speed dir(度,0=右 90=下 180=左 270=上) spread(扩散锥) gravity wind(水平加速度) /
+  // spin(初始自旋度) spinSpeed(度/秒) sizeVar(尺寸抖动) alpha(初始透明度) fade(淡出)
+  function drawParticles(e, t, key) {
+    const p = e.particle || {};
+    const count = Math.max(0, Math.min(600, p.count != null ? p.count : 40));
+    if (!count || !e.parts || !e.parts.length) return;
+    const loop = LOOPv();
+    const t0 = ((t % loop) + loop) % loop;
+    const rate = p.rate != null ? p.rate : 40;
+    const life = p.life != null ? p.life : 1.5;
+    const burst = !!p.burst;
+    const rx = val(e, 'x', t) != null ? val(e, 'x', t) : 0, ry = val(e, 'y', t) != null ? val(e, 'y', t) : 0; // 发射区（缺省 → 全画布）
+    const rw = val(e, 'w', t) != null ? val(e, 'w', t) : W, rh = val(e, 'h', t) != null ? val(e, 'h', t) : H;
+    let seed = p.seed != null ? p.seed : 1;
+    if (p.seed == null && key) { let h = 0; for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0; seed = h || 1; }
+    const rnd = (i, salt) => { const s = Math.sin(i * 127.1 + seed * 311.7 + salt * 74.7) * 43758.5453; return s - Math.floor(s); };
+    const dirRad = (p.dir != null ? p.dir : 90) * Math.PI / 180;
+    const spreadRad = (p.spread != null ? p.spread : 0) * Math.PI / 180;
+    const speed = p.speed != null ? p.speed : 30;
+    const gravity = p.gravity != null ? p.gravity : 0;
+    const wind = p.wind != null ? p.wind : 0;
+    const spin = p.spin != null ? p.spin : 0;
+    const spinSpeed = p.spinSpeed != null ? p.spinSpeed : 0;
+    const sizeVar = p.sizeVar != null ? p.sizeVar : 0;
+    const alpha0 = p.alpha != null ? p.alpha : 1;
+    const fade = p.fade !== false;
+    const lb = partsLocalBox(e) || { x: 0, y: 0, w: 1, h: 1 };
+    const cx0 = lb.x + lb.w / 2, cy0 = lb.y + lb.h / 2; // 实体局部中心（单粒以 (px,py) 为中心）
+    const period = burst ? 0 : Math.max(0.01, Math.max(life, count / Math.max(0.01, rate)));
+    for (let i = 0; i < count; i++) {
+      let age;
+      if (burst) {
+        const birth = Math.floor(t / loop) * loop; // 每 loop 起点爆发一次
+        age = t - birth;
+        if (age > life) continue;
+      } else {
+        const phase = (i / count) * period; // 错峰出生：稳态同时粒子数 ≈ count
+        age = (t0 - phase + period) % period;
+        if (age > life) continue; // 已消亡（等下一周期重生）
+      }
+      const sx = rx + rnd(i, 1) * rw;
+      const sy = ry + rnd(i, 2) * rh;
+      const ang = dirRad + (rnd(i, 3) - 0.5) * spreadRad;
+      const vx = Math.cos(ang) * speed, vy = Math.sin(ang) * speed;
+      const px = sx + vx * age + wind * age * age * 0.5;
+      const py = sy + vy * age + gravity * age * age * 0.5;
+      const size = 1 + (rnd(i, 5) - 0.5) * sizeVar;
+      const a = alpha0 * (fade ? Math.max(0, 1 - age / life) : 1);
+      const rot = spin + spinSpeed * age;
+      // 单粒 = 元素 parts 克隆（禁用元素级 anim/scroll/pixelDiv/alphaMode，rot 用作自旋；part 级 anim 保留）
+      const pe = {
+        x: Math.round(px - cx0 * size), y: Math.round(py - cy0 * size),
+        w: Math.max(1, Math.round(lb.w * size)), h: Math.max(1, Math.round(lb.h * size)),
+        parts: e.parts, alpha: a, anim: null, scroll: null, rot: rot,
+      };
+      drawParts(pe, t);
+    }
+    ctx.globalAlpha = 1;
+  }
+
   function draw(t) {
     syncCfg(); // 每帧同步外部注入的配置（工具实时调参生效的关键）
     const local = t % LOOPv();
@@ -583,6 +651,20 @@ const HomeScene = (() => {
       ...(CFG.images || []).filter(e => !e.hidden).map(e => ({
         z: e.z != null ? e.z : 99,
         fn: () => { drawOneImage(e, t); if (e.parts && e.parts.length && elShown(e, t)) drawParts(e, t); }, // 图片 + 图元叠加
+      })),
+      // 通用程序元素层：非内置键的顶层对象（有 particle → 粒子系统；否则有 parts → 图元）。
+      // 工具/Agent 生成的新元素无需硬编码即渲染（粒子/图元实体均可，z 缺省 50）
+      ...(Object.keys(CFG).filter(k => SCENE_KEYS.indexOf(k) < 0 && CFG[k] && typeof CFG[k] === 'object' && !Array.isArray(CFG[k])).map(k => {
+        const el = CFG[k];
+        return {
+          z: el.z != null ? el.z : 50,
+          hidden: el.hidden,
+          fn: () => {
+            if (!elShown(el, t)) return;
+            if (el.particle && el.parts && el.parts.length) drawParticles(el, t, k);
+            else if (el.parts && el.parts.length) drawParts(el, t);
+          },
+        };
       })),
     ].filter(Boolean).filter(l => !l.hidden);
     layers.sort((a, b) => a.z - b.z).forEach(l => l.fn());
