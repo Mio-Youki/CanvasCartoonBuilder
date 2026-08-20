@@ -2,6 +2,16 @@
 
 > 独立于游戏本体的 CHANGELOG。工具版本独立演进，与游戏版本号无关。
 
+## v2.7 —— 后处理 FX（CRT/故障/暗角/噪点 + NES/GB 色板 + 色相偏移 + 场景过渡）
+- **全局滤镜配置 `CFG.fx`**：默认无字段 = 全关零开销；每项支持常量 / 按场景数组 / 场景内窗口数组 `[[f0,f1],…]`（与 show 同形态，复用 `val()`/`sceneBounds` 窗口判定）
+- **A 档叠加层（预生成纹理，逐帧 drawImage）**：`crt`（半透明黑横线）/ `vignette`（径向暗角）/ `noise`（噪点逐帧平移，低 alpha）——纹理在 resize/palette/hue 变化时重建缓存；`glitch`（确定性随机水平位移条，随时间种子变化）
+- **B 档像素滤镜（¼ 降采样 + 缓存）**：`palette` **NES 16 色常用子集 / GB 4 色**（65536 项 LUT 查表，构建一次缓存）；`hue` 色相偏移（3×3 线性矩阵，无逐像素三角函数）——先缩 ¼ 再滤镜再放大（像素风抗模糊，代价减半）
+- **场景过渡 `transition`**：升级原硬编码暗场——`fade`（暗场闪切，默认=现状视觉不变）/ `scan`（扫描线）/ `wipe`（擦除）+ `transitionDur`（0.05~1s 可配）
+- **时间轴 FX 轨（#tl-fx）**：时间轴下方新增滤镜时段色块行（crt/glitch/vignette/noise/palette/hue 各一行按场景着色），播放头同步；图层栏顶部新增「滤镜 FX」折叠面板（开关 + 色板下拉 + 色相输入 + 过渡下拉/时长）
+- **渲染归属**：fx 只在 home-scene 渲染（工具预览经 sceneParamsMode 注入 HOME_SCENE 自动生效，游戏兼容）；装配模式不渲染 fx
+- **像素级验证**：8 项 PASS——NES 红 (252,60,48) / GB 转绿 (139,172,15) / 色相 120° 红转绿 / CRT 黑线 / 暗角中心亮于角 / fade 暗场 / scan 上暗下亮 / glitch 无异常；**默认配置（无 fx）新旧渲染 DIFF=0**
+- 渲染端同步：`public/home-scene.js` → `tools/home-scene.js`（vendored）一致
+
 ## v2.6 补四 —— scroll 语义统一（angle 完整方向）+ 窗口起点相位归零 + [重复] 开关
 - **① 方向语义统一（修复斜角平铺 y 轴对称）**：home-scene `scrollOffsets` 移除 `dir` 对 x 的符号修正，改为与工具端完全一致的 `{x: off×cos(angle), y: off×sin(angle)}`——`angle` 完整定义方向（0=右，90=下，180=左，270=上），**本体位移与副本排列沿同一方向连成线**（此前默认 dir=-1 使本体向左、副本向右 → 斜角时恰好 y 轴对称；90° 倍数因 cos=0 不受影响）。旧 `dir` 字段仅兼容：无 angle 时 left→180°/right→0°
 - **② 斜线滚动两端同步**：`drawPartsRaw` line 分支终点 y 用 `y0`（元素原点）→ 改 `Y + pa.yOff`（含滚动/动画位移）——斜线滚动不再被拉伸变形（工具端本就正确，两端对齐）

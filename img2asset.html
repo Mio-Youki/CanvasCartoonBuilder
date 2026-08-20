@@ -218,6 +218,7 @@
     </div>
     <div id="scene-bar" class="scene-bar"></div>
     <canvas id="tl" class="timeline" width="320" height="20"></canvas>
+    <canvas id="tl-fx" class="timeline" width="320" height="18" style="display:none"></canvas>
     <div class="meta" id="m-stage"></div>
     <div class="hint">
       画布<b>拖拽</b>移动、<b>拖右下角黄手柄</b>缩放、<b>点击</b>选中（图层栏自动定位展开）；时间轴点击/拖动跳转。
@@ -2631,11 +2632,219 @@ function renderBgRow(cfg, box) {
   card.appendChild(head);
   box.appendChild(card);
 }
+/* 后处理 FX 面板（图层栏顶部，全局滤镜）：值存 cfg.fx（按场景数组 / 常量 / 场景内窗口数组）。
+   开关项：CRT / 故障 / 暗角 / 噪点；选择：色板 none|nes|gb；数值：色相 hue；过渡 transition + transitionDur */
+function renderFxPanel(cfg, box) {
+  if (!(state.sceneParamsMode && window.HOME_SCENE)) return; // 装配模式不渲染 fx（无 scene 归属）
+  const sc = sceneNames();
+  const curS = tlCurScene;
+  const fx = (cfg.fx = cfg.fx || {});
+  const card = document.createElement('div');
+  card.className = 'layer-card bg-card';
+  const head = document.createElement('div');
+  head.className = 'layer-head';
+  const nm = document.createElement('span');
+  nm.className = 'layer-name';
+  nm.textContent = '滤镜 FX' + (curS >= 0 ? '（' + (sc[curS] || curS) + '）' : '');
+  const fold = document.createElement('button');
+  fold.className = 'hb';
+  fold.textContent = fx._open ? '▾' : '▸';
+  fold.title = '展开/收起 FX 参数';
+  fold.addEventListener('click', () => { fx._open = !fx._open; buildLayerList(cfg); });
+  head.appendChild(fold);
+  head.appendChild(nm);
+  card.appendChild(head);
+  if (fx._open) {
+    // 场景内窗口辅助：每个开关若为窗口数组 [[f0,f1],…] 显示简注
+    const isWin = v => Array.isArray(v) && v.length && typeof v[0] === 'object' && v[0] !== null && Array.isArray(v[0]);
+    const row = (label, key, hint) => {
+      const r = document.createElement('div');
+      r.className = 'cf-row';
+      const l = document.createElement('label');
+      l.textContent = label;
+      if (hint) l.title = hint;
+      r.appendChild(l);
+      const inp = document.createElement('input');
+      inp.type = 'checkbox';
+      inp.checked = !isWin(fx[key]) ? !!fx[key] : fxOnTool(key);
+      inp.addEventListener('change', () => {
+        pushHistory();
+        // 当前场景值取反；非窗口数组时写按场景数组（保持 [s] 语义）
+        const cur = fx[key];
+        if (isWin(cur)) { fx[key] = cur.map(w => w); }
+        else {
+          const arr = sc.length ? sc.map((_, i) => (i === Math.max(0, curS)) ? inp.checked : (Array.isArray(cur) ? cur[Math.min(i, cur.length - 1)] : !!cur)) : inp.checked;
+          fx[key] = sc.length ? arr : inp.checked;
+        }
+        refreshStage(); buildLayerList(cfg);
+      });
+      r.appendChild(inp);
+      card.appendChild(r);
+      return r;
+    };
+    row('CRT 扫描线', 'crt', '叠加半透明黑横线纹理（预生成，逐帧 drawImage）');
+    row('故障 glitch', 'glitch', '随机水平位移条（确定性随机，随时间变化）');
+    row('暗角 vignette', 'vignette', '径向压暗边缘（预生成纹理）');
+    row('噪点 noise', 'noise', '预生成噪点纹理逐帧平移（低 alpha）');
+    const palRow = document.createElement('div');
+    palRow.className = 'cf-row';
+    const pl = document.createElement('label');
+    pl.textContent = '色板';
+    pl.title = '整帧色板映射（LUT 查表，¼ 降采样）：无 / NES 16 色 / GB 4 色';
+    palRow.appendChild(pl);
+    const sel = document.createElement('select');
+    [['none', '无'], ['nes', 'NES 16色'], ['gb', 'GB 4色']].forEach(([v, t]) => {
+      const o = document.createElement('option');
+      o.value = v;
+      o.textContent = t;
+      o.selected = fxValTool('palette') === v;
+    });
+    sel.addEventListener('change', () => {
+      pushHistory();
+      const v = sel.value;
+      fx.palette = sc.length ? sc.map((_, i) => (i === Math.max(0, curS)) ? v : (Array.isArray(fx.palette) ? fx.palette[Math.min(i, fx.palette.length - 1)] : (fx.palette || 'none'))) : v;
+      refreshStage(); buildLayerList(cfg);
+    });
+    palRow.appendChild(sel);
+    card.appendChild(palRow);
+    const hueRow = document.createElement('div');
+    hueRow.className = 'cf-row';
+    const hl = document.createElement('label');
+    hl.textContent = '色相°';
+    hl.title = '色相偏移（度，3×3 矩阵线性变换）';
+    hueRow.appendChild(hl);
+    const hueIn = document.createElement('input');
+    hueIn.type = 'number';
+    hueIn.style.width = '52px';
+    hueIn.value = fxValTool('hue') || 0;
+    hueIn.addEventListener('change', () => {
+      pushHistory();
+      const v = parseFloat(hueIn.value) || 0;
+      fx.hue = sc.length ? sc.map((_, i) => (i === Math.max(0, curS)) ? v : (Array.isArray(fx.hue) ? fx.hue[Math.min(i, fx.hue.length - 1)] : (fx.hue || 0))) : v;
+      refreshStage(); buildLayerList(cfg);
+    });
+    hueRow.appendChild(hueIn);
+    card.appendChild(hueRow);
+    const trRow = document.createElement('div');
+    trRow.className = 'cf-row';
+    const tl2 = document.createElement('label');
+    tl2.textContent = '过渡';
+    tl2.title = '场景进入过渡：fade（暗场闪切，默认）/ scan（扫描）/ wipe（擦除）；时长秒可配';
+    trRow.appendChild(tl2);
+    const trSel = document.createElement('select');
+    [['fade', 'fade 暗场'], ['scan', 'scan 扫描'], ['wipe', 'wipe 擦除']].forEach(([v, t]) => {
+      const o = document.createElement('option');
+      o.value = v;
+      o.textContent = t;
+      o.selected = fxValTool('transition') === v;
+    });
+    trSel.addEventListener('change', () => {
+      pushHistory();
+      const v = trSel.value;
+      fx.transition = sc.length ? sc.map((_, i) => (i === Math.max(0, curS)) ? v : (Array.isArray(fx.transition) ? fx.transition[Math.min(i, fx.transition.length - 1)] : (fx.transition || 'fade'))) : v;
+      refreshStage(); buildLayerList(cfg);
+    });
+    trRow.appendChild(trSel);
+    const trDur = document.createElement('input');
+    trDur.type = 'number';
+    trDur.step = 0.05;
+    trDur.min = 0.05;
+    trDur.max = 1;
+    trDur.style.width = '46px';
+    trDur.value = fx.transitionDur != null ? fx.transitionDur : 0.25;
+    trDur.title = '过渡时长（秒）';
+    trDur.addEventListener('change', () => {
+      pushHistory();
+      fx.transitionDur = Math.max(0.05, Math.min(1, parseFloat(trDur.value) || 0.25));
+      refreshStage();
+    });
+    trRow.appendChild(trDur);
+    card.appendChild(trRow);
+  }
+  box.appendChild(card);
+}
+// 工具端读取 fx 值（按场景 / 窗口数组取当前值），与 home-scene fxVal 同语义
+function fxValTool(k) {
+  const cfg = window.HOME_SCENE;
+  if (!cfg || !cfg.fx) return undefined;
+  const v = cfg.fx[k];
+  if (v == null) return undefined;
+  const p = Math.max(0, tlCurScene < 0 ? 0 : tlCurScene);
+  const arr = Array.isArray(v) ? v[Math.min(p, v.length - 1)] : v;
+  if (Array.isArray(arr) && arr.length && typeof arr[0] === 'object' && arr[0] !== null && Array.isArray(arr[0])) return undefined;
+  return arr;
+}
+function fxOnTool(k) {
+  const cfg = window.HOME_SCENE;
+  if (!cfg || !cfg.fx) return false;
+  const v = cfg.fx[k];
+  if (v == null) return false;
+  const p = Math.max(0, tlCurScene < 0 ? 0 : tlCurScene);
+  const arr = Array.isArray(v) ? v[Math.min(p, v.length - 1)] : v;
+  if (Array.isArray(arr) && arr.length && typeof arr[0] === 'object' && arr[0] !== null && Array.isArray(arr[0])) {
+    // 场景内窗口数组：当前播放头是否落在窗口
+    const [s0, s1] = tlSceneRange(p);
+    const lt = ((state.t % tlLoop()) + tlLoop()) % tlLoop() - s0;
+    const dur = s1 - s0;
+    return arr.some(seg => lt >= seg[0] * dur && lt < seg[1] * dur);
+  }
+  return !!arr;
+}
+/* FX 时间轴轨：绘制 cfg.fx 各开关的按场景色块（#tl-fx canvas，场景参数模式显示） */
+function renderFxTrack() {
+  const cv = $('tl-fx');
+  if (!cv || !cv.getContext) return;
+  const cfg = window.HOME_SCENE;
+  const show = state.sceneParamsMode && cfg && cfg.fx && (cfg.fx.crt || cfg.fx.glitch || cfg.fx.vignette || cfg.fx.noise || cfg.fx.palette || cfg.fx.hue);
+  cv.style.display = show ? '' : 'none';
+  if (!show) return;
+  const scale = Math.max(2, window.devicePixelRatio || 1);
+  const Wcss = cv.clientWidth || 320;
+  const Hcss = 18;
+  const W = Math.max(2, Math.round(Wcss * scale));
+  const H = Math.max(2, Math.round(Hcss * scale));
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.clearRect(0, 0, Wcss, Hcss);
+  const loop = tlLoop();
+  const sc = sceneNames();
+  const fxKeys = [['crt', '#e5484d'], ['glitch', '#9b59d0'], ['vignette', '#3d9bf2'], ['noise', '#00b8a0'], ['palette', '#e6a23c'], ['hue', '#2fbf6a']];
+  const n = Math.max(1, (cfg.scenes && cfg.scenes.length) || 1);
+  const borders = currentBorders(cfg);
+  const segStart = i => borders ? (i === 0 ? 0 : borders[i - 1]) : i * loop / n;
+  const segEnd = i => borders ? (i === borders.length ? loop : borders[i]) : (i + 1) * loop / n;
+  let row = 0;
+  fxKeys.forEach(([k, col]) => {
+    const raw = cfg.fx[k];
+    if (raw == null || (k !== 'palette' && k !== 'hue' && raw === false)) return;
+    const y = row * 6;
+    const isOn = i => {
+      const v = Array.isArray(raw) ? raw[Math.min(i, raw.length - 1)] : raw;
+      if (Array.isArray(v) && v.length && typeof v[0] === 'object' && v[0] !== null && Array.isArray(v[0])) return true; // 窗口数组：整段亮
+      return k === 'palette' ? (v && v !== 'none') : k === 'hue' ? (v && v !== 0) : !!v;
+    };
+    for (let i = 0; i < n; i++) {
+      if (!isOn(i)) continue;
+      const a = segStart(i), b = segEnd(i);
+      ctx.fillStyle = col;
+      ctx.globalAlpha = 0.55;
+      ctx.fillRect(Math.round((a / loop) * Wcss), y, Math.max(2, Math.round(((b - a) / loop) * Wcss)), 4);
+      ctx.globalAlpha = 1;
+    }
+    if (sc[0]) { ctx.fillStyle = '#8a93a8'; ctx.font = '7px monospace'; ctx.fillText(k, 2, y + 4); }
+    row++;
+  });
+  const px = Math.round(((state.t % loop) / loop) * Wcss);
+  ctx.fillStyle = '#e5484d';
+  ctx.fillRect(px, 0, 1, Hcss);
+}
 function buildLayerList(cfg) {
   const box = $('cfgform');
   box.innerHTML = '';
   tlCurScene = tlScene(); // 图层栏跟随时间轴：显示当前场景值
   renderBgRow(cfg, box);  // 顶部「背景」行（跟随当前场景，[s] 控制全局/单场景）
+  renderFxPanel(cfg, box); // 后处理 FX 行（全局滤镜：CRT/故障/暗角/噪点/色板/色相/过渡）
   const order = layerOrderOf(cfg);
   const imgs = cfg.images || [];
   for (const item of order) {
@@ -3482,6 +3691,7 @@ function renderTimeline() {
   ctx.textAlign = 'right';
   ctx.textBaseline = 'bottom';
   ctx.fillText(Math.round(state.t) + 's', Wcss - 2, Hcss - 1);
+  renderFxTrack(); // FX 时间轴轨（#tl-fx，滤镜时段色块）
 }
 function tlSeek(ev) {
   const r = $('tl').getBoundingClientRect();

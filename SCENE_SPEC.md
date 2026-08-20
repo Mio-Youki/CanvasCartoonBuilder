@@ -143,6 +143,13 @@ anim: { bob: { amp: 1, period: 1/6 }, blink: { period: 2333, duty: 6/7, phase: 1
 - `repeat: false` → **不生成副本**（单本体沿 angle 往返，span = 往返距离）；默认/无该字段 = 开；
 - **相位窗口归零**：`off = wrap((t - t0) × speed, span)`，t0 = 元素**当前 show 窗口起点**——元素在**每个显示窗口的最初以配置坐标 (x,y) 出现**（相位=0），随后沿 angle 运动；无 show 元素 t0=0（从全局 t=0 起算，行为不变）。
 
+**后处理 FX（v2.7，全局 `CFG.fx`，默认无字段 = 全关零开销）**：
+- 每项支持常量 / 按场景数组 `[v0,v1,…]` / 场景内窗口数组 `[[f0,f1],…]`（f 为场景内 0~1 比例，与 show 同形态）；
+- **A 档叠加层**：`crt`（CRT 扫描线黑横线）、`vignette`（径向暗角）、`noise`（噪点逐帧平移）——纹理预生成缓存；`glitch`（确定性随机水平位移条）；
+- **B 档像素滤镜**：`palette: 'nes'|'gb'`（NES 16 色常用子集 / GB 4 色，LUT 查表，¼ 降采样后放大）、`hue`（色相偏移度，3×3 线性矩阵）；
+- **场景过渡**：`transition: 'fade'|'scan'|'wipe'`（fade = 暗场闪切，默认） + `transitionDur`（秒，默认 0.25，范围 0.05~1）——替换原硬编码"每场景段开头 0.25s 暗场"；
+- 渲染顺序：场景层 → B 像素滤镜 → A 叠加层 → 过渡覆盖；装配模式不渲染 fx。
+
 **典型组合（示例）**：
 - **两态颜色切换**（如信号灯绿/红）：两个重叠 part + 互补 blink（`green: {period:4000, duty:3/4, phase:1/4, on:1, off:0}` + `red: {period:4000, duty:1/4, phase:0, on:1, off:0}`）
 - **周期点亮**（如列车车窗灯 6/7 亮）：静态暗 part + 亮 part blink（`{period:2333, duty:6/7, phase:1/7, on:1, off:0}`，on 时完全覆盖）
