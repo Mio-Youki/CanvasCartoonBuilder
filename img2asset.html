@@ -2657,24 +2657,32 @@ function particleForm(el, box, cardKey) {
     });
     add(label, inp, hint);
   };
-  const bool = (label, key, def, hint) => {
+  const bool = (label, key, def, hint, after) => {
     const b = document.createElement('input'); b.type = 'checkbox';
     b.checked = P[key] !== undefined ? !!P[key] : def;
     b.title = hint;
-    b.addEventListener('change', () => { pushHistory(); P[key] = b.checked; refreshStage(); });
+    b.addEventListener('change', () => { pushHistory(); P[key] = b.checked; refreshStage(); if (after) after(b.checked); });
     add(label, b, hint);
   };
   const tip = document.createElement('div');
   tip.className = 'cf-ro';
   tip.textContent = '粒子：实体=本元素 parts；运动确定性（种子随机）；pixelDiv/颜色抖动走精灵缓存（开销≈0）';
   box.appendChild(tip);
-  // —— 预设（粒子数之上）——
+  // —— 预设（粒子数之上）：默认仅载入运动方式；[同时载入元素] 勾选才覆盖实体 parts ——
   const presets = PARTICLE_PRESETS.concat(window.PARTICLE_PRESETS || []);
   const prRow = document.createElement('div');
   prRow.className = 'cf-row';
+  const prCheck = document.createElement('input');
+  prCheck.type = 'checkbox';
+  prCheck.title = '同时载入元素：勾选 = 用预设实体覆盖当前 parts；不勾 = 仅载入运动方式（实体保持不变）';
+  prRow.appendChild(prCheck);
+  const prCheckL = document.createElement('label');
+  prCheckL.textContent = '同时载入元素';
+  prCheckL.title = prCheck.title;
+  prRow.appendChild(prCheckL);
   const prl = document.createElement('label');
   prl.textContent = '预设';
-  prl.title = '选择后一次性填入实体 parts 与下方参数（之后可继续微调）；内置雨/雪/火星/光尘 + window.PARTICLE_PRESETS 扩展';
+  prl.title = '选择后填入运动参数（勾选[同时载入元素]则同时覆盖实体）；之后可继续微调；内置雨/雪/火星/光尘 + window.PARTICLE_PRESETS 扩展';
   prRow.appendChild(prl);
   const prSel = document.createElement('select');
   prSel.appendChild(new Option('（自定）', ''));
@@ -2684,12 +2692,20 @@ function particleForm(el, box, cardKey) {
     if (isNaN(i)) return;
     const pr = presets[i]; if (!pr) return;
     pushHistory();
-    el.parts = JSON.parse(JSON.stringify(pr.parts));
-    el.particle = JSON.parse(JSON.stringify(pr.particle));
-    delete el.x; delete el.y; delete el.w; delete el.h; // 预设默认全画布发射区（可再框选/填值局部化）
+    el.particle = JSON.parse(JSON.stringify(pr.particle)); // 运动方式（始终载入）
+    if (prCheck.checked) el.parts = JSON.parse(JSON.stringify(pr.parts)); // 实体（可选覆盖）
+    // 发射区 x/y/w/h 不动（三层解耦：运动 / 实体 / 发射区）
     prSel.value = '';
+    prCheck.checked = false;
     buildLayerList(layerCfg());
     refreshStage();
+    // burst 应用后立即可见：播放头跳到当前 [S] 窗口段起点（无 [S] → 循环起点）
+    if (el.particle.burst) {
+      const loop = tlLoop();
+      state.t = Math.floor(state.t / loop) * loop + showWindowStart(el);
+      if (window.HomeScene && HomeScene.seek) HomeScene.seek(state.t);
+      renderStage(); renderTimeline();
+    }
   });
   prRow.appendChild(prSel);
   box.appendChild(prRow);
@@ -2745,7 +2761,15 @@ function particleForm(el, box, cardKey) {
   box.appendChild(pdRow);
   num('粒子数', 'count', 1, 1, 600, 40, '同时存在的粒子数上限（性能上限 600）');
   num('补给速率', 'rate', 1, 0, 200, 40, '连续发射速率（个/秒）；0=只发 burst');
-  bool('一次性爆发', 'burst', false, '开=在每个 [S] 显示窗口段起点一次性爆发（多段窗口 → 多次；无 [S] 时每循环起点）；关=按速率连续补给');
+  bool('一次性爆发', 'burst', false, '开=在每个 [S] 显示窗口段起点一次性爆发（多段窗口 → 多次；无 [S] 时每循环起点）；关=按速率连续补给', on => {
+    // burst 开关打开时跳到当前窗口起点，立即看到爆发（渲染语义不变）
+    if (on) {
+      const loop = tlLoop();
+      state.t = Math.floor(state.t / loop) * loop + showWindowStart(el);
+      if (window.HomeScene && HomeScene.seek) HomeScene.seek(state.t);
+      renderStage(); renderTimeline();
+    }
+  });
   num('寿命', 'life', 0.1, 0.1, 10, 1.5, '每个粒子存活秒数（淡出时长跟随）');
   num('速度', 'speed', 1, 0, 500, 30, '粒子速度（像素/秒）');
   num('方向', 'dir', 5, 0, 360, 90, '发射方向（度）：0=右，90=下，180=左，270=上（与滚动角度同语义）');
@@ -2755,7 +2779,35 @@ function particleForm(el, box, cardKey) {
   num('初始自旋', 'spin', 5, 0, 360, 0, '出生时自旋角度（度）');
   num('自旋速度', 'spinSpeed', 5, 0, 720, 0, '自旋角速度（度/秒，雪花打转）');
   num('尺寸抖动', 'sizeVar', 0.05, 0, 1, 0.3, '每粒尺寸全幅随机：[1-a, 1+a] 均匀抖动（0=同尺寸）');
-  num('颜色抖动', 'colorJitter', 0.05, 0, 1, 0, '每粒颜色确定性抖动（0~1）：色相 ±cJ×40°、亮度 ±cJ×30、饱和度 ±cJ×0.3、对比度 ±cJ×0.2（8 档量化，精灵缓存实现）');
+  // 颜色抖动：维度下拉（其一）+ 幅度（0~1）；只抖动所选维度（8 档分桶，精灵缓存实现）
+  const cjRow = document.createElement('div');
+  cjRow.className = 'cf-row';
+  const cjl = document.createElement('label');
+  cjl.textContent = '颜色抖动';
+  cjl.title = '每粒颜色确定性抖动：下拉选维度（色相/亮度/饱和度/对比度其一），幅度 0~1 按该维最大档（色相±40°、亮度±30、饱和度±0.3、对比度±0.2）';
+  cjRow.appendChild(cjl);
+  const cjDimSel = document.createElement('select');
+  [['hue', '色相'], ['brightness', '亮度'], ['saturation', '饱和度'], ['contrast', '对比度']].forEach(([v, t]) => {
+    const o = document.createElement('option');
+    o.value = v; o.textContent = t;
+    o.selected = (P.colorJitterDim || 'hue') === v;
+    cjDimSel.appendChild(o);
+  });
+  cjDimSel.addEventListener('change', () => { pushHistory(); P.colorJitterDim = cjDimSel.value; refreshStage(); });
+  cjRow.appendChild(cjDimSel);
+  const cjInp = document.createElement('input'); cjInp.type = 'number'; cjInp.step = 0.05; cjInp.min = 0; cjInp.max = 1; cjInp.style.width = '44px';
+  cjInp.value = P.colorJitter != null ? P.colorJitter : 0;
+  cjInp.addEventListener('change', () => {
+    pushHistory();
+    const v = parseFloat(cjInp.value);
+    if (isNaN(v)) return;
+    const cl = Math.min(1, Math.max(0, v));
+    cjInp.value = cl;
+    P.colorJitter = cl;
+    refreshStage();
+  });
+  cjRow.appendChild(cjInp);
+  box.appendChild(cjRow);
   num('初始透明度', 'alpha', 0.05, 0, 1, 1, '粒子出生透明度（1=不透明）');
   bool('淡出', 'fade', true, '开=寿命末端透明度渐隐到 0（默认）；关=全程恒透明度');
   const seedRow = document.createElement('div');
@@ -2775,6 +2827,24 @@ function particleForm(el, box, cardKey) {
   });
   seedRow.appendChild(sInp);
   box.appendChild(seedRow);
+}
+/* 当前 [S] 显示窗口段起点（秒，本循环内）：与渲染端 scrollWindowStart 同语义；无 show → 0（循环起点）。
+   用于 burst 应用后把播放头跳到爆发点立即可见 */
+function showWindowStart(el) {
+  const loop = tlLoop();
+  const s = el && el.show;
+  if (s && Array.isArray(s) && s.length && (s[0] === null || Array.isArray(s[0]))) {
+    const p = tlScene(); if (p < 0) return 0;
+    const w = p < s.length ? s[p] : null;
+    if (!w) return 0;
+    const wins = Array.isArray(w[0]) ? w : [w];
+    const [s0, s1] = tlSceneRange(p);
+    const lt = ((state.t % loop) + loop) % loop - s0;
+    const dur = Math.max(0.001, s1 - s0);
+    for (const seg of wins) if (lt >= seg[0] * dur && lt < seg[1] * dur) return s0 + seg[0] * dur;
+    return s0 + (wins[0] ? wins[0][0] * dur : 0);
+  }
+  return 0;
 }
 /* 发射区框选模式：点 [框选] 进入，在 stage 画布拖拽矩形，松手写回元素 x/y/w/h */
 let regionSelectEl = null;   // 正在框选发射区的粒子元素
@@ -3149,7 +3219,7 @@ function renderFxPanel(cfg, box) {
     trRow.appendChild(tl2);
     const curTr = (fx.transition && Array.isArray(fx.transition)) ? (fx.transition[Math.min(curS, fx.transition.length - 1)] || 'fade') : (fx.transition || 'fade');
     const trSel = document.createElement('select');
-    [['fade', 'fade 暗场'], ['scan', 'scan 扫描'], ['wipe', 'wipe 擦除']].forEach(([v, t]) => {
+    [['fade', 'fade 暗场'], ['scan', 'scan 扫描'], ['wipe', 'wipe 擦除'], ['dissolve', 'dissolve 溶解']].forEach(([v, t]) => {
       const o = document.createElement('option');
       o.value = v; o.textContent = t;
       o.selected = curTr === v;

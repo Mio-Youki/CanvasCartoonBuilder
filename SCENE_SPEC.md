@@ -147,7 +147,7 @@ anim: { bob: { amp: 1, period: 1/6 }, blink: { period: 2333, duty: 6/7, phase: 1
 - **segs 模型（v2.7补三）**：`CFG.fx.segs[scene] = [{f:[f0,f1], crt, glitch, vignette, noise, palette, hue, brightness, contrast, saturation, pixelDiv, crtOpacity, crtSpacing, noiseAlpha, noiseFrames, vignetteStrength}, …]`——**每个时段段独立存全套 A+B 参数**（f 为场景内 0~1 比例，段按 f 排序覆盖 [0,1]）；渲染按 t 找当前段读配置；旧模型（顶层按项：常量/按场景数组/窗口数组）向后兼容；
 - **A 档叠加层（段内字段）**：`crt`（CRT 扫描线，`crtOpacity`/`crtSpacing` 可调）、`vignette`（径向暗角，`vignetteStrength` 可调）、`noise`（**N 帧噪点轮换**，`noiseAlpha`/`noiseFrames` 可调）——纹理预生成缓存；`glitch`（确定性随机水平位移条）；
 - **B 档像素滤镜（段内字段，管线：降采样 → 调色 → 色板 → 放大）**：`palette: 'pico8'|'nes'|'vga'|'gb'`（与素材减色**共用色板定义** + 通用 LUT 查表）、`hue`（色相偏移度）、`brightness`（-100~100）/`contrast`（0~3）/`saturation`（0~2）——**调色与色相级联合并单 3×3 矩阵**（每像素 9 次乘加，零额外开销）；`pixelDiv`（整数 ≥1，整帧降采样颗粒感，调色开销 ÷ div²）；
-- **场景过渡（场景级，按场景独立，同一场景的分段共享）**：`transition`（fade/scan/wipe）与 `transitionDur`（秒，默认 0.25，范围 0.05~1）支持常量或**按场景数组**——替换原硬编码"每场景段开头 0.25s 暗场"；
+- **场景过渡（场景级，按场景独立，同一场景的分段共享）**：`transition`（fade 暗场 / scan 扫描 / wipe 擦除 / **dissolve 溶解**——画面从暗场按像素噪点溶解显现）与 `transitionDur`（秒，默认 0.25，范围 0.05~1）支持常量或**按场景数组**——替换原硬编码"每场景段开头 0.25s 暗场"；Agent 生成配置即可选用；
 - 渲染顺序：场景层 → 降采样 → 调色矩阵 → LUT 色板 → 放大 → A 叠加层 → 过渡覆盖；装配模式不渲染 fx。
 
 **粒子系统（v2.8 工具配套，程序元素变体）**：任何顶层元素带 `particle` 字段即成为**粒子系统**——
@@ -174,7 +174,8 @@ rain: {                          // 名字任意（①-track：元素名无意�
     spin: 0,          // 出生自旋（度）
     spinSpeed: 0,     // 自旋角速度（度/秒，雪花打转）
     sizeVar: 0.3,     // 每粒尺寸全幅抖动：[1-a, 1+a] 均匀随机（0=同尺寸）
-    colorJitter: 0,   // 每粒颜色确定性抖动（0~1）：色相 ±cJ×40°、亮度 ±cJ×30、饱和度 ±cJ×0.3、对比度 ±cJ×0.2（8 档量化）
+    colorJitter: 0,   // 每粒颜色确定性抖动幅度（0~1）
+    colorJitterDim: 'hue', // 抖动维度（其一）：hue 色相±cJ×40° / brightness 亮度±cJ×30 / saturation 饱和度±cJ×0.3 / contrast 对比度±cJ×0.2（8 档量化）
     alpha: 0.7,       // 出生透明度（1=不透明）
     fade: true,       // 寿命末端渐隐（默认开）
     seed: 0,          // 确定性随机种子（缺省按元素名哈希）；同种子同 t 渲染结果完全一致（可像素回归）
@@ -183,13 +184,15 @@ rain: {                          // 名字任意（①-track：元素名无意�
 ```
 
 - **确定性**：粒子运动为种子随机（每粒 `rnd(i, salt)`）——同 (元素, 种子, t) 渲染稳定，支持暂停/恢复一致与像素回归测试。
-- **渲染成本**：粒子走**精灵缓存**——每帧每元素把 parts 渲染一次到离屏（应用 `pixelDiv`/`alphaMode`，part 级 anim 生效），粒子只 blit；元素级 `anim`/`scroll` **不参与粒子**（粒子运动归粒子参数；单粒闪烁把 blink 挂在实体 part 上即可）。
-- **工具内建**：右侧图层栏粒子卡片含中文参数专表（预设下拉 / 发射区 [框选]+[全画布] / 像素化除数 / 粒子数~随机种子）；
+- **渲染成本**：粒子走**精灵缓存**——每帧每元素把 parts 渲染一次到离屏（应用 `pixelDiv`/`alphaMode`，part 级 anim 生效），粒子只 blit；精灵尺寸下限 1px（纯竖线/水平线实体不会不可见）；元素级 `anim`/`scroll` **不参与粒子**（粒子运动归粒子参数；单粒闪烁把 blink 挂在实体 part 上即可）。
+- **工具内建**：右侧图层栏粒子卡片含中文参数专表（预设下拉 + [同时载入元素] 勾选 / 发射区 [框选]+[全画布] / 像素化除数 / 颜色抖动+维度下拉 / 粒子数~随机种子）；
   「复制为粒子」一键以现有元素（程序元素/带图元的素材）的 parts 为实体生成粒子元素（**继承 pixelDiv/alphaMode**）；
   发射区 = 元素 x/y/w/h（卡片发射区组或画布框选，缺省全画布）。
-- **预设**：内置 雨 / 雪 / 火星 / 光尘 四类（选择后填入 parts+参数，可微调）；`window.PARTICLE_PRESETS` 可注入
-  `{name, parts, particle}` 数组扩展。
-- **粒子雾** = 雾粒实体 + 慢漂移 + 低透明度（如 `dust` 示例）；**溶解过渡**为二期（fx 过渡第 4 种类型，帧缓冲逐像素），复用本粒子语义。
+- **预设（三层解耦：运动/实体/发射区）**：内置 雨 / 雪 / 火星 / 光尘 四类——默认**仅载入运动方式（particle）**，实体 parts 与发射区保持不变；勾选 [同时载入元素] 才覆盖 parts；`window.PARTICLE_PRESETS` 可注入
+  `{name, parts, particle}` 数组扩展；应用含 burst 的预设自动跳播放头到当前窗口起点（立即可见）。
+- **粒子雾** = 雾粒实体 + 慢漂移 + 低透明度（如 `dust` 示例）；**溶解过渡**已交付（见下）。
+
+**过渡样式（v2.8补二 扩展）**：`fx.transition` 支持 4 种——`fade`（暗场渐隐）/ `scan`（上向下扫描）/ `wipe`（左向右擦除）/ `dissolve`（**画面从暗场按像素噪点溶解显现**，每像素确定性 hash，p:0→1 逐渐显形）；`transitionDur` 按场景数组；均为配置驱动——Agent 生成 `fx.transition = ['dissolve','fade',…]` 即可选用。
 
 **典型组合（示例）**：
 - **两态颜色切换**（如信号灯绿/红）：两个重叠 part + 互补 blink（`green: {period:4000, duty:3/4, phase:1/4, on:1, off:0}` + `red: {period:4000, duty:1/4, phase:0, on:1, off:0}`）

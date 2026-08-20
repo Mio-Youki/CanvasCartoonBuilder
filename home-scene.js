@@ -560,6 +560,20 @@ const HomeScene = (() => {
     if (style === 'fade') { rect(0, 0, W, H, 'rgba(3,6,15,' + (1 - p) + ')'); return; }
     if (style === 'scan') { rect(0, 0, W, Math.max(1, H * p), 'rgba(3,6,15,' + (1 - p) + ')'); return; }
     if (style === 'wipe') { rect(0, 0, Math.max(1, W * p), H, 'rgba(3,6,15,' + (1 - p) + ')'); return; }
+    if (style === 'dissolve') {
+      // 画面从暗场按像素噪点「溶解显现」：每像素确定性 hash，hash < p 显示画面、否则暗场色（p: 0→1 逐渐显形）
+      const id = ctx.getImageData(0, 0, W, H);
+      const d = id.data;
+      const seed = 13;
+      for (let i = 0; i < d.length; i += 4) {
+        const px = (i / 4) % W, py = ((i / 4) / W) | 0;
+        const s = Math.sin(px * 127.1 + py * 311.7 + seed * 74.7) * 43758.5453;
+        const h = s - Math.floor(s); // [0,1)
+        if (h >= p) { d[i] = 3; d[i + 1] = 6; d[i + 2] = 15; }
+      }
+      ctx.putImageData(id, 0, 0);
+      return;
+    }
   }
 
   // —— 粒子系统（程序元素变体）：cfg.<名> = { z, show, x,y,w,h, parts, particle:{...} } ——
@@ -571,11 +585,12 @@ const HomeScene = (() => {
   // colorJitter(每粒颜色抖动 0~1，映射色相/亮度/饱和度/对比度各自最大档) pixelDiv(精灵像素化除数)
   // 精灵缓存：每帧每元素把 parts 渲染一次到离屏（应用 pixelDiv/alphaMode；part 级 anim 生效；元素级 anim/scroll
   // 不参与——粒子运动归粒子参数），粒子本体只做 blit —— 每粒属性（pixelDiv/颜色抖动）成本 ≈ 0
-  function particleSprites(e, t, cj) {
+  function particleSprites(e, t, cj, cjDim) {
     const lb = partsLocalBox(e);
     if (!lb) return null;
     const div = (e.pixelDiv && e.pixelDiv > 1) ? e.pixelDiv : 1;
-    const W = Math.max(2, Math.round(lb.w / div)), H = Math.max(2, Math.round(lb.h / div));
+    // 尺寸下限 1：纯竖线/水平线 part 包围盒宽/高可为 0 → 精灵至少 1px（否则 blit 宽 0 不可见）
+    const W = Math.max(1, Math.round(lb.w / div)), H = Math.max(1, Math.round(lb.h / div));
     const render = () => {
       const oc = document.createElement('canvas');
       oc.width = W; oc.height = H;
@@ -597,13 +612,16 @@ const HomeScene = (() => {
       return oc;
     };
     const base = render();
-    if (!(cj > 0)) return { base: base, lb: lb, variants: null };
-    // 颜色抖动分桶（8 档确定性幅度）：色相 ±cJ×40°、亮度 ±cJ×30、饱和度 ±cJ×0.3、对比度 ±cJ×0.2
+    if (!(cj > 0)) return { base: base, lb: lb, W: W, H: H, variants: null };
+    // 颜色抖动分桶（8 档确定性幅度）：只抖动所选维度（colorJitterDim：hue/brightness/saturation/contrast）
     const variants = [];
     const B = 8;
     for (let b = 0; b < B; b++) {
       const amt = ((b / (B - 1)) - 0.5) * 2; // [-1, 1]
-      const cm = colorMatrixOf(amt * cj * 40, amt * cj * 30, 1 + amt * cj * 0.2, 1 + amt * cj * 0.3);
+      const cm = cjDim === 'brightness' ? colorMatrixOf(0, amt * cj * 30, 1, 1)
+        : cjDim === 'saturation' ? colorMatrixOf(0, 0, 1, 1 + amt * cj * 0.3)
+        : cjDim === 'contrast' ? colorMatrixOf(0, 0, 1 + amt * cj * 0.2, 1)
+        : colorMatrixOf(amt * cj * 40, 0, 1, 1); // 默认色相
       const v = document.createElement('canvas');
       v.width = W; v.height = H;
       const vg = v.getContext('2d');
@@ -619,7 +637,7 @@ const HomeScene = (() => {
       vg.putImageData(id, 0, 0);
       variants.push(v);
     }
-    return { base: base, lb: lb, variants: variants };
+    return { base: base, lb: lb, W: W, H: H, variants: variants };
   }
   function drawParticles(e, t, key) {
     const p = e.particle || {};
@@ -646,9 +664,10 @@ const HomeScene = (() => {
     const alpha0 = p.alpha != null ? p.alpha : 1;
     const fade = p.fade !== false;
     const cj = p.colorJitter || 0;
-    const sprites = particleSprites(e, t, cj);
+    const cjDim = p.colorJitterDim || 'hue'; // hue/brightness/saturation/contrast（只抖动所选维度）
+    const sprites = particleSprites(e, t, cj, cjDim);
     if (!sprites) return;
-    const lb = sprites.lb;
+    const sprW = sprites.W, sprH = sprites.H; // 精灵实际尺寸（含下限 1：竖线/水平线 part 不会不可见）
     const period = burst ? 0 : Math.max(0.01, Math.max(life, count / Math.max(0.01, rate)));
     const w0 = scrollWindowStart(e, t); // burst 触发 = 当前 [S] 窗口段起点（无 show → 0）
     ctx.imageSmoothingEnabled = false;
@@ -673,7 +692,7 @@ const HomeScene = (() => {
       const a = alpha0 * (fade ? Math.max(0, 1 - age / life) : 1);
       const rot = spin + spinSpeed * age;
       const spr = (cj > 0 && sprites.variants) ? sprites.variants[(rnd(i, 7) * sprites.variants.length) | 0] : sprites.base;
-      const wpx = lb.w * size, hpx = lb.h * size;
+      const wpx = sprW * size, hpx = sprH * size;
       ctx.save();
       ctx.globalAlpha = a;
       ctx.translate(Math.round(px), Math.round(py));
