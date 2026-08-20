@@ -474,7 +474,9 @@ const HomeScene = (() => {
     const needPalette = fxVal('palette', t, 'none');
     const needHue = fxVal('hue', t, 0);
     const needB = fxVal('brightness', t, 0), needC = fxVal('contrast', t, 1), needS = fxVal('saturation', t, 1);
-    if (needPalette === 'none' && !needHue && !needB && needC === 1 && needS === 1) return;
+    const needDiv = fxVal('pixelDiv', t, 1);
+    // 纯降采样（pixelDiv>1 且无调色）也需进入：先缩后放产生颗粒感
+    if (needPalette === 'none' && !needHue && !needB && needC === 1 && needS === 1 && needDiv <= 1) return;
     fxEnsureTex(t);
     if (!fxTex) return;
     // 降采样：pixelDiv=1 不降（全分辨率）；2/4 = 降采样（颗粒感 + 调色开销 ÷ div²）
@@ -532,17 +534,19 @@ const HomeScene = (() => {
       }
     }
   }
-  // 过渡：升级硬编码暗场（fade 默认 = 现状）；scan/wipe 新样式。transition 为场景级（顶层，不进时段段）
+  // 过渡：升级硬编码暗场（fade 默认 = 现状）；scan/wipe 新样式。transition/transitionDur 为场景级（按场景独立，不进时段段）
   function applyTransition(t) {
     const f = CFG.fx;
     const local = ((t % LOOPv()) + LOOPv()) % LOOPv();
     const n = (CFG.scenes && CFG.scenes.length) || 4;
     const edge = local % (LOOPv() / n);
-    const dur = (f && f.transitionDur != null) ? f.transitionDur : .25;
+    const part = scene(t);
+    const rawDur = (f && f.transitionDur != null) ? f.transitionDur : .25;
+    const dur = Array.isArray(rawDur) ? (rawDur[Math.min(part, rawDur.length - 1)] != null ? rawDur[Math.min(part, rawDur.length - 1)] : .25) : rawDur;
     if (edge >= dur) return;
     const p = edge / dur;
     let style = 'fade';
-    if (f && f.transition != null) { const v = valAt({ transition: f.transition }, 'transition', scene(t)); if (typeof v === 'string') style = v; }
+    if (f && f.transition != null) { const v = valAt({ transition: f.transition }, 'transition', part); if (typeof v === 'string') style = v; }
     if (style === 'fade') { rect(0, 0, W, H, 'rgba(3,6,15,' + (1 - p) + ')'); return; }
     if (style === 'scan') { rect(0, 0, W, Math.max(1, H * p), 'rgba(3,6,15,' + (1 - p) + ')'); return; }
     if (style === 'wipe') { rect(0, 0, Math.max(1, W * p), H, 'rgba(3,6,15,' + (1 - p) + ')'); return; }

@@ -2,6 +2,12 @@
 
 > 独立于游戏本体的 CHANGELOG。工具版本独立演进，与游戏版本号无关。
 
+## v2.7 补四 —— 修复 FX 采样数无效 + 过渡按场景独立
+- **① 修复 FX 采样数无效**：`applyPixelFilter` 早退条件只检查 palette/hue/brightness/contrast/saturation——**纯降采样（仅 pixelDiv>1 无调色）被提前 return**，采样数不生效；补 `pixelDiv` 进早退判断 → 纯降采样进入"缩小→放大"颗粒感路径（元素卡片/图片导入两处采样数本就有效，仅 FX 处受影响）
+- **② 过渡按场景独立**：`transition`/`transitionDur` 改为**按场景数组**（每场景独立值，同一场景的分段共享）——工具端过渡行读/写当前场景槽，home-scene `applyTransition` 按 `scene(t)` 取当前场景值；旧单值兼容
+- **验证**：纯 pixelDiv=4 块内同色 PASS；scene0 scan / scene1 fade 按场景独立 PASS；`npm test` + typecheck 全绿
+- 渲染端同步：`public/home-scene.js` → `tools/home-scene.js`（vendored）一致
+
 ## v2.7 补三 —— FX 按时段段组织（segs）+ 采样数统一 + A 档参数同行 + [S] 面板修复
 - **① FX 数据模型重构（segs）**：从"按 fx 项分散管理"（crt/glitch 各自独立时段）改为 **按时段段组织**——`CFG.fx.segs[scene] = [{f:[f0,f1], crt, glitch, ..., palette, hue, brightness, contrast, saturation, pixelDiv}, ...]`，**每段独立存全套 A+B 参数**；去掉每项独立的「时段」按钮，改为 FX 轨直接分段（点击段=选中并在面板编辑该段全套参数）；home-scene `fxOn`/`fxVal` 按 t 找当前段读配置，旧模型（顶层按项）向后兼容；过渡 transition 仍场景级（不进时段段）
 - **② FX 轨升级为分段条**：`#tl-fx` 显示各场景时段段色块（启用项越多越亮），点击段 = 选中 + 跳场景（面板同步）；拖端点共用缩放 / 双击切分（继承原段配置）/ 段尾 × 删除并入左边

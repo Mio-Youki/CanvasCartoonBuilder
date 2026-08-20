@@ -147,7 +147,7 @@ anim: { bob: { amp: 1, period: 1/6 }, blink: { period: 2333, duty: 6/7, phase: 1
 - **segs 模型（v2.7补三）**：`CFG.fx.segs[scene] = [{f:[f0,f1], crt, glitch, vignette, noise, palette, hue, brightness, contrast, saturation, pixelDiv, crtOpacity, crtSpacing, noiseAlpha, noiseFrames, vignetteStrength}, …]`——**每个时段段独立存全套 A+B 参数**（f 为场景内 0~1 比例，段按 f 排序覆盖 [0,1]）；渲染按 t 找当前段读配置；旧模型（顶层按项：常量/按场景数组/窗口数组）向后兼容；
 - **A 档叠加层（段内字段）**：`crt`（CRT 扫描线，`crtOpacity`/`crtSpacing` 可调）、`vignette`（径向暗角，`vignetteStrength` 可调）、`noise`（**N 帧噪点轮换**，`noiseAlpha`/`noiseFrames` 可调）——纹理预生成缓存；`glitch`（确定性随机水平位移条）；
 - **B 档像素滤镜（段内字段，管线：降采样 → 调色 → 色板 → 放大）**：`palette: 'pico8'|'nes'|'vga'|'gb'`（与素材减色**共用色板定义** + 通用 LUT 查表）、`hue`（色相偏移度）、`brightness`（-100~100）/`contrast`（0~3）/`saturation`（0~2）——**调色与色相级联合并单 3×3 矩阵**（每像素 9 次乘加，零额外开销）；`pixelDiv`（整数 ≥1，整帧降采样颗粒感，调色开销 ÷ div²）；
-- **场景过渡（场景级，顶层不进时段段）**：`transition: 'fade'|'scan'|'wipe'`（fade = 暗场闪切，默认） + `transitionDur`（秒，默认 0.25，范围 0.05~1）——替换原硬编码"每场景段开头 0.25s 暗场"；
+- **场景过渡（场景级，按场景独立，同一场景的分段共享）**：`transition`（fade/scan/wipe）与 `transitionDur`（秒，默认 0.25，范围 0.05~1）支持常量或**按场景数组**——替换原硬编码"每场景段开头 0.25s 暗场"；
 - 渲染顺序：场景层 → 降采样 → 调色矩阵 → LUT 色板 → 放大 → A 叠加层 → 过渡覆盖；装配模式不渲染 fx。
 
 **典型组合（示例）**：

@@ -2925,27 +2925,46 @@ function renderFxPanel(cfg, box) {
     numSeg('亮度', 'brightness', 5, -100, 100, 0, '亮度偏移（-100~100）');
     numSeg('对比度', 'contrast', 0.1, 0, 3, 1, '对比度（1=原样）');
     numSeg('饱和度', 'saturation', 0.1, 0, 2, 1, '饱和度（1=原样；0=灰度）');
-    // 过渡（场景级，顶层）
+    // 过渡（场景级，按场景独立——同场景的分段共享；每场景一个 transition + duration）
     const trRow = document.createElement('div');
     trRow.className = 'cf-row';
     const tl2 = document.createElement('label');
     tl2.textContent = '过渡';
-    tl2.title = '场景进入过渡（场景级，不进时段段）：fade/scan/wipe + 时长';
+    tl2.title = '场景进入过渡（按场景独立，同一场景的分段共享）：fade/scan/wipe + 时长';
     trRow.appendChild(tl2);
+    const curTr = (fx.transition && Array.isArray(fx.transition)) ? (fx.transition[Math.min(curS, fx.transition.length - 1)] || 'fade') : (fx.transition || 'fade');
     const trSel = document.createElement('select');
     [['fade', 'fade 暗场'], ['scan', 'scan 扫描'], ['wipe', 'wipe 擦除']].forEach(([v, t]) => {
       const o = document.createElement('option');
       o.value = v; o.textContent = t;
-      o.selected = (fx.transition || 'fade') === v;
+      o.selected = curTr === v;
       trSel.appendChild(o);
     });
-    trSel.addEventListener('change', () => { pushHistory(); fx.transition = trSel.value; refreshStage(); buildLayerList(cfg); });
+    trSel.addEventListener('change', () => {
+      pushHistory();
+      const v = trSel.value;
+      if (sc.length) {
+        if (!Array.isArray(fx.transition)) { const c = fx.transition || 'fade'; fx.transition = sc.map((_, i) => (i === curS) ? v : c); }
+        else fx.transition = sc.map((_, i) => (i === curS) ? v : fx.transition[Math.min(i, fx.transition.length - 1)]);
+      } else fx.transition = v;
+      refreshStage(); buildLayerList(cfg);
+    });
     trRow.appendChild(trSel);
+    const curTrDur = (fx.transitionDur && Array.isArray(fx.transitionDur)) ? fx.transitionDur[Math.min(curS, fx.transitionDur.length - 1)] : (fx.transitionDur != null ? fx.transitionDur : 0.25);
     const trDur = document.createElement('input');
     trDur.type = 'number'; trDur.step = 0.05; trDur.min = 0.05; trDur.max = 1; trDur.style.width = '46px';
-    trDur.value = fx.transitionDur != null ? fx.transitionDur : 0.25;
-    trDur.title = '过渡时长（秒）';
-    trDur.addEventListener('change', () => { pushHistory(); fx.transitionDur = Math.max(0.05, Math.min(1, parseFloat(trDur.value) || 0.25)); refreshStage(); });
+    trDur.value = curTrDur;
+    trDur.title = '过渡时长（秒，按场景独立）';
+    trDur.addEventListener('change', () => {
+      pushHistory();
+      const v = Math.max(0.05, Math.min(1, parseFloat(trDur.value) || 0.25));
+      trDur.value = v;
+      if (sc.length) {
+        if (!Array.isArray(fx.transitionDur)) { const c = fx.transitionDur != null ? fx.transitionDur : 0.25; fx.transitionDur = sc.map((_, i) => (i === curS) ? v : c); }
+        else fx.transitionDur = sc.map((_, i) => (i === curS) ? v : fx.transitionDur[Math.min(i, fx.transitionDur.length - 1)]);
+      } else fx.transitionDur = v;
+      refreshStage();
+    });
     trRow.appendChild(trDur);
     card.appendChild(trRow);
   }
