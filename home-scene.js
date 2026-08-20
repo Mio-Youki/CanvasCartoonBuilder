@@ -229,6 +229,8 @@ const SCENE_KEYS = ['w', 'h', 'loop', 'bg', 'scenes', 'sceneBorders', 'images', 
 const HomeScene = (() => {
   let W = CFG.w, H = CFG.h, LOOP = CFG.loop;
   let canvas, ctx, raf = 0, last = 0, elapsed = 0, running = false;
+  let prevFrame = null; // 上一场景帧快照（scene→scene dissolve 用，边界处捕获）
+  let lastPart = -1;    // 上一帧场景号（边界检测）
   let reduceMotion = false;
   let inited = false;
 
@@ -544,6 +546,19 @@ const HomeScene = (() => {
   }
   // 过渡：升级硬编码暗场（fade 默认 = 现状）；scan/wipe 新样式。transition/transitionDur 为场景级（按场景独立，不进时段段）
   // 段内位置用 sceneBounds（按 sceneBorders/等分）计算——拖拽边界后仍对齐当前场景起点
+  // 场景过渡样式（按场景取；缺省 fade）
+  function transitionStyleOf(part) {
+    const f = CFG.fx;
+    if (!f || f.transition == null) return 'fade';
+    const v = valAt({ transition: f.transition }, 'transition', part);
+    return typeof v === 'string' ? v : 'fade';
+  }
+  // 场景边界捕获：新场景为 dissolve 时，把当前画布（上一场景最后一帧）快照 —— scene→scene 溶解的旧帧来源
+  function capturePrevFrame() {
+    if (!prevFrame) prevFrame = document.createElement('canvas');
+    if (prevFrame.width !== W || prevFrame.height !== H) { prevFrame.width = W; prevFrame.height = H; }
+    prevFrame.getContext('2d').drawImage(canvas, 0, 0);
+  }
   function applyTransition(t) {
     const f = CFG.fx;
     const local = ((t % LOOPv()) + LOOPv()) % LOOPv();
@@ -555,23 +570,36 @@ const HomeScene = (() => {
     const dur = Array.isArray(rawDur) ? (rawDur[Math.min(part, rawDur.length - 1)] != null ? rawDur[Math.min(part, rawDur.length - 1)] : .25) : rawDur;
     if (edge >= dur) return;
     const p = edge / dur;
-    let style = 'fade';
-    if (f && f.transition != null) { const v = valAt({ transition: f.transition }, 'transition', part); if (typeof v === 'string') style = v; }
+    const style = transitionStyleOf(part);
     if (style === 'fade') { rect(0, 0, W, H, 'rgba(3,6,15,' + (1 - p) + ')'); return; }
     if (style === 'scan') { rect(0, 0, W, Math.max(1, H * p), 'rgba(3,6,15,' + (1 - p) + ')'); return; }
     if (style === 'wipe') { rect(0, 0, Math.max(1, W * p), H, 'rgba(3,6,15,' + (1 - p) + ')'); return; }
     if (style === 'dissolve') {
-      // 画面从暗场按像素噪点「溶解显现」：每像素确定性 hash，hash < p 显示画面、否则暗场色（p: 0→1 逐渐显形）
-      const id = ctx.getImageData(0, 0, W, H);
+      // 场景→场景溶解：上一场景帧快照（边界处捕获）逐像素被当前（新）场景替换——
+      // 每像素确定性 hash，hash >= p 保留旧场景像素、否则新场景像素（p: 0→1，旧场景逐渐溶解为新场景，不经过暗场）
+      const id = ctx.getImageData(0, 0, W, H); // 当前帧（新场景）
       const d = id.data;
+      let pd = null;
+      if (prevFrame && prevFrame.width === W && prevFrame.height === H) pd = prevFrame.getContext('2d').getImageData(0, 0, W, H).data;
       const seed = 13;
-      for (let i = 0; i < d.length; i += 4) {
-        const px = (i / 4) % W, py = ((i / 4) / W) | 0;
-        const s = Math.sin(px * 127.1 + py * 311.7 + seed * 74.7) * 43758.5453;
-        const h = s - Math.floor(s); // [0,1)
-        if (h >= p) { d[i] = 3; d[i + 1] = 6; d[i + 2] = 15; }
+      if (pd) {
+        for (let i = 0; i < d.length; i += 4) {
+          const px = (i / 4) % W, py = ((i / 4) / W) | 0;
+          const s = Math.sin(px * 127.1 + py * 311.7 + seed * 74.7) * 43758.5453;
+          const h = s - Math.floor(s); // [0,1)
+          if (h >= p) { d[i] = pd[i]; d[i + 1] = pd[i + 1]; d[i + 2] = pd[i + 2]; }
+        }
+        ctx.putImageData(id, 0, 0);
+      } else {
+        // 无旧帧快照（理论不发生）：退化为暗场显现（与旧语义一致），保证不黑屏
+        for (let i = 0; i < d.length; i += 4) {
+          const px = (i / 4) % W, py = ((i / 4) / W) | 0;
+          const s = Math.sin(px * 127.1 + py * 311.7 + seed * 74.7) * 43758.5453;
+          const h = s - Math.floor(s);
+          if (h >= p) { d[i] = 3; d[i + 1] = 6; d[i + 2] = 15; }
+        }
+        ctx.putImageData(id, 0, 0);
       }
-      ctx.putImageData(id, 0, 0);
       return;
     }
   }
@@ -707,6 +735,11 @@ const HomeScene = (() => {
     syncCfg(); // 每帧同步外部注入的配置（工具实时调参生效的关键）
     const local = t % LOOPv();
     const part = scene(t);
+    // 场景边界：新场景过渡为 dissolve 时，先捕获当前画布（上一场景最后一帧）→ scene→scene 溶解的旧帧
+    if (part !== lastPart) {
+      if (CFG.fx && transitionStyleOf(part) === 'dissolve') capturePrevFrame();
+      lastPart = part;
+    }
     rect(0, 0, W, H, Array.isArray(CFG.bg) ? CFG.bg[Math.min(part, CFG.bg.length - 1)] : CFG.bg);
     // 图层按 z 排序渲染（z 越大越靠上；素材 images 默认 99）
     // 工具图层栏可删除程序元素（cfg 键缺失则跳过）、隐藏元素（hidden 为真则不绘制）；
