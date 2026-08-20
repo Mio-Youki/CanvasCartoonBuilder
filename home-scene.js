@@ -144,6 +144,8 @@ const DEFAULT_HOME_SCENE = {
     "head": "#fff1a7",
     "tail": "#c14d57",
     "anim": "bob",
+    "beamOrigin": { "x": 9, "y": 9 },
+    "beamSpread": { "top": 5, "bottom": 21 },
     "parts": [
       { "type": "rect", "x": 0, "y": 0, "w": 110, "h": 24, "fill": "#12283b" },
       { "type": "rect", "x": 8, "y": -6, "w": 38, "h": 30, "fill": "#17334a" },
@@ -154,14 +156,20 @@ const DEFAULT_HOME_SCENE = {
       { "type": "rect", "x": 111, "y": 26, "w": 10, "h": 4, "fill": "#050b12" },
       { "type": "rect", "x": 9, "y": 2, "w": 22, "h": 13, "fill": "#091923" },
       { "type": "rect", "x": 12, "y": 5, "w": 4, "h": 4, "fill": "#a5d8ff" },
+      { "type": "rect", "x": 7, "y": 9, "w": 4, "h": 4, "fill": "#fff1a7" },
+      { "type": "rect", "x": 0, "y": 16, "w": 3, "h": 4, "fill": "#c14d57" },
       { "type": "rect", "x": 38, "y": 5, "w": 7, "h": 7, "fill": "#45516a" },
       { "type": "rect", "x": 51, "y": 5, "w": 7, "h": 7, "fill": "#45516a" },
       { "type": "rect", "x": 64, "y": 5, "w": 7, "h": 7, "fill": "#45516a" },
       { "type": "rect", "x": 77, "y": 5, "w": 7, "h": 7, "fill": "#45516a" },
       { "type": "rect", "x": 90, "y": 5, "w": 7, "h": 7, "fill": "#45516a" },
       { "type": "rect", "x": 103, "y": 5, "w": 7, "h": 7, "fill": "#45516a" },
-      { "type": "rect", "x": 7, "y": 9, "w": 4, "h": 4, "fill": "#fff1a7" },
-      { "type": "rect", "x": 0, "y": 16, "w": 3, "h": 4, "fill": "#c14d57" }
+      { "type": "rect", "x": 38, "y": 5, "w": 7, "h": 7, "fill": "#ffd46b", "anim": { "blink": { "period": 2333, "duty": 6 / 7, "phase": 1 / 7, "on": 1, "off": 0 } } },
+      { "type": "rect", "x": 51, "y": 5, "w": 7, "h": 7, "fill": "#ffd46b", "anim": { "blink": { "period": 2333, "duty": 6 / 7, "phase": 1 / 7, "on": 1, "off": 0 } } },
+      { "type": "rect", "x": 64, "y": 5, "w": 7, "h": 7, "fill": "#ffd46b", "anim": { "blink": { "period": 2333, "duty": 6 / 7, "phase": 1 / 7, "on": 1, "off": 0 } } },
+      { "type": "rect", "x": 77, "y": 5, "w": 7, "h": 7, "fill": "#ffd46b", "anim": { "blink": { "period": 2333, "duty": 6 / 7, "phase": 1 / 7, "on": 1, "off": 0 } } },
+      { "type": "rect", "x": 90, "y": 5, "w": 7, "h": 7, "fill": "#ffd46b", "anim": { "blink": { "period": 2333, "duty": 6 / 7, "phase": 1 / 7, "on": 1, "off": 0 } } },
+      { "type": "rect", "x": 103, "y": 5, "w": 7, "h": 7, "fill": "#ffd46b", "anim": { "blink": { "period": 2333, "duty": 6 / 7, "phase": 1 / 7, "on": 1, "off": 0 } } }
     ]
   },
   "foreground": {
@@ -191,7 +199,9 @@ const DEFAULT_HOME_SCENE = {
     "red": "#ff4d5e",
     "parts": [
       { "type": "rect", "x": 0, "y": 0, "w": 3, "h": 48, "fill": "#182537" },
-      { "type": "rect", "x": -6, "y": 2, "w": 15, "h": 8, "fill": "#21324c" }
+      { "type": "rect", "x": -6, "y": 2, "w": 15, "h": 8, "fill": "#21324c" },
+      { "type": "rect", "x": -3, "y": 4, "w": 4, "h": 4, "fill": "#7dff5f", "anim": { "blink": { "period": 4000, "duty": 3 / 4, "phase": 1 / 4, "on": 1, "off": 0 } } },
+      { "type": "rect", "x": -3, "y": 4, "w": 4, "h": 4, "fill": "#ff4d5e", "anim": { "blink": { "period": 4000, "duty": 1 / 4, "phase": 0, "on": 1, "off": 0 } } }
     ]
   },
   "bridge": {
@@ -323,10 +333,10 @@ const HomeScene = (() => {
       CFG.farForest && { z: CFG.farForest.z || 5, hidden: CFG.farForest.hidden, fn: () => { if (elShown(CFG.farForest, t)) elDraw(CFG.farForest, farForest, t, part); } },
       CFG.poles && { z: CFG.poles.z || 6, hidden: CFG.poles.hidden, fn: () => { if (elShown(CFG.poles, t)) elDraw(CFG.poles, poles, t, part); } },
       CFG.rail && { z: CFG.rail.z || 7, hidden: CFG.rail.hidden, fn: () => { if (elShown(CFG.rail, t)) elDraw(CFG.rail, rail, t, part); } },
-      CFG.train && { z: CFG.train.z || 8, hidden: CFG.train.hidden, fn: () => { if (elShown(CFG.train, t)) { if (CFG.train.parts && CFG.train.parts.length && CFG.train.partsMode !== 'overlay') { drawParts(CFG.train, t); trainFx(t); } else train(t, part); } } },
+      CFG.train && { z: CFG.train.z || 8, hidden: CFG.train.hidden, fn: () => { if (elShown(CFG.train, t)) { if (CFG.train.parts && CFG.train.parts.length && CFG.train.partsMode !== 'overlay') { drawParts(CFG.train, t); drawBeam(CFG.train, t); } else train(t, part); } } },
       CFG.foreground && { z: CFG.foreground.z || 9, hidden: CFG.foreground.hidden, fn: () => { if (elShown(CFG.foreground, t)) elDraw(CFG.foreground, foreground, t, part); } },
       CFG.fog && { z: CFG.fog.z || 10, hidden: CFG.fog.hidden, fn: () => { if (elShown(CFG.fog, t)) elDraw(CFG.fog, fogBank, t, part); } },
-      CFG.signal && { z: CFG.signal.z || 10, hidden: CFG.signal.hidden, fn: () => { if (elShown(CFG.signal, t)) { if (CFG.signal.parts && CFG.signal.parts.length && CFG.signal.partsMode !== 'overlay') { drawParts(CFG.signal, t); signalFx(t); } else signal(t, part); } } },
+      CFG.signal && { z: CFG.signal.z || 10, hidden: CFG.signal.hidden, fn: () => { if (elShown(CFG.signal, t)) { if (CFG.signal.parts && CFG.signal.parts.length && CFG.signal.partsMode !== 'overlay') { drawParts(CFG.signal, t); } else signal(t, part); } } },
       CFG.bridge && { z: CFG.bridge.z || 10, hidden: CFG.bridge.hidden, fn: () => { if (elShown(CFG.bridge, t)) elDraw(CFG.bridge, bridge, t, part); } },
       ...(CFG.images || []).filter(e => !e.hidden).map(e => ({
         z: e.z != null ? e.z : 99,
@@ -418,13 +428,7 @@ const HomeScene = (() => {
   }
 
   function train(t, part) {
-    // 有 parts（工具编辑的车身）→ drawParts 画静态车身（含 bob 轻震），本函数只画动态覆盖（灯闪/光束）
-    if (CFG.train.parts && CFG.train.parts.length && CFG.train.partsMode !== 'overlay') {
-      drawParts(CFG.train, t);
-      trainFx(t);
-      return;
-    }
-    // 无 parts（旧配置/未编辑）：原全量绘制
+    // 无 parts（旧配置/未编辑）：原全量绘制；有 parts 时 layer 回调走 drawParts + drawBeam
     const T = CFG.train;
     const x = T.x, bob = Math.floor(t * 6) % 2;
     // 列车保持画面右侧；只以一像素轻震传递运行状态（动态保留）。
@@ -444,15 +448,21 @@ const HomeScene = (() => {
     rect(x + 7, T.y + 9 + bob, 4, 4, T.head);
     rect(x + 0, T.y + 16 + bob, 3, 4, T.tail);
   }
-  // 列车动态覆盖（parts 模式）：车窗灯闪烁 + 车头灯（坐标相对元素原点 x,y，与 drawParts 的 bob 同步）
-  function trainFx(t) {
-    const T = CFG.train;
-    const x = T.x, bob = Math.floor(t * 6) % 2;
-    const lit = Math.floor(t * 3) % 7 !== 0;
-    for (let wx = x + 38; wx < x + 113; wx += 13) rect(wx, T.y + 5 + bob, 7, 7, lit ? T.lampLit : T.lampDim);
-    const beam = val(T, 'beamLen', t);
-    ctx.fillStyle = val(T, 'beam', t);
-    ctx.beginPath(); ctx.moveTo(x + 9, T.y + 9 + bob); ctx.lineTo(x - beam, T.y + 21); ctx.lineTo(x - beam, T.y + 5); ctx.closePath(); ctx.fill();
+  // 通用光束实体（几何参数化，非动画——光束长度按场景数组，属多关键帧范畴待关键帧系统）：
+  // 元素声明 beam（颜色数组）+ beamLen（长度数组）+ beamOrigin/beamSpread（几何，相对元素原点）
+  function drawBeam(e, t) {
+    if (!e.beam || !e.beamLen) return;
+    const x = val(e, 'x', t) || 0, y = val(e, 'y', t) || 0;
+    const len = val(e, 'beamLen', t) || 0;
+    const o = e.beamOrigin || { x: 9, y: 9 };
+    const sp = e.beamSpread || { top: 5, bottom: 21 };
+    const ea = applyAnims(animList(e.anim), t, { yOff: 0, scale: 1, alpha: 1 }); // 跟随元素 bob（仅光束起点，与列车原绘制一致）
+    ctx.fillStyle = val(e, 'beam', t);
+    ctx.beginPath();
+    ctx.moveTo(x + o.x, y + o.y + ea.yOff);
+    ctx.lineTo(x - len, y + sp.bottom);
+    ctx.lineTo(x - len, y + sp.top);
+    ctx.closePath(); ctx.fill();
   }
 
   function foreground(t, part) {
@@ -477,22 +487,11 @@ const HomeScene = (() => {
   }
 
   function signal(t) {
-    // 有 parts → drawParts 画杆/臂（相对 x,y=54），本函数只画动态信号灯
-    if (CFG.signal.parts && CFG.signal.parts.length && CFG.signal.partsMode !== 'overlay') {
-      drawParts(CFG.signal, t);
-      signalFx(t);
-      return;
-    }
+    // 无 parts（旧配置/未编辑）：原全量绘制；有 parts 时 layer 回调走 drawParts（信号灯 = 绿/红两 part 反相 blink）
     const x = CFG.signal.x;
     rect(x, 54, 3, 48, CFG.signal.body); rect(x - 6, 56, 15, 8, CFG.signal.arm);
     const green = Math.floor(t * 2) % 8 > 1;
     rect(x - 3, 58, 4, 4, green ? CFG.signal.green : CFG.signal.red);
-  }
-  // 信号灯动态（parts 模式）：绿/红切换（相对元素原点 x, y=54）
-  function signalFx(t) {
-    const S = CFG.signal;
-    const green = Math.floor(t * 2) % 8 > 1;
-    rect(S.x - 3, (S.y || 54) + 4, 4, 4, green ? S.green : S.red);
   }
 
   function bridge(t) {
@@ -577,6 +576,39 @@ const HomeScene = (() => {
     if (!isFinite(minX)) return null;
     return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
   }
+  // —— 通用动画原语（元素级与 parts 级共用）——
+  // anim 字段（可叠加多个，像标签一样挂在元素/part 上）：
+  //   字符串简写 'bob' | 'blink' | 'pulse'（= 默认参数，旧配置兼容）
+  //   单动画对象 { type:'bob', amp:1, period:0.5 }
+  //   多动画叠加 { bob:{...}, blink:{...} }（各原语互不冲突，按顺序叠加）
+  // 作用顺序（文档化）：bob（几何 y 偏移）→ pulse（缩放）→ blink（透明度）
+  function animList(a) {
+    if (!a) return [];
+    if (typeof a === 'string') return [{ type: a, params: {} }];
+    if (a.type) return [{ type: a.type, params: a }];
+    return Object.keys(a).map(k => ({ type: k, params: a[k] || {} }));
+  }
+  function applyAnims(list, t, init) {
+    let yOff = init.yOff || 0, scale = init.scale != null ? init.scale : 1, alpha = init.alpha != null ? init.alpha : 1;
+    for (const an of list) {
+      const pr = an.params || {};
+      if (an.type === 'bob') {
+        const per = pr.period != null ? pr.period : 1 / 6; // 秒/翻转（默认 1/6s，与 train 原 floor(t*6)%2 一致）
+        yOff += Math.floor(t / per) % 2 * (pr.amp != null ? pr.amp : 1);
+      } else if (an.type === 'pulse') {
+        const per = pr.period != null ? pr.period : 0.7; // 秒/周期
+        scale *= 1 + (pr.amp != null ? pr.amp : 0.15) * Math.sin(t / per * Math.PI * 2);
+      } else if (an.type === 'blink') {
+        const per = pr.period != null ? pr.period : 700; // 毫秒/周期
+        const duty = pr.duty != null ? pr.duty : 0.5; // on 占比（0-1）
+        const ph = pr.phase || 0; // on 区间起点（周期比例 0-1）
+        const pos = (t * 1000 / per) % 1;
+        const rel = (pos - ph + 1) % 1; // 相对 on 起点的位置
+        alpha *= rel < duty ? (pr.on != null ? pr.on : 1) : (pr.off != null ? pr.off : 0.25);
+      }
+    }
+    return { yOff, scale, alpha };
+  }
   function drawParts(e, t) {
     // 元素级重采样（pixelDiv > 1）：parts 画到「包围盒 ÷ 除数」离屏小画布 → 最近邻放大（锯齿感）
     const div = e.pixelDiv || 1;
@@ -604,7 +636,7 @@ const HomeScene = (() => {
         og.putImageData(aid, 0, 0);
       }
       let elAlpha = e.alpha != null ? e.alpha : 1;
-      if (e.anim === 'blink') { const on = Math.floor(t * 1000 / Math.max(50, e.animMs || 700)) % 2 === 0; elAlpha *= on ? 1 : 0.25; }
+      elAlpha = applyAnims(animList(e.anim), t, { yOff: 0, scale: 1, alpha: elAlpha }).alpha;
       ctx.save();
       ctx.globalAlpha = elAlpha; // 元素级透明度（含 blink）在放大时应用
       ctx.imageSmoothingEnabled = false;
@@ -621,17 +653,20 @@ const HomeScene = (() => {
       const off = (t * e.scroll.speed) % sp;
       ox = e.scroll.dir === 'right' ? off : -off;
     }
-    const x0 = val(e, 'x', t) || 0, y0 = (val(e, 'y', t) || 0) + (e.anim === 'bob' ? Math.floor(t * 6) % 2 : 0); // 缺失键按 0；bob=1px 垂直轻震
-    let alpha = alphaOverride != null ? alphaOverride : (e.alpha != null ? e.alpha : 1);
-    if (e.anim === 'blink') { const on = Math.floor(t * 1000 / Math.max(50, e.animMs || 700)) % 2 === 0; alpha *= on ? 1 : 0.25; }
-    let scale = 1;
-    if (e.anim === 'pulse') scale = 1 + 0.15 * Math.sin(t * 1000 / Math.max(200, e.animMs || 700) * Math.PI * 2);
+    const x0 = val(e, 'x', t) || 0, y0 = val(e, 'y', t) || 0; // 缺失键按 0
+    // 元素级动画（可叠加）：bob y 偏移 → pulse 缩放 → blink 透明度
+    const ea = applyAnims(animList(e.anim), t, { yOff: 0, scale: 1, alpha: alphaOverride != null ? alphaOverride : (e.alpha != null ? e.alpha : 1) });
+    const Y0 = y0 + ea.yOff;
+    const scale = ea.scale;
+    const alpha = ea.alpha;
     const blit = dx => {
       const X = x0 + dx;
       for (const p of (e.parts || [])) {
         const q = normPart(p);
-        ctx.globalAlpha = alpha * (q.alpha != null ? q.alpha : 1); // 元素级 × 图元级透明度
-        const PX = Math.round(X + (q.x || 0)), PY = Math.round(y0 + (q.y || 0));
+        // 图元级动画（blink/bob；pulse 缩放留元素级）：作用在 part 自身坐标/透明度上
+        const pa = applyAnims(animList(q.anim), t, { yOff: 0, scale: 1, alpha: q.alpha != null ? q.alpha : 1 });
+        ctx.globalAlpha = alpha * pa.alpha; // 元素级 × 图元级 × 图元动画
+        const PX = Math.round(X + (q.x || 0)), PY = Math.round(Y0 + pa.yOff + (q.y || 0));
         const rot = q.rot || 0, fh = q.flipH ? -1 : 1, fv = q.flipV ? -1 : 1;
         if (rot || fh < 0 || fv < 0) {
           const c = partCenter(q);
@@ -704,23 +739,26 @@ const HomeScene = (() => {
       ox = e.scroll.dir === 'right' ? off : -off;
     }
     let alpha = e.alpha != null ? e.alpha : 1;
-    if (e.anim === 'blink') { const on = Math.floor(t * 1000 / Math.max(50, e.animMs || 700)) % 2 === 0; alpha *= on ? 1 : 0.25; }
-    let scale = 1;
-    if (e.anim === 'pulse') scale = 1 + 0.15 * Math.sin(t * 1000 / Math.max(200, e.animMs || 700) * Math.PI * 2);
+    // 元素级动画（可叠加）：bob y 偏移 → pulse 缩放 → blink 透明度
+    const ea = applyAnims(animList(e.anim), t, { yOff: 0, scale: 1, alpha: alpha });
+    alpha = ea.alpha;
+    let scale = ea.scale;
     const w = e.w * scale, h = e.h * scale;
+    const bobY = ea.yOff;
     ctx.globalAlpha = alpha;
     const rot = e.rot || 0, fh = e.flipH ? -1 : 1, fv = e.flipV ? -1 : 1;
     const blit = (dx, dy) => {
+      const dyy = dy + bobY;
       if (rot || fh < 0 || fv < 0) {
         ctx.save();
-        ctx.translate(dx + w / 2, dy + h / 2);
+        ctx.translate(dx + w / 2, dyy + h / 2);
         // 先翻转后旋转（镜像作用于旋转角度；flip·R(rot) = R(-rot)·flip）
         if (rot) ctx.rotate(rot * Math.PI / 180);
         ctx.scale(fh, fv);
         ctx.drawImage(img, srcX, 0, sw, img.height, -w / 2, -h / 2, w, h);
         ctx.restore();
       } else {
-        ctx.drawImage(img, srcX, 0, sw, img.height, Math.round(dx), Math.round(dy), w, h);
+        ctx.drawImage(img, srcX, 0, sw, img.height, Math.round(dx), Math.round(dyy), w, h);
       }
     };
     if (e.scroll && e.scroll.speed && e.scroll.span) {

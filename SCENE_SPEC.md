@@ -108,11 +108,43 @@ train: {
 ```
 
 **Agent 生成规则**：
-- 元素有 `parts` 且非 `partsMode:'overlay'` 时，渲染 = `drawParts` + **同名 `fx` 动态覆盖**（由渲染端
-  代码提供，Agent 无需生成 fx 函数）；Agent 只需保证**静态几何 parts 与代码原静态绘制逐像素一致**。
-- 元素级动画字段 `anim`（`blink` 闪烁 / `pulse` 缩放 / `bob` 1px 轻震）是渲染端内建，Agent 按需声明。
+- 元素有 `parts` 且非 `partsMode:'overlay'` 时，渲染 = `drawParts` + 元素动画原语（见下）；Agent 只需保证
+  **静态几何 parts 与代码原静态绘制逐像素一致**。
 - **复杂关键帧/逐帧动画**（状态机、逐帧变换）不建议 parts 化——用 **images 多帧素材**
   （工具可逐帧绘制合成 sheet：`frames` + `fps` 全参数化）。
+
+### 动画原语（元素级与 parts 级共用；skill 暴露给生成 agent 的能力）
+
+`anim` 字段挂在**元素或任意 part** 上（像标签一样，可叠加多个）：
+
+```js
+// 字符串简写（= 默认参数，旧配置兼容）
+anim: 'bob'
+// 单动画对象
+anim: { type: 'blink', period: 700, duty: 0.75, phase: 0.25, on: 1, off: 0 }
+// 多动画叠加（标签式，互不冲突）
+anim: { bob: { amp: 1, period: 1/6 }, blink: { period: 2333, duty: 6/7, phase: 1/7, on: 1, off: 0 } }
+```
+
+| 原语 | 参数（默认） | 效果 | 应用 |
+|---|---|---|---|
+| `bob` | `amp:1, period:1/6`（秒/翻转） | 垂直轻震（y 偏移 = 相位 × amp） | 元素/part |
+| `blink` | `on:1, off:0.25, period:700`（毫秒/周期）, `duty:0.5`（亮占比）, `phase:0`（on 起点，周期比例） | 透明度方波（on/off 交替，可非对称占空） | 元素/part |
+| `pulse` | `amp:0.15, period:0.7`（秒/周期） | 缩放脉动 | 元素级 |
+
+**作用顺序（文档化）**：`bob`（几何 y 偏移）→ `pulse`（缩放）→ `blink`（透明度）——各原语作用维度独立，可安全叠加。
+
+**典型组合（示例）**：
+- **两态颜色切换**（如信号灯绿/红）：两个重叠 part + 互补 blink（`green: {period:4000, duty:3/4, phase:1/4, on:1, off:0}` + `red: {period:4000, duty:1/4, phase:0, on:1, off:0}`）
+- **周期点亮**（如列车车窗灯 6/7 亮）：静态暗 part + 亮 part blink（`{period:2333, duty:6/7, phase:1/7, on:1, off:0}`，on 时完全覆盖）
+- **轻震 + 闪烁叠加**：`anim: { bob: {...}, blink: {...} }`
+
+**几何实体参数化（非动画，待关键帧）**：光束类"长度随场景变化"的几何（如列车车头灯）——
+元素声明 `beam`（颜色数组）+ `beamLen`（长度数组）+ `beamOrigin`/`beamSpread`（几何，相对元素原点），
+渲染端通用 `drawBeam` 绘制（非动画原语，多关键帧范畴待后续关键帧系统）。
+
+**工具内建**：左侧栏「动画调整」面板（与「素材导入」双状态切换）——选中元素/图元后编辑
+bob/blink/pulse 三原语参数（开关 + 数值），参数进配置随保存写回；选中图元时其图层卡片对应部分高亮。
 
 ## 五、工具内建能力（Agent 无需生成）
 

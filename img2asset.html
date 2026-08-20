@@ -115,6 +115,10 @@
   .layer-body { border-top: 1px dashed #2c3560; padding: 4px 6px 6px; }
   .cf-row { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
   .cf-row-inline { display: flex; align-items: center; gap: 6px; flex: 1; }
+  .side-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+  .side-tab { flex: 1; margin: 0; padding: 4px 0; min-height: 24px; font-size: 10px; border-width: 2px; }
+  .side-tab.active { border-color: var(--yellow); color: var(--yellow); background: #33270f; }
+  .cf-box.sel { border-color: #4dc3ff; }
   .cf-row label { flex: 1; margin: 0; font-size: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cf-row input[type=number] { width: 76px; }
   .cf-row input[type=text] { width: 110px; }
@@ -130,42 +134,52 @@
 <div class="sub">任意图片 → 像素化 → 拖拽装配（滚动/闪烁/脉动）→ 打开/保存场景 js（页面内直接改写配置，无需复制粘贴）。开发工具，不随游戏发布。</div>
 
 <div class="cols">
-  <!-- 左：素材导入 + 样式化 + 素材库 -->
+  <!-- 左：素材导入 + 样式化 + 素材库 / 动画调整（双状态切换） -->
   <div class="panel p-import">
-    <label>导入素材（任意图片，非 8bit 亦可）</label>
-    <div id="drop" class="drop">拖入图片 / 点击选择</div>
-    <input id="file" type="file" accept="image/*" multiple hidden>
-    <label><input type="checkbox" id="style-on" checked> 样式化（关 = 原样 1:1 显示）</label>
-    <label>采样除数（原图 ÷ N；像素化 = 缩小 N 倍采样）</label>
-    <div class="row">
-      <select id="divisor" style="flex:1">
-        <option value="1">1/1 原样</option>
-        <option value="2" selected>1/2</option>
-        <option value="4">1/4</option>
-        <option value="8">1/8</option>
-      </select>
-      <select id="alpha-mode" title="边缘透明像素：保留=默认软边；消除=alpha&lt;128 变透明 + alpha&gt;=128 拉满（一步到位只剩透明/不透明）；增强=全部半透明拉满">
-        <option value="keep">边缘:保留</option>
-        <option value="remove">边缘:消除</option>
-        <option value="boost">边缘:增强</option>
-      </select>
+    <div class="side-tabs">
+      <button class="side-tab active" data-panel="import">素材导入</button>
+      <button class="side-tab" data-panel="anim">动画调整</button>
     </div>
-    <label>减色色板（映射到有限色板最近色）</label>
-    <select id="palette">
-      <option value="">无（保持原色）</option>
-      <option value="pico8">PICO-8 · 32 色</option>
-      <option value="gb">Game Boy · 4 色</option>
-      <option value="vga">VGA · 16 色</option>
-    </select>
-    <label>均匀量化（每通道色阶，0=关）</label>
-    <input id="quant" type="range" min="0" max="8" value="0">
-    <label>去背景容差（0=关；按左上角颜色抠除）</label>
-    <input id="bgtol" type="range" min="0" max="60" value="0">
-    <label>素材库（点击选中，再"添加到场景"）</label>
-    <div id="lib" class="lib"></div>
-    <button id="btn-add" class="primary">添加到场景 →</button>
-    <button id="btn-del-src">删除选中素材</button>
-    <div class="meta" id="m-import"></div>
+    <div id="side-import">
+      <label>导入素材（任意图片，非 8bit 亦可）</label>
+      <div id="drop" class="drop">拖入图片 / 点击选择</div>
+      <input id="file" type="file" accept="image/*" multiple hidden>
+      <label><input type="checkbox" id="style-on" checked> 样式化（关 = 原样 1:1 显示）</label>
+      <label>采样除数（原图 ÷ N；像素化 = 缩小 N 倍采样）</label>
+      <div class="row">
+        <select id="divisor" style="flex:1">
+          <option value="1">1/1 原样</option>
+          <option value="2" selected>1/2</option>
+          <option value="4">1/4</option>
+          <option value="8">1/8</option>
+        </select>
+        <select id="alpha-mode" title="边缘透明像素：保留=默认软边；消除=alpha&lt;128 变透明 + alpha&gt;=128 拉满（一步到位只剩透明/不透明）；增强=全部半透明拉满">
+          <option value="keep">边缘:保留</option>
+          <option value="remove">边缘:消除</option>
+          <option value="boost">边缘:增强</option>
+        </select>
+      </div>
+      <label>减色色板（映射到有限色板最近色）</label>
+      <select id="palette">
+        <option value="">无（保持原色）</option>
+        <option value="pico8">PICO-8 · 32 色</option>
+        <option value="gb">Game Boy · 4 色</option>
+        <option value="vga">VGA · 16 色</option>
+      </select>
+      <label>均匀量化（每通道色阶，0=关）</label>
+      <input id="quant" type="range" min="0" max="8" value="0">
+      <label>去背景容差（0=关；按左上角颜色抠除）</label>
+      <input id="bgtol" type="range" min="0" max="60" value="0">
+      <label>素材库（点击选中，再"添加到场景"）</label>
+      <div id="lib" class="lib"></div>
+      <button id="btn-add" class="primary">添加到场景 →</button>
+      <button id="btn-del-src">删除选中素材</button>
+      <div class="meta" id="m-import"></div>
+    </div>
+    <div id="side-anim" style="display:none">
+      <div class="meta" id="m-anim-target"></div>
+      <div id="anim-editor"></div>
+    </div>
   </div>
 
   <!-- 中：场景文件 + 全局设置 + 画布 + 时间轴 -->
@@ -503,17 +517,9 @@ function scrollOffset(e, t) {
   const off = (t * e.scroll.speed) % span;
   return e.scroll.dir === 'right' ? off : -off;
 }
-function elementAlpha(e, t) {
-  if (e.anim === 'blink') {
-    const on = Math.floor((t * 1000) / Math.max(50, e.animMs)) % 2 === 0;
-    return e.alpha * (on ? 1 : 0.25);
-  }
-  return e.alpha;
-}
-function elementScale(e, t) {
-  if (e.anim === 'pulse') return 1 + 0.15 * Math.sin((t * 1000 / Math.max(200, e.animMs)) * Math.PI * 2);
-  return 1;
-}
+function elementAlpha(e, t) { return applyAnims(animList(e.anim), t, { yOff: 0, scale: 1, alpha: e.alpha }).alpha; }
+function elementScale(e, t) { return applyAnims(animList(e.anim), t, { yOff: 0, scale: 1, alpha: 1 }).scale; }
+function elementBobY(e, t) { return applyAnims(animList(e.anim), t, { yOff: 0, scale: 1, alpha: 1 }).yOff; }
 function drawElement(ctx, e, t, imgMap) {
   // 素材采样 canvas 优先（_asset：按 srcId 实时采样）；否则 _img / imgMap（旧路径硬编码 dataUrl）
   const img = e._asset || imgMap[e.id] || e._img;
@@ -525,19 +531,21 @@ function drawElement(ctx, e, t, imgMap) {
   const scale = elementScale(e, t);
   const w = e.w * scale, h = e.h * scale;
   const ox = scrollOffset(e, t);
+  const bobY = elementBobY(e, t);
   ctx.globalAlpha = elementAlpha(e, t);
   const rot = e.rot || 0, fh = e.flipH ? -1 : 1, fv = e.flipV ? -1 : 1;
   const blit = (dx, dy) => {
+    const dyy = dy + bobY;
     if (rot || fh < 0 || fv < 0) {
       ctx.save();
-      ctx.translate(dx + w / 2, dy + h / 2);
+      ctx.translate(dx + w / 2, dyy + h / 2);
       // 先翻转后旋转：flip·R(rot) = R(-rot)·flip——镜像对旋转角度同样生效（rotate 在 scale 之后调用 = 先作用到图形）
       if (rot) ctx.rotate(rot * Math.PI / 180);
       ctx.scale(fh, fv);
       ctx.drawImage(img, fx * sw, 0, sw, img.height, -w / 2, -h / 2, w, h);
       ctx.restore();
     } else {
-      ctx.drawImage(img, fx * sw, 0, sw, img.height, Math.round(dx), Math.round(dy), w, h);
+      ctx.drawImage(img, fx * sw, 0, sw, img.height, Math.round(dx), Math.round(dyy), w, h);
     }
   };
   if (e.scroll && e.scroll.speed && e.scroll.span) {
@@ -641,7 +649,7 @@ function drawPartsToolDiv(ctx, e, t, div) {
   drawPartsToolRaw(og, e, t, 1); // 离屏画不透明版（元素级 alpha 移到放大时应用，避免与边缘透明处理冲突）
   applyAlphaMode(oc, e.alphaMode); // 边缘透明像素：remove（<128 透明 + >=128 拉满）/ boost（全拉满）
   ctx.save();
-  ctx.globalAlpha = e.alpha != null ? e.alpha : 1;
+  ctx.globalAlpha = elementAlpha(e, t); // 元素级透明度（含 blink 动画）在放大时应用
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(oc, 0, 0, W, H, Math.round(bx), Math.round(by), Math.round(bw), Math.round(bh));
   ctx.restore();
@@ -668,6 +676,35 @@ function partCenter(p) {
   }
   return { cx: (p.x || 0) + 0.5, cy: (p.y || 0) + 0.5 };
 }
+/* —— 通用动画原语（与 home-scene 同语义）—— anim 字段可叠加（字符串简写 / 单对象 / 多动画对象）；
+   作用顺序：bob（y 偏移）→ pulse（缩放）→ blink（透明度） */
+function animList(a) {
+  if (!a) return [];
+  if (typeof a === 'string') return [{ type: a, params: {} }];
+  if (a.type) return [{ type: a.type, params: a }];
+  return Object.keys(a).map(k => ({ type: k, params: a[k] || {} }));
+}
+function applyAnims(list, t, init) {
+  let yOff = init.yOff || 0, scale = init.scale != null ? init.scale : 1, alpha = init.alpha != null ? init.alpha : 1;
+  for (const an of list) {
+    const pr = an.params || {};
+    if (an.type === 'bob') {
+      const per = pr.period != null ? pr.period : 1 / 6; // 秒/翻转（默认 1/6s，与 train 原 floor(t*6)%2 一致）
+      yOff += Math.floor(t / per) % 2 * (pr.amp != null ? pr.amp : 1);
+    } else if (an.type === 'pulse') {
+      const per = pr.period != null ? pr.period : 0.7;
+      scale *= 1 + (pr.amp != null ? pr.amp : 0.15) * Math.sin(t / per * Math.PI * 2);
+    } else if (an.type === 'blink') {
+      const per = pr.period != null ? pr.period : 700;
+      const duty = pr.duty != null ? pr.duty : 0.5;
+      const ph = pr.phase || 0;
+      const pos = (t * 1000 / per) % 1;
+      const rel = (pos - ph + 1) % 1;
+      alpha *= rel < duty ? (pr.on != null ? pr.on : 1) : (pr.off != null ? pr.off : 0.25);
+    }
+  }
+  return { yOff, scale, alpha };
+}
 function drawPartsToolRaw(ctx, e, t, alphaOverride) {
   let ox = 0;
   if (e.scroll && e.scroll.speed) {
@@ -675,18 +712,24 @@ function drawPartsToolRaw(ctx, e, t, alphaOverride) {
     const off = (t * e.scroll.speed) % sp;
     ox = e.scroll.dir === 'right' ? off : -off;
   }
-  const x0 = elVal(e, 'x') + ox, y0 = elVal(e, 'y') + (e.anim === 'bob' ? Math.floor(t * 6) % 2 : 0);
-  ctx.globalAlpha = alphaOverride != null ? alphaOverride : (e.alpha != null ? e.alpha : 1);
+  const x0 = elVal(e, 'x') + ox, y0 = elVal(e, 'y');
+  // 元素级动画（可叠加）：bob y 偏移 → pulse 缩放 → blink 透明度
+  const ea = applyAnims(animList(e.anim), t, { yOff: 0, scale: 1, alpha: alphaOverride != null ? alphaOverride : (e.alpha != null ? e.alpha : 1) });
+  const Y0 = y0 + ea.yOff;
+  const alpha = ea.alpha;
+  const scale = ea.scale;
   const blit = dx => {
     const X = x0 + dx;
     for (const p of (e.parts || [])) {
       const q = normPart(p);
-      ctx.globalAlpha = (e.alpha != null ? e.alpha : 1) * (q.alpha != null ? q.alpha : 1); // 元素级 × 图元级透明度
-      const PX = Math.round(X + (q.x || 0)), PY = Math.round(y0 + (q.y || 0));
+      // 图元级动画（blink/bob；pulse 留元素级）
+      const pa = applyAnims(animList(q.anim), t, { yOff: 0, scale: 1, alpha: q.alpha != null ? q.alpha : 1 });
+      ctx.globalAlpha = alpha * pa.alpha; // 元素级 × 图元级 × 图元动画
+      const PX = Math.round(X + (q.x || 0)), PY = Math.round(Y0 + pa.yOff + (q.y || 0));
       const rot = q.rot || 0, fh = q.flipH ? -1 : 1, fv = q.flipV ? -1 : 1;
       if (rot || fh < 0 || fv < 0) {
         const c = partCenter(q);
-        const cx = X + c.cx, cy = y0 + c.cy;
+        const cx = X + c.cx, cy = Y0 + pa.yOff + c.cy;
         ctx.save();
         ctx.translate(cx, cy);
         // 先翻转后旋转（镜像作用于旋转角度；flip·R(rot) = R(-rot)·flip）
@@ -696,7 +739,8 @@ function drawPartsToolRaw(ctx, e, t, alphaOverride) {
       }
       const hasStroke = q.stroke && q.strokeWidth > 0;
       if (q.type === 'rect') {
-        if (q.fill) { ctx.fillStyle = q.fill; ctx.fillRect(PX, PY, q.w || 1, q.h || 1); }
+        const w = Math.max(1, Math.round((q.w || 1) * scale)), h = Math.max(1, Math.round((q.h || 1) * scale));
+        if (q.fill) { ctx.fillStyle = q.fill; ctx.fillRect(PX, PY, w, h); }
         if (hasStroke) { ctx.strokeStyle = q.stroke; ctx.lineWidth = q.strokeWidth; ctx.strokeRect(PX, PY, q.w || 1, q.h || 1); }
       } else if (q.type === 'line') {
         ctx.strokeStyle = q.stroke || q.fill || '#fff';
@@ -1476,6 +1520,76 @@ function loadFiles(files) {
     renderStyleCtl();
     $('m-import').textContent = '已合成 ' + imgs.length + ' 帧素材「' + src.name + '」（采样 ' + sz.w + '×' + sz.h + ' ×' + imgs.length + ' 帧）——点「添加到场景」';
   }
+}
+/* —— 左侧栏双状态：素材导入 / 动画调整 —— */
+document.querySelectorAll('.side-tab').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.side-tab').forEach(x => x.classList.toggle('active', x === b));
+  $('side-import').style.display = b.dataset.panel === 'import' ? '' : 'none';
+  $('side-anim').style.display = b.dataset.panel === 'anim' ? '' : 'none';
+  if (b.dataset.panel === 'anim') renderAnimPanel();
+}));
+/* 动画目标：优先选中图元（[编辑] 青色框），否则选中元素（黄框/卡片） */
+function animTarget() {
+  if (state.partSel && state.partSel.el && state.partSel.el.parts && state.partSel.el.parts[state.partSel.index]) {
+    const el = state.partSel.el;
+    return { obj: el.parts[state.partSel.index], label: '图元 #' + state.partSel.index + '（' + (el.name || el.id) + '）' };
+  }
+  const sel = selEl();
+  if (sel) return { obj: sel, label: '元素「' + (sel.name || sel.id) + '」' };
+  if (state.selProg) {
+    const k = Object.keys(window.HOME_SCENE || {}).find(kk => window.HOME_SCENE[kk] === state.selProg);
+    return { obj: state.selProg, label: '程序元素「' + (k || state.selProg.name || '') + '」' };
+  }
+  return null;
+}
+const ANIM_PRIMS = [
+  { type: 'bob', label: 'bob · 垂直轻震', fields: [['amp', '幅度', 0.5], ['period', '翻转秒', 0.05]] },
+  { type: 'blink', label: 'blink · 闪烁', fields: [['on', '亮α', 0.05], ['off', '暗α', 0.05], ['period', '周期ms', 10], ['duty', '亮占比', 0.05], ['phase', '起点', 0.05]] },
+  { type: 'pulse', label: 'pulse · 脉动', fields: [['amp', '幅度', 0.05], ['period', '周期秒', 0.1]] },
+];
+function renderAnimPanel() {
+  const ed = $('anim-editor');
+  const mt = $('m-anim-target');
+  const t = animTarget();
+  if (!t) {
+    mt.textContent = '未选中目标——画布/图层栏选中元素或图元（[编辑] 内青色框）后切换本面板';
+    ed.innerHTML = '';
+    return;
+  }
+  mt.textContent = '动画目标：' + t.label + '（多动画可叠加；bob→pulse→blink 顺序应用）';
+  ed.innerHTML = '';
+  const cur = {};
+  animList(t.obj.anim).forEach(an => { cur[an.type] = Object.assign({}, an.params); });
+  const save = () => {
+    const keys = Object.keys(cur);
+    if (keys.length) { t.obj.anim = {}; keys.forEach(k => { t.obj.anim[k] = cur[k]; }); }
+    else delete t.obj.anim;
+    pushHistory();
+    refreshStage();
+    renderAnimPanel();
+  };
+  ANIM_PRIMS.forEach(pr => {
+    const row = document.createElement('div'); row.className = 'cf-row';
+    const on = document.createElement('input'); on.type = 'checkbox'; on.checked = !!cur[pr.type];
+    const label = document.createElement('label'); label.textContent = pr.label; label.style.flex = '1';
+    row.appendChild(on); row.appendChild(label);
+    const wrap = document.createElement('div'); wrap.className = 'cf-row-inline';
+    pr.fields.forEach(([key, nm, step]) => {
+      const def = key === 'on' ? 1 : key === 'off' ? 0.25 : key === 'period' ? (pr.type === 'blink' ? 700 : pr.type === 'bob' ? 1 / 6 : 0.7) : key === 'duty' ? 0.5 : key === 'phase' ? 0 : 1;
+      const inp = document.createElement('input'); inp.type = 'number'; inp.step = step; inp.style.width = '52px';
+      inp.value = cur[pr.type] && cur[pr.type][key] != null ? cur[pr.type][key] : def;
+      inp.disabled = !on.checked;
+      inp.title = nm;
+      inp.addEventListener('change', () => { const v = parseFloat(inp.value); if (!isNaN(v)) { cur[pr.type] = cur[pr.type] || {}; cur[pr.type][key] = v; save(); } });
+      wrap.appendChild(inp);
+    });
+    on.addEventListener('change', () => { if (on.checked) cur[pr.type] = cur[pr.type] || {}; else delete cur[pr.type]; save(); });
+    row.appendChild(wrap);
+    ed.appendChild(row);
+  });
+  const hint = document.createElement('div'); hint.className = 'cf-ro';
+  hint.textContent = '参数进配置随保存写回；bob=1px 轻震/blink=透明度方波（duty 亮占比、phase on 起点）/pulse=缩放脉动';
+  ed.appendChild(hint);
 }
 /* 素材样式化（左侧栏）：参数作用于选中素材（素材级快照），原图保留可还原；
    样式化开关（关 = 原样 1:1）+ 采样除数（采样尺寸 = 基图 ÷ 除数）——改参数实时生效 */
@@ -2642,7 +2756,7 @@ function partsEditor(el, body, cardKey) {
   const rebuild = () => buildLayerList(layerCfg());
   (el.parts || []).forEach((p, i) => {
     const box = document.createElement('div');
-    box.className = 'cf-box';
+    box.className = 'cf-box' + (state.partSel && state.partSel.el === el && state.partSel.index === i ? ' sel' : ''); // 选中图元卡片高亮（青框）
     const hd = document.createElement('div');
     hd.className = 'cf-ro';
     hd.textContent = '#' + i + ' · ' + p.type;

@@ -2,6 +2,18 @@
 
 > 独立于游戏本体的 CHANGELOG。工具版本独立演进，与游戏版本号无关。
 
+## v2.5 —— 通用动画原语体系 + 左侧栏双状态
+- **动画原语化（skill 暴露能力，同名无意义）**：trainFx/signalFx 等按元素名绑定的 fx **全部移除**，拆解为通用原语：
+  - `anim` 字段可挂在**元素或任意 part** 上（标签式多动画叠加）：字符串简写 `'bob'`（旧兼容）/ 单对象 `{type, ...}` / 多对象 `{bob:{...}, blink:{...}}`
+  - 原语枚举：`bob`（垂直轻震，amp/period 默认 1px·1/6s，与原 `floor(t*6)%2` 一致）/ `blink`（透明度方波，on/off/period/duty/phase——支持非对称占空与相位）/ `pulse`（缩放脉动）
+  - **作用顺序文档化**：bob（y 偏移）→ pulse（缩放）→ blink（透明度），维度独立可叠加
+- **parts 级动画**：信号灯 = 绿/红两重叠 part + **互补 blink**（`green {period:4000, duty:3/4, phase:1/4}` + `red {period:4000, duty:1/4, phase:0}`）；列车车窗灯 = 静态暗 part + 亮 part blink（`{period:2333, duty:6/7, phase:1/7}`）——任何元素可做"两态切换/周期点亮"
+- **光束几何实体化**：`drawBeam` 通用（元素声明 `beam`/`beamLen`/`beamOrigin`/`beamSpread`），列车车头灯为其实例；非动画（多关键帧范畴，待关键帧系统）
+- **像素级验证**：16 时间点（覆盖 bob 两相/灯亮灭/信号切换/雾幕光束/多场景）**DIFF=0**——动画参数化前后视觉完全一致
+- **左侧栏双状态**：「素材导入 / 动画调整」顶部标签切换；动画面板按选中目标（优先图元[编辑]青框，其次元素黄框/卡片）显示 bob/blink/pulse 三原语开关+参数；选中图元的图层卡片对应部分高亮（青框）
+- SCENE_SPEC：动画原语枚举/顺序/典型组合（两态切换/周期点亮/叠加）写入 §七，作为 skill 暴露给生成 agent 的能力
+- 渲染端同步：`public/home-scene.js` → `tools/home-scene.js`（vendored）一致
+
 ## v2.4 补 —— 填充/描边取消勾选颜色保留
 - **[编辑] 图元面板填充/描边取消勾选后颜色不再丢失变黑**：此前取消勾选置 `fill/stroke=null` 后 `commit()` 重建表单，色板控件以 `|| '#000000'` 初始化 → 重新勾选变黑；现取消时原色保留到 `_fillColor`/`_strokeColor`（表单重建/重开 js 均可恢复），重新勾选还原原色；序列化保留该字段（随配置写回）
 - 渲染端同步：`public/home-scene.js` → `tools/home-scene.js`（vendored）一致
