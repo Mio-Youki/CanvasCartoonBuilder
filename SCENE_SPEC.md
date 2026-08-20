@@ -128,11 +128,15 @@ anim: { bob: { amp: 1, period: 1/6 }, blink: { period: 2333, duty: 6/7, phase: 1
 
 | 原语 | 参数（默认） | 效果 | 应用 |
 |---|---|---|---|
-| `bob` | `amp:1, period:1/6`（秒/翻转） | 垂直轻震（y 偏移 = 相位 × amp） | 元素/part |
+| `bob` | `amp:1, period:1/6`（秒/翻转）, `angle:0`（度，0=垂直，90=水平） | 平移轻震（可斜向；偏移 = 相位 × amp，方向由 angle 分解） | 元素/part |
+| `wave` | `amp:10`（度）, `period:1`（秒/周期） | 旋转摆动（绕中心来回摆动，非单向旋转） | 元素/part |
 | `blink` | `on:1, off:0.25, period:700`（毫秒/周期）, `duty:0.5`（亮占比）, `phase:0`（on 起点，周期比例） | 透明度方波（on/off 交替，可非对称占空） | 元素/part |
 | `pulse` | `amp:0.15, period:0.7`（秒/周期） | 缩放脉动 | 元素级 |
 
-**作用顺序（文档化）**：`bob`（几何 y 偏移）→ `pulse`（缩放）→ `blink`（透明度）——各原语作用维度独立，可安全叠加。
+**作用顺序（文档化）**：`bob`（平移）→ `wave`（旋转）→ `pulse`（缩放）→ `blink`（透明度）——各原语作用维度独立，可安全叠加。
+**wave 层级语义**：元素级 = **绕元素包围盒中心**摆动；part 级 = 叠加到该 part 的 `rot`（绕自身中心）。
+**滚动斜向（scrollAngle）**：素材 `scroll.angle`（度，0=水平，90=垂直下落，45=斜向雨/流星整组）——
+渲染端将滚动偏移分解为 `{x,y}`（瓦片沿 x 排列、整体 y 跟随，首尾衔接为斜向近似）。
 
 **典型组合（示例）**：
 - **两态颜色切换**（如信号灯绿/红）：两个重叠 part + 互补 blink（`green: {period:4000, duty:3/4, phase:1/4, on:1, off:0}` + `red: {period:4000, duty:1/4, phase:0, on:1, off:0}`）
@@ -143,8 +147,17 @@ anim: { bob: { amp: 1, period: 1/6 }, blink: { period: 2333, duty: 6/7, phase: 1
 元素声明 `beam`（颜色数组）+ `beamLen`（长度数组）+ `beamOrigin`/`beamSpread`（几何，相对元素原点），
 渲染端通用 `drawBeam` 绘制（非动画原语，多关键帧范畴待后续关键帧系统）。
 
+**平铺元素 → partsBand 拆解（生成/改写 Agent 规则）**：滚动平铺元素（rail/poles/fog/foreground/bridge 等）
+几何单元固定、沿 x 循环平移——可拆为 parts：
+- 单元几何提取为 parts（坐标相对**瓦片原点**），元素置 `partsBand:true`（speed/span 顶层或 scroll 对象）
+- **几何变体约定**：单元内若含多形状循环（如 farForest 的 `i%4` 树高、clouds 的 `i&1` 双行错位、
+  mountains 的 `peak` 三角），partsBand 只能表达**单一单元**——要么接受单一形状（变体丢失），
+  要么改用 **images 多帧素材**（每帧一个变体，`frames`+`fps` 循环）
+- 变体拆解示例：`rail`（c1 轨面 + c2 枕木 + tie）= 一个瓦片 3 parts；`fog`（a1/a2/a3 三团）= 一个瓦片 3 parts
+
 **工具内建**：左侧栏「动画调整」面板（与「素材导入」双状态切换）——选中元素/图元后编辑
-bob/blink/pulse 三原语参数（开关 + 数值），参数进配置随保存写回；选中图元时其图层卡片对应部分高亮。
+bob/wave/blink/pulse 四原语参数（开关 + 数值，bob 含角度），参数进配置随保存写回；选中图元时其图层卡片对应部分高亮；
+素材卡片「滚动角度」（scroll.angle）输入。
 
 ## 五、工具内建能力（Agent 无需生成）
 

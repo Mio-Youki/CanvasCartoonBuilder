@@ -512,15 +512,18 @@ function addElement(src) {
 function selEl() { return state.elements.find(e => e.id === state.selEl); }
 
 /* ---------------- 场景渲染（预览与导出共用逻辑） ---------------- */
-function scrollOffset(e, t) {
-  if (!e.scroll || !e.scroll.speed) return 0;
+function scrollOffsets(e, t) {
+  if (!e.scroll || !e.scroll.speed) return { x: 0, y: 0 };
   const span = e.scroll.span || e.w || 1;
   const off = (t * e.scroll.speed) % span;
-  return e.scroll.dir === 'right' ? off : -off;
+  const dir = e.scroll.dir === 'right' ? 1 : -1;
+  const ang = ((e.scroll && e.scroll.angle) || e.angle || 0) * Math.PI / 180;
+  // 位移向量：ox 沿水平 dir（保留 left/right 语义）；oy = off*sin(angle) 恒正（angle>0 向下落）
+  return { x: dir * off * Math.cos(ang), y: off * Math.sin(ang) };
 }
 function elementAlpha(e, t) { return applyAnims(animList(e.anim), t, { yOff: 0, scale: 1, alpha: e.alpha }).alpha; }
 function elementScale(e, t) { return applyAnims(animList(e.anim), t, { yOff: 0, scale: 1, alpha: 1 }).scale; }
-function elementBobY(e, t) { return applyAnims(animList(e.anim), t, { yOff: 0, scale: 1, alpha: 1 }).yOff; }
+function elementBobY(e, t) { return applyAnims(animList(e.anim), t, { yOff: 0, xOff: 0, rot: 0, scale: 1, alpha: 1 }).yOff; }
 function drawElement(ctx, e, t, imgMap) {
   // 素材采样 canvas 优先（_asset：按 srcId 实时采样）；否则 _img / imgMap（旧路径硬编码 dataUrl）
   const img = e._asset || imgMap[e.id] || e._img;
@@ -529,33 +532,34 @@ function drawElement(ctx, e, t, imgMap) {
   const frames = e.frames > 1 ? e.frames : 1;
   const fx = frames > 1 ? Math.floor(t * (e.fps || 8)) % frames : 0;
   const sw = frames > 1 ? Math.floor(img.width / frames) : img.width;
-  const scale = elementScale(e, t);
+  const so = scrollOffsets(e, t);
+  const ea = applyAnims(animList(e.anim), t, { yOff: 0, xOff: 0, rot: 0, scale: 1, alpha: e.alpha != null ? e.alpha : 1 });
+  const scale = ea.scale;
   const w = e.w * scale, h = e.h * scale;
-  const ox = scrollOffset(e, t);
-  const bobY = elementBobY(e, t);
-  ctx.globalAlpha = elementAlpha(e, t);
-  const rot = e.rot || 0, fh = e.flipH ? -1 : 1, fv = e.flipV ? -1 : 1;
+  const bobX = ea.xOff, bobY = ea.yOff;
+  ctx.globalAlpha = ea.alpha;
+  const rot = (e.rot || 0) + (ea.rot || 0), fh = e.flipH ? -1 : 1, fv = e.flipV ? -1 : 1;
   const blit = (dx, dy) => {
-    const dyy = dy + bobY;
+    const dxx = dx + bobX, dyy = dy + bobY;
     if (rot || fh < 0 || fv < 0) {
       ctx.save();
-      ctx.translate(dx + w / 2, dyy + h / 2);
+      ctx.translate(dxx + w / 2, dyy + h / 2);
       // 先翻转后旋转：flip·R(rot) = R(-rot)·flip——镜像对旋转角度同样生效（rotate 在 scale 之后调用 = 先作用到图形）
       if (rot) ctx.rotate(rot * Math.PI / 180);
       ctx.scale(fh, fv);
       ctx.drawImage(img, fx * sw, 0, sw, img.height, -w / 2, -h / 2, w, h);
       ctx.restore();
     } else {
-      ctx.drawImage(img, fx * sw, 0, sw, img.height, Math.round(dx), Math.round(dyy), w, h);
+      ctx.drawImage(img, fx * sw, 0, sw, img.height, Math.round(dxx), Math.round(dyy), w, h);
     }
   };
   if (e.scroll && e.scroll.speed && e.scroll.span) {
     const span = e.scroll.span;
     const dir = e.scroll.dir === 'right' ? 1 : -1;
     const n = Math.ceil(state.cw / span) + 3;
-    for (let j = 0; j < n; j++) blit(e.x + j * span * dir - ox * dir, e.y);
+    for (let j = 0; j < n; j++) blit(e.x + j * span * dir - so.x * dir, e.y + so.y);
   } else {
-    blit(e.x + ox, e.y);
+    blit(e.x + so.x, e.y + so.y);
   }
   ctx.globalAlpha = 1;
 }
@@ -590,7 +594,7 @@ function renderStage() {
     state.multi.forEach(m => {
       let bb;
       if (m.parts && m.parts.length) bb = partsBBox(m, state.t);
-      else { const ox2 = scrollOffset(m, state.t); bb = { x: m.x + ox2, y: m.y, w: m.w, h: m.h }; }
+      else { const so2 = scrollOffsets(m, state.t); bb = { x: m.x + so2.x, y: m.y + so2.y, w: m.w, h: m.h }; }
       ctx.strokeStyle = '#ffd23f';
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 2]);
@@ -606,7 +610,7 @@ function renderStage() {
   if (state.partSel && state.partSel.el && state.partSel.el.parts && state.partSel.el.parts[state.partSel.index]) {
     const pe = state.partSel.el;
     const p = pe.parts[state.partSel.index];
-    const ex0 = elVal(pe, 'x') + scrollOffset(pe, state.t), ey0 = elVal(pe, 'y');
+    const ex0 = elVal(pe, 'x') + scrollOffsets(pe, state.t).x, ey0 = elVal(pe, 'y') + scrollOffsets(pe, state.t).y;
     const bb = partBBox(p, ex0, ey0);
     // 选中图元高亮（part 级）：青色选中框 + 四角缩放 + 旋转 ●（多边形同支持；带元素仅画框）
     drawSelBox(ctx, bb, '#4dc3ff', { dash: [2, 2], noCorners: pe.partsBand, noRot: pe.partsBand, noMirror: pe.partsBand });
@@ -614,8 +618,8 @@ function renderStage() {
   // 选中高亮 + 四角缩放手柄（不依赖素材图，位置来自数据）
   const sel = selEl();
   if (sel) {
-    const ox = scrollOffset(sel, state.t);
-    drawSelBox(ctx, { x: Math.round(sel.x + ox), y: Math.round(sel.y), w: sel.w, h: sel.h }, '#ffd23f', sel.partsBand ? { noHandles: true } : {});
+    const so3 = scrollOffsets(sel, state.t);
+    drawSelBox(ctx, { x: Math.round(sel.x + so3.x), y: Math.round(sel.y + so3.y), w: sel.w, h: sel.h }, '#ffd23f', sel.partsBand ? { noHandles: true } : {});
   }
 }
 /* 装配模式图元渲染（与 home-scene drawParts 同语义；AI 式描边/填充）。
@@ -629,8 +633,8 @@ function drawPartsTool(ctx, e, t) {
 }
 function drawPartsToolDiv(ctx, e, t, div) {
   // 元素显示包围盒（含 scroll 偏移；band/滚动平铺元素不走此路径）
-  const ox = scrollOffset(e, t);
-  const x0 = elVal(e, 'x') + ox, y0 = elVal(e, 'y');
+  const so = scrollOffsets(e, t);
+  const x0 = elVal(e, 'x') + so.x, y0 = elVal(e, 'y') + so.y;
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   const ext = (x, y) => { if (x < minX) minX = x; if (y < minY) minY = y; if (x > maxX) maxX = x; if (y > maxY) maxY = y; };
   (e.parts || []).forEach(p => {
@@ -678,7 +682,7 @@ function partCenter(p) {
   return { cx: (p.x || 0) + 0.5, cy: (p.y || 0) + 0.5 };
 }
 /* —— 通用动画原语（与 home-scene 同语义）—— anim 字段可叠加（字符串简写 / 单对象 / 多动画对象）；
-   作用顺序：bob（y 偏移）→ pulse（缩放）→ blink（透明度） */
+   作用顺序：bob（平移，可 angle 斜向）→ wave（旋转摆动）→ pulse（缩放）→ blink（透明度） */
 function animList(a) {
   if (!a) return [];
   if (typeof a === 'string') return [{ type: a, params: {} }];
@@ -686,12 +690,18 @@ function animList(a) {
   return Object.keys(a).map(k => ({ type: k, params: a[k] || {} }));
 }
 function applyAnims(list, t, init) {
-  let yOff = init.yOff || 0, scale = init.scale != null ? init.scale : 1, alpha = init.alpha != null ? init.alpha : 1;
+  let yOff = init.yOff || 0, xOff = init.xOff || 0, rot = init.rot || 0, scale = init.scale != null ? init.scale : 1, alpha = init.alpha != null ? init.alpha : 1;
   for (const an of list) {
     const pr = an.params || {};
     if (an.type === 'bob') {
-      const per = pr.period != null ? pr.period : 1 / 6; // 秒/翻转（默认 1/6s，与 train 原 floor(t*6)%2 一致）
-      yOff += Math.floor(t / per) % 2 * (pr.amp != null ? pr.amp : 1);
+      const per = pr.period != null ? pr.period : 1 / 6;
+      const phase = Math.floor(t / per) % 2 * (pr.amp != null ? pr.amp : 1);
+      const ang = (pr.angle != null ? pr.angle : 0) * Math.PI / 180;
+      xOff += Math.sin(ang) * phase;
+      yOff += Math.cos(ang) * phase;
+    } else if (an.type === 'wave') {
+      const per = pr.period != null ? pr.period : 1;
+      rot += (pr.amp != null ? pr.amp : 10) * Math.sin(t / per * Math.PI * 2);
     } else if (an.type === 'pulse') {
       const per = pr.period != null ? pr.period : 0.7;
       scale *= 1 + (pr.amp != null ? pr.amp : 0.15) * Math.sin(t / per * Math.PI * 2);
@@ -704,33 +714,41 @@ function applyAnims(list, t, init) {
       alpha *= rel < duty ? (pr.on != null ? pr.on : 1) : (pr.off != null ? pr.off : 0.25);
     }
   }
-  return { yOff, scale, alpha };
+  return { yOff, xOff, rot, scale, alpha };
+}
+/* 图元局部包围盒（元素级 wave 旋转中心 / pixelDiv 离屏用；不含 scroll 偏移） */
+function partsLocalBox(e) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const ext = (x, y) => { if (x < minX) minX = x; if (y < minY) minY = y; if (x > maxX) maxX = x; if (y > maxY) maxY = y; };
+  (e.parts || []).forEach(p => {
+    if (p.type === 'rect' || p.type === 'ellipse') { ext(p.x || 0, p.y || 0); ext((p.x || 0) + (p.w || 1), (p.y || 0) + (p.h || 1)); }
+    else if (p.type === 'line') { ext(p.x || 0, p.y || 0); ext(p.x2 || 0, p.y2 || 0); }
+    else if (p.type === 'poly') (p.points || []).forEach(pt => ext(pt[0], pt[1]));
+  });
+  if (!isFinite(minX)) return null;
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
 }
 function drawPartsToolRaw(ctx, e, t, alphaOverride) {
-  let ox = 0;
-  if (e.scroll && e.scroll.speed) {
-    const sp = e.scroll.span || e.w || 1;
-    const off = (t * e.scroll.speed) % sp;
-    ox = e.scroll.dir === 'right' ? off : -off;
-  }
-  const x0 = elVal(e, 'x') + ox, y0 = elVal(e, 'y');
-  // 元素级动画（可叠加）：bob y 偏移 → pulse 缩放 → blink 透明度
-  const ea = applyAnims(animList(e.anim), t, { yOff: 0, scale: 1, alpha: alphaOverride != null ? alphaOverride : (e.alpha != null ? e.alpha : 1) });
-  const Y0 = y0 + ea.yOff;
+  const so = scrollOffsets(e, t);
+  const x0 = elVal(e, 'x') + so.x, y0 = elVal(e, 'y') + so.y;
+  // 元素级动画（可叠加）：bob（平移，可 angle 斜向）→ wave（旋转摆动）→ pulse 缩放 → blink 透明度
+  const ea = applyAnims(animList(e.anim), t, { yOff: 0, xOff: 0, rot: 0, scale: 1, alpha: alphaOverride != null ? alphaOverride : (e.alpha != null ? e.alpha : 1) });
+  const X0 = x0 + ea.xOff, Y0 = y0 + ea.yOff;
   const alpha = ea.alpha;
   const scale = ea.scale;
-  const blit = dx => {
-    const X = x0 + dx;
+  const blit = (dx, yAdd) => {
+    const X = X0 + dx;
+    const Y = Y0 + (yAdd || 0);
     for (const p of (e.parts || [])) {
       const q = normPart(p);
-      // 图元级动画（blink/bob；pulse 留元素级）
-      const pa = applyAnims(animList(q.anim), t, { yOff: 0, scale: 1, alpha: q.alpha != null ? q.alpha : 1 });
+      // 图元级动画（bob/wave/blink；pulse 留元素级）
+      const pa = applyAnims(animList(q.anim), t, { yOff: 0, xOff: 0, rot: 0, scale: 1, alpha: q.alpha != null ? q.alpha : 1 });
       ctx.globalAlpha = alpha * pa.alpha; // 元素级 × 图元级 × 图元动画
-      const PX = Math.round(X + (q.x || 0)), PY = Math.round(Y0 + pa.yOff + (q.y || 0));
-      const rot = q.rot || 0, fh = q.flipH ? -1 : 1, fv = q.flipV ? -1 : 1;
+      const PX = Math.round(X + pa.xOff + (q.x || 0)), PY = Math.round(Y + pa.yOff + (q.y || 0));
+      const rot = (q.rot || 0) + (pa.rot || 0), fh = q.flipH ? -1 : 1, fv = q.flipV ? -1 : 1;
       if (rot || fh < 0 || fv < 0) {
         const c = partCenter(q);
-        const cx = X + c.cx, cy = Y0 + pa.yOff + c.cy;
+        const cx = X + pa.xOff + c.cx, cy = Y + pa.yOff + c.cy;
         ctx.save();
         ctx.translate(cx, cy);
         // 先翻转后旋转（镜像作用于旋转角度；flip·R(rot) = R(-rot)·flip）
@@ -742,11 +760,11 @@ function drawPartsToolRaw(ctx, e, t, alphaOverride) {
       if (q.type === 'rect') {
         const w = Math.max(1, Math.round((q.w || 1) * scale)), h = Math.max(1, Math.round((q.h || 1) * scale));
         if (q.fill) { ctx.fillStyle = q.fill; ctx.fillRect(PX, PY, w, h); }
-        if (hasStroke) { ctx.strokeStyle = q.stroke; ctx.lineWidth = q.strokeWidth; ctx.strokeRect(PX, PY, q.w || 1, q.h || 1); }
+        if (hasStroke) { ctx.strokeStyle = q.stroke; ctx.lineWidth = q.strokeWidth; ctx.strokeRect(PX, PY, w, h); }
       } else if (q.type === 'line') {
         ctx.strokeStyle = q.stroke || q.fill || '#fff';
         ctx.lineWidth = q.strokeWidth || 1;
-        ctx.beginPath(); ctx.moveTo(PX, PY); ctx.lineTo(Math.round(X + (q.x2 || 0)), Math.round(y0 + (q.y2 || 0))); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(PX, PY); ctx.lineTo(Math.round(X + pa.xOff + (q.x2 || 0)), Math.round(Y + pa.yOff + (q.y2 || 0))); ctx.stroke();
       } else if (q.type === 'ellipse') {
         ctx.beginPath();
         ctx.ellipse(PX + (q.w || 1) / 2, PY + (q.h || 1) / 2, (q.w || 1) / 2, (q.h || 1) / 2, 0, 0, Math.PI * 2);
@@ -763,6 +781,13 @@ function drawPartsToolRaw(ctx, e, t, alphaOverride) {
       if (rot || fh < 0 || fv < 0) ctx.restore();
     }
   };
+  // 元素级 wave：绕元素包围盒中心旋转（包住全部绘制）
+  let wv = null;
+  if (ea.rot) {
+    const lb = partsLocalBox(e);
+    if (lb) wv = { cx: X0 + lb.x + lb.w / 2, cy: Y0 + lb.y + lb.h / 2 };
+  }
+  if (wv) { ctx.save(); ctx.translate(wv.cx, wv.cy); ctx.rotate(ea.rot * Math.PI / 180); ctx.translate(-wv.cx, -wv.cy); }
   if (e.partsBand && bandSpeed(e) && bandSpan(e)) {
     // 带元素：母带同款 wrap 公式逐瓦片（图元 x 为瓦片相位偏移）
     const span = bandSpan(e);
@@ -772,10 +797,11 @@ function drawPartsToolRaw(ctx, e, t, alphaOverride) {
   } else if (e.scroll && e.scroll.speed && e.scroll.span) {
     const dir = e.scroll.dir === 'right' ? 1 : -1;
     const n = Math.ceil(state.cw / e.scroll.span) + 3;
-    for (let j = 0; j < n; j++) blit(j * e.scroll.span * dir - ox * dir);
+    for (let j = 0; j < n; j++) blit(j * e.scroll.span * dir - so.x * dir, so.y);
   } else {
-    blit(ox);
+    blit(so.x, so.y);
   }
+  if (wv) ctx.restore();
   ctx.globalAlpha = 1;
 }
 /* 统一选中框绘制：虚线包围盒 + 四角手柄 + 旋转 ● + 镜像按钮 [|]/[一]（opts.noHandles 整体关闭）
@@ -960,7 +986,7 @@ stage.addEventListener('pointerdown', ev => {
       for (let i = 0; i < e.parts.length; i++) if (hitPart(e.parts[i], 0, 0, { x: relX, y: p.y })) return i;
       return -1;
     }
-    const ox0 = scrollOffset(e, state.t);
+    const ox0 = scrollOffsets(e, state.t).x;
     const ex = elVal(e, 'x') + ox0, ey = elVal(e, 'y');
     for (let i = 0; i < e.parts.length; i++) if (hitPart(e.parts[i], ex, ey, p)) return i;
     return -1;
@@ -968,7 +994,7 @@ stage.addEventListener('pointerdown', ev => {
   const pickPartDrag = (e, i) => {
     state.partSel = { el: e, index: i };
     const pp = e.parts[i];
-    const bb = e.partsBand ? null : partBBox(pp, elVal(e, 'x') + scrollOffset(e, state.t), elVal(e, 'y'));
+    const bb = e.partsBand ? null : partBBox(pp, elVal(e, 'x') + scrollOffsets(e, state.t).x, elVal(e, 'y') + scrollOffsets(e, state.t).y);
     const rh = bb && !e.partsBand ? rotHandleHit(p, bb) : null;
     if (rh) {
       const cx = bb.x + bb.w / 2, cy = bb.y + bb.h / 2;
@@ -994,7 +1020,7 @@ stage.addEventListener('pointerdown', ev => {
       const ps = state.partSel;
       const pp = ps.el.parts[ps.index];
       if (pp) {
-        const bb = partBBox(pp, elVal(ps.el, 'x') + scrollOffset(ps.el, state.t), elVal(ps.el, 'y'));
+        const bb = partBBox(pp, elVal(ps.el, 'x') + scrollOffsets(ps.el, state.t).x, elVal(ps.el, 'y') + scrollOffsets(ps.el, state.t).y);
         const mh = (!ps.el.partsBand && mirrorBtnHit(p, bb, 'h')) ? 1 : 0;
         const mv = (!ps.el.partsBand && mirrorBtnHit(p, bb, 'v')) ? 1 : 0;
         // 镜像按钮在旋转 ● 上方，先于旋转手柄命中（两者命中区相邻）
@@ -1065,8 +1091,8 @@ stage.addEventListener('pointerdown', ev => {
     }
   }
   for (const e of sorted) {
-    const ox = scrollOffset(e, state.t);
-    const x0 = e.x + ox, y0 = e.y;
+    const so5 = scrollOffsets(e, state.t);
+    const x0 = e.x + so5.x, y0 = e.y + so5.y;
     const box = { x: x0, y: y0, w: e.w, h: e.h };
     // 旋转手柄 + 镜像按钮（在包围盒外/上方）：优先于框内命中（图片元素与矢量元素共用）
     const rotD = (!e.partsBand && rotHandleHit(p, box)) ? 1 : 0;
@@ -1346,7 +1372,7 @@ function partBBox(p, ex, ey) {
 }
 /* 程序元素整体包围盒（选择模式整体选中用；带元素横向取全范围） */
 function partsBBox(e, t) {
-  const ex = elVal(e, 'x') + (e.partsBand ? 0 : scrollOffset(e, t));
+  const ex = elVal(e, 'x') + (e.partsBand ? 0 : scrollOffsets(e, t).x);
   const ey = elVal(e, 'y');
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   const ext = (x, y) => { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); };
@@ -1560,7 +1586,8 @@ function animTarget() {
   return null;
 }
 const ANIM_PRIMS = [
-  { type: 'bob', label: 'bob · 垂直轻震', fields: [['amp', '幅度', 0.5], ['period', '翻转秒', 0.05]] },
+  { type: 'bob', label: 'bob · 轻震', fields: [['amp', '幅度', 0.5], ['period', '翻转秒', 0.05], ['angle', '角度°', 15]] },
+  { type: 'wave', label: 'wave · 摆旋', fields: [['amp', '幅度°', 5], ['period', '周期秒', 0.1]] },
   { type: 'blink', label: 'blink · 闪烁', fields: [['on', '亮α', 0.05], ['off', '暗α', 0.05], ['period', '周期ms', 10], ['duty', '亮占比', 0.05], ['phase', '起点', 0.05]] },
   { type: 'pulse', label: 'pulse · 脉动', fields: [['amp', '幅度', 0.05], ['period', '周期秒', 0.1]] },
 ];
@@ -1592,7 +1619,7 @@ function renderAnimPanel() {
     row.appendChild(on); row.appendChild(label);
     const wrap = document.createElement('div'); wrap.className = 'cf-row-inline';
     pr.fields.forEach(([key, nm, step]) => {
-      const def = key === 'on' ? 1 : key === 'off' ? 0.25 : key === 'period' ? (pr.type === 'blink' ? 700 : pr.type === 'bob' ? 1 / 6 : 0.7) : key === 'duty' ? 0.5 : key === 'phase' ? 0 : 1;
+      const def = key === 'on' ? 1 : key === 'off' ? 0.25 : key === 'period' ? (pr.type === 'blink' ? 700 : pr.type === 'bob' ? 1 / 6 : pr.type === 'wave' ? 1 : 0.7) : key === 'duty' ? 0.5 : key === 'phase' ? 0 : key === 'angle' ? 0 : 1;
       const inp = document.createElement('input'); inp.type = 'number'; inp.step = step; inp.style.width = '52px';
       inp.value = cur[pr.type] && cur[pr.type][key] != null ? cur[pr.type][key] : def;
       inp.disabled = !on.checked;
@@ -2235,8 +2262,9 @@ function imgForm(el, box, cardKey) {
   num('层级 z', 'z', 1, 0, '越大越靠上');
   num('滚动速度', 'scroll.speed', 1, null, '像素/秒，0=静止');
   num('平铺周期', 'scroll.span', 1, 1, '滚动无缝平铺的跨度（默认=元素宽）');
+  num('滚动角度', 'scroll.angle', 15, null, '滚动方向角度（度）：0=水平，90=垂直下落，45=斜向（雨/流星整组斜移）');
   pick('滚动方向', 'scroll.dir', [['left', '向左'], ['right', '向右']]);
-  pick('动画类型', 'anim', [['static', '静态'], ['blink', '闪烁'], ['pulse', '脉动']], '闪烁=透明度明暗交替；脉动=大小缩放');
+  pick('动画类型', 'anim', [['static', '静态'], ['blink', '闪烁'], ['pulse', '脉动']], '简单动画；更多（bob 轻震/wave 摆旋，可叠加）在左侧[动画调整]面板');
   num('动画周期', 'animMs', 50, 50, '毫秒（闪烁/脉动的节拍）');
   num('帧数', 'frames', 1, 1, '多帧 sprite sheet（帧表横向裁切），1=单帧');
   num('帧率', 'fps', 1, 1, '多帧每秒播放帧数');

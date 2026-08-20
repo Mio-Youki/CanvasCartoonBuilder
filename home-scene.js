@@ -578,10 +578,10 @@ const HomeScene = (() => {
   }
   // —— 通用动画原语（元素级与 parts 级共用）——
   // anim 字段（可叠加多个，像标签一样挂在元素/part 上）：
-  //   字符串简写 'bob' | 'blink' | 'pulse'（= 默认参数，旧配置兼容）
+  //   字符串简写 'bob' | 'wave' | 'blink' | 'pulse'（= 默认参数，旧配置兼容）
   //   单动画对象 { type:'bob', amp:1, period:0.5 }
-  //   多动画叠加 { bob:{...}, blink:{...} }（各原语互不冲突，按顺序叠加）
-  // 作用顺序（文档化）：bob（几何 y 偏移）→ pulse（缩放）→ blink（透明度）
+  //   多动画叠加 { bob:{...}, wave:{...}, blink:{...} }（各原语互不冲突，按顺序叠加）
+  // 作用顺序（文档化）：bob（平移，可带 angle 斜向）→ wave（旋转摆动）→ pulse（缩放）→ blink（透明度）
   function animList(a) {
     if (!a) return [];
     if (typeof a === 'string') return [{ type: a, params: {} }];
@@ -589,12 +589,18 @@ const HomeScene = (() => {
     return Object.keys(a).map(k => ({ type: k, params: a[k] || {} }));
   }
   function applyAnims(list, t, init) {
-    let yOff = init.yOff || 0, scale = init.scale != null ? init.scale : 1, alpha = init.alpha != null ? init.alpha : 1;
+    let yOff = init.yOff || 0, xOff = init.xOff || 0, rot = init.rot || 0, scale = init.scale != null ? init.scale : 1, alpha = init.alpha != null ? init.alpha : 1;
     for (const an of list) {
       const pr = an.params || {};
       if (an.type === 'bob') {
         const per = pr.period != null ? pr.period : 1 / 6; // 秒/翻转（默认 1/6s，与 train 原 floor(t*6)%2 一致）
-        yOff += Math.floor(t / per) % 2 * (pr.amp != null ? pr.amp : 1);
+        const phase = Math.floor(t / per) % 2 * (pr.amp != null ? pr.amp : 1);
+        const ang = (pr.angle != null ? pr.angle : 0) * Math.PI / 180; // 角度：0=垂直，90=水平
+        xOff += Math.sin(ang) * phase;
+        yOff += Math.cos(ang) * phase;
+      } else if (an.type === 'wave') {
+        const per = pr.period != null ? pr.period : 1; // 秒/周期
+        rot += (pr.amp != null ? pr.amp : 10) * Math.sin(t / per * Math.PI * 2); // 度：绕中心来回摆动
       } else if (an.type === 'pulse') {
         const per = pr.period != null ? pr.period : 0.7; // 秒/周期
         scale *= 1 + (pr.amp != null ? pr.amp : 0.15) * Math.sin(t / per * Math.PI * 2);
@@ -607,7 +613,7 @@ const HomeScene = (() => {
         alpha *= rel < duty ? (pr.on != null ? pr.on : 1) : (pr.off != null ? pr.off : 0.25);
       }
     }
-    return { yOff, scale, alpha };
+    return { yOff, xOff, rot, scale, alpha };
   }
   function drawParts(e, t) {
     // 元素级重采样（pixelDiv > 1）：parts 画到「包围盒 ÷ 除数」离屏小画布 → 最近邻放大（锯齿感）
@@ -646,31 +652,37 @@ const HomeScene = (() => {
     }
     drawPartsRaw(e, t);
   }
+  // 滚动偏移（支持斜向 scrollAngle）：元素 scroll.angle 或顶层 angle（度；0=水平滚动，90=垂直下落）
+  function scrollOffsets(e, t) {
+    if (!e.scroll || !e.scroll.speed) return { x: 0, y: 0 };
+    const span = e.scroll.span || e.w || 1;
+    const off = (t * e.scroll.speed) % span;
+    const dir = e.scroll.dir === 'right' ? 1 : -1;
+    const ang = ((e.scroll && e.scroll.angle) || e.angle || 0) * Math.PI / 180;
+    // 位移向量：ox 沿水平 dir；oy = off×sin(angle) 恒正（angle>0 向下落）
+    return { x: dir * off * Math.cos(ang), y: off * Math.sin(ang) };
+  }
   function drawPartsRaw(e, t, alphaOverride) {
-    let ox = 0;
-    if (e.scroll && e.scroll.speed) {
-      const sp = e.scroll.span || e.w || 1;
-      const off = (t * e.scroll.speed) % sp;
-      ox = e.scroll.dir === 'right' ? off : -off;
-    }
+    const so = scrollOffsets(e, t);
     const x0 = val(e, 'x', t) || 0, y0 = val(e, 'y', t) || 0; // 缺失键按 0
-    // 元素级动画（可叠加）：bob y 偏移 → pulse 缩放 → blink 透明度
-    const ea = applyAnims(animList(e.anim), t, { yOff: 0, scale: 1, alpha: alphaOverride != null ? alphaOverride : (e.alpha != null ? e.alpha : 1) });
-    const Y0 = y0 + ea.yOff;
+    // 元素级动画（可叠加）：bob（平移，可 angle 斜向）→ wave（旋转摆动）→ pulse 缩放 → blink 透明度
+    const ea = applyAnims(animList(e.anim), t, { yOff: 0, xOff: 0, rot: 0, scale: 1, alpha: alphaOverride != null ? alphaOverride : (e.alpha != null ? e.alpha : 1) });
+    const X0 = x0 + ea.xOff + so.x, Y0 = y0 + ea.yOff + so.y;
     const scale = ea.scale;
     const alpha = ea.alpha;
-    const blit = dx => {
-      const X = x0 + dx;
+    const blit = (dx, yAdd) => {
+      const X = X0 + dx;
+      const Y = Y0 + (yAdd || 0);
       for (const p of (e.parts || [])) {
         const q = normPart(p);
-        // 图元级动画（blink/bob；pulse 缩放留元素级）：作用在 part 自身坐标/透明度上
-        const pa = applyAnims(animList(q.anim), t, { yOff: 0, scale: 1, alpha: q.alpha != null ? q.alpha : 1 });
+        // 图元级动画（bob/wave/blink；pulse 缩放留元素级）
+        const pa = applyAnims(animList(q.anim), t, { yOff: 0, xOff: 0, rot: 0, scale: 1, alpha: q.alpha != null ? q.alpha : 1 });
         ctx.globalAlpha = alpha * pa.alpha; // 元素级 × 图元级 × 图元动画
-        const PX = Math.round(X + (q.x || 0)), PY = Math.round(Y0 + pa.yOff + (q.y || 0));
-        const rot = q.rot || 0, fh = q.flipH ? -1 : 1, fv = q.flipV ? -1 : 1;
+        const PX = Math.round(X + pa.xOff + (q.x || 0)), PY = Math.round(Y + pa.yOff + (q.y || 0));
+        const rot = (q.rot || 0) + (pa.rot || 0), fh = q.flipH ? -1 : 1, fv = q.flipV ? -1 : 1;
         if (rot || fh < 0 || fv < 0) {
           const c = partCenter(q);
-          const cx = X + c.cx, cy = y0 + c.cy;
+          const cx = X + pa.xOff + c.cx, cy = Y + pa.yOff + c.cy;
           ctx.save();
           ctx.translate(cx, cy);
           // 先翻转后旋转（镜像作用于旋转角度；flip·R(rot) = R(-rot)·flip）
@@ -704,6 +716,13 @@ const HomeScene = (() => {
       }
     };
     ctx.globalAlpha = alpha;
+    // 元素级 wave：绕元素包围盒中心旋转（包住全部绘制；平铺元素旋转整个带）
+    let wv = null;
+    if (ea.rot) {
+      const lb = partsLocalBox(e);
+      if (lb) wv = { cx: X0 + lb.x + lb.w / 2, cy: Y0 + lb.y + lb.h / 2 };
+    }
+    if (wv) { ctx.save(); ctx.translate(wv.cx, wv.cy); ctx.rotate(ea.rot * Math.PI / 180); ctx.translate(-wv.cx, -wv.cy); }
     // 带元素判定：speed/span 可能在顶层（程序元素，含按场景数组）或 scroll 对象（图片素材）
     const bSpeed = (e.scroll && e.scroll.speed) || val(e, 'speed', t) || 0;
     const bSpan = (e.scroll && e.scroll.span) || e.span || e.w || 1;
@@ -715,10 +734,11 @@ const HomeScene = (() => {
     } else if (e.scroll && e.scroll.speed && e.scroll.span) {
       const dir = e.scroll.dir === 'right' ? 1 : -1;
       const n = Math.ceil(W / e.scroll.span) + 3;
-      for (let j = 0; j < n; j++) blit(j * e.scroll.span * dir - ox * dir);
+      for (let j = 0; j < n; j++) blit(j * e.scroll.span * dir - so.x * dir);
     } else {
-      blit(ox);
+      blit(so.x);
     }
+    if (wv) ctx.restore();
     ctx.globalAlpha = 1;
   }
   function drawOneImage(e, t) {
@@ -732,41 +752,36 @@ const HomeScene = (() => {
     const fx = frames > 1 ? Math.floor(t * fps) % frames : 0;
     const sw = frames > 1 ? Math.floor(img.width / frames) : img.width;
     const srcX = fx * sw;
-    let ox = 0;
-    if (e.scroll && e.scroll.speed) {
-      const sp = e.scroll.span || e.w || 1;
-      const off = (t * e.scroll.speed) % sp;
-      ox = e.scroll.dir === 'right' ? off : -off;
-    }
+    const so = scrollOffsets(e, t);
     let alpha = e.alpha != null ? e.alpha : 1;
-    // 元素级动画（可叠加）：bob y 偏移 → pulse 缩放 → blink 透明度
-    const ea = applyAnims(animList(e.anim), t, { yOff: 0, scale: 1, alpha: alpha });
+    // 元素级动画（可叠加）：bob（平移，可 angle 斜向）→ wave（旋转摆动）→ pulse 缩放 → blink 透明度
+    const ea = applyAnims(animList(e.anim), t, { yOff: 0, xOff: 0, rot: 0, scale: 1, alpha: alpha });
     alpha = ea.alpha;
     let scale = ea.scale;
     const w = e.w * scale, h = e.h * scale;
-    const bobY = ea.yOff;
+    const bobX = ea.xOff, bobY = ea.yOff;
     ctx.globalAlpha = alpha;
-    const rot = e.rot || 0, fh = e.flipH ? -1 : 1, fv = e.flipV ? -1 : 1;
+    const rot = (e.rot || 0) + (ea.rot || 0), fh = e.flipH ? -1 : 1, fv = e.flipV ? -1 : 1;
     const blit = (dx, dy) => {
-      const dyy = dy + bobY;
+      const dxx = dx + bobX, dyy = dy + bobY;
       if (rot || fh < 0 || fv < 0) {
         ctx.save();
-        ctx.translate(dx + w / 2, dyy + h / 2);
+        ctx.translate(dxx + w / 2, dyy + h / 2);
         // 先翻转后旋转（镜像作用于旋转角度；flip·R(rot) = R(-rot)·flip）
         if (rot) ctx.rotate(rot * Math.PI / 180);
         ctx.scale(fh, fv);
         ctx.drawImage(img, srcX, 0, sw, img.height, -w / 2, -h / 2, w, h);
         ctx.restore();
       } else {
-        ctx.drawImage(img, srcX, 0, sw, img.height, Math.round(dx), Math.round(dyy), w, h);
+        ctx.drawImage(img, srcX, 0, sw, img.height, Math.round(dxx), Math.round(dyy), w, h);
       }
     };
     if (e.scroll && e.scroll.speed && e.scroll.span) {
       const sp = e.scroll.span, dir = e.scroll.dir === 'right' ? 1 : -1;
       const n = Math.ceil(W / sp) + 3;
-      for (let j = 0; j < n; j++) blit(e.x + j * sp * dir - ox * dir, e.y);
+      for (let j = 0; j < n; j++) blit(e.x + j * sp * dir - so.x * dir, e.y + so.y);
     } else {
-      blit(e.x + ox, e.y);
+      blit(e.x + so.x, e.y + so.y);
     }
     ctx.globalAlpha = 1;
   }

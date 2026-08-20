@@ -2,6 +2,15 @@
 
 > 独立于游戏本体的 CHANGELOG。工具版本独立演进，与游戏版本号无关。
 
+## v2.6 —— wave 摆旋 + bob 斜向 + 滚动角度（scrollAngle）
+- **新动画原语 `wave`（摆旋）**：与 bob 参数格式平行——`amp`（度，默认 10）+ `period`（秒，默认 1）→ 绕中心来回摆动（`rot = amp×sin(t/per×2π)`，非单向旋转）；**元素级 = 绕元素包围盒中心**、**part 级 = 叠加到该 part 的 rot**（绕自身中心）；应用顺序：bob（平移）→ wave（旋转）→ pulse（缩放）→ blink（透明度）
+- **bob 加 `angle` 参数**：偏移方向（度，0=垂直，90=水平）——`xOff = sin(angle)×phase, yOff = cos(angle)×phase`；默认 0 = 原垂直行为
+- **滚动角度 scrollAngle**：素材 `scroll.angle`（度，0=水平，90=垂直下落，45=斜向雨/流星整组）——`scrollOffsets` 位移向量分解：`ox = dir×off×cos(angle)`（保留 left/right 水平语义），`oy = off×sin(angle)`（恒正，angle>0 向下落）；瓦片沿 x 排列、整体 y 跟随（首尾衔接为斜向近似）；工具命中检测/选中框同步跟随 oy；imgForm 滚动参数行新增「滚动角度」输入
+- **工具端滚动偏移重构**：`scrollOffset`（单值）→ `scrollOffsets`（{x,y}），全部调用点（渲染/平铺/命中/选中框/bbox）适配
+- **像素级回归**：默认参数（无 wave/angle/scrollAngle）下 train/signal 与原版 **DIFF=0**；单元 4 项 PASS（wave 相位、bob 斜向分解、scrollAngle 垂直/水平、元素 wave 渲染）
+- SCENE_SPEC：动画原语表更新（wave/bob angle）+ 滚动斜向说明 + **平铺元素 partsBand 拆解规范**（单元几何提取/几何变体约定：多形状循环建议多帧素材或接受单形状，rail/fog 变体示例）
+- 渲染端同步：`public/home-scene.js` → `tools/home-scene.js`（vendored）一致
+
 ## v2.5 补 —— 三端选中同步 + 动画面板不跨对象
 - **① 三端同步（canvas/左侧动画面板/图层栏）**：`syncSelUI` 统一接入所有选中变化路径（画布点选元素/图元、图层栏卡片点击、图元条目点击、空白清除）——选中变化时图层栏重建（高亮）+ 左侧动画面板实时刷新；**图层元素级卡片增加选中黄色描线**（`sel` 类，覆盖图片元素与程序元素 `selProg`）
 - **② parts 级双向**：画布点击图元 → 图层栏跳转至对应 parts 条目 + 青框高亮（滚动定位）；点击图层栏 parts 条目 → 画布选中对应图元（青框）+ 动画面板更新
