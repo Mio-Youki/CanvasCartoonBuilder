@@ -135,6 +135,7 @@ anim: { bob: { amp: 1, period: 1/6 }, blink: { period: 2333, duty: 6/7, phase: 1
 
 **作用顺序（文档化）**：`bob`（平移）→ `wave`（旋转）→ `pulse`（缩放）→ `blink`（透明度）——各原语作用维度独立，可安全叠加。
 **wave 层级语义**：元素级 = **绕元素包围盒中心**摆动；part 级 = 叠加到该 part 的 `rot`（绕自身中心）。
+**元素静态旋转 `e.rot`**（度，工具黄框旋转手柄写入）：渲染端 `totalRot = e.rot（静态）+ wave（动态）`，**绕元素包围盒中心整体旋转**（包裹全部 parts；图片元素同语义）；默认无该字段 = 0，视觉不变。part 级 `rot` 仍为绕自身中心。
 **滚动斜向（scrollAngle）**：素材 `scroll.angle`（度，**完整定义滚动方向**：0=右，90=下（坠落），180=左，270=上；旧 `dir` 字段兼容：无 angle 时 left→180°、right→0°）——
 位移向量 `{x: off×cos(angle), y: off×sin(angle)}`，**瓦片沿同方向排列**（斜向无缝衔接，雨/流星整组斜移）。
 

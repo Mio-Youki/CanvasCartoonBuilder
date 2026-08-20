@@ -276,6 +276,7 @@ const state = {
   clipboard: null,    // Ctrl+C 复制：{kind:'part',data} | {kind:'el',data} | {kind:'els',data:[]}
   selProg: null,      // 选择模式整体选中的程序元素（带包围盒 + 图层栏跳卡片）
   multi: [],          // Ctrl 多选：元素列表（批量移动/删除/复制）
+  partMulti: null,    // 编辑状态 part 多选（Ctrl+A 全选）：{el, indexes:[]}
 };
 function wrapMod(x, m) { return ((x % m) + m) % m; }
 /* 选择框四角命中：tl/tr/bl/br */
@@ -592,20 +593,27 @@ function renderStage() {
   }
   // 矢量绘制预览（进行中的形状）
   if (state.drawShape) drawShapePreview(ctx, state.drawShape);
-  // 多选集合：黄色虚线包围盒（批量） + 联合框（群组手柄：旋转/镜像/缩放）
+  // 多选集合：每个成员清晰黄框（无手柄）+ 联合框（群组手柄：旋转/镜像/缩放）
   if (state.multi.length > 1) {
     state.multi.forEach(m => {
       let bb;
       if (m.parts && m.parts.length) bb = partsBBox(m, state.t);
       else { const so2 = scrollOffsets(m, state.t); bb = { x: m.x + so2.x, y: m.y + so2.y, w: m.w, h: m.h }; }
-      ctx.strokeStyle = 'rgba(255,210,63,.5)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([2, 3]);
-      ctx.strokeRect(bb.x - 1, bb.y - 1, bb.w + 2, bb.h + 2);
-      ctx.setLineDash([]);
+      drawSelBox(ctx, bb, '#ffd23f', { dash: [3, 2], noHandles: true });
     });
     const mb = multiBox();
     if (mb) drawSelBox(ctx, mb, '#ffd23f', { dash: [3, 2] });
+  }
+  // 编辑状态 part 多选（Ctrl+A 全选）：每个选中 part 青框
+  if (state.partMulti && state.partMulti.el && state.partMulti.indexes && state.partMulti.indexes.length) {
+    const pm = state.partMulti;
+    const ex0 = elVal(pm.el, 'x') + scrollOffsets(pm.el, state.t).x, ey0 = elVal(pm.el, 'y') + scrollOffsets(pm.el, state.t).y;
+    pm.indexes.forEach(i => {
+      const pp = pm.el.parts[i];
+      if (!pp) return;
+      const bb = partBBox(pp, ex0, ey0);
+      drawSelBox(ctx, bb, '#4dc3ff', { dash: [2, 2], noCorners: true, noRot: true, noMirror: true });
+    });
   }
   // 程序元素整体选中（选择模式）：黄色虚线包围盒 + 四角手柄（统一选中框；带元素仅画框）
   if (state.selProg && state.selProg.parts && state.selProg.parts.length) {
@@ -786,13 +794,14 @@ function drawPartsToolRaw(ctx, e, t, alphaOverride) {
       if (rot || fh < 0 || fv < 0) ctx.restore();
     }
   };
-  // 元素级 wave：绕元素包围盒中心旋转（包住全部绘制）
+  // 元素级旋转（e.rot 静态 + wave 动态）：绕元素包围盒中心（包住全部绘制）
   let wv = null;
-  if (ea.rot) {
+  const totalRot = (e.rot || 0) + (ea.rot || 0);
+  if (totalRot) {
     const lb = partsLocalBox(e);
     if (lb) wv = { cx: X0 + lb.x + lb.w / 2, cy: Y0 + lb.y + lb.h / 2 };
   }
-  if (wv) { ctx.save(); ctx.translate(wv.cx, wv.cy); ctx.rotate(ea.rot * Math.PI / 180); ctx.translate(-wv.cx, -wv.cy); }
+  if (wv) { ctx.save(); ctx.translate(wv.cx, wv.cy); ctx.rotate(totalRot * Math.PI / 180); ctx.translate(-wv.cx, -wv.cy); }
   if (e.partsBand && bandSpeed(e) && bandSpan(e)) {
     // 带元素：母带同款 wrap 公式逐瓦片（图元 x 为瓦片相位偏移）
     const span = bandSpan(e);
@@ -858,10 +867,6 @@ function drawRotationHandle(ctx, box, color) {
   ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(hx, box.y); ctx.lineTo(hx, hy + 2); ctx.stroke();
   ctx.beginPath(); ctx.arc(hx, hy, 2, 0, Math.PI * 2); ctx.stroke();
-}
-/* 图元集合旋转（相对各自中心的角度统一赋值；渲染端按 part.rot 逐图元旋转） */
-function rotPartsCoords(el, deg) {
-  (el.parts || []).forEach(pp => { pp.rot = Math.round(deg); });
 }
 /* 绘制中形状预览（虚线黄框） */
 function drawShapePreview(ctx, s) {
@@ -1093,7 +1098,7 @@ stage.addEventListener('pointerdown', ev => {
         }
         if (rotD) {
           const cx = bb.x + bb.w / 2, cy = bb.y + bb.h / 2;
-          drag = { type: 'elrot', el: pe, cx: cx, cy: cy, a0: Math.atan2(p.y - cy, p.x - cx), rot0: (pe.parts[0] && pe.parts[0].rot) || 0 };
+          drag = { type: 'elrot', el: pe, cx: cx, cy: cy, a0: Math.atan2(p.y - cy, p.x - cx), rot0: pe.rot || 0 };
         } else {
           drag = {
             type: 'progmove', el: pe, sx: p.x, sy: p.y,
@@ -1179,7 +1184,7 @@ stage.addEventListener('pointerdown', ev => {
       }
       if (rotD) {
         const cx = x0 + e.w / 2, cy = y0 + e.h / 2;
-        drag = { type: 'elrot', el: e, cx: cx, cy: cy, a0: Math.atan2(p.y - cy, p.x - cx), rot0: (e.parts && e.parts.length) ? ((e.parts[0] && e.parts[0].rot) || 0) : (e.rot || 0) };
+        drag = { type: 'elrot', el: e, cx: cx, cy: cy, a0: Math.atan2(p.y - cy, p.x - cx), rot0: e.rot || 0 };
         renderStage();
         return;
       }
@@ -1263,8 +1268,7 @@ stage.addEventListener('pointermove', ev => {
     let deg = (drag.rot0 + (ang - drag.a0) * 180 / Math.PI) % 360;
     if (deg < 0) deg += 360;
     if (drag.type === 'partrot') { const part = e.parts[drag.index]; if (part) part.rot = Math.round(deg); }
-    else if (e.parts && e.parts.length) rotPartsCoords(e, deg);
-    else e.rot = Math.round(deg); // 图片元素：e.rot（渲染端绕自身中心旋转）
+    else e.rot = Math.round(deg); // 元素整体旋转：e.rot（渲染端绕元素中心旋转，图片/矢量统一）
     refreshStage();
     return;
   }
@@ -1377,6 +1381,7 @@ stage.addEventListener('dblclick', ev => {
 window.addEventListener('keydown', ev => {
   if (ev.key === 'Escape') {
     if (state.drawShape || state.drawPts.length) { state.drawShape = null; state.drawPts = []; renderStage(); }
+    else if (state.partMulti) { state.partMulti = null; drag = null; renderStage(); }          // 退出 part 多选（保留黄框）
     else if (state.partSel) { state.partSel = null; drag = null; renderStage(); }            // 退出子图元编辑（保留黄框）
     else if (state.selEl || state.selProg) {                                                  // 退出元素选择（黄框）
       state.selEl = null; state.selProg = null; drag = null;
@@ -1653,8 +1658,12 @@ function syncSelUI(scrollPart) {
     });
   }
 }
-/* 动画目标：多选群组 → 批量应用；优先选中图元（[编辑] 青色框），否则选中元素（黄框/卡片） */
+/* 动画目标：part 多选（Ctrl+A）→ 批量；元素多选 → 批量；否则选中图元/元素 */
 function animTarget() {
+  if (state.partMulti && state.partMulti.el && state.partMulti.indexes && state.partMulti.indexes.length > 1) {
+    const pm = state.partMulti;
+    return { multi: true, els: pm.indexes.map(i => pm.el.parts[i]).filter(Boolean), label: '图元多选 ' + pm.indexes.length + '（' + (pm.el.name || pm.el.id) + '，动画应用到全部）' };
+  }
   if (state.multi.length > 1) return { multi: true, els: state.multi, label: '多选 ' + state.multi.length + ' 个元素（动画应用到全部）' };
   if (state.partSel && state.partSel.el && state.partSel.el.parts && state.partSel.el.parts[state.partSel.index]) {
     const el = state.partSel.el;
@@ -1924,6 +1933,22 @@ window.addEventListener('keydown', ev => {
   }
   if (ev.ctrlKey || ev.metaKey) {
     const k = ev.key.toLowerCase();
+    if (k === 'a') {
+      // Ctrl+A：编辑状态（partsOpenEl）全选其 parts；否则全选元素
+      ev.preventDefault();
+      if (partsOpenEl && partsOpenEl.parts && partsOpenEl.parts.length) {
+        state.partMulti = { el: partsOpenEl, indexes: partsOpenEl.parts.map((_, i) => i) };
+        state.partSel = null;
+      } else if (state.elements.length) {
+        state.multi = state.elements.slice();
+        state.selEl = state.multi.length === 1 ? state.multi[0].id : null;
+        state.partMulti = null;
+      }
+      buildLayerList(layerCfg());
+      renderStage();
+      if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel();
+      return;
+    }
     if (k === 'z') { ev.preventDefault(); undo(); }
     else if (k === 'c') { ev.preventDefault(); copySel(); }
     else if (k === 'v') { ev.preventDefault(); pasteClip(); }

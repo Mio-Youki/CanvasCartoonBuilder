@@ -716,13 +716,14 @@ const HomeScene = (() => {
       }
     };
     ctx.globalAlpha = alpha;
-    // 元素级 wave：绕元素包围盒中心旋转（包住全部绘制；平铺元素旋转整个带）
+    // 元素级旋转（e.rot 静态 + wave 动态）：绕元素包围盒中心（包住全部绘制；平铺元素旋转整个带）
     let wv = null;
-    if (ea.rot) {
+    const totalRot = (e.rot || 0) + (ea.rot || 0);
+    if (totalRot) {
       const lb = partsLocalBox(e);
       if (lb) wv = { cx: X0 + lb.x + lb.w / 2, cy: Y0 + lb.y + lb.h / 2 };
     }
-    if (wv) { ctx.save(); ctx.translate(wv.cx, wv.cy); ctx.rotate(ea.rot * Math.PI / 180); ctx.translate(-wv.cx, -wv.cy); }
+    if (wv) { ctx.save(); ctx.translate(wv.cx, wv.cy); ctx.rotate(totalRot * Math.PI / 180); ctx.translate(-wv.cx, -wv.cy); }
     // 带元素判定：speed/span 可能在顶层（程序元素，含按场景数组）或 scroll 对象（图片素材）
     const bSpeed = (e.scroll && e.scroll.speed) || val(e, 'speed', t) || 0;
     const bSpan = (e.scroll && e.scroll.span) || e.span || e.w || 1;
