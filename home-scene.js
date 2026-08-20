@@ -386,6 +386,42 @@ const HomeScene = (() => {
     return lut;
   }
   let fxTex = null;
+  // 调色矩阵构建（饱和度/对比度/亮度 基础矩阵 × 色相旋转级联 → 单 3×3 + 偏移）——fx 整帧与粒子颜色抖动共用
+  function colorMatrixOf(hueDeg, brightness, contrast, saturation) {
+    const cst = contrast != null ? contrast : 1;
+    const sat = saturation != null ? saturation : 1;
+    const b = (brightness || 0); // 亮度偏移（-100~100 直接作用于 0~255 值域）
+    const mo = 128 * (1 - cst) + b;
+    const lumR = .213, lumG = .715, lumB = .072;
+    const sr = (1 - sat) * lumR, sg = (1 - sat) * lumG, sb = (1 - sat) * lumB;
+    let base = [
+      cst * (sat + sr), cst * sg, cst * sb,
+      cst * sr, cst * (sat + sg), cst * sb,
+      cst * sr, cst * sg, cst * (sat + sb),
+    ];
+    if (hueDeg) {
+      const a = hueDeg * Math.PI / 180, s = Math.sin(a), c2 = Math.cos(a);
+      const hueM = [
+        .213 + c2 * .787 - s * .213, .715 - c2 * .715 - s * .715, .072 - c2 * .072 + s * .928,
+        .213 - c2 * .213 + s * .143, .715 + c2 * .285 + s * .140, .072 - c2 * .072 - s * .283,
+        .213 - c2 * .213 - s * .787, .715 - c2 * .715 + s * .715, .072 + c2 * .928 + s * .072,
+      ];
+      // base × hueM（先调色再色相）
+      const mm = (a1, a2, a3, b1, b2, b3) => a1 * b1 + a2 * b2 + a3 * b3;
+      base = [
+        mm(base[0], base[1], base[2], hueM[0], hueM[3], hueM[6]),
+        mm(base[0], base[1], base[2], hueM[1], hueM[4], hueM[7]),
+        mm(base[0], base[1], base[2], hueM[2], hueM[5], hueM[8]),
+        mm(base[3], base[4], base[5], hueM[0], hueM[3], hueM[6]),
+        mm(base[3], base[4], base[5], hueM[1], hueM[4], hueM[7]),
+        mm(base[3], base[4], base[5], hueM[2], hueM[5], hueM[8]),
+        mm(base[6], base[7], base[8], hueM[0], hueM[3], hueM[6]),
+        mm(base[6], base[7], base[8], hueM[1], hueM[4], hueM[7]),
+        mm(base[6], base[7], base[8], hueM[2], hueM[5], hueM[8]),
+      ];
+    }
+    return { m: base, mo: mo };
+  }
   function fxEnsureTex(t) {
     const f = CFG.fx;
     if (!f) return;
@@ -435,41 +471,9 @@ const HomeScene = (() => {
     }
     if (need.palette !== 'none' && FX_PALETTES[need.palette]) fxTex.lut = buildLut(FX_PALETTES[need.palette]);
     // 调色矩阵：饱和度/对比度/亮度 合成基础矩阵，再与色相旋转级联 → 单个 3×3（每像素 9 次乘加）
-    // 饱和度: v' = lerp(luma, v, sat)；对比度+亮度: v'' = v'*cst + om（om = 128(1-cst)+b）
-    const cst = need.contrast != null ? need.contrast : 1;
-    const sat = need.saturation != null ? need.saturation : 1;
-    const b = (need.brightness || 0); // 亮度偏移（-100~100 直接作用于 0~255 值域）
-    const mo = 128 * (1 - cst) + b;
-    const lumR = .213, lumG = .715, lumB = .072;
-    const sr = (1 - sat) * lumR, sg = (1 - sat) * lumG, sb = (1 - sat) * lumB;
-    let base = [
-      cst * (sat + sr), cst * sg, cst * sb,
-      cst * sr, cst * (sat + sg), cst * sb,
-      cst * sr, cst * sg, cst * (sat + sb),
-    ];
-    if (need.hue) {
-      const a = need.hue * Math.PI / 180, s = Math.sin(a), c2 = Math.cos(a);
-      const hueM = [
-        .213 + c2 * .787 - s * .213, .715 - c2 * .715 - s * .715, .072 - c2 * .072 + s * .928,
-        .213 - c2 * .213 + s * .143, .715 + c2 * .285 + s * .140, .072 - c2 * .072 - s * .283,
-        .213 - c2 * .213 - s * .787, .715 - c2 * .715 + s * .715, .072 + c2 * .928 + s * .072,
-      ];
-      // base × hueM（先调色再色相）
-      const mm = (a1, a2, a3, b1, b2, b3) => a1 * b1 + a2 * b2 + a3 * b3;
-      base = [
-        mm(base[0], base[1], base[2], hueM[0], hueM[3], hueM[6]),
-        mm(base[0], base[1], base[2], hueM[1], hueM[4], hueM[7]),
-        mm(base[0], base[1], base[2], hueM[2], hueM[5], hueM[8]),
-        mm(base[3], base[4], base[5], hueM[0], hueM[3], hueM[6]),
-        mm(base[3], base[4], base[5], hueM[1], hueM[4], hueM[7]),
-        mm(base[3], base[4], base[5], hueM[2], hueM[5], hueM[8]),
-        mm(base[6], base[7], base[8], hueM[0], hueM[3], hueM[6]),
-        mm(base[6], base[7], base[8], hueM[1], hueM[4], hueM[7]),
-        mm(base[6], base[7], base[8], hueM[2], hueM[5], hueM[8]),
-      ];
-    }
-    fxTex.matrix = base;
-    fxTex.offset = mo;
+    const cm = colorMatrixOf(need.hue, need.brightness, need.contrast, need.saturation);
+    fxTex.matrix = cm.m;
+    fxTex.offset = cm.mo;
   }
   // B 档像素滤镜：降采样(pixelDiv) → 调色矩阵 → LUT 色板（在缩小画布上）→ 放大回原尺寸
   function applyPixelFilter(t) {
@@ -563,7 +567,60 @@ const HomeScene = (() => {
   // 确定性：每粒用 rnd(i, salt)（种子随机：显式 seed 优先，否则按元素 key 哈希）→ 同 t 渲染稳定（可像素回归），
   // 不同元素互不串模式。参数：count 同时粒子数 / rate 连续补给(个/秒) / burst 一次性爆发（每 loop 起点触发一次）/
   // life 寿命(秒) / speed dir(度,0=右 90=下 180=左 270=上) spread(扩散锥) gravity wind(水平加速度) /
-  // spin(初始自旋度) spinSpeed(度/秒) sizeVar(尺寸抖动) alpha(初始透明度) fade(淡出)
+  // spin(初始自旋度) spinSpeed(度/秒) sizeVar(尺寸抖动 [1-a,1+a]) alpha(初始透明度) fade(淡出) /
+  // colorJitter(每粒颜色抖动 0~1，映射色相/亮度/饱和度/对比度各自最大档) pixelDiv(精灵像素化除数)
+  // 精灵缓存：每帧每元素把 parts 渲染一次到离屏（应用 pixelDiv/alphaMode；part 级 anim 生效；元素级 anim/scroll
+  // 不参与——粒子运动归粒子参数），粒子本体只做 blit —— 每粒属性（pixelDiv/颜色抖动）成本 ≈ 0
+  function particleSprites(e, t, cj) {
+    const lb = partsLocalBox(e);
+    if (!lb) return null;
+    const div = (e.pixelDiv && e.pixelDiv > 1) ? e.pixelDiv : 1;
+    const W = Math.max(2, Math.round(lb.w / div)), H = Math.max(2, Math.round(lb.h / div));
+    const render = () => {
+      const oc = document.createElement('canvas');
+      oc.width = W; oc.height = H;
+      const og = oc.getContext('2d');
+      og.imageSmoothingEnabled = false;
+      og.scale(1 / div, 1 / div);
+      og.translate(-lb.x, -lb.y);
+      const savedCtx = ctx;
+      ctx = og;
+      drawPartsRaw({ x: 0, y: 0, parts: e.parts, anim: null, scroll: null, rot: 0 }, t, 1); // 局部坐标不透明版（粒子 alpha 在 blit 时应用）
+      ctx = savedCtx;
+      if (e.alphaMode === 'remove' || e.alphaMode === 'boost') {
+        const id = og.getImageData(0, 0, oc.width, oc.height);
+        const d = id.data;
+        if (e.alphaMode === 'remove') { for (let ai = 3; ai < d.length; ai += 4) { const av = d[ai]; if (av > 0 && av < 128) d[ai] = 0; else if (av >= 128) d[ai] = 255; } }
+        else { for (let ai = 3; ai < d.length; ai += 4) if (d[ai] > 0) d[ai] = 255; }
+        og.putImageData(id, 0, 0);
+      }
+      return oc;
+    };
+    const base = render();
+    if (!(cj > 0)) return { base: base, lb: lb, variants: null };
+    // 颜色抖动分桶（8 档确定性幅度）：色相 ±cJ×40°、亮度 ±cJ×30、饱和度 ±cJ×0.3、对比度 ±cJ×0.2
+    const variants = [];
+    const B = 8;
+    for (let b = 0; b < B; b++) {
+      const amt = ((b / (B - 1)) - 0.5) * 2; // [-1, 1]
+      const cm = colorMatrixOf(amt * cj * 40, amt * cj * 30, 1 + amt * cj * 0.2, 1 + amt * cj * 0.3);
+      const v = document.createElement('canvas');
+      v.width = W; v.height = H;
+      const vg = v.getContext('2d');
+      vg.drawImage(base, 0, 0);
+      const id = vg.getImageData(0, 0, W, H);
+      const d = id.data, m = cm.m, mo = cm.mo;
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i], g = d[i + 1], b2 = d[i + 2];
+        d[i] = Math.min(255, Math.max(0, m[0] * r + m[1] * g + m[2] * b2 + mo));
+        d[i + 1] = Math.min(255, Math.max(0, m[3] * r + m[4] * g + m[5] * b2 + mo));
+        d[i + 2] = Math.min(255, Math.max(0, m[6] * r + m[7] * g + m[8] * b2 + mo));
+      }
+      vg.putImageData(id, 0, 0);
+      variants.push(v);
+    }
+    return { base: base, lb: lb, variants: variants };
+  }
   function drawParticles(e, t, key) {
     const p = e.particle || {};
     const count = Math.max(0, Math.min(600, p.count != null ? p.count : 40));
@@ -588,13 +645,17 @@ const HomeScene = (() => {
     const sizeVar = p.sizeVar != null ? p.sizeVar : 0;
     const alpha0 = p.alpha != null ? p.alpha : 1;
     const fade = p.fade !== false;
-    const lb = partsLocalBox(e) || { x: 0, y: 0, w: 1, h: 1 };
-    const cx0 = lb.x + lb.w / 2, cy0 = lb.y + lb.h / 2; // 实体局部中心（单粒以 (px,py) 为中心）
+    const cj = p.colorJitter || 0;
+    const sprites = particleSprites(e, t, cj);
+    if (!sprites) return;
+    const lb = sprites.lb;
     const period = burst ? 0 : Math.max(0.01, Math.max(life, count / Math.max(0.01, rate)));
+    const w0 = scrollWindowStart(e, t); // burst 触发 = 当前 [S] 窗口段起点（无 show → 0）
+    ctx.imageSmoothingEnabled = false;
     for (let i = 0; i < count; i++) {
       let age;
       if (burst) {
-        const birth = Math.floor(t / loop) * loop; // 每 loop 起点爆发一次
+        const birth = Math.floor(t / loop) * loop + w0; // 每段显示窗口起点爆发（多段窗口 → 多次）；无 show → 每循环起点
         age = t - birth;
         if (age > life) continue;
       } else {
@@ -608,16 +669,17 @@ const HomeScene = (() => {
       const vx = Math.cos(ang) * speed, vy = Math.sin(ang) * speed;
       const px = sx + vx * age + wind * age * age * 0.5;
       const py = sy + vy * age + gravity * age * age * 0.5;
-      const size = 1 + (rnd(i, 5) - 0.5) * sizeVar;
+      const size = 1 + (rnd(i, 5) * 2 - 1) * sizeVar; // 全幅 [1-a, 1+a]
       const a = alpha0 * (fade ? Math.max(0, 1 - age / life) : 1);
       const rot = spin + spinSpeed * age;
-      // 单粒 = 元素 parts 克隆（禁用元素级 anim/scroll/pixelDiv/alphaMode，rot 用作自旋；part 级 anim 保留）
-      const pe = {
-        x: Math.round(px - cx0 * size), y: Math.round(py - cy0 * size),
-        w: Math.max(1, Math.round(lb.w * size)), h: Math.max(1, Math.round(lb.h * size)),
-        parts: e.parts, alpha: a, anim: null, scroll: null, rot: rot,
-      };
-      drawParts(pe, t);
+      const spr = (cj > 0 && sprites.variants) ? sprites.variants[(rnd(i, 7) * sprites.variants.length) | 0] : sprites.base;
+      const wpx = lb.w * size, hpx = lb.h * size;
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.translate(Math.round(px), Math.round(py));
+      if (rot) ctx.rotate(rot * Math.PI / 180);
+      ctx.drawImage(spr, -wpx / 2, -hpx / 2, wpx, hpx);
+      ctx.restore();
     }
     ctx.globalAlpha = 1;
   }
