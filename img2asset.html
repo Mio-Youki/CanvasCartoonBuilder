@@ -282,10 +282,11 @@ function wrapMod(x, m) { return ((x % m) + m) % m; }
 /* 选择框四角命中：tl/tr/bl/br */
 function hitCorner(p, box, t) {
   t = t || 6;
-  if (p.x >= box.x && p.x <= box.x + t && p.y >= box.y && p.y <= box.y + t) return 'tl';
-  if (p.x >= box.x + box.w - t && p.x <= box.x + box.w && p.y >= box.y && p.y <= box.y + t) return 'tr';
-  if (p.x >= box.x && p.x <= box.x + t && p.y >= box.y + box.h - t && p.y <= box.y + box.h) return 'bl';
-  if (p.x >= box.x + box.w - t && p.x <= box.x + box.w && p.y >= box.y + box.h - t && p.y <= box.y + box.h) return 'br';
+  const e = 0.5; // 浮点容差：stagePos 除法可能产生 ±1e-15 误差，边界点必须命中
+  if (p.x >= box.x - e && p.x <= box.x + t + e && p.y >= box.y - e && p.y <= box.y + t + e) return 'tl';
+  if (p.x >= box.x + box.w - t - e && p.x <= box.x + box.w + e && p.y >= box.y - e && p.y <= box.y + t + e) return 'tr';
+  if (p.x >= box.x - e && p.x <= box.x + t + e && p.y >= box.y + box.h - t - e && p.y <= box.y + box.h + e) return 'bl';
+  if (p.x >= box.x + box.w - t - e && p.x <= box.x + box.w + e && p.y >= box.y + box.h - t - e && p.y <= box.y + box.h + e) return 'br';
   return null;
 }
 /* 按角缩放图元：围绕对角锚点缩放（part 相对坐标） */
@@ -614,6 +615,9 @@ function renderStage() {
       const bb = partBBox(pp, ex0, ey0);
       drawSelBox(ctx, bb, '#4dc3ff', { dash: [2, 2], noCorners: true, noRot: true, noMirror: true });
     });
+    // 最外层青框（联合包围盒 + 群组手柄：四角缩放/旋转 ●/镜像，与单选一致）
+    const pmb = partMultiBox();
+    if (pmb) drawSelBox(ctx, pmb, '#4dc3ff', { dash: [2, 2] });
   }
   // 程序元素整体选中（选择模式）：黄色虚线包围盒 + 四角手柄（统一选中框；带元素仅画框）
   if (state.selProg && state.selProg.parts && state.selProg.parts.length) {
@@ -834,6 +838,21 @@ function multiBox() {
     minX = Math.min(minX, m.x + so.x); minY = Math.min(minY, m.y + so.y);
     maxX = Math.max(maxX, m.x + so.x + m.w); maxY = Math.max(maxY, m.y + so.y + m.h);
   });
+  return { x: Math.round(minX), y: Math.round(minY), w: Math.round(maxX - minX), h: Math.round(maxY - minY) };
+}
+/* part 多选（Ctrl+A / Ctrl+点击）联合包围盒：选中图元 bbox 并集 */
+function partMultiBox() {
+  const pm = state.partMulti;
+  if (!pm || !pm.el || !pm.indexes || pm.indexes.length < 2 || pm.el.partsBand) return null;
+  const ex0 = elVal(pm.el, 'x') + scrollOffsets(pm.el, state.t).x, ey0 = elVal(pm.el, 'y') + scrollOffsets(pm.el, state.t).y;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  pm.indexes.forEach(i => {
+    const p = pm.el.parts[i]; if (!p) return;
+    const bb = partBBox(p, ex0, ey0);
+    minX = Math.min(minX, bb.x); minY = Math.min(minY, bb.y);
+    maxX = Math.max(maxX, bb.x + bb.w); maxY = Math.max(maxY, bb.y + bb.h);
+  });
+  if (!isFinite(minX)) return null;
   return { x: Math.round(minX), y: Math.round(minY), w: Math.round(maxX - minX), h: Math.round(maxY - minY) };
 }
 function drawSelBox(ctx, box, color, opts) {
@@ -1066,9 +1085,21 @@ stage.addEventListener('pointerdown', ev => {
         }
       }
     }
-    // 子图元可选中拖动（仅编辑中的元素）
+    // 子图元可选中拖动（仅编辑中的元素）；Ctrl+点击 → 切换 part 多选
     const i = hitParts(partsOpenEl);
     if (i >= 0) {
+      if (ev.ctrlKey) {
+        // Ctrl+点击：把该图元加入/移出 partMulti（与 Ctrl+A 全选同一状态）
+        const pm = state.partMulti && state.partMulti.el === partsOpenEl ? state.partMulti : { el: partsOpenEl, indexes: [] };
+        const idx = pm.indexes.indexOf(i);
+        if (idx >= 0) pm.indexes.splice(idx, 1); else pm.indexes.push(i);
+        state.partMulti = pm.indexes.length ? pm : null;
+        state.partSel = null;
+        buildLayerList(layerCfg());
+        renderStage();
+        if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel();
+        return;
+      }
       pickPartDrag(partsOpenEl, i);
       const cardEl = $('cfgform').querySelector('[data-elid="' + partsOpenEl.id + '"], [data-key="' + partsOpenEl.id + '"]');
       return;
@@ -1084,7 +1115,8 @@ stage.addEventListener('pointerdown', ev => {
       const rotD = (!pe.partsBand && rotHandleHit(p, bb)) ? 1 : 0;
       const mh = (!pe.partsBand && mirrorBtnHit(p, bb, 'h')) ? 1 : 0;
       const mv = (!pe.partsBand && mirrorBtnHit(p, bb, 'v')) ? 1 : 0;
-      if (mh || mv || rotD || (p.x >= bb.x && p.x <= bb.x + bb.w && p.y >= bb.y && p.y <= bb.y + bb.h)) {
+      const corner = (!pe.partsBand) ? hitCorner(p, bb) : null;
+      if (mh || mv || rotD || corner || (p.x >= bb.x - 0.5 && p.x <= bb.x + bb.w + 0.5 && p.y >= bb.y - 0.5 && p.y <= bb.y + bb.h + 0.5)) {
         state.selEl = null;
         state.selProg = pe;
         state.partSel = null;
@@ -1099,6 +1131,13 @@ stage.addEventListener('pointerdown', ev => {
         if (rotD) {
           const cx = bb.x + bb.w / 2, cy = bb.y + bb.h / 2;
           drag = { type: 'elrot', el: pe, cx: cx, cy: cy, a0: Math.atan2(p.y - cy, p.x - cx), rot0: pe.rot || 0 };
+        } else if (corner) {
+          // 程序元素四角缩放：锚定对角缩放 parts（与矢量元素同语义，不写 e.w/h）
+          drag = {
+            type: 'presize', el: pe, corner: corner, sx: p.x, sy: p.y,
+            x0: bb.x, y0: bb.y, ow: bb.w, oh: bb.h,
+            parts0: (pe.parts || []).map(pp => JSON.parse(JSON.stringify(pp))),
+          };
         } else {
           drag = {
             type: 'progmove', el: pe, sx: p.x, sy: p.y,
@@ -1143,6 +1182,48 @@ stage.addEventListener('pointerdown', ev => {
       }
     }
   }
+  // ③b part 多选群组：最外层青框手柄（缩放/旋转/镜像/移动）——与单选一致
+  if (state.partMulti && state.partMulti.el && state.partMulti.indexes && state.partMulti.indexes.length > 1) {
+    const pm = state.partMulti;
+    const pmb = partMultiBox();
+    if (pmb) {
+      const rotD = rotHandleHit(p, pmb);
+      const mh = mirrorBtnHit(p, pmb, 'h');
+      const mv = mirrorBtnHit(p, pmb, 'v');
+      const corner = hitCorner(p, pmb);
+      if (mh || mv) {
+        pushHistory();
+        // 镜像：各 part 坐标绕联合中心镜像 + rot 取反（与元素镜像同语义）
+        const cx = pmb.x + pmb.w / 2, cy = pmb.y + pmb.h / 2;
+        const ex0 = elVal(pm.el, 'x') + scrollOffsets(pm.el, state.t).x, ey0 = elVal(pm.el, 'y') + scrollOffsets(pm.el, state.t).y;
+        pm.indexes.forEach(i => {
+          const pp = pm.el.parts[i];
+          if (!pp) return;
+          mirrorPartAt(pp, mh ? 'h' : 'v', cx - ex0, cy - ey0);
+          if (pp.rot) pp.rot = -pp.rot;
+        });
+        refreshStage();
+        return;
+      }
+      if (rotD) {
+        const cx = pmb.x + pmb.w / 2, cy = pmb.y + pmb.h / 2;
+        drag = { type: 'pmrot', el: pm.el, indexes: pm.indexes.slice(), cx: cx, cy: cy, a0: Math.atan2(p.y - cy, p.x - cx), rot0s: pm.indexes.map(i => (pm.el.parts[i] && pm.el.parts[i].rot) || 0) };
+        renderStage();
+        return;
+      }
+      if (corner) {
+        drag = { type: 'pmresize', el: pm.el, indexes: pm.indexes.slice(), corner: corner, sx: p.x, sy: p.y, mb0: pmb, orig: pm.indexes.map(i => JSON.parse(JSON.stringify(pm.el.parts[i]))) };
+        renderStage();
+        return;
+      }
+      // 框内拖动 = 整体移动选中 parts
+      if (p.x >= pmb.x && p.x <= pmb.x + pmb.w && p.y >= pmb.y && p.y <= pmb.y + pmb.h) {
+        drag = { type: 'pmmove', el: pm.el, indexes: pm.indexes.slice(), sx: p.x, sy: p.y, orig: pm.indexes.map(i => JSON.parse(JSON.stringify(pm.el.parts[i]))) };
+        renderStage();
+        return;
+      }
+    }
+  }
   for (const e of sorted) {
     const so5 = scrollOffsets(e, state.t);
     const x0 = e.x + so5.x, y0 = e.y + so5.y;
@@ -1151,7 +1232,7 @@ stage.addEventListener('pointerdown', ev => {
     const rotD = (!e.partsBand && rotHandleHit(p, box)) ? 1 : 0;
     const mh = (!e.partsBand && mirrorBtnHit(p, box, 'h')) ? 1 : 0;
     const mv = (!e.partsBand && mirrorBtnHit(p, box, 'v')) ? 1 : 0;
-    if (rotD || mh || mv || (p.x >= x0 && p.x <= x0 + e.w && p.y >= y0 && p.y <= y0 + e.h)) {
+    if (rotD || mh || mv || (p.x >= x0 - 0.5 && p.x <= x0 + e.w + 0.5 && p.y >= y0 - 0.5 && p.y <= y0 + e.h + 0.5)) {
       // Ctrl 多选：点击切换；多选中的元素非 ctrl 拖动 = 整体移动多选集
       if (!rotD && !mh && !mv && ev.ctrlKey) {
         const idx = state.multi.indexOf(e);
@@ -1262,6 +1343,47 @@ stage.addEventListener('pointermove', ev => {
     renderStage();
     return;
   }
+  if (drag.type === 'pmresize') {
+    // ③b part 多选等比缩放：围绕联合框对角锚点缩放各 part 坐标（与 mresize 同语义）
+    const r = cornerResize({ x: drag.mb0.x, y: drag.mb0.y, w: drag.mb0.w, h: drag.mb0.h }, drag.corner, p.x - drag.sx, p.y - drag.sy);
+    const sx0 = r.nw / drag.mb0.w, sy0 = r.nh / drag.mb0.h;
+    const prop = Math.abs(r.nw - drag.mb0.w) >= Math.abs(r.nh - drag.mb0.h) ? sx0 : sy0;
+    const ax = (drag.corner === 'bl' || drag.corner === 'tl') ? drag.mb0.x + drag.mb0.w : drag.mb0.x;
+    const ay = (drag.corner === 'tr' || drag.corner === 'tl') ? drag.mb0.y + drag.mb0.h : drag.mb0.y;
+    const ex0 = elVal(drag.el, 'x') + scrollOffsets(drag.el, state.t).x, ey0 = elVal(drag.el, 'y') + scrollOffsets(drag.el, state.t).y;
+    drag.indexes.forEach((i, k) => {
+      const pp = drag.el.parts[i];
+      if (!pp) return;
+      drag.el.parts[i] = scalePartAround(pp, ax - ex0, ay - ey0, prop, prop);
+    });
+    renderStage();
+    return;
+  }
+  if (drag.type === 'pmrot') {
+    // ③b part 多选旋转：各 part 绕自身中心旋转（与单选 partrot 一致：rot 叠加）
+    const ang = Math.atan2(p.y - drag.cy, p.x - drag.cx);
+    const deg = (ang - drag.a0) * 180 / Math.PI;
+    drag.indexes.forEach((i, k) => {
+      const pp = drag.el.parts[i];
+      if (pp) pp.rot = Math.round(((drag.rot0s[k] || 0) + deg) % 360);
+    });
+    refreshStage();
+    return;
+  }
+  if (drag.type === 'pmmove') {
+    // ③b part 多选移动：整体平移选中 parts
+    const dx = Math.round(p.x - drag.sx), dy = Math.round(p.y - drag.sy);
+    drag.indexes.forEach((i, k) => {
+      const pp = drag.el.parts[i];
+      if (!pp) return;
+      const o = drag.orig[k];
+      if (pp.type === 'rect' || pp.type === 'ellipse') { pp.x = o.x + dx; pp.y = o.y + dy; }
+      else if (pp.type === 'line') { pp.x = o.x + dx; pp.y = o.y + dy; pp.x2 = o.x2 + dx; pp.y2 = o.y2 + dy; }
+      else if (pp.type === 'poly') pp.points = o.points.map(a => [a[0] + dx, a[1] + dy]);
+    });
+    refreshStage();
+    return;
+  }
   if (drag.type === 'partrot' || drag.type === 'elrot') {
     // 旋转：围绕选中框中心，按起始角增量
     const ang = Math.atan2(p.y - drag.cy, p.x - drag.cx);
@@ -1290,6 +1412,29 @@ stage.addEventListener('pointermove', ev => {
         return q;
       });
     }
+    refreshStage();
+    return;
+  }
+  if (drag.type === 'presize') {
+    // 程序元素四角缩放：锚定对角缩放 parts 坐标（元素 x/y 不变；不写 e.w/h）
+    const dx = p.x - drag.sx, dy = p.y - drag.sy;
+    let r = cornerResize({ x: drag.x0, y: drag.y0, w: drag.ow, h: drag.oh }, drag.corner, dx, dy);
+    if (!ev.shiftKey) {
+      const sx0 = r.nw / drag.ow, sy0 = r.nh / drag.oh;
+      const prop = Math.abs(r.nw - drag.ow) >= Math.abs(r.nh - drag.oh) ? sx0 : sy0;
+      const nw = Math.max(4, Math.round(drag.ow * prop));
+      const nh = Math.max(4, Math.round(drag.oh * prop));
+      let nx = drag.x0, ny = drag.y0;
+      if (drag.corner === 'bl' || drag.corner === 'tl') nx = drag.x0 + (drag.ow - nw);
+      if (drag.corner === 'tr' || drag.corner === 'tl') ny = drag.y0 + (drag.oh - nh);
+      r = { nx, ny, nw, nh };
+    }
+    const rw = r.nw / drag.ow, rh = r.nh / drag.oh;
+    const ax = (drag.corner === 'bl' || drag.corner === 'tl') ? drag.ow : 0;
+    const ay = (drag.corner === 'tr' || drag.corner === 'tl') ? drag.oh : 0;
+    const ex = elVal(drag.el, 'x') + scrollOffsets(drag.el, state.t).x, ey = elVal(drag.el, 'y');
+    // 锚点（拖动的角的对角）在 parts 相对空间 = (bbox 原点 − 元素原点) + 对角偏移
+    drag.el.parts = drag.parts0.map(pp => scalePartAround(pp, (drag.x0 - ex) + ax, (drag.y0 - ey) + ay, rw, rh));
     refreshStage();
     return;
   }
@@ -1346,7 +1491,7 @@ stage.addEventListener('pointermove', ev => {
     }
     e.x = Math.round(r.nx); e.y = Math.round(r.ny);
     e.w = Math.round(r.nw); e.h = Math.round(r.nh);
-    e.scroll.span = e.w;
+    if (e.scroll) e.scroll.span = e.w; // 矢量元素（无 scroll 字段）跳过
   }
   renderStage();
 });
