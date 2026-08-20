@@ -516,10 +516,10 @@ function scrollOffsets(e, t) {
   if (!e.scroll || !e.scroll.speed) return { x: 0, y: 0 };
   const span = e.scroll.span || e.w || 1;
   const off = (t * e.scroll.speed) % span;
-  const dir = e.scroll.dir === 'right' ? 1 : -1;
-  const ang = ((e.scroll && e.scroll.angle) || e.angle || 0) * Math.PI / 180;
-  // 位移向量：ox 沿水平 dir（保留 left/right 语义）；oy = off*sin(angle) 恒正（angle>0 向下落）
-  return { x: dir * off * Math.cos(ang), y: off * Math.sin(ang) };
+  // 方向：scroll.angle 完整定义（0=右，90=下，180=左，270=上）；无 angle 时 dir 兼容（left→180°）
+  const angDeg = (e.scroll && e.scroll.angle != null) ? e.scroll.angle : (e.scroll && e.scroll.dir === 'right' ? 0 : 180);
+  const ang = angDeg * Math.PI / 180;
+  return { x: off * Math.cos(ang), y: off * Math.sin(ang) };
 }
 function elementAlpha(e, t) { return applyAnims(animList(e.anim), t, { yOff: 0, scale: 1, alpha: e.alpha }).alpha; }
 function elementScale(e, t) { return applyAnims(animList(e.anim), t, { yOff: 0, scale: 1, alpha: 1 }).scale; }
@@ -554,10 +554,13 @@ function drawElement(ctx, e, t, imgMap) {
     }
   };
   if (e.scroll && e.scroll.speed && e.scroll.span) {
+    // 瓦片沿 scroll.angle 方向排列（位移并入 dx）
     const span = e.scroll.span;
-    const dir = e.scroll.dir === 'right' ? 1 : -1;
+    const angDeg = (e.scroll.angle != null) ? e.scroll.angle : (e.scroll.dir === 'right' ? 0 : 180);
+    const ang = angDeg * Math.PI / 180;
+    const cosA = Math.cos(ang), sinA = Math.sin(ang);
     const n = Math.ceil(state.cw / span) + 3;
-    for (let j = 0; j < n; j++) blit(e.x + j * span * dir - so.x * dir, e.y + so.y);
+    for (let j = 0; j < n; j++) blit(e.x + so.x + j * span * cosA, e.y + so.y + j * span * sinA);
   } else {
     blit(e.x + so.x, e.y + so.y);
   }
@@ -589,18 +592,20 @@ function renderStage() {
   }
   // 矢量绘制预览（进行中的形状）
   if (state.drawShape) drawShapePreview(ctx, state.drawShape);
-  // 多选集合：黄色虚线包围盒（批量）
+  // 多选集合：黄色虚线包围盒（批量） + 联合框（群组手柄：旋转/镜像/缩放）
   if (state.multi.length > 1) {
     state.multi.forEach(m => {
       let bb;
       if (m.parts && m.parts.length) bb = partsBBox(m, state.t);
       else { const so2 = scrollOffsets(m, state.t); bb = { x: m.x + so2.x, y: m.y + so2.y, w: m.w, h: m.h }; }
-      ctx.strokeStyle = '#ffd23f';
+      ctx.strokeStyle = 'rgba(255,210,63,.5)';
       ctx.lineWidth = 1;
-      ctx.setLineDash([3, 2]);
+      ctx.setLineDash([2, 3]);
       ctx.strokeRect(bb.x - 1, bb.y - 1, bb.w + 2, bb.h + 2);
       ctx.setLineDash([]);
     });
+    const mb = multiBox();
+    if (mb) drawSelBox(ctx, mb, '#ffd23f', { dash: [3, 2] });
   }
   // 程序元素整体选中（选择模式）：黄色虚线包围盒 + 四角手柄（统一选中框；带元素仅画框）
   if (state.selProg && state.selProg.parts && state.selProg.parts.length) {
@@ -795,17 +800,33 @@ function drawPartsToolRaw(ctx, e, t, alphaOverride) {
     const n = Math.ceil(state.cw / span) + 3;
     for (let j = -1; j < n; j++) blit(j * span - offset);
   } else if (e.scroll && e.scroll.speed && e.scroll.span) {
-    const dir = e.scroll.dir === 'right' ? 1 : -1;
-    const n = Math.ceil(state.cw / e.scroll.span) + 3;
-    for (let j = 0; j < n; j++) blit(j * e.scroll.span * dir - so.x * dir, so.y);
+    // 瓦片沿 scroll.angle 方向排列（斜向无缝）；位移已在 X0（so.x/so.y）
+    const span = e.scroll.span;
+    const angDeg = (e.scroll.angle != null) ? e.scroll.angle : (e.scroll.dir === 'right' ? 0 : 180);
+    const ang = angDeg * Math.PI / 180;
+    const cosA = Math.cos(ang), sinA = Math.sin(ang);
+    const n = Math.ceil(state.cw / span) + 3;
+    for (let j = 0; j < n; j++) blit(j * span * cosA, so.y + j * span * sinA);
   } else {
-    blit(so.x, so.y);
+    blit(0, so.y);
   }
   if (wv) ctx.restore();
   ctx.globalAlpha = 1;
 }
 /* 统一选中框绘制：虚线包围盒 + 四角手柄 + 旋转 ● + 镜像按钮 [|]/[一]（opts.noHandles 整体关闭）
    —— 图片元素/矢量元素/子图元共用同一套框与手柄（子图元仅颜色不同，青色 #4dc3ff） */
+/* 多选群组联合包围盒（含 scroll 偏移） */
+function multiBox() {
+  const ms = state.multi;
+  if (ms.length < 2) return null;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  ms.forEach(m => {
+    const so = scrollOffsets(m, state.t);
+    minX = Math.min(minX, m.x + so.x); minY = Math.min(minY, m.y + so.y);
+    maxX = Math.max(maxX, m.x + so.x + m.w); maxY = Math.max(maxY, m.y + so.y + m.h);
+  });
+  return { x: Math.round(minX), y: Math.round(minY), w: Math.round(maxX - minX), h: Math.round(maxY - minY) };
+}
 function drawSelBox(ctx, box, color, opts) {
   opts = opts || {};
   ctx.strokeStyle = color;
@@ -1090,6 +1111,33 @@ stage.addEventListener('pointerdown', ev => {
       }
     }
   }
+  // ③ 多选群组：联合框手柄（旋转/镜像/缩放）
+  if (state.multi.length > 1) {
+    const mb = multiBox();
+    if (mb) {
+      const rotD = rotHandleHit(p, mb);
+      const mh = mirrorBtnHit(p, mb, 'h');
+      const mv = mirrorBtnHit(p, mb, 'v');
+      const corner = hitCorner(p, mb);
+      if (mh || mv) {
+        pushHistory();
+        state.multi.forEach(m => mirrorElement(m, mh ? 'h' : 'v'));
+        refreshStage();
+        return;
+      }
+      if (rotD) {
+        const cx = mb.x + mb.w / 2, cy = mb.y + mb.h / 2;
+        drag = { type: 'mrot', els: state.multi, cx: cx, cy: cy, a0: Math.atan2(p.y - cy, p.x - cx), orig: state.multi.map(m => ({ x: m.x, y: m.y, w: m.w, h: m.h, rot: m.rot || 0, parts: m.parts ? JSON.parse(JSON.stringify(m.parts)) : null })) };
+        renderStage();
+        return;
+      }
+      if (corner) {
+        drag = { type: 'mresize', els: state.multi, corner: corner, sx: p.x, sy: p.y, mb0: mb, orig: state.multi.map(m => ({ x: m.x, y: m.y, w: m.w, h: m.h, parts: m.parts ? JSON.parse(JSON.stringify(m.parts)) : null })) };
+        renderStage();
+        return;
+      }
+    }
+  }
   for (const e of sorted) {
     const so5 = scrollOffsets(e, state.t);
     const x0 = e.x + so5.x, y0 = e.y + so5.y;
@@ -1139,7 +1187,7 @@ stage.addEventListener('pointerdown', ev => {
       if (corner) {
         drag = { type: 'resize', el: e, corner: corner, sx: p.x, sy: p.y, ow: e.w, oh: e.h, x0: x0, y0: y0, parts0: (e.parts && e.parts.length) ? JSON.parse(JSON.stringify(e.parts)) : null };
       } else {
-        drag = { type: 'move', el: e, sx: p.x, sy: p.y, ox: e.x, oy: e.y, scrollOx: ox };
+        drag = { type: 'move', el: e, sx: p.x, sy: p.y, ox: e.x, oy: e.y, scrollOx: so5.x };
       }
       if (window.HOME_SCENE || state.elements.length) {
         buildLayerList(layerCfg());
@@ -1168,6 +1216,40 @@ stage.addEventListener('pointermove', ev => {
   if (!drag) return;
   const p = stagePos(ev);
   const e = drag.el;
+  if (drag.type === 'mresize') {
+    // ③ 群组等比缩放：围绕联合框对角锚点
+    const r = cornerResize({ x: drag.mb0.x, y: drag.mb0.y, w: drag.mb0.w, h: drag.mb0.h }, drag.corner, p.x - drag.sx, p.y - drag.sy);
+    const sx0 = r.nw / drag.mb0.w, sy0 = r.nh / drag.mb0.h;
+    const prop = Math.abs(r.nw - drag.mb0.w) >= Math.abs(r.nh - drag.mb0.h) ? sx0 : sy0;
+    const ax = (drag.corner === 'bl' || drag.corner === 'tl') ? drag.mb0.x + drag.mb0.w : drag.mb0.x;
+    const ay = (drag.corner === 'tr' || drag.corner === 'tl') ? drag.mb0.y + drag.mb0.h : drag.mb0.y;
+    drag.els.forEach((m, i) => {
+      const o = drag.orig[i];
+      m.x = Math.round(ax + (o.x - ax) * prop);
+      m.y = Math.round(ay + (o.y - ay) * prop);
+      m.w = Math.max(4, Math.round(o.w * prop));
+      m.h = Math.max(4, Math.round(o.h * prop));
+      if (o.parts) m.parts = o.parts.map(pp => scalePartAround(pp, 0, 0, prop, prop));
+    });
+    renderStage();
+    return;
+  }
+  if (drag.type === 'mrot') {
+    // ③ 群组旋转：各元素位置绕联合中心旋转 + 自身旋转叠加
+    const ang = Math.atan2(p.y - drag.cy, p.x - drag.cx);
+    const deg = (ang - drag.a0) * 180 / Math.PI;
+    const rad = deg * Math.PI / 180;
+    drag.els.forEach((m, i) => {
+      const o = drag.orig[i];
+      const cxp = o.x + o.w / 2 - drag.cx, cyp = o.y + o.h / 2 - drag.cy;
+      m.x = Math.round(drag.cx + cxp * Math.cos(rad) - cyp * Math.sin(rad) - o.w / 2);
+      m.y = Math.round(drag.cy + cxp * Math.sin(rad) + cyp * Math.cos(rad) - o.h / 2);
+      if (m.parts && m.parts.length) { m.parts.forEach(pp => { pp.rot = Math.round(((pp.rot || 0) + deg) % 360); }); }
+      else m.rot = Math.round(((m.rot || 0) + deg) % 360);
+    });
+    renderStage();
+    return;
+  }
   if (drag.type === 'mmove') {
     // 多选批量移动
     const dx = Math.round(p.x - drag.sx), dy = Math.round(p.y - drag.sy);
@@ -1571,8 +1653,9 @@ function syncSelUI(scrollPart) {
     });
   }
 }
-/* 动画目标：优先选中图元（[编辑] 青色框），否则选中元素（黄框/卡片） */
+/* 动画目标：多选群组 → 批量应用；优先选中图元（[编辑] 青色框），否则选中元素（黄框/卡片） */
 function animTarget() {
+  if (state.multi.length > 1) return { multi: true, els: state.multi, label: '多选 ' + state.multi.length + ' 个元素（动画应用到全部）' };
   if (state.partSel && state.partSel.el && state.partSel.el.parts && state.partSel.el.parts[state.partSel.index]) {
     const el = state.partSel.el;
     return { obj: el.parts[state.partSel.index], label: '图元 #' + state.partSel.index + '（' + (el.name || el.id) + '）' };
@@ -1602,12 +1685,15 @@ function renderAnimPanel() {
   }
   mt.textContent = '动画目标：' + t.label + '（多动画可叠加；bob→pulse→blink 顺序应用）';
   ed.innerHTML = '';
+  const targets = t.multi ? t.els : [t.obj];
   const cur = {};
-  animList(t.obj.anim).forEach(an => { cur[an.type] = Object.assign({}, an.params); });
+  animList(targets[0].anim).forEach(an => { cur[an.type] = Object.assign({}, an.params); });
   const save = () => {
     const keys = Object.keys(cur);
-    if (keys.length) { t.obj.anim = {}; keys.forEach(k => { t.obj.anim[k] = cur[k]; }); }
-    else delete t.obj.anim;
+    targets.forEach(el => {
+      if (keys.length) { el.anim = {}; keys.forEach(k => { el.anim[k] = cur[k]; }); }
+      else delete el.anim;
+    });
     pushHistory();
     refreshStage();
     renderAnimPanel();
@@ -1736,6 +1822,23 @@ function copySel() {
   } else if (state.selEl) {
     const e = selEl();
     if (e) state.clipboard = { kind: 'el', data: JSON.parse(JSON.stringify(e)) };
+  } else if (state.selProg) {
+    // 程序元素 → 复制为 images 素材元素（含 parts/anim，脱离顶层键；粘贴为新 images 元素）
+    const k = Object.keys(window.HOME_SCENE || {}).find(kk => window.HOME_SCENE[kk] === state.selProg);
+    const pe = state.selProg;
+    const x0 = Array.isArray(pe.x) ? pe.x[0] : pe.x, y0 = Array.isArray(pe.y) ? pe.y[0] : pe.y;
+    const n = {
+      id: 'e' + Math.random().toString(36).slice(2, 7),
+      name: k || '程序元素',
+      x: x0 != null ? x0 : 0, y: y0 != null ? y0 : 0,
+      w: pe.w || 40, h: pe.h || 40,
+      alpha: pe.alpha != null ? pe.alpha : 1, z: pe.z != null ? pe.z : 99,
+      anim: pe.anim ? JSON.parse(JSON.stringify(pe.anim)) : undefined,
+      parts: pe.parts ? JSON.parse(JSON.stringify(pe.parts)) : undefined,
+      scroll: pe.scroll ? JSON.parse(JSON.stringify(pe.scroll)) : undefined,
+      _asset: null,
+    };
+    state.clipboard = { kind: 'el', data: n };
   }
 }
 function cutSel() {
@@ -2262,9 +2365,7 @@ function imgForm(el, box, cardKey) {
   num('层级 z', 'z', 1, 0, '越大越靠上');
   num('滚动速度', 'scroll.speed', 1, null, '像素/秒，0=静止');
   num('平铺周期', 'scroll.span', 1, 1, '滚动无缝平铺的跨度（默认=元素宽）');
-  num('滚动角度', 'scroll.angle', 15, null, '滚动方向角度（度）：0=水平，90=垂直下落，45=斜向（雨/流星整组斜移）');
-  pick('滚动方向', 'scroll.dir', [['left', '向左'], ['right', '向右']]);
-  pick('动画类型', 'anim', [['static', '静态'], ['blink', '闪烁'], ['pulse', '脉动']], '简单动画；更多（bob 轻震/wave 摆旋，可叠加）在左侧[动画调整]面板');
+  num('滚动角度', 'scroll.angle', 15, null, '滚动方向角度（度）：0=右，90=下（坠落），180=左，45=斜向（雨/流星整组斜移）；瓦片沿同方向排列');
   num('动画周期', 'animMs', 50, 50, '毫秒（闪烁/脉动的节拍）');
   num('帧数', 'frames', 1, 1, '多帧 sprite sheet（帧表横向裁切），1=单帧');
   num('帧率', 'fps', 1, 1, '多帧每秒播放帧数');

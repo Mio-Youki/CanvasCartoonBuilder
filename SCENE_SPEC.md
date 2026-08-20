@@ -135,8 +135,8 @@ anim: { bob: { amp: 1, period: 1/6 }, blink: { period: 2333, duty: 6/7, phase: 1
 
 **作用顺序（文档化）**：`bob`（平移）→ `wave`（旋转）→ `pulse`（缩放）→ `blink`（透明度）——各原语作用维度独立，可安全叠加。
 **wave 层级语义**：元素级 = **绕元素包围盒中心**摆动；part 级 = 叠加到该 part 的 `rot`（绕自身中心）。
-**滚动斜向（scrollAngle）**：素材 `scroll.angle`（度，0=水平，90=垂直下落，45=斜向雨/流星整组）——
-渲染端将滚动偏移分解为 `{x,y}`（瓦片沿 x 排列、整体 y 跟随，首尾衔接为斜向近似）。
+**滚动斜向（scrollAngle）**：素材 `scroll.angle`（度，**完整定义滚动方向**：0=右，90=下（坠落），180=左，270=上；旧 `dir` 字段兼容：无 angle 时 left→180°、right→0°）——
+位移向量 `{x: off×cos(angle), y: off×sin(angle)}`，**瓦片沿同方向排列**（斜向无缝衔接，雨/流星整组斜移）。
 
 **典型组合（示例）**：
 - **两态颜色切换**（如信号灯绿/红）：两个重叠 part + 互补 blink（`green: {period:4000, duty:3/4, phase:1/4, on:1, off:0}` + `red: {period:4000, duty:1/4, phase:0, on:1, off:0}`）

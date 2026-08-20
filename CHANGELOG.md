@@ -2,6 +2,14 @@
 
 > 独立于游戏本体的 CHANGELOG。工具版本独立演进，与游戏版本号无关。
 
+## v2.6 补 —— 滚动角度完整方向 + 群组操作 + 程序元素复制
+- **② scrollAngle 完整方向**：`scroll.angle` 定义完整滚动方向（0=右，90=下坠落，180=左）；**瓦片沿同方向排列**（斜向无缝）；旧 `dir` 字段兼容（无 angle 时 left→180°/right→0°）；移除「滚动方向」与「动画类型」两个冗余下拉行（方向并入 angle，动画由左侧[动画调整]面板统一管理，旧配置兼容）
+- **③ 多选群组操作**：Ctrl 多选后画**联合包围盒 + 群组手柄**——四角等比缩放（围绕对角锚点，各元素位置/尺寸/parts 同步）、旋转 ●（各元素绕联合中心旋转 + 自身 rot 叠加）、[|]/[一] 镜像（各元素镜像）；**动画面板批量应用**（多选时设置应用到全部成员）
+- **④ 程序元素复制**：选中程序元素（selProg）Ctrl+C → 复制为 **images 素材元素**（含 parts/anim/scroll 完整克隆，脱离顶层键），粘贴为新 images 元素
+- **① 修复**：`scrollOffsets` 重构遗漏——pointerdown 移动拖拽的 `scrollOx` 引用已删除变量 → 图片/矢量元素**无法拖动移动**（缩放/旋转/镜像正常，与现象吻合）；已修复
+- **像素级回归**：默认配置（无 angle）下 train/signal 与原版 **DIFF=0**
+- 渲染端同步：`public/home-scene.js` → `tools/home-scene.js`（vendored）一致
+
 ## v2.6 —— wave 摆旋 + bob 斜向 + 滚动角度（scrollAngle）
 - **新动画原语 `wave`（摆旋）**：与 bob 参数格式平行——`amp`（度，默认 10）+ `period`（秒，默认 1）→ 绕中心来回摆动（`rot = amp×sin(t/per×2π)`，非单向旋转）；**元素级 = 绕元素包围盒中心**、**part 级 = 叠加到该 part 的 rot**（绕自身中心）；应用顺序：bob（平移）→ wave（旋转）→ pulse（缩放）→ blink（透明度）
 - **bob 加 `angle` 参数**：偏移方向（度，0=垂直，90=水平）——`xOff = sin(angle)×phase, yOff = cos(angle)×phase`；默认 0 = 原垂直行为

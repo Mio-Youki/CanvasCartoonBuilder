@@ -732,11 +732,15 @@ const HomeScene = (() => {
       const n = Math.ceil(W / bSpan) + 3;
       for (let j = -1; j < n; j++) blit(j * bSpan - offset);
     } else if (e.scroll && e.scroll.speed && e.scroll.span) {
-      const dir = e.scroll.dir === 'right' ? 1 : -1;
-      const n = Math.ceil(W / e.scroll.span) + 3;
-      for (let j = 0; j < n; j++) blit(j * e.scroll.span * dir - so.x * dir);
+      // 瓦片沿 scroll.angle 方向排列（斜向无缝）；位移已在 X0（so.x/so.y）
+      const span = e.scroll.span;
+      const angDeg = (e.scroll.angle != null) ? e.scroll.angle : (e.scroll.dir === 'right' ? 0 : 180);
+      const ang = angDeg * Math.PI / 180;
+      const cosA = Math.cos(ang), sinA = Math.sin(ang);
+      const n = Math.ceil(W / span) + 3;
+      for (let j = 0; j < n; j++) blit(j * span * cosA, so.y + j * span * sinA);
     } else {
-      blit(so.x);
+      blit(0, so.y);
     }
     if (wv) ctx.restore();
     ctx.globalAlpha = 1;
@@ -777,9 +781,13 @@ const HomeScene = (() => {
       }
     };
     if (e.scroll && e.scroll.speed && e.scroll.span) {
-      const sp = e.scroll.span, dir = e.scroll.dir === 'right' ? 1 : -1;
+      // 瓦片沿 scroll.angle 方向排列（位移并入 dx）
+      const sp = e.scroll.span;
+      const angDeg = (e.scroll.angle != null) ? e.scroll.angle : (e.scroll.dir === 'right' ? 0 : 180);
+      const ang = angDeg * Math.PI / 180;
+      const cosA = Math.cos(ang), sinA = Math.sin(ang);
       const n = Math.ceil(W / sp) + 3;
-      for (let j = 0; j < n; j++) blit(e.x + j * sp * dir - so.x * dir, e.y + so.y);
+      for (let j = 0; j < n; j++) blit(e.x + so.x + j * sp * cosA, e.y + so.y + j * sp * sinA);
     } else {
       blit(e.x + so.x, e.y + so.y);
     }
