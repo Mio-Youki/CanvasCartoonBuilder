@@ -147,14 +147,9 @@
       <div id="drop" class="drop">拖入图片 / 点击选择</div>
       <input id="file" type="file" accept="image/*" multiple hidden>
       <label><input type="checkbox" id="style-on" checked> 样式化（关 = 原样 1:1 显示）</label>
-      <label>采样除数（原图 ÷ N；像素化 = 缩小 N 倍采样）</label>
+      <label>采样数（原图 ÷ N；像素化 = 缩小 N 倍采样，整数）</label>
       <div class="row">
-        <select id="divisor" style="flex:1">
-          <option value="1">1/1 原样</option>
-          <option value="2" selected>1/2</option>
-          <option value="4">1/4</option>
-          <option value="8">1/8</option>
-        </select>
+        <input id="divisor" type="number" min="1" step="1" value="2" style="flex:1">
         <select id="alpha-mode" title="边缘透明像素：保留=默认软边；消除=alpha&lt;128 变透明 + alpha&gt;=128 拉满（一步到位只剩透明/不透明）；增强=全部半透明拉满">
           <option value="keep">边缘:保留</option>
           <option value="remove">边缘:消除</option>
@@ -2474,17 +2469,17 @@ function setPath(o, p, v) { const ks = p.split('.'); let a = o; for (let i = 0; 
 function pixelDivControl(el) {
   const wrap = document.createElement('div');
   wrap.className = 'cf-row-inline';
-  const sel = document.createElement('select');
-  [1, 2, 4].forEach(d => {
-    const o = document.createElement('option');
-    o.value = d; o.textContent = '1/' + d + (d === 1 ? ' 平滑' : '');
-    if ((el.pixelDiv || 1) === d) o.selected = true;
-    sel.appendChild(o);
-  });
-  sel.title = '元素级重采样：parts 缩小 N 倍采样再最近邻放大（边缘锯齿感）；1/1=平滑（默认）';
-  sel.addEventListener('change', () => {
+  const inp = document.createElement('input');
+  inp.type = 'number';
+  inp.min = 1;
+  inp.step = 1;
+  inp.style.width = '44px';
+  inp.value = el.pixelDiv || 1;
+  inp.title = '元素级重采样：parts 缩小 N 倍采样再最近邻放大（边缘锯齿感）；1=平滑（默认），整数';
+  inp.addEventListener('change', () => {
     pushHistory();
-    const v = parseInt(sel.value) || 1;
+    const v = Math.max(1, Math.round(parseFloat(inp.value) || 1));
+    inp.value = v;
     if (v > 1) el.pixelDiv = v; else delete el.pixelDiv;
     refreshStage();
   });
@@ -2502,7 +2497,7 @@ function pixelDivControl(el) {
     if (m === 'keep') delete el.alphaMode; else el.alphaMode = m;
     refreshStage();
   });
-  wrap.appendChild(sel);
+  wrap.appendChild(inp);
   wrap.appendChild(am);
   return wrap;
 }
@@ -2666,18 +2661,35 @@ function renderBgRow(cfg, box) {
 }
 /* 后处理 FX 面板（图层栏顶部，全局滤镜）：值存 cfg.fx（按场景数组 / 常量 / 场景内窗口数组）。
    开关项：CRT / 故障 / 暗角 / 噪点；选择：色板 none|nes|gb；数值：色相 hue；过渡 transition + transitionDur */
+/* 后处理 FX 面板（图层栏顶部，全局滤镜）：segs 模型——每个场景一组时段段，每段独立存全套 A+B 参数。
+   交互：场景 chip 切换场景；分段条点击选中段（拖端点共用/双击切分/删除并入左）；面板编辑选中段参数 */
 function renderFxPanel(cfg, box) {
   if (!(state.sceneParamsMode && window.HOME_SCENE)) return; // 装配模式不渲染 fx（无 scene 归属）
   const sc = sceneNames();
-  const curS = tlCurScene;
+  const curS = Math.max(0, tlCurScene < 0 ? 0 : tlCurScene);
   const fx = (cfg.fx = cfg.fx || {});
+  const n = Math.max(1, (cfg.scenes && cfg.scenes.length) || 1);
+  // segs 归一：fx.segs = [ [ {f:[f0,f1], ...params}, ... ], ... ]（每场景至少一段 [0,1]）
+  const ensureSegs = () => {
+    if (!fx.segs || !fx.segs.length) {
+      fx.segs = [];
+      for (let i = 0; i < n; i++) fx.segs.push([{ f: [0, 1] }]);
+    }
+    while (fx.segs.length < n) fx.segs.push([{ f: [0, 1] }]);
+    fx.segs.forEach((arr, i) => { if (!arr || !arr.length) fx.segs[i] = [{ f: [0, 1] }]; });
+    return fx.segs;
+  };
+  const segs = ensureSegs();
+  // 选中段（scene, idx）
+  if (!fx._sel || fx._sel.scene !== curS || fx._sel.idx >= segs[curS].length) fx._sel = { scene: curS, idx: 0 };
+  const selSeg = segs[curS][fx._sel.idx];
   const card = document.createElement('div');
   card.className = 'layer-card bg-card';
   const head = document.createElement('div');
   head.className = 'layer-head';
   const nm = document.createElement('span');
   nm.className = 'layer-name';
-  nm.textContent = '滤镜 FX' + (curS >= 0 ? '（' + (sc[curS] || curS) + '）' : '');
+  nm.textContent = '滤镜 FX（' + (sc[curS] || ('场景' + curS)) + ' · 段' + (fx._sel.idx + 1) + '）';
   const fold = document.createElement('button');
   fold.className = 'hb';
   fold.textContent = fx._open ? '▾' : '▸';
@@ -2686,10 +2698,136 @@ function renderFxPanel(cfg, box) {
   head.appendChild(fold);
   head.appendChild(nm);
   card.appendChild(head);
+  // 场景 chip 行
+  const scRow = document.createElement('div');
+  scRow.style.display = 'flex';
+  scRow.style.flexWrap = 'wrap';
+  scRow.style.gap = '4px';
+  scRow.style.margin = '3px 0';
+  for (let i = 0; i < n; i++) {
+    const chip = document.createElement('button');
+    chip.className = 'hb scene-chip' + (i === curS ? ' active' : '');
+    chip.textContent = sc[i] || ('S' + (i + 1));
+    chip.style.fontSize = '8px';
+    chip.addEventListener('click', () => {
+      state.t = tlSceneRange(i)[0] + 0.1;
+      buildLayerList(cfg); renderTimeline();
+    });
+    scRow.appendChild(chip);
+  }
+  card.appendChild(scRow);
+  // 当前场景分段条：点击选中段 / 拖端点共用缩放 / 双击切分 / 段尾×删除并入左
+  const segBar = document.createElement('div');
+  segBar.className = 'win-bar';
+  segBar.style.height = '14px';
+  const drawSegBar = () => {
+    segBar.innerHTML = '';
+    const arr = segs[curS];
+    arr.forEach((seg, i) => {
+      const d = document.createElement('div');
+      d.className = 'win-seg' + (i === fx._sel.idx ? ' sel' : '');
+      d.dataset.idx = i;
+      d.style.left = ((seg.f ? seg.f[0] : 0) * 100) + '%';
+      d.style.width = Math.max(0.5, (((seg.f ? seg.f[1] : 1) - (seg.f ? seg.f[0] : 0)) * 100)) + '%';
+      d.title = '段' + (i + 1) + '（' + Math.round((seg.f ? seg.f[0] : 0) * 100) + '%~' + Math.round((seg.f ? seg.f[1] : 1) * 100) + '%）；拖端点缩放/双击切分';
+      const hl = document.createElement('i'); hl.className = 'win-hl';
+      const hr = document.createElement('i'); hr.className = 'win-hr';
+      const del = document.createElement('b');
+      del.className = 'win-del';
+      del.textContent = '×';
+      del.title = '删除该段（并入左边；仅一段时清空为全关）';
+      del.addEventListener('click', ev => { ev.stopPropagation(); delSeg(i); });
+      d.appendChild(hl); d.appendChild(hr); d.appendChild(del);
+      d.addEventListener('pointerdown', ev => { ev.stopPropagation(); segBarDown(ev, i, d); });
+      segBar.appendChild(d);
+    });
+  };
+  let sDrag = null, sClick = null, sTimer = null;
+  const segBarDown = (ev, i, dEl) => {
+    const r = segBar.getBoundingClientRect();
+    const fxr = Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width)));
+    const sr = dEl.getBoundingClientRect();
+    const inL = ev.clientX - sr.left < 7;
+    const inR = sr.right - ev.clientX < 7;
+    const arr = segs[curS];
+    if (inL || inR) sDrag = { type: 'resize', i, side: inL ? 'l' : 'r' };
+    else sDrag = { type: 'move', i, dx: fxr - (arr[i].f ? arr[i].f[0] : 0) };
+    sClick = null;
+  };
+  segBar.addEventListener('pointermove', ev => {
+    if (!sDrag) return;
+    const r = segBar.getBoundingClientRect();
+    const fxr = Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width)));
+    const arr = segs[curS];
+    const seg = arr[sDrag.i];
+    if (!seg) return;
+    const f0 = seg.f ? seg.f[0] : 0, f1 = seg.f ? seg.f[1] : 1;
+    const prevEnd = sDrag.i > 0 ? (arr[sDrag.i - 1].f ? arr[sDrag.i - 1].f[1] : 1) : 0;
+    const nextStart = sDrag.i < arr.length - 1 ? (arr[sDrag.i + 1].f ? arr[sDrag.i + 1].f[0] : 0) : 1;
+    seg.f = seg.f || [0, 1];
+    if (sDrag.type === 'move') {
+      const w = seg.f[1] - seg.f[0];
+      seg.f[0] = Math.max(prevEnd, Math.min(nextStart - w, fxr - sDrag.dx));
+      seg.f[1] = seg.f[0] + w;
+    } else if (sDrag.type === 'resize') {
+      if (sDrag.side === 'l') seg.f[0] = Math.max(prevEnd, Math.min(seg.f[1] - 0.02, fxr));
+      else seg.f[1] = Math.max(seg.f[0] + 0.02, Math.min(nextStart, fxr));
+    }
+    drawSegBar(); renderFxTrack();
+  });
+  const segUp = () => {
+    if (sDrag) { sDrag = null; return; }
+    if (sClick != null) {
+      const i = sClick; sClick = null;
+      if (sTimer) { clearTimeout(sTimer); sTimer = null; return; }
+      sTimer = setTimeout(() => { sTimer = null; fx._sel = { scene: curS, idx: i }; buildLayerList(cfg); }, 180);
+    }
+  };
+  segBar.addEventListener('pointerup', ev => {
+    if (!sDrag) { const r = segBar.getBoundingClientRect(); const fxr = Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width))); const arr = segs[curS]; const hit = arr.findIndex(sg => fxr >= (sg.f ? sg.f[0] : 0) - 0.001 && fxr <= (sg.f ? sg.f[1] : 1) + 0.001); sClick = hit >= 0 ? hit : null; }
+    segUp();
+  });
+  segBar.addEventListener('dblclick', ev => {
+    const dEl = ev.target.closest ? ev.target.closest('.win-seg') : null;
+    if (!dEl) return;
+    const i = +dEl.dataset.idx;
+    const arr = segs[curS];
+    const seg = arr[i];
+    const r = segBar.getBoundingClientRect();
+    const fxr = Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width)));
+    const f0 = seg.f ? seg.f[0] : 0, f1 = seg.f ? seg.f[1] : 1;
+    if (fxr - f0 < 0.03 || f1 - fxr < 0.03) return;
+    const tail = f1;
+    seg.f[1] = fxr;
+    const nb = Object.assign({}, seg, { f: [fxr, tail] });
+    delete nb._sel;
+    arr.splice(i + 1, 0, nb);
+    pushHistory(); refreshStage(); buildLayerList(cfg);
+  });
+  const delSeg = i => {
+    const arr = segs[curS];
+    pushHistory();
+    if (arr.length === 1) { arr[0] = { f: [0, 1] }; } // 仅一段 → 复位整段（默认全关）
+    else {
+      const del = arr[i];
+      if (i > 0) { arr[i - 1].f[1] = del.f ? del.f[1] : 1; arr.splice(i, 1); }
+      else { arr[i + 1].f[0] = del.f ? del.f[0] : 0; arr.splice(i, 1); }
+    }
+    if (fx._sel.idx >= arr.length) fx._sel.idx = arr.length - 1;
+    refreshStage(); buildLayerList(cfg);
+  };
+  card.appendChild(segBar);
+  drawSegBar();
   if (fx._open) {
-    // 场景内窗口辅助：每个开关若为窗口数组 [[f0,f1],…] 显示简注
-    const isWin = v => Array.isArray(v) && v.length && typeof v[0] === 'object' && v[0] !== null && Array.isArray(v[0]);
-    const row = (label, key, hint) => {
+    // —— 选中段参数（A 档开关 + 参数同行；B 档色板/调色；采样数在色板上方）——
+    const writeSeg = (patch) => {
+      pushHistory();
+      const arr = ensureSegs()[curS];
+      const seg = arr[fx._sel.idx] = Object.assign({}, arr[fx._sel.idx], patch);
+      seg.f = seg.f || [0, 1];
+      refreshStage(); buildLayerList(cfg);
+    };
+    const boolRow = (label, key, hint, extraParams) => {
       const r = document.createElement('div');
       r.className = 'cf-row';
       const l = document.createElement('label');
@@ -2698,80 +2836,70 @@ function renderFxPanel(cfg, box) {
       r.appendChild(l);
       const inp = document.createElement('input');
       inp.type = 'checkbox';
-      inp.checked = !!fxOnTool(key); // 当前场景值（数组/窗口数组/常量统一取当前场景）
-      inp.addEventListener('change', () => {
-        pushHistory();
-        const v = inp.checked;
-        const cur = fx[key];
-        if (isWin(cur)) { fx[key] = cur; } // 窗口数组：不通过开关编辑（保持原样）
-        else {
-          // 按场景数组：只改当前场景槽；常量 → 转数组（当前场景新值，其余保持）
-          if (sc.length) {
-            if (!Array.isArray(cur)) { const c = !!cur; fx[key] = sc.map((_, i) => (i === Math.max(0, curS)) ? v : c); }
-            else fx[key] = sc.map((_, i) => (i === Math.max(0, curS)) ? v : !!cur[Math.min(i, cur.length - 1)]);
-          } else {
-            fx[key] = v;
-          }
-        }
-        refreshStage(); buildLayerList(cfg);
-      });
+      inp.checked = !!selSeg[key];
+      inp.addEventListener('change', () => { const p = { [key]: inp.checked }; writeSeg(p); });
       r.appendChild(inp);
-      // 时段按钮：打开该开关的场景内分段编辑（窗口数组 [[f0,f1],…]）
-      const segBtn = document.createElement('button');
-      segBtn.className = 'hb sbtn';
-      segBtn.textContent = '时段';
-      segBtn.title = '编辑「' + label + '」在场景内的生效时段（双击段删除并入左边；端点共用可拖；点击段内切分）';
-      segBtn.addEventListener('click', ev => { ev.stopPropagation(); fxWinPopup(key, label, cfg); });
-      r.appendChild(segBtn);
+      // A 档参数同行（强度/透明度/间距等）
+      if (extraParams) extraParams.forEach(([pk, step, min, max, def, ph]) => {
+        const pi = document.createElement('input');
+        pi.type = 'number';
+        pi.step = step; pi.style.width = '40px';
+        if (min != null) pi.min = min;
+        if (max != null) pi.max = max;
+        pi.title = ph;
+        pi.value = selSeg[pk] != null ? selSeg[pk] : def;
+        pi.addEventListener('change', () => {
+          const v = parseFloat(pi.value);
+          if (isNaN(v)) return;
+          const cl = max != null ? Math.min(max, Math.max(min != null ? min : -Infinity, v)) : v;
+          pi.value = cl;
+          writeSeg({ [pk]: cl });
+        });
+        r.appendChild(pi);
+      });
       card.appendChild(r);
       return r;
     };
-    row('CRT 扫描线', 'crt', '叠加半透明黑横线纹理（预生成，逐帧 drawImage）');
-    row('故障 glitch', 'glitch', '随机水平位移条（确定性随机，随时间变化）');
-    row('暗角 vignette', 'vignette', '径向压暗边缘（预生成纹理，强度可调）');
-    row('噪点 noise', 'noise', 'N 帧噪点轮换逐帧切换（雪花闪烁，透明度/帧数可调）');
+    boolRow('CRT', 'crt', 'CRT 扫描线黑横线', [['crtOpacity', 0.02, 0, 1, 0.28, '黑线透明度'], ['crtSpacing', 1, 2, 12, 3, '行间距']]);
+    boolRow('故障', 'glitch', '确定性随机水平位移条');
+    boolRow('暗角', 'vignette', '径向压暗边缘', [['vignetteStrength', 0.05, 0, 1, 0.38, '压暗强度']]);
+    boolRow('噪点', 'noise', 'N 帧噪点轮换', [['noiseAlpha', 0.02, 0, 1, 0.1, '强度'], ['noiseFrames', 1, 1, 8, 3, '轮换帧数']]);
+    // 采样数（色板上方）
+    const divRow = document.createElement('div');
+    divRow.className = 'cf-row';
+    const dl = document.createElement('label');
+    dl.textContent = '采样数';
+    dl.title = '整帧降采样除数（1=全分辨率清晰；2/4=低分辨率颗粒感 + 调色开销÷div²）；先降采样再调色';
+    divRow.appendChild(dl);
+    const divIn = document.createElement('input');
+    divIn.type = 'number'; divIn.step = 1; divIn.min = 1; divIn.style.width = '52px';
+    divIn.value = selSeg.pixelDiv != null ? selSeg.pixelDiv : 1;
+    divIn.addEventListener('change', () => {
+      const v = Math.max(1, Math.round(parseFloat(divIn.value) || 1));
+      divIn.value = v;
+      writeSeg({ pixelDiv: v });
+    });
+    divRow.appendChild(divIn);
+    card.appendChild(divRow);
+    // 色板
     const palRow = document.createElement('div');
     palRow.className = 'cf-row';
     const pl = document.createElement('label');
     pl.textContent = '色板';
-    pl.title = '整帧色板映射（LUT 查表）：PICO-8 32色 / NES 16色 / VGA 16色 / GB 4色（与素材减色共用定义）';
+    pl.title = '整帧色板映射（LUT）：PICO-8 / NES / VGA / GB（与素材减色共用定义）';
     palRow.appendChild(pl);
     const sel = document.createElement('select');
     [['none', '无'], ['pico8', 'PICO-8 32色'], ['nes', 'NES 16色'], ['vga', 'VGA 16色'], ['gb', 'GB 4色']].forEach(([v, t]) => {
       const o = document.createElement('option');
-      o.value = v;
-      o.textContent = t;
-      o.selected = fxValTool('palette') === v;
+      o.value = v; o.textContent = t;
+      o.selected = (selSeg.palette || 'none') === v;
       sel.appendChild(o);
     });
-    sel.addEventListener('change', () => {
-      pushHistory();
-      const v = sel.value;
-      fx.palette = sc.length ? sc.map((_, i) => (i === Math.max(0, curS)) ? v : (Array.isArray(fx.palette) ? fx.palette[Math.min(i, fx.palette.length - 1)] : (fx.palette || 'none'))) : v;
-      refreshStage(); buildLayerList(cfg);
-    });
+    sel.addEventListener('change', () => writeSeg({ palette: sel.value }));
     palRow.appendChild(sel);
     card.appendChild(palRow);
-    const hueRow = document.createElement('div');
-    hueRow.className = 'cf-row';
-    const hl = document.createElement('label');
-    hl.textContent = '色相°';
-    hl.title = '色相偏移（度，3×3 矩阵线性变换）';
-    hueRow.appendChild(hl);
-    const hueIn = document.createElement('input');
-    hueIn.type = 'number';
-    hueIn.style.width = '52px';
-    hueIn.value = fxValTool('hue') || 0;
-    hueIn.addEventListener('change', () => {
-      pushHistory();
-      const v = parseFloat(hueIn.value) || 0;
-      fx.hue = sc.length ? sc.map((_, i) => (i === Math.max(0, curS)) ? v : (Array.isArray(fx.hue) ? fx.hue[Math.min(i, fx.hue.length - 1)] : (fx.hue || 0))) : v;
-      refreshStage(); buildLayerList(cfg);
-    });
-    hueRow.appendChild(hueIn);
-    card.appendChild(hueRow);
-    // 数值参数行辅助（按场景数组写入）
-    const numRow = (label, key, step, min, max, def, hint) => {
+    // 调色（hue/brightness/contrast/saturation）
+    const numSeg = (label, key, step, min, max, def, hint) => {
       const r = document.createElement('div');
       r.className = 'cf-row';
       const l = document.createElement('label');
@@ -2779,109 +2907,69 @@ function renderFxPanel(cfg, box) {
       if (hint) l.title = hint;
       r.appendChild(l);
       const inp = document.createElement('input');
-      inp.type = 'number';
-      inp.step = step;
-      inp.style.width = '52px';
+      inp.type = 'number'; inp.step = step; inp.style.width = '52px';
       if (min != null) inp.min = min;
       if (max != null) inp.max = max;
-      const cv = fxValTool(key);
-      inp.value = cv != null ? cv : def;
+      inp.value = selSeg[key] != null ? selSeg[key] : def;
       inp.addEventListener('change', () => {
-        pushHistory();
         const v = parseFloat(inp.value);
         if (isNaN(v)) return;
-        const clamped = max != null ? Math.min(max, Math.max(min != null ? min : -Infinity, v)) : v;
-        inp.value = clamped;
-        fx[key] = sc.length ? sc.map((_, i) => (i === Math.max(0, curS)) ? clamped : (Array.isArray(fx[key]) ? fx[key][Math.min(i, fx[key].length - 1)] : (fx[key] != null ? fx[key] : def))) : clamped;
-        refreshStage(); buildLayerList(cfg);
+        const cl = max != null ? Math.min(max, Math.max(min != null ? min : -Infinity, v)) : v;
+        inp.value = cl;
+        writeSeg({ [key]: cl });
       });
       r.appendChild(inp);
       card.appendChild(r);
-      return r;
     };
-    numRow('亮度', 'brightness', 5, -100, 100, 0, '亮度偏移（-100~100，并入调色矩阵，无额外开销）');
-    numRow('对比度', 'contrast', 0.1, 0, 3, 1, '对比度（0~3，1=原样；并入调色矩阵）');
-    numRow('饱和度', 'saturation', 0.1, 0, 2, 1, '饱和度（0~2，1=原样；0=灰度；并入调色矩阵）');
-    numRow('采样除数', 'pixelDiv', 1, 1, 4, 1, '整帧降采样除数（1=全分辨率清晰；2/4=低分辨率颗粒感 + 调色开销÷div²）——先降采样再调色');
-    numRow('噪点帧数', 'noiseFrames', 1, 1, 8, 3, '噪点轮换帧数（默认 3；越多雪花越随机）');
-    numRow('噪点强度', 'noiseAlpha', 0.02, 0, 1, 0.1, '噪点透明度（0~1）');
-    numRow('暗角强度', 'vignetteStrength', 0.05, 0, 1, 0.38, '暗角压暗程度（0~1）');
-    numRow('CRT 透明度', 'crtOpacity', 0.02, 0, 1, 0.28, 'CRT 扫描线黑线透明度（0~1）');
-    numRow('CRT 间距', 'crtSpacing', 1, 2, 12, 3, 'CRT 扫描线间距（像素，每 N 行一条）');
+    numSeg('色相°', 'hue', 5, -180, 180, 0, '色相偏移（并入调色矩阵）');
+    numSeg('亮度', 'brightness', 5, -100, 100, 0, '亮度偏移（-100~100）');
+    numSeg('对比度', 'contrast', 0.1, 0, 3, 1, '对比度（1=原样）');
+    numSeg('饱和度', 'saturation', 0.1, 0, 2, 1, '饱和度（1=原样；0=灰度）');
+    // 过渡（场景级，顶层）
     const trRow = document.createElement('div');
     trRow.className = 'cf-row';
     const tl2 = document.createElement('label');
     tl2.textContent = '过渡';
-    tl2.title = '场景进入过渡：fade（暗场闪切，默认）/ scan（扫描）/ wipe（擦除）；时长秒可配';
+    tl2.title = '场景进入过渡（场景级，不进时段段）：fade/scan/wipe + 时长';
     trRow.appendChild(tl2);
     const trSel = document.createElement('select');
     [['fade', 'fade 暗场'], ['scan', 'scan 扫描'], ['wipe', 'wipe 擦除']].forEach(([v, t]) => {
       const o = document.createElement('option');
-      o.value = v;
-      o.textContent = t;
-      o.selected = fxValTool('transition') === v;
+      o.value = v; o.textContent = t;
+      o.selected = (fx.transition || 'fade') === v;
       trSel.appendChild(o);
     });
-    trSel.addEventListener('change', () => {
-      pushHistory();
-      const v = trSel.value;
-      fx.transition = sc.length ? sc.map((_, i) => (i === Math.max(0, curS)) ? v : (Array.isArray(fx.transition) ? fx.transition[Math.min(i, fx.transition.length - 1)] : (fx.transition || 'fade'))) : v;
-      refreshStage(); buildLayerList(cfg);
-    });
+    trSel.addEventListener('change', () => { pushHistory(); fx.transition = trSel.value; refreshStage(); buildLayerList(cfg); });
     trRow.appendChild(trSel);
     const trDur = document.createElement('input');
-    trDur.type = 'number';
-    trDur.step = 0.05;
-    trDur.min = 0.05;
-    trDur.max = 1;
-    trDur.style.width = '46px';
+    trDur.type = 'number'; trDur.step = 0.05; trDur.min = 0.05; trDur.max = 1; trDur.style.width = '46px';
     trDur.value = fx.transitionDur != null ? fx.transitionDur : 0.25;
     trDur.title = '过渡时长（秒）';
-    trDur.addEventListener('change', () => {
-      pushHistory();
-      fx.transitionDur = Math.max(0.05, Math.min(1, parseFloat(trDur.value) || 0.25));
-      refreshStage();
-    });
+    trDur.addEventListener('change', () => { pushHistory(); fx.transitionDur = Math.max(0.05, Math.min(1, parseFloat(trDur.value) || 0.25)); refreshStage(); });
     trRow.appendChild(trDur);
     card.appendChild(trRow);
   }
   box.appendChild(card);
 }
-// 工具端读取 fx 值（按场景 / 窗口数组取当前值），与 home-scene fxVal 同语义
-function fxValTool(k) {
-  const cfg = window.HOME_SCENE;
-  if (!cfg || !cfg.fx) return undefined;
-  const v = cfg.fx[k];
-  if (v == null) return undefined;
-  const p = Math.max(0, tlCurScene < 0 ? 0 : tlCurScene);
-  const arr = Array.isArray(v) ? v[Math.min(p, v.length - 1)] : v;
-  if (Array.isArray(arr) && arr.length && typeof arr[0] === 'object' && arr[0] !== null && Array.isArray(arr[0])) return undefined;
-  return arr;
+/* FX 工具辅助（segs 模型）：读取 cfg.fx.segs 当前场景时段段 */
+function fxSegsArr(cfg) {
+  const fx = cfg.fx;
+  if (!fx) return null;
+  const n = Math.max(1, (cfg.scenes && cfg.scenes.length) || 1);
+  if (!fx.segs || !fx.segs.length) { fx.segs = []; for (let i = 0; i < n; i++) fx.segs.push([{ f: [0, 1] }]); }
+  while (fx.segs.length < n) fx.segs.push([{ f: [0, 1] }]);
+  fx.segs.forEach((a, i) => { if (!a || !a.length) fx.segs[i] = [{ f: [0, 1] }]; });
+  return fx.segs;
 }
-function fxOnTool(k) {
-  const cfg = window.HOME_SCENE;
-  if (!cfg || !cfg.fx) return false;
-  const v = cfg.fx[k];
-  if (v == null) return false;
-  const p = Math.max(0, tlCurScene < 0 ? 0 : tlCurScene);
-  const arr = Array.isArray(v) ? v[Math.min(p, v.length - 1)] : v;
-  if (Array.isArray(arr) && arr.length && typeof arr[0] === 'object' && arr[0] !== null && Array.isArray(arr[0])) {
-    // 场景内窗口数组：当前播放头是否落在窗口
-    const [s0, s1] = tlSceneRange(p);
-    const lt = ((state.t % tlLoop()) + tlLoop()) % tlLoop() - s0;
-    const dur = s1 - s0;
-    return arr.some(seg => lt >= seg[0] * dur && lt < seg[1] * dur);
-  }
-  return !!arr;
-}
-/* FX 时间轴轨：绘制 cfg.fx 各开关的按场景色块（#tl-fx canvas，场景参数模式显示） */
+/* FX 时间轴轨（#tl-fx）：segs 分段可视化——每场景一组时段段色块；点击段 = 选中段 + 跳场景（面板同步）。
+   颜色按段是否启用 A/B 效果着色（启用越多越亮）。 */
 function renderFxTrack() {
   const cv = $('tl-fx');
   if (!cv || !cv.getContext) return;
   const cfg = window.HOME_SCENE;
-  const show = state.sceneParamsMode && cfg && cfg.fx && (cfg.fx.crt || cfg.fx.glitch || cfg.fx.vignette || cfg.fx.noise || cfg.fx.palette || cfg.fx.hue);
-  cv.style.display = show ? '' : 'none';
-  if (!show) return;
+  const hasFx = state.sceneParamsMode && cfg && cfg.fx && cfg.fx.segs && cfg.fx.segs.length;
+  cv.style.display = hasFx ? '' : 'none';
+  if (!hasFx) return;
   const scale = Math.max(2, window.devicePixelRatio || 1);
   const Wcss = cv.clientWidth || 320;
   const Hcss = 18;
@@ -2892,203 +2980,75 @@ function renderFxTrack() {
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   ctx.clearRect(0, 0, Wcss, Hcss);
   const loop = tlLoop();
-  const sc = sceneNames();
-  const fxKeys = [['crt', '#e5484d'], ['glitch', '#9b59d0'], ['vignette', '#3d9bf2'], ['noise', '#00b8a0'], ['palette', '#e6a23c'], ['hue', '#2fbf6a']];
+  const segs = cfg.fx.segs;
   const n = Math.max(1, (cfg.scenes && cfg.scenes.length) || 1);
   const borders = currentBorders(cfg);
   const segStart = i => borders ? (i === 0 ? 0 : borders[i - 1]) : i * loop / n;
   const segEnd = i => borders ? (i === borders.length ? loop : borders[i]) : (i + 1) * loop / n;
-  let row = 0;
-  fxKeys.forEach(([k, col]) => {
-    const raw = cfg.fx[k];
-    if (raw == null || (k !== 'palette' && k !== 'hue' && raw === false)) return;
-    const y = row * 6;
-    const isOn = i => {
-      const v = Array.isArray(raw) ? raw[Math.min(i, raw.length - 1)] : raw;
-      if (Array.isArray(v) && v.length && typeof v[0] === 'object' && v[0] !== null && Array.isArray(v[0])) return true; // 窗口数组：整段亮
-      return k === 'palette' ? (v && v !== 'none') : k === 'hue' ? (v && v !== 0) : !!v;
-    };
-    for (let i = 0; i < n; i++) {
-      if (!isOn(i)) continue;
-      const a = segStart(i), b = segEnd(i);
-      ctx.fillStyle = col;
-      ctx.globalAlpha = 0.55;
-      ctx.fillRect(Math.round((a / loop) * Wcss), y, Math.max(2, Math.round(((b - a) / loop) * Wcss)), 4);
-      ctx.globalAlpha = 1;
-    }
-    if (sc[0]) { ctx.fillStyle = '#8a93a8'; ctx.font = '7px monospace'; ctx.fillText(k, 2, y + 4); }
-    row++;
-  });
+  // 段启用计数（亮度）
+  const onCount = seg => {
+    let c = 0;
+    if (seg.crt) c++; if (seg.glitch) c++; if (seg.vignette) c++; if (seg.noise) c++;
+    if (seg.palette && seg.palette !== 'none') c++; if (seg.hue) c++; if (seg.pixelDiv && seg.pixelDiv > 1) c++;
+    return c;
+  };
+  for (let i = 0; i < n; i++) {
+    const a = segStart(i), b = segEnd(i);
+    const x0 = Math.round((a / loop) * Wcss), x1 = Math.round((b / loop) * Wcss);
+    const arr = segs[i] || [{ f: [0, 1] }];
+    arr.forEach(seg => {
+      const fa = seg.f ? seg.f[0] : 0, fb = seg.f ? seg.f[1] : 1;
+      const sx = Math.round(a + (b - a) * fa), ex = Math.round(a + (b - a) * fb);
+      const c = onCount(seg);
+      const lum = Math.min(1, 0.15 + c * 0.2);
+      ctx.fillStyle = 'rgba(255,210,63,' + (0.25 + lum * 0.6) + ')';
+      ctx.fillRect(Math.round((sx / loop) * Wcss), 1, Math.max(2, Math.round(((ex - sx) / loop) * Wcss)), 8);
+    });
+  }
+  // 选中段高亮（当前场景 + fx._sel.idx）
+  const fx = cfg.fx;
+  const curS = Math.max(0, tlCurScene < 0 ? 0 : tlCurScene);
+  const selIdx = (fx._sel && fx._sel.scene === curS) ? fx._sel.idx : 0;
+  const arr2 = segs[curS] || [{ f: [0, 1] }];
+  const sel = arr2[selIdx] || arr2[0];
+  if (sel) {
+    const a = segStart(curS), b = segEnd(curS);
+    const fa = sel.f ? sel.f[0] : 0, fb = sel.f ? sel.f[1] : 1;
+    ctx.strokeStyle = '#ffd23f';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(Math.round(((a + (b - a) * fa) / loop) * Wcss) + 1, 0, Math.max(1, Math.round((((b - a) * (fb - fa)) / loop) * Wcss) - 2), 9);
+  }
   const px = Math.round(((state.t % loop) / loop) * Wcss);
   ctx.fillStyle = '#e5484d';
   ctx.fillRect(px, 0, 1, Hcss);
 }
-/* FX 场景内时段编辑弹窗：复用 show 窗口条交互（点击段内切分 / 空白加段 / 拖段体移动 / 拖两端缩放共用端点 / 双击删除并入左边）。
-   数据：fx.<key>[scene] = null（隐藏）| [f0,f1]（单段）| [[f0,f1],…]（多段），f 为场景内 0~1 比例 */
-let fxWinPop = null;
-function fxWinPopup(key, label, cfg) {
-  if (fxWinPop && fxWinPop._key === key) { fxWinPop.remove(); fxWinPop = null; return; }
-  if (fxWinPop) fxWinPop.remove();
-  const sc = sceneNames();
-  const n = Math.max(1, (cfg.scenes && cfg.scenes.length) || 1);
-  const curS = Math.max(0, tlCurScene < 0 ? 0 : tlCurScene);
-  const pop = document.createElement('div');
-  pop.className = 'show-pop';
-  pop._key = key;
-  pop.style.position = 'absolute';
-  pop.style.left = '8px';
-  pop.style.top = 'auto';
-  pop.style.bottom = '54px';
-  pop.style.zIndex = 99;
-  const title = document.createElement('div');
-  title.className = 'show-pop-title';
-  title.textContent = label + ' 时段：行=场景开关 · 条=场景内分段（点击切分/拖端点缩放/拖段移动/双击删除并入左）';
-  pop.appendChild(title);
-  // 当前场景内窗口数组（读写归一：null | [[f0,f1],…]）
-  const winsRef = () => {
-    const raw = cfg.fx[key];
-    const v = Array.isArray(raw) ? raw[Math.min(curS, raw.length - 1)] : raw;
-    if (v == null || v === false) return null;
-    if (Array.isArray(v) && v.length && typeof v[0] === 'object' && v[0] !== null && Array.isArray(v[0])) return v.map(s => [s[0], s[1]]);
-    return [[0, 1]]; // 真值常量 = 整段
-  };
-  const write = wins => {
-    const raw = cfg.fx[key];
-    const arr = Array.isArray(raw) ? raw.slice() : null;
-    const cur = wins && wins.length ? wins.map(s => [s[0], s[1]]).sort((a, b) => a[0] - b[0]) : null;
-    if (arr) { arr[Math.min(curS, arr.length - 1)] = cur; cfg.fx[key] = arr; }
-    else cfg.fx[key] = cur;
-    refreshStage(); buildLayerList(cfg);
-    draw();
-  };
-  // 场景开关行
-  const scRow = document.createElement('div');
-  scRow.style.display = 'flex';
-  scRow.style.flexWrap = 'wrap';
-  scRow.style.gap = '4px';
-  scRow.style.marginBottom = '4px';
-  for (let i = 0; i < n; i++) {
-    const chip = document.createElement('button');
-    chip.className = 'hb scene-chip' + (i === curS ? ' active' : '');
-    chip.textContent = sc[i] || ('S' + (i + 1));
-    chip.style.fontSize = '8px';
-    chip.addEventListener('click', () => {
-      tlCurScene = i; state.t = tlSceneRange(i)[0] + 0.1;
-      buildLayerList(cfg); renderTimeline();
-      fxWinPopup(key, label, cfg); // 重开（场景切换）
-    });
-    scRow.appendChild(chip);
-  }
-  pop.appendChild(scRow);
-  // 场景内分段条（win-bar 交互）
-  const wrap = document.createElement('div');
-  wrap.className = 'win-wrap';
-  const bar = document.createElement('div');
-  bar.className = 'win-bar';
-  const draw = () => {
-    const wins = winsRef();
-    bar.innerHTML = '';
-    if (!wins) { const em = document.createElement('div'); em.style.cssText = 'position:absolute;inset:0;color:#8a93a8;font-size:7px;line-height:12px;padding-left:4px;'; em.textContent = '（关——点击空白加段）'; bar.appendChild(em); return; }
-    wins.forEach((seg, si) => {
-      const d = document.createElement('div');
-      d.className = 'win-seg';
-      d.dataset.seg = si;
-      d.style.left = (seg[0] * 100) + '%';
-      d.style.width = Math.max(0.5, (seg[1] - seg[0]) * 100) + '%';
-      const hl = document.createElement('i'); hl.className = 'win-hl';
-      const hr = document.createElement('i'); hr.className = 'win-hr';
-      d.appendChild(hl); d.appendChild(hr);
-      bar.appendChild(d);
-    });
-  };
-  let drag = null, clickPos = null, clickTimer = null;
-  const doClick = fx => {
-    const wins = winsRef() || [];
-    const segAt = wins.findIndex(sg => fx >= sg[0] - 0.001 && fx <= sg[1] + 0.001);
-    if (segAt >= 0) {
-      const seg = wins[segAt];
-      if (fx - seg[0] < 0.02 || seg[1] - fx < 0.02) return;
-      const tail = seg[1];
-      seg[1] = fx;
-      wins.splice(segAt + 1, 0, [fx, tail]);
-    } else {
-      const half = 0.05;
-      wins.push([Math.max(0, fx - half), Math.min(1, fx + half)]);
-    }
-    write(wins);
-  };
-  bar.addEventListener('pointerdown', ev => {
-    ev.stopPropagation();
-    const r = bar.getBoundingClientRect();
-    const fx = Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width)));
-    const segEl = ev.target.closest ? ev.target.closest('.win-seg') : null;
-    const wins = winsRef() || [];
-    if (segEl) {
-      const si = +segEl.dataset.seg;
-      const seg = wins[si];
-      if (!seg) return;
-      const sr = segEl.getBoundingClientRect();
-      const inL = ev.clientX - sr.left < 7;
-      const inR = sr.right - ev.clientX < 7;
-      if (inL || inR) drag = { type: 'resize', si, side: inL ? 'l' : 'r' };
-      else drag = { type: 'move', si, dx: fx - seg[0] };
-      clickPos = null;
-      return;
-    }
-    drag = null;
-    clickPos = { fx };
+/* FX 轨点击：命中段 → 选中 + 跳场景（面板同步显示该段参数） */
+(function fxTrackClick() {
+  const cv = $('tl-fx');
+  if (!cv) return;
+  cv.addEventListener('pointerdown', ev => {
+    const cfg = window.HOME_SCENE;
+    if (!(state.sceneParamsMode && cfg && cfg.fx && cfg.fx.segs)) return;
+    const r = cv.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width)));
+    const loop = tlLoop();
+    const tAbs = frac * loop;
+    const n = Math.max(1, (cfg.scenes && cfg.scenes.length) || 1);
+    const borders = currentBorders(cfg);
+    const sceneAt = t => { const lt = ((t % loop) + loop) % loop; if (borders) { for (let i = 0; i < borders.length; i++) if (lt < borders[i]) return i; return borders.length; } return Math.floor(lt / (loop / n)); };
+    const p = Math.min(sceneAt(tAbs), n - 1);
+    const arr = cfg.fx.segs[p] || [{ f: [0, 1] }];
+    const [s0, s1] = borders ? [p === 0 ? 0 : borders[p - 1], p === borders.length ? loop : borders[p]] : [p * loop / n, (p + 1) * loop / n];
+    const rel = (tAbs - s0) / Math.max(0.001, s1 - s0);
+    let idx = arr.findIndex(sg => rel >= (sg.f ? sg.f[0] : 0) - 0.001 && rel <= (sg.f ? sg.f[1] : 1) + 0.001);
+    if (idx < 0) idx = 0;
+    cfg.fx._sel = { scene: p, idx: idx };
+    state.t = s0 + 0.1;
+    buildLayerList(cfg);
+    renderTimeline();
+    refreshStage();
   });
-  bar.addEventListener('pointermove', ev => {
-    if (!drag) return;
-    ev.stopPropagation();
-    const r = bar.getBoundingClientRect();
-    const fx = Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width)));
-    const wins = winsRef() || [];
-    const seg = wins[drag.si];
-    if (!seg) return;
-    const prevEnd = drag.si > 0 ? wins[drag.si - 1][1] : 0;
-    const nextStart = drag.si < wins.length - 1 ? wins[drag.si + 1][0] : 1;
-    if (drag.type === 'move') {
-      const w = seg[1] - seg[0];
-      seg[0] = Math.max(prevEnd, Math.min(nextStart - w, fx - drag.dx));
-      seg[1] = seg[0] + w;
-    } else if (drag.type === 'resize') {
-      if (drag.side === 'l') seg[0] = Math.max(prevEnd, Math.min(seg[1] - 0.02, fx));
-      else seg[1] = Math.max(seg[0] + 0.02, Math.min(nextStart, fx));
-    }
-    write(wins);
-  });
-  const up = () => {
-    if (drag) { drag = null; return; }
-    if (clickPos) {
-      const fx = clickPos.fx;
-      clickPos = null;
-      if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; return; }
-      clickTimer = setTimeout(() => { clickTimer = null; doClick(fx); }, 220);
-    }
-  };
-  bar.addEventListener('pointerup', up);
-  bar.addEventListener('pointerleave', () => { drag = null; clickPos = null; });
-  bar.addEventListener('dblclick', ev => {
-    ev.stopPropagation();
-    const segEl = ev.target.closest ? ev.target.closest('.win-seg') : null;
-    if (!segEl) return;
-    if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
-    const wins = winsRef() || [];
-    const si = +segEl.dataset.seg;
-    // 删除并入左边：被删段并入左邻（若无左邻则并入右邻；仅一段时清空）
-    const del = wins[si];
-    if (wins.length === 1) { write(null); return; }
-    if (si > 0) { wins[si - 1][1] = del[1]; wins.splice(si, 1); }
-    else { wins[si + 1][0] = del[0]; wins.splice(si, 1); }
-    write(wins);
-  });
-  wrap.appendChild(bar);
-  pop.appendChild(wrap);
-  draw();
-  document.body.appendChild(pop);
-  fxWinPop = pop;
-}
+})();
 function buildLayerList(cfg) {
   const box = $('cfgform');
   box.innerHTML = '';
@@ -3355,6 +3315,7 @@ function toggleShowPopup(el, cfg, anchorBtn) {
       write(wins);
     });
     wrap.appendChild(bar);
+    draw(); // 首次构建立即画段（修复：打开面板窗口条空白）
     return wrap;
   };
   const refresh = () => {

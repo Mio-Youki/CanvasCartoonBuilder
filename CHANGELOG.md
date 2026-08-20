@@ -2,6 +2,15 @@
 
 > 独立于游戏本体的 CHANGELOG。工具版本独立演进，与游戏版本号无关。
 
+## v2.7 补三 —— FX 按时段段组织（segs）+ 采样数统一 + A 档参数同行 + [S] 面板修复
+- **① FX 数据模型重构（segs）**：从"按 fx 项分散管理"（crt/glitch 各自独立时段）改为 **按时段段组织**——`CFG.fx.segs[scene] = [{f:[f0,f1], crt, glitch, ..., palette, hue, brightness, contrast, saturation, pixelDiv}, ...]`，**每段独立存全套 A+B 参数**；去掉每项独立的「时段」按钮，改为 FX 轨直接分段（点击段=选中并在面板编辑该段全套参数）；home-scene `fxOn`/`fxVal` 按 t 找当前段读配置，旧模型（顶层按项）向后兼容；过渡 transition 仍场景级（不进时段段）
+- **② FX 轨升级为分段条**：`#tl-fx` 显示各场景时段段色块（启用项越多越亮），点击段 = 选中 + 跳场景（面板同步）；拖端点共用缩放 / 双击切分（继承原段配置）/ 段尾 × 删除并入左边
+- **③ 采样数统一**：三处（元素卡片 `pixelDiv` / 图片导入 `divisor` / FX 面板 `pixelDiv`）从下拉改为**整数输入框**（min=1 步长 1 自由键入）；FX 面板采样数移到**色板选择上方**
+- **④ A 档参数同行**：crtOpacity/crtSpacing、noiseAlpha/noiseFrames、vignetteStrength 移到**对应开关左侧同行**
+- **⑤ [S] 面板窗口条空白修复**：`buildBar` 首次构建后未调 `draw()` → **打开面板窗口条为 0 段**（数据实际存在但显示丢失，再度打开仍空白）；补首次 `draw()` 调用——打开即显示分段
+- **验证**：home-scene segs 分段渲染（段0 nes 色板/段1 无，同场景分时切换）PASS + 过渡场景级 PASS；工具端 V1-V5（分段条/选中段参数/双击切分/采样数位置/A 档同行）PASS；[S] 面板 S1-S4（打开/关闭/重开/数据）PASS；**默认配置（无 fx）新旧渲染 DIFF=0**
+- 渲染端同步：`public/home-scene.js` → `tools/home-scene.js`（vendored）一致
+
 ## v2.7 补二 —— FX 增强：噪点多帧 + 调色参数 + 降采样前置 + 色板统一 + 场景内时段编辑
 - **① 噪点随机性**：单张噪点 → **N 帧独立噪点轮换**（`noiseFrames` 默认 3，1~8 可调）——12fps 下每帧换帧 + 确定性小幅平移（雪花闪烁感）；`noiseAlpha` 强度可调
 - **② 调色参数（零额外开销）**：`brightness`（-100~100）/`contrast`（0~3）/`saturation`（0~2）——**与 hue 色相旋转级联合并为单个 3×3 矩阵**（先调色再色相），每像素仍 9 次乘加；修复亮度偏移量纲（此前 /100 导致 +50 亮度几乎无效）

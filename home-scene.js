@@ -313,25 +313,48 @@ const HomeScene = (() => {
   function val(e, k, t) { return valAt(e, k, scene(t)); }
 
   // ---------- 后处理 fx（全局配置，默认无字段 = 全关，零开销） ----------
-  // CFG.fx = { crt, glitch, vignette, noise, palette:'none'|'nes'|'gb', hue(度), transition, transitionDur }
-  // 各开关支持：常量 / 按场景数组 [v0,v1,…] / 场景内窗口数组 [[f0,f1],…]（f 为场景内 0~1 比例，与 show 同形态）
+  // 新模型 CFG.fx = { segs: [[ {f:[f0,f1], crt, glitch, vignette, noise, palette, hue, brightness, contrast, saturation, ...}, ... ], ...], transition, transitionDur }
+  //   segs[scene] = 该场景的时段段数组（f 为场景内 0~1 比例，段按 f 排序覆盖 [0,1]）；每段独立存全套 A+B 参数
+  // 旧模型（向后兼容）CFG.fx = { crt, glitch, ..., palette, hue, transition }：常量 / 按场景数组 / 窗口数组
+  // 当前时段段：segs 存在时按 t 找段；否则返回 null（走旧模型）
+  function fxSeg(t) {
+    const f = CFG.fx;
+    if (!f || !f.segs || !f.segs.length) return null;
+    const p = scene(t);
+    const segs = f.segs[Math.min(p, f.segs.length - 1)];
+    if (!segs || !segs.length) return null;
+    const [s0, s1] = sceneBounds(p);
+    const lt = ((t % LOOPv()) + LOOPv()) % LOOPv() - s0;
+    const dur = s1 - s0;
+    const rel = dur > 0 ? lt / dur : 0;
+    for (const seg of segs) {
+      const a = seg.f ? seg.f[0] : 0, b = seg.f ? seg.f[1] : 1;
+      if (rel >= a && rel < b) return seg;
+    }
+    return segs[0] || null;
+  }
   function fxOn(k, t) {
     const f = CFG.fx;
-    if (!f || f[k] == null) return false;
+    if (!f) return false;
+    const seg = fxSeg(t);
+    if (seg) return !!seg[k]; // 新模型：读当前段
+    if (f[k] == null) return false; // 旧模型
     const v = valAt({ [k]: f[k] }, k, scene(t));
     if (Array.isArray(v) && v.length && typeof v[0] === 'object' && v[0] !== null && Array.isArray(v[0])) {
-      // 场景内窗口数组：当前时刻是否落在任一窗口
       const p = scene(t);
       const [s0, s1] = sceneBounds(p);
       const lt = ((t % LOOPv()) + LOOPv()) % LOOPv() - s0;
       const dur = s1 - s0;
-      return v.some(seg => lt >= seg[0] * dur && lt < seg[1] * dur);
+      return v.some(seg2 => lt >= seg2[0] * dur && lt < seg2[1] * dur);
     }
     return !!v;
   }
   function fxVal(k, t, def) {
     const f = CFG.fx;
-    if (!f || f[k] == null) return def;
+    if (!f) return def;
+    const seg = fxSeg(t);
+    if (seg) return seg[k] != null ? seg[k] : def; // 新模型：读当前段
+    if (f[k] == null) return def; // 旧模型
     const v = valAt({ [k]: f[k] }, k, scene(t));
     return (Array.isArray(v) && v.length && typeof v[0] === 'object' && v[0] !== null && Array.isArray(v[0])) ? def : v;
   }
@@ -509,7 +532,7 @@ const HomeScene = (() => {
       }
     }
   }
-  // 过渡：升级硬编码暗场（fade 默认 = 现状）；scan/wipe 新样式
+  // 过渡：升级硬编码暗场（fade 默认 = 现状）；scan/wipe 新样式。transition 为场景级（顶层，不进时段段）
   function applyTransition(t) {
     const f = CFG.fx;
     const local = ((t % LOOPv()) + LOOPv()) % LOOPv();
@@ -518,7 +541,8 @@ const HomeScene = (() => {
     const dur = (f && f.transitionDur != null) ? f.transitionDur : .25;
     if (edge >= dur) return;
     const p = edge / dur;
-    const style = (f && f.transition) ? fxVal('transition', t, 'fade') : 'fade';
+    let style = 'fade';
+    if (f && f.transition != null) { const v = valAt({ transition: f.transition }, 'transition', scene(t)); if (typeof v === 'string') style = v; }
     if (style === 'fade') { rect(0, 0, W, H, 'rgba(3,6,15,' + (1 - p) + ')'); return; }
     if (style === 'scan') { rect(0, 0, W, Math.max(1, H * p), 'rgba(3,6,15,' + (1 - p) + ')'); return; }
     if (style === 'wipe') { rect(0, 0, Math.max(1, W * p), H, 'rgba(3,6,15,' + (1 - p) + ')'); return; }
