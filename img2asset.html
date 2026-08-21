@@ -3023,6 +3023,60 @@ function renderFxPanel(cfg, box) {
     });
     scRow.appendChild(chip);
   }
+  // 转场设置（场景级，位于 scene 行右侧）：样式（含无过渡）+ 时长 + 颜色
+  const trSep = document.createElement('span'); trSep.textContent = '│'; trSep.style.color = '#8b93c7'; trSep.style.fontSize = '10px'; trSep.style.margin = '0 3px'; scRow.appendChild(trSep);
+  const trLab = document.createElement('span'); trLab.textContent = '转场'; trLab.style.fontSize = '9px'; trLab.style.color = '#8b93c7'; scRow.appendChild(trLab);
+  const curTr = (fx.transition && Array.isArray(fx.transition)) ? (fx.transition[Math.min(curS, fx.transition.length - 1)] || 'fade') : (fx.transition || 'fade');
+  const trSel = document.createElement('select');
+  [['none', '无过渡'], ['fade', 'fade 暗场'], ['scan', 'scan 扫描'], ['wipe', 'wipe 擦除'], ['dissolve', 'dissolve 溶解']].forEach(([v, t]) => {
+    const o = document.createElement('option');
+    o.value = v; o.textContent = t;
+    o.selected = curTr === v;
+    trSel.appendChild(o);
+  });
+  trSel.title = '该场景进入过渡（按场景独立；无过渡=不渲染任何覆盖）';
+  trSel.addEventListener('change', () => {
+    pushHistory();
+    const v = trSel.value;
+    if (sc.length) {
+      if (!Array.isArray(fx.transition)) { const c = fx.transition || 'fade'; fx.transition = sc.map((_, i) => (i === curS) ? v : c); }
+      else fx.transition = sc.map((_, i) => (i === curS) ? v : fx.transition[Math.min(i, fx.transition.length - 1)]);
+    } else fx.transition = v;
+    refreshStage(); buildLayerList(cfg);
+  });
+  scRow.appendChild(trSel);
+  const curTrDur = (fx.transitionDur && Array.isArray(fx.transitionDur)) ? fx.transitionDur[Math.min(curS, fx.transitionDur.length - 1)] : (fx.transitionDur != null ? fx.transitionDur : 0.25);
+  const trDur = document.createElement('input');
+  trDur.type = 'number'; trDur.step = 0.05; trDur.min = 0.05; trDur.max = 1; trDur.style.width = '38px';
+  trDur.value = curTrDur;
+  trDur.title = '过渡时长（秒，按场景独立）';
+  trDur.addEventListener('change', () => {
+    pushHistory();
+    const v = Math.max(0.05, Math.min(1, parseFloat(trDur.value) || 0.25));
+    trDur.value = v;
+    if (sc.length) {
+      if (!Array.isArray(fx.transitionDur)) { const c = fx.transitionDur != null ? fx.transitionDur : 0.25; fx.transitionDur = sc.map((_, i) => (i === curS) ? v : c); }
+      else fx.transitionDur = sc.map((_, i) => (i === curS) ? v : fx.transitionDur[Math.min(i, fx.transitionDur.length - 1)]);
+    } else fx.transitionDur = v;
+    refreshStage();
+  });
+  scRow.appendChild(trDur);
+  const curTrCol = (fx.transitionColor && Array.isArray(fx.transitionColor)) ? fx.transitionColor[Math.min(curS, fx.transitionColor.length - 1)] : (fx.transitionColor || '#03060f');
+  const trCol = document.createElement('input');
+  trCol.type = 'color';
+  trCol.value = normColor(curTrCol);
+  trCol.style.width = '22px'; trCol.style.padding = '0';
+  trCol.title = '过渡覆盖色（fade/scan/wipe；alpha 由过渡进度控制）——白场填 #ffffff';
+  trCol.addEventListener('input', () => {
+    pushHistory();
+    const v = trCol.value;
+    if (sc.length) {
+      if (!Array.isArray(fx.transitionColor)) { const c = fx.transitionColor || '#03060f'; fx.transitionColor = sc.map((_, i) => (i === curS) ? v : c); }
+      else fx.transitionColor = sc.map((_, i) => (i === curS) ? v : fx.transitionColor[Math.min(i, fx.transitionColor.length - 1)]);
+    } else fx.transitionColor = v;
+    refreshStage();
+  });
+  scRow.appendChild(trCol);
   card.appendChild(scRow);
   // 当前场景分段条：点击选中段 / 拖端点共用缩放 / 双击切分 / 段尾×删除并入左
   const segBar = document.createElement('div');
@@ -3247,64 +3301,7 @@ function renderFxPanel(cfg, box) {
     numSeg('亮度', 'brightness', 5, -100, 100, 0, '亮度偏移（-100~100）');
     numSeg('对比度', 'contrast', 0.1, 0, 3, 1, '对比度（1=原样）');
     numSeg('饱和度', 'saturation', 0.1, 0, 2, 1, '饱和度（1=原样；0=灰度）');
-    // 过渡（场景级，按场景独立——同场景的分段共享；每场景一个 transition + duration + 颜色）
-    const trRow = document.createElement('div');
-    trRow.className = 'cf-row';
-    const tl2 = document.createElement('label');
-    tl2.textContent = '过渡';
-    tl2.title = '场景进入过渡（按场景独立，同一场景的分段共享）：fade/scan/wipe/dissolve + 时长 + 覆盖色（fade/scan/wipe 的暗场/白场颜色）';
-    trRow.appendChild(tl2);
-    const curTr = (fx.transition && Array.isArray(fx.transition)) ? (fx.transition[Math.min(curS, fx.transition.length - 1)] || 'fade') : (fx.transition || 'fade');
-    const trSel = document.createElement('select');
-    [['fade', 'fade 暗场'], ['scan', 'scan 扫描'], ['wipe', 'wipe 擦除'], ['dissolve', 'dissolve 溶解']].forEach(([v, t]) => {
-      const o = document.createElement('option');
-      o.value = v; o.textContent = t;
-      o.selected = curTr === v;
-      trSel.appendChild(o);
-    });
-    trSel.addEventListener('change', () => {
-      pushHistory();
-      const v = trSel.value;
-      if (sc.length) {
-        if (!Array.isArray(fx.transition)) { const c = fx.transition || 'fade'; fx.transition = sc.map((_, i) => (i === curS) ? v : c); }
-        else fx.transition = sc.map((_, i) => (i === curS) ? v : fx.transition[Math.min(i, fx.transition.length - 1)]);
-      } else fx.transition = v;
-      refreshStage(); buildLayerList(cfg);
-    });
-    trRow.appendChild(trSel);
-    const curTrDur = (fx.transitionDur && Array.isArray(fx.transitionDur)) ? fx.transitionDur[Math.min(curS, fx.transitionDur.length - 1)] : (fx.transitionDur != null ? fx.transitionDur : 0.25);
-    const trDur = document.createElement('input');
-    trDur.type = 'number'; trDur.step = 0.05; trDur.min = 0.05; trDur.max = 1; trDur.style.width = '46px';
-    trDur.value = curTrDur;
-    trDur.title = '过渡时长（秒，按场景独立）';
-    trDur.addEventListener('change', () => {
-      pushHistory();
-      const v = Math.max(0.05, Math.min(1, parseFloat(trDur.value) || 0.25));
-      trDur.value = v;
-      if (sc.length) {
-        if (!Array.isArray(fx.transitionDur)) { const c = fx.transitionDur != null ? fx.transitionDur : 0.25; fx.transitionDur = sc.map((_, i) => (i === curS) ? v : c); }
-        else fx.transitionDur = sc.map((_, i) => (i === curS) ? v : fx.transitionDur[Math.min(i, fx.transitionDur.length - 1)]);
-      } else fx.transitionDur = v;
-      refreshStage();
-    });
-    trRow.appendChild(trDur);
-    // 过渡色（场景级）：fade/scan/wipe 的覆盖色（暗场→白场）；默认 #03060f
-    const curTrCol = (fx.transitionColor && Array.isArray(fx.transitionColor)) ? fx.transitionColor[Math.min(curS, fx.transitionColor.length - 1)] : (fx.transitionColor || '#03060f');
-    const trCol = document.createElement('input');
-    trCol.type = 'color';
-    trCol.value = normColor(curTrCol);
-    trCol.title = '过渡覆盖色（fade/scan/wipe；alpha 由过渡进度控制）——白场填 #ffffff';
-    trCol.addEventListener('input', () => {
-      pushHistory();
-      const v = trCol.value;
-      if (sc.length) {
-        if (!Array.isArray(fx.transitionColor)) { const c = fx.transitionColor || '#03060f'; fx.transitionColor = sc.map((_, i) => (i === curS) ? v : c); }
-        else fx.transitionColor = sc.map((_, i) => (i === curS) ? v : fx.transitionColor[Math.min(i, fx.transitionColor.length - 1)]);
-      } else fx.transitionColor = v;
-      refreshStage();
-    });
-    trRow.appendChild(trCol);
-    card.appendChild(trRow);
+    // 注：过渡设置已移至上方 scene chip 行右侧（样式含「无过渡」+ 时长 + 颜色）
   }
   box.appendChild(card);
 }
@@ -3405,25 +3402,31 @@ function renderFxTrack() {
     if (!hit) return;
     const { cfg, p, s0, s1, rel, idx } = hit;
     const arr = cfg.fx.segs[p] || [{ f: [0, 1] }];
+    pushHistory();
     if (idx >= 0) {
-      cfg.fx._sel = { scene: p, idx: idx };
-      state.t = s0 + 0.1;
-      buildLayerList(cfg);
-      renderTimeline();
-      refreshStage();
+      // 单击段内 = 切分（与 [S] 卡片「单击段内=切分」一致）：新段继承原参数，选中右侧新段
+      const seg = arr[idx];
+      const f0 = seg.f ? seg.f[0] : 0, f1 = seg.f ? seg.f[1] : 1;
+      if (rel - f0 >= 0.02 && f1 - rel >= 0.02) {
+        seg.f[1] = rel;
+        const nb = Object.assign({}, seg, { f: [rel, f1] });
+        delete nb._sel;
+        arr.splice(idx + 1, 0, nb);
+        cfg.fx._sel = { scene: p, idx: idx + 1 };
+      } else {
+        cfg.fx._sel = { scene: p, idx: idx };
+      }
     } else {
-      // 单击空白（无段覆盖）→ 在该位置创建新段（与 [S] 卡片「单击空白=加段」一致：宽 10% 居中）
-      pushHistory();
+      // 单击空白（无段覆盖）→ 创建新段（与 [S] 卡片「单击空白=加段」一致：宽 10% 居中）
       const half = 0.05;
       const f0 = Math.max(0, rel - half), f1 = Math.min(1, rel + half);
-      const nb = { f: [f0, f1] };
-      arr.push(nb);
+      arr.push({ f: [f0, f1] });
       cfg.fx._sel = { scene: p, idx: arr.length - 1 };
-      state.t = s0 + 0.1;
-      buildLayerList(cfg);
-      renderTimeline();
-      refreshStage();
     }
+    state.t = s0 + 0.1;
+    buildLayerList(cfg);
+    renderTimeline();
+    refreshStage();
   });
   // 双击段 = 删除整段（并入左邻；与分段条/ [S] 卡片双击删除语义一致）
   cv.addEventListener('dblclick', ev => {
@@ -3761,7 +3764,7 @@ function toggleShowPopup(el, cfg, anchorBtn) {
   pop.style.position = 'fixed';
   const cfgForm = document.getElementById('cfgform');
   pop.style.width = Math.max(260, (cfgForm ? cfgForm.offsetWidth : 300) - 12) + 'px'; // 与图层栏宽度对齐
-  pop.style.left = Math.max(4, Math.min(window.innerWidth - 200, r.left)) + 'px';
+  pop.style.left = ((cfgForm ? cfgForm.getBoundingClientRect().left : r.left) - 1) + 'px'; // 水平位置对齐图层栏左缘
   pop.style.top = (r.bottom + 4) + 'px';
   document.body.appendChild(pop);
   showPop = pop;

@@ -561,24 +561,26 @@ const HomeScene = (() => {
   }
   // 过渡：升级硬编码暗场（fade 默认 = 现状）；scan/wipe 新样式。transition/transitionDur 为场景级（按场景独立，不进时段段）
   // 段内位置用 sceneBounds（按 sceneBorders/等分）计算——拖拽边界后仍对齐当前场景起点
-  // 场景过渡样式（按场景取；缺省 fade）
+  // 场景过渡样式（按场景取；缺省 fade；'none'=无过渡）
   function transitionStyleOf(part) {
     const f = CFG.fx;
     if (!f || f.transition == null) return 'fade';
     const v = valAt({ transition: f.transition }, 'transition', part);
     return typeof v === 'string' ? v : 'fade';
   }
-  // 过渡状态：{edge, dur, p, style} 或 null（非过渡期）
+  // 过渡状态：{edge, dur, p, style} 或 null（非过渡期 / 样式 none 无过渡）
   function transitionState(t, part) {
     const f = CFG.fx;
     if (!f) return null;
+    const style = transitionStyleOf(part);
+    if (style === 'none') return null; // 无过渡：不渲染任何覆盖、不活帧合成
     const local = ((t % LOOPv()) + LOOPv()) % LOOPv();
     const [s0, s1] = sceneBounds(part);
     const edge = Math.max(0, local - s0);
     const rawDur = f.transitionDur != null ? f.transitionDur : .25;
     const dur = Array.isArray(rawDur) ? (rawDur[Math.min(part, rawDur.length - 1)] != null ? rawDur[Math.min(part, rawDur.length - 1)] : .25) : rawDur;
     if (edge >= dur) return null;
-    return { edge: edge, dur: dur, p: edge / dur, style: transitionStyleOf(part) };
+    return { edge: edge, dur: dur, p: edge / dur, style: style };
   }
   function applyTransition(t) {
     const part = scene(t);
@@ -804,16 +806,22 @@ const HomeScene = (() => {
     ].filter(Boolean).filter(l => !l.hidden);
     layers.sort((a, b) => a.z - b.z).forEach(l => l.fn());
   }
-  // 过渡活帧：把旧场景（transFrom）实时渲染到 altCanvas（sceneOverride 覆盖场景取值，t 照常推进 → 完整活帧）
+  // 过渡活帧：把旧场景（transFrom）实时渲染到 altCanvas。
+  // 时间映射 tAlt = 旧场景起点 + (t - 新场景起点)：旧场景的窗口判定（elShown/scrollWindowStart/粒子）
+  // 落在旧场景时间域内 → show 元素可见；tAlt 随 t 推进 → 仍为活帧（滚动/动画/粒子在动）
   function renderAltLive(t) {
     if (transFrom == null) return;
     if (!altCanvas) altCanvas = document.createElement('canvas');
     if (altCanvas.width !== W || altCanvas.height !== H) { altCanvas.width = W; altCanvas.height = H; }
+    const part = scene(t);
+    const [s0n, s1n] = sceneBounds(part);
+    const [s0o, s1o] = sceneBounds(transFrom);
+    const tAlt = Math.min(s0o + (t - s0n), Math.max(s0o, s1o - 0.001)); // 钳制在旧场景内
     const og = altCanvas.getContext('2d');
     const savedCtx = ctx, savedCanvas = canvas;
     canvas = altCanvas; ctx = og;
     sceneOverride = transFrom;
-    try { renderLayers(t); } finally { sceneOverride = null; ctx = savedCtx; canvas = savedCanvas; }
+    try { renderLayers(tAlt); } finally { sceneOverride = null; ctx = savedCtx; canvas = savedCanvas; }
   }
   function draw(t) {
     syncCfg(); // 每帧同步外部注入的配置（工具实时调参生效的关键）
