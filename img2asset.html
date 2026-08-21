@@ -2828,21 +2828,44 @@ function particleForm(el, box, cardKey) {
   seedRow.appendChild(sInp);
   box.appendChild(seedRow);
 }
-/* 当前 [S] 显示窗口段起点（秒，本循环内）：与渲染端 scrollWindowStart 同语义；无 show → 0（循环起点）。
+/* 当前 [S] 显示窗口段起点（秒，本循环内）：与渲染端 scrollWindowStart 同语义（含连续窗口回溯——
+   相邻场景窗口 f1_prev==1 && f0_cur==0 视为同一连续窗口，回溯到连续链起点）；无 show → 0（循环起点）。
    用于 burst 应用后把播放头跳到爆发点立即可见 */
 function showWindowStart(el) {
   const loop = tlLoop();
   const s = el && el.show;
   if (s && Array.isArray(s) && s.length && (s[0] === null || Array.isArray(s[0]))) {
-    const p = tlScene(); if (p < 0) return 0;
-    const w = p < s.length ? s[p] : null;
-    if (!w) return 0;
-    const wins = Array.isArray(w[0]) ? w : [w];
-    const [s0, s1] = tlSceneRange(p);
-    const lt = ((state.t % loop) + loop) % loop - s0;
-    const dur = Math.max(0.001, s1 - s0);
-    for (const seg of wins) if (lt >= seg[0] * dur && lt < seg[1] * dur) return s0 + seg[0] * dur;
-    return s0 + (wins[0] ? wins[0][0] * dur : 0);
+    const winsOf = (pi) => {
+      const w = pi < s.length ? s[pi] : null;
+      if (!w) return null;
+      return Array.isArray(w[0]) ? w : [w];
+    };
+    const EPS = 1e-6;
+    let cur = tlScene(); if (cur < 0) return 0;
+    let curWins = winsOf(cur);
+    if (!curWins) return 0;
+    let seg = null;
+    for (let i = 0; i < curWins.length; i++) {
+      const [s0, s1] = tlSceneRange(cur);
+      const lt = ((state.t % loop) + loop) % loop - s0;
+      const dur = Math.max(0.001, s1 - s0);
+      if (lt >= curWins[i][0] * dur && lt < curWins[i][1] * dur) { seg = curWins[i]; break; }
+    }
+    if (!seg) seg = curWins[0] || [0, 1];
+    while (cur > 0 && seg[0] < EPS) {
+      const prevWins = winsOf(cur - 1);
+      if (!prevWins) break;
+      const prevEnd = prevWins.find(sg => sg[1] > 1 - EPS);
+      if (!prevEnd) break;
+      const [ps0, ps1] = tlSceneRange(cur - 1);
+      seg = prevEnd;
+      cur = cur - 1;
+      if (ps1 - ps0 <= 0) break;
+      if (seg[0] < EPS) continue;
+      return ps0 + seg[0] * (ps1 - ps0);
+    }
+    const [s0, s1] = tlSceneRange(cur);
+    return s0 + seg[0] * (s1 - s0);
   }
   return 0;
 }
@@ -3014,7 +3037,7 @@ function renderFxPanel(cfg, box) {
       d.dataset.idx = i;
       d.style.left = ((seg.f ? seg.f[0] : 0) * 100) + '%';
       d.style.width = Math.max(0.5, (((seg.f ? seg.f[1] : 1) - (seg.f ? seg.f[0] : 0)) * 100)) + '%';
-      d.title = '段' + (i + 1) + '（' + Math.round((seg.f ? seg.f[0] : 0) * 100) + '%~' + Math.round((seg.f ? seg.f[1] : 1) * 100) + '%）；拖端点缩放/双击切分';
+      d.title = '段' + (i + 1) + '（' + Math.round((seg.f ? seg.f[0] : 0) * 100) + '%~' + Math.round((seg.f ? seg.f[1] : 1) * 100) + '%）；拖端点缩放/Alt+点击切分/双击删除';
       const hl = document.createElement('i'); hl.className = 'win-hl';
       const hr = document.createElement('i'); hr.className = 'win-hr';
       const del = document.createElement('b');
@@ -3028,9 +3051,23 @@ function renderFxPanel(cfg, box) {
     });
   };
   let sDrag = null, sClick = null, sTimer = null;
+  const splitSeg = (i, fxr) => {
+    const arr = segs[curS];
+    const seg = arr[i];
+    const f0 = seg.f ? seg.f[0] : 0, f1 = seg.f ? seg.f[1] : 1;
+    if (fxr - f0 < 0.03 || f1 - fxr < 0.03) return;
+    const tail = f1;
+    seg.f[1] = fxr;
+    const nb = Object.assign({}, seg, { f: [fxr, tail] });
+    delete nb._sel;
+    arr.splice(i + 1, 0, nb);
+    pushHistory(); refreshStage(); buildLayerList(cfg);
+  };
   const segBarDown = (ev, i, dEl) => {
     const r = segBar.getBoundingClientRect();
     const fxr = Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width)));
+    // Alt+点击段内 = 切分（与 [S] 卡片「单击=切分」语义对应；此处单击=选中，故切分移到 Alt）
+    if (ev.altKey) { ev.stopPropagation(); splitSeg(i, fxr); return; }
     const sr = dEl.getBoundingClientRect();
     const inL = ev.clientX - sr.left < 7;
     const inR = sr.right - ev.clientX < 7;
@@ -3072,22 +3109,12 @@ function renderFxPanel(cfg, box) {
     if (!sDrag) { const r = segBar.getBoundingClientRect(); const fxr = Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width))); const arr = segs[curS]; const hit = arr.findIndex(sg => fxr >= (sg.f ? sg.f[0] : 0) - 0.001 && fxr <= (sg.f ? sg.f[1] : 1) + 0.001); sClick = hit >= 0 ? hit : null; }
     segUp();
   });
+  // 双击段 = 删除整段（并入左邻；与 [S] 卡片双击删除语义一致；切分改 Alt+点击）
   segBar.addEventListener('dblclick', ev => {
     const dEl = ev.target.closest ? ev.target.closest('.win-seg') : null;
     if (!dEl) return;
-    const i = +dEl.dataset.idx;
-    const arr = segs[curS];
-    const seg = arr[i];
-    const r = segBar.getBoundingClientRect();
-    const fxr = Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width)));
-    const f0 = seg.f ? seg.f[0] : 0, f1 = seg.f ? seg.f[1] : 1;
-    if (fxr - f0 < 0.03 || f1 - fxr < 0.03) return;
-    const tail = f1;
-    seg.f[1] = fxr;
-    const nb = Object.assign({}, seg, { f: [fxr, tail] });
-    delete nb._sel;
-    arr.splice(i + 1, 0, nb);
-    pushHistory(); refreshStage(); buildLayerList(cfg);
+    ev.stopPropagation();
+    delSeg(+dEl.dataset.idx);
   });
   const delSeg = i => {
     const arr = segs[curS];
@@ -3112,7 +3139,7 @@ function renderFxPanel(cfg, box) {
       seg.f = seg.f || [0, 1];
       refreshStage(); buildLayerList(cfg);
     };
-    const boolRow = (label, key, hint, extraParams) => {
+    const boolRow = (label, key, hint, extraParams, colorKey) => {
       const r = document.createElement('div');
       r.className = 'cf-row';
       const l = document.createElement('label');
@@ -3142,12 +3169,22 @@ function renderFxPanel(cfg, box) {
         });
         r.appendChild(pi);
       });
+      // 同行颜色输入（如暗角色）：hex，写入段内字段（默认 #000000）
+      if (colorKey) {
+        const ci = document.createElement('input');
+        ci.type = 'color';
+        ci.value = normColor(selSeg[colorKey] || '#000000');
+        ci.title = label + '颜色（该效果使用色；alpha 由强度参数控制）';
+        ci.addEventListener('input', () => { const v = ci.value; writeSeg({ [colorKey]: v }); });
+        ci.addEventListener('change', pushHistory);
+        r.appendChild(ci);
+      }
       card.appendChild(r);
       return r;
     };
     boolRow('CRT', 'crt', 'CRT 扫描线黑横线', [['crtOpacity', 0.02, 0, 1, 0.28, '黑线透明度'], ['crtSpacing', 1, 2, 12, 3, '行间距']]);
     boolRow('故障', 'glitch', '确定性随机水平位移条');
-    boolRow('暗角', 'vignette', '径向压暗边缘', [['vignetteStrength', 0.05, 0, 1, 0.38, '压暗强度']]);
+    boolRow('暗角', 'vignette', '径向压暗边缘（末端颜色可配）', [['vignetteStrength', 0.05, 0, 1, 0.38, '压暗强度']], 'vignetteColor');
     boolRow('噪点', 'noise', 'N 帧噪点轮换', [['noiseAlpha', 0.02, 0, 1, 0.1, '强度'], ['noiseFrames', 1, 1, 8, 3, '轮换帧数']]);
     // 采样数（色板上方）
     const divRow = document.createElement('div');
@@ -3210,12 +3247,12 @@ function renderFxPanel(cfg, box) {
     numSeg('亮度', 'brightness', 5, -100, 100, 0, '亮度偏移（-100~100）');
     numSeg('对比度', 'contrast', 0.1, 0, 3, 1, '对比度（1=原样）');
     numSeg('饱和度', 'saturation', 0.1, 0, 2, 1, '饱和度（1=原样；0=灰度）');
-    // 过渡（场景级，按场景独立——同场景的分段共享；每场景一个 transition + duration）
+    // 过渡（场景级，按场景独立——同场景的分段共享；每场景一个 transition + duration + 颜色）
     const trRow = document.createElement('div');
     trRow.className = 'cf-row';
     const tl2 = document.createElement('label');
     tl2.textContent = '过渡';
-    tl2.title = '场景进入过渡（按场景独立，同一场景的分段共享）：fade/scan/wipe + 时长';
+    tl2.title = '场景进入过渡（按场景独立，同一场景的分段共享）：fade/scan/wipe/dissolve + 时长 + 覆盖色（fade/scan/wipe 的暗场/白场颜色）';
     trRow.appendChild(tl2);
     const curTr = (fx.transition && Array.isArray(fx.transition)) ? (fx.transition[Math.min(curS, fx.transition.length - 1)] || 'fade') : (fx.transition || 'fade');
     const trSel = document.createElement('select');
@@ -3251,6 +3288,22 @@ function renderFxPanel(cfg, box) {
       refreshStage();
     });
     trRow.appendChild(trDur);
+    // 过渡色（场景级）：fade/scan/wipe 的覆盖色（暗场→白场）；默认 #03060f
+    const curTrCol = (fx.transitionColor && Array.isArray(fx.transitionColor)) ? fx.transitionColor[Math.min(curS, fx.transitionColor.length - 1)] : (fx.transitionColor || '#03060f');
+    const trCol = document.createElement('input');
+    trCol.type = 'color';
+    trCol.value = normColor(curTrCol);
+    trCol.title = '过渡覆盖色（fade/scan/wipe；alpha 由过渡进度控制）——白场填 #ffffff';
+    trCol.addEventListener('input', () => {
+      pushHistory();
+      const v = trCol.value;
+      if (sc.length) {
+        if (!Array.isArray(fx.transitionColor)) { const c = fx.transitionColor || '#03060f'; fx.transitionColor = sc.map((_, i) => (i === curS) ? v : c); }
+        else fx.transitionColor = sc.map((_, i) => (i === curS) ? v : fx.transitionColor[Math.min(i, fx.transitionColor.length - 1)]);
+      } else fx.transitionColor = v;
+      refreshStage();
+    });
+    trRow.appendChild(trCol);
     card.appendChild(trRow);
   }
   box.appendChild(card);
@@ -3330,11 +3383,9 @@ function renderFxTrack() {
 (function fxTrackClick() {
   const cv = $('tl-fx');
   if (!cv) return;
-  cv.addEventListener('pointerdown', ev => {
+  const hitSeg = (frac) => {
     const cfg = window.HOME_SCENE;
-    if (!(state.sceneParamsMode && cfg && cfg.fx && cfg.fx.segs)) return;
-    const r = cv.getBoundingClientRect();
-    const frac = Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width)));
+    if (!(state.sceneParamsMode && cfg && cfg.fx && cfg.fx.segs)) return null;
     const loop = tlLoop();
     const tAbs = frac * loop;
     const n = Math.max(1, (cfg.scenes && cfg.scenes.length) || 1);
@@ -3344,10 +3395,52 @@ function renderFxTrack() {
     const arr = cfg.fx.segs[p] || [{ f: [0, 1] }];
     const [s0, s1] = borders ? [p === 0 ? 0 : borders[p - 1], p === borders.length ? loop : borders[p]] : [p * loop / n, (p + 1) * loop / n];
     const rel = (tAbs - s0) / Math.max(0.001, s1 - s0);
-    let idx = arr.findIndex(sg => rel >= (sg.f ? sg.f[0] : 0) - 0.001 && rel <= (sg.f ? sg.f[1] : 1) + 0.001);
-    if (idx < 0) idx = 0;
-    cfg.fx._sel = { scene: p, idx: idx };
-    state.t = s0 + 0.1;
+    const idx = arr.findIndex(sg => rel >= (sg.f ? sg.f[0] : 0) - 0.001 && rel <= (sg.f ? sg.f[1] : 1) + 0.001);
+    return { cfg, p, s0, s1, rel, idx };
+  };
+  cv.addEventListener('pointerdown', ev => {
+    const r = cv.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width)));
+    const hit = hitSeg(frac);
+    if (!hit) return;
+    const { cfg, p, s0, s1, rel, idx } = hit;
+    const arr = cfg.fx.segs[p] || [{ f: [0, 1] }];
+    if (idx >= 0) {
+      cfg.fx._sel = { scene: p, idx: idx };
+      state.t = s0 + 0.1;
+      buildLayerList(cfg);
+      renderTimeline();
+      refreshStage();
+    } else {
+      // 单击空白（无段覆盖）→ 在该位置创建新段（与 [S] 卡片「单击空白=加段」一致：宽 10% 居中）
+      pushHistory();
+      const half = 0.05;
+      const f0 = Math.max(0, rel - half), f1 = Math.min(1, rel + half);
+      const nb = { f: [f0, f1] };
+      arr.push(nb);
+      cfg.fx._sel = { scene: p, idx: arr.length - 1 };
+      state.t = s0 + 0.1;
+      buildLayerList(cfg);
+      renderTimeline();
+      refreshStage();
+    }
+  });
+  // 双击段 = 删除整段（并入左邻；与分段条/ [S] 卡片双击删除语义一致）
+  cv.addEventListener('dblclick', ev => {
+    const r = cv.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width)));
+    const hit = hitSeg(frac);
+    if (!hit || hit.idx < 0) return;
+    const { cfg, p, idx } = hit;
+    const arr = cfg.fx.segs[p] || [{ f: [0, 1] }];
+    pushHistory();
+    if (arr.length === 1) arr[0] = { f: [0, 1] };
+    else {
+      const del = arr[idx];
+      if (idx > 0) { arr[idx - 1].f[1] = del.f ? del.f[1] : 1; arr.splice(idx, 1); }
+      else { arr[idx + 1].f[0] = del.f ? del.f[0] : 0; arr.splice(idx, 1); }
+    }
+    if (cfg.fx._sel && cfg.fx._sel.scene === p && cfg.fx._sel.idx >= arr.length) cfg.fx._sel.idx = Math.max(0, arr.length - 1);
     buildLayerList(cfg);
     renderTimeline();
     refreshStage();
@@ -3666,6 +3759,8 @@ function toggleShowPopup(el, cfg, anchorBtn) {
   refresh();
   const r = anchorBtn.getBoundingClientRect();
   pop.style.position = 'fixed';
+  const cfgForm = document.getElementById('cfgform');
+  pop.style.width = Math.max(260, (cfgForm ? cfgForm.offsetWidth : 300) - 12) + 'px'; // 与图层栏宽度对齐
   pop.style.left = Math.max(4, Math.min(window.innerWidth - 200, r.left)) + 'px';
   pop.style.top = (r.bottom + 4) + 'px';
   document.body.appendChild(pop);

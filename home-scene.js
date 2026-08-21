@@ -229,8 +229,10 @@ const SCENE_KEYS = ['w', 'h', 'loop', 'bg', 'scenes', 'sceneBorders', 'images', 
 const HomeScene = (() => {
   let W = CFG.w, H = CFG.h, LOOP = CFG.loop;
   let canvas, ctx, raf = 0, last = 0, elapsed = 0, running = false;
-  let prevFrame = null; // 上一场景帧快照（scene→scene dissolve 用，边界处捕获）
-  let lastPart = -1;    // 上一帧场景号（边界检测）
+  let sceneOverride = null; // 过渡活帧：渲染旧场景时临时覆盖 scene(t) 返回值
+  let altCanvas = null;     // 过渡活帧：旧场景离屏（scan/wipe/dissolve 合成用）
+  let transFrom = null;     // 过渡的旧场景号（边界处记录，过渡结束清空）
+  let lastPart = -1;        // 上一帧场景号（边界检测）
   let reduceMotion = false;
   let inited = false;
 
@@ -298,6 +300,7 @@ const HomeScene = (() => {
   // 场景判定：优先 sceneBorders（工具可拖边界），否则按 scenes 数等分（兜底 4 段）
   function LOOPv() { return CFG.loop || LOOP; }
   function scene(t) {
+    if (sceneOverride != null) return sceneOverride; // 过渡活帧：旧场景渲染时覆盖
     const lt = ((t % LOOPv()) + LOOPv()) % LOOPv();
     const n = (CFG.scenes && CFG.scenes.length) || 4;
     const b = CFG.sceneBorders && CFG.sceneBorders.length === n - 1 ? CFG.sceneBorders : null; // 边界数必须 = 场景数-1（防脏数据越界：返回 n 会导致 show 隐藏/越界取段）
@@ -424,6 +427,15 @@ const HomeScene = (() => {
     }
     return { m: base, mo: mo };
   }
+  // hex 颜色 → {r,g,b}（支持 #rgb/#rrggbb；其他字符串按不透明处理为 255 白）
+  function hexToRgb(c) {
+    if (typeof c === 'string' && c[0] === '#') {
+      let h = c.slice(1);
+      if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+      if (/^[0-9a-fA-F]{6}$/.test(h)) return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) };
+    }
+    return { r: 255, g: 255, b: 255 };
+  }
   function fxEnsureTex(t) {
     const f = CFG.fx;
     if (!f) return;
@@ -432,11 +444,12 @@ const HomeScene = (() => {
       palette: fxVal('palette', t, 'none'), hue: fxVal('hue', t, 0),
       brightness: fxVal('brightness', t, 0), contrast: fxVal('contrast', t, 1), saturation: fxVal('saturation', t, 1),
       noiseAlpha: fxVal('noiseAlpha', t, .1), vignetteStrength: fxVal('vignetteStrength', t, .38),
+      vignetteColor: fxVal('vignetteColor', t, '#000000'),
       crtOpacity: fxVal('crtOpacity', t, .28), crtSpacing: fxVal('crtSpacing', t, 3),
       pixelDiv: fxVal('pixelDiv', t, 1),
     };
     const same = fxTex && fxTex.w === W && fxTex.h === H
-      && ['crt','vignette','noise','palette','hue','brightness','contrast','saturation','noiseAlpha','vignetteStrength','crtOpacity','crtSpacing','pixelDiv'].every(k => fxTex[k] === need[k]);
+      && ['crt','vignette','noise','palette','hue','brightness','contrast','saturation','noiseAlpha','vignetteStrength','vignetteColor','crtOpacity','crtSpacing','pixelDiv'].every(k => fxTex[k] === need[k]);
     if (same) return;
     fxTex = Object.assign({ w: W, h: H }, need);
     if (need.crt) {
@@ -449,8 +462,10 @@ const HomeScene = (() => {
     if (need.vignette) {
       const c = document.createElement('canvas'); c.width = W; c.height = H;
       const g = c.getContext('2d');
+      const vc = hexToRgb(need.vignetteColor);
       const gr = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .35, W / 2, H / 2, Math.max(W, H) * .72);
-      gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,' + need.vignetteStrength + ')');
+      gr.addColorStop(0, 'rgba(' + vc.r + ',' + vc.g + ',' + vc.b + ',0)');
+      gr.addColorStop(1, 'rgba(' + vc.r + ',' + vc.g + ',' + vc.b + ',' + need.vignetteStrength + ')');
       g.fillStyle = gr; g.fillRect(0, 0, W, H);
       fxTex.vigTex = c;
     }
@@ -553,50 +568,62 @@ const HomeScene = (() => {
     const v = valAt({ transition: f.transition }, 'transition', part);
     return typeof v === 'string' ? v : 'fade';
   }
-  // 场景边界捕获：新场景为 dissolve 时，把当前画布（上一场景最后一帧）快照 —— scene→scene 溶解的旧帧来源
-  function capturePrevFrame() {
-    if (!prevFrame) prevFrame = document.createElement('canvas');
-    if (prevFrame.width !== W || prevFrame.height !== H) { prevFrame.width = W; prevFrame.height = H; }
-    prevFrame.getContext('2d').drawImage(canvas, 0, 0);
+  // 过渡状态：{edge, dur, p, style} 或 null（非过渡期）
+  function transitionState(t, part) {
+    const f = CFG.fx;
+    if (!f) return null;
+    const local = ((t % LOOPv()) + LOOPv()) % LOOPv();
+    const [s0, s1] = sceneBounds(part);
+    const edge = Math.max(0, local - s0);
+    const rawDur = f.transitionDur != null ? f.transitionDur : .25;
+    const dur = Array.isArray(rawDur) ? (rawDur[Math.min(part, rawDur.length - 1)] != null ? rawDur[Math.min(part, rawDur.length - 1)] : .25) : rawDur;
+    if (edge >= dur) return null;
+    return { edge: edge, dur: dur, p: edge / dur, style: transitionStyleOf(part) };
   }
   function applyTransition(t) {
-    const f = CFG.fx;
-    const local = ((t % LOOPv()) + LOOPv()) % LOOPv();
     const part = scene(t);
-    const [s0, s1] = sceneBounds(part);
-    const segDur = Math.max(0.001, s1 - s0);
-    const edge = Math.max(0, local - s0); // 段内已过时长（秒）
-    const rawDur = (f && f.transitionDur != null) ? f.transitionDur : .25;
-    const dur = Array.isArray(rawDur) ? (rawDur[Math.min(part, rawDur.length - 1)] != null ? rawDur[Math.min(part, rawDur.length - 1)] : .25) : rawDur;
-    if (edge >= dur) return;
-    const p = edge / dur;
-    const style = transitionStyleOf(part);
-    if (style === 'fade') { rect(0, 0, W, H, 'rgba(3,6,15,' + (1 - p) + ')'); return; }
-    if (style === 'scan') { rect(0, 0, W, Math.max(1, H * p), 'rgba(3,6,15,' + (1 - p) + ')'); return; }
-    if (style === 'wipe') { rect(0, 0, Math.max(1, W * p), H, 'rgba(3,6,15,' + (1 - p) + ')'); return; }
+    const tr = transitionState(t, part);
+    if (!tr) return;
+    const p = tr.p;
+    const style = tr.style;
+    const tc = hexToRgb(CFG.fx.transitionColor != null ? valAt({ transitionColor: CFG.fx.transitionColor }, 'transitionColor', part) : '#03060f');
+    const colA = (a) => 'rgba(' + tc.r + ',' + tc.g + ',' + tc.b + ',' + a + ')';
+    const hasAlt = altCanvas && altCanvas.width === W && altCanvas.height === H;
+    if (style === 'fade') { rect(0, 0, W, H, colA(1 - p)); return; }
+    if (style === 'scan') {
+      // 上→下揭示：上方（条带后）= 新场景；下方（条带前）= 旧场景活帧
+      if (hasAlt) { ctx.save(); ctx.beginPath(); ctx.rect(0, Math.max(1, H * p), W, H); ctx.clip(); ctx.drawImage(altCanvas, 0, 0); ctx.restore(); }
+      else rect(0, 0, W, Math.max(1, H * p), colA(1 - p));
+      return;
+    }
+    if (style === 'wipe') {
+      // 左→右揭示：左侧（条带后）= 新场景；右侧（条带前）= 旧场景活帧
+      if (hasAlt) { ctx.save(); ctx.beginPath(); ctx.rect(Math.max(1, W * p), 0, W, H); ctx.clip(); ctx.drawImage(altCanvas, 0, 0); ctx.restore(); }
+      else rect(0, 0, Math.max(1, W * p), H, colA(1 - p));
+      return;
+    }
     if (style === 'dissolve') {
-      // 场景→场景溶解：上一场景帧快照（边界处捕获）逐像素被当前（新）场景替换——
-      // 每像素确定性 hash，hash >= p 保留旧场景像素、否则新场景像素（p: 0→1，旧场景逐渐溶解为新场景，不经过暗场）
-      const id = ctx.getImageData(0, 0, W, H); // 当前帧（新场景）
+      // 场景→场景溶解：每像素确定性 hash，hash >= p 保留旧场景（altCanvas 活帧）像素、否则新场景像素
+      const id = ctx.getImageData(0, 0, W, H);
       const d = id.data;
       let pd = null;
-      if (prevFrame && prevFrame.width === W && prevFrame.height === H) pd = prevFrame.getContext('2d').getImageData(0, 0, W, H).data;
+      if (hasAlt) pd = altCanvas.getContext('2d').getImageData(0, 0, W, H).data;
       const seed = 13;
       if (pd) {
         for (let i = 0; i < d.length; i += 4) {
           const px = (i / 4) % W, py = ((i / 4) / W) | 0;
           const s = Math.sin(px * 127.1 + py * 311.7 + seed * 74.7) * 43758.5453;
-          const h = s - Math.floor(s); // [0,1)
+          const h = s - Math.floor(s);
           if (h >= p) { d[i] = pd[i]; d[i + 1] = pd[i + 1]; d[i + 2] = pd[i + 2]; }
         }
         ctx.putImageData(id, 0, 0);
       } else {
-        // 无旧帧快照（理论不发生）：退化为暗场显现（与旧语义一致），保证不黑屏
+        // 无旧帧（理论不发生）：退化为暗场显现
         for (let i = 0; i < d.length; i += 4) {
           const px = (i / 4) % W, py = ((i / 4) / W) | 0;
           const s = Math.sin(px * 127.1 + py * 311.7 + seed * 74.7) * 43758.5453;
           const h = s - Math.floor(s);
-          if (h >= p) { d[i] = 3; d[i + 1] = 6; d[i + 2] = 15; }
+          if (h >= p) { d[i] = tc.r; d[i + 1] = tc.g; d[i + 2] = tc.b; }
         }
         ctx.putImageData(id, 0, 0);
       }
@@ -731,15 +758,9 @@ const HomeScene = (() => {
     ctx.globalAlpha = 1;
   }
 
-  function draw(t) {
-    syncCfg(); // 每帧同步外部注入的配置（工具实时调参生效的关键）
-    const local = t % LOOPv();
+  // 渲染「背景 + 图层」（不含 fx/过渡）；sceneOverride 生效时按覆盖场景渲染（过渡活帧用）
+  function renderLayers(t) {
     const part = scene(t);
-    // 场景边界：新场景过渡为 dissolve 时，先捕获当前画布（上一场景最后一帧）→ scene→scene 溶解的旧帧
-    if (part !== lastPart) {
-      if (CFG.fx && transitionStyleOf(part) === 'dissolve') capturePrevFrame();
-      lastPart = part;
-    }
     rect(0, 0, W, H, Array.isArray(CFG.bg) ? CFG.bg[Math.min(part, CFG.bg.length - 1)] : CFG.bg);
     // 图层按 z 排序渲染（z 越大越靠上；素材 images 默认 99）
     // 工具图层栏可删除程序元素（cfg 键缺失则跳过）、隐藏元素（hidden 为真则不绘制）；
@@ -782,6 +803,28 @@ const HomeScene = (() => {
       })),
     ].filter(Boolean).filter(l => !l.hidden);
     layers.sort((a, b) => a.z - b.z).forEach(l => l.fn());
+  }
+  // 过渡活帧：把旧场景（transFrom）实时渲染到 altCanvas（sceneOverride 覆盖场景取值，t 照常推进 → 完整活帧）
+  function renderAltLive(t) {
+    if (transFrom == null) return;
+    if (!altCanvas) altCanvas = document.createElement('canvas');
+    if (altCanvas.width !== W || altCanvas.height !== H) { altCanvas.width = W; altCanvas.height = H; }
+    const og = altCanvas.getContext('2d');
+    const savedCtx = ctx, savedCanvas = canvas;
+    canvas = altCanvas; ctx = og;
+    sceneOverride = transFrom;
+    try { renderLayers(t); } finally { sceneOverride = null; ctx = savedCtx; canvas = savedCanvas; }
+  }
+  function draw(t) {
+    syncCfg(); // 每帧同步外部注入的配置（工具实时调参生效的关键）
+    const local = t % LOOPv();
+    const part = scene(t);
+    // 场景边界：记录旧场景号（scan/wipe/dissolve 活帧过渡用）
+    if (part !== lastPart) { if (lastPart >= 0) transFrom = lastPart; lastPart = part; }
+    // 过渡活帧：当前场景过渡为 scan/wipe/dissolve 且处于过渡期时，先渲染旧场景到 alt
+    const tr = CFG.fx ? transitionState(t, part) : null;
+    if (tr && transFrom != null && (tr.style === 'scan' || tr.style === 'wipe' || tr.style === 'dissolve')) renderAltLive(t);
+    renderLayers(t);
     // 后处理 fx（默认无 CFG.fx → 全跳过，零开销）：B 滤镜（¼ 采样）→ A 叠加层 → 场景过渡
     if (CFG.fx) {
       applyPixelFilter(t);
@@ -1103,16 +1146,40 @@ const HomeScene = (() => {
     if (!e.show) return 0;
     if (Array.isArray(e.show) && e.show.length && (e.show[0] === null || Array.isArray(e.show[0]))) {
       const p = scene(t);
-      const w = p < e.show.length ? e.show[p] : null;
-      if (!w) return 0;
-      const wins = Array.isArray(w[0]) ? w : [w];
-      const [s0, s1] = sceneBounds(p);
-      const wt = ((t % LOOPv()) + LOOPv()) % LOOPv();
-      const lt = wt - s0;
-      const dur = s1 - s0;
-      // 当前所在窗口段起点；不在任何窗口内（隐藏期）→ 用该场景首段起点（无可见影响）
-      for (const seg of wins) if (lt >= seg[0] * dur && lt < seg[1] * dur) return s0 + seg[0] * dur;
-      return s0 + (wins[0] ? wins[0][0] * dur : 0);
+      const winsOf = (pi) => {
+        const w = pi < e.show.length ? e.show[pi] : null;
+        if (!w) return null;
+        return Array.isArray(w[0]) ? w : [w];
+      };
+      let cur = p, curWins = winsOf(p);
+      if (!curWins) return 0;
+      // 当前所在窗口段起点
+      let seg = null;
+      for (let i = 0; i < curWins.length; i++) {
+        const [s0, s1] = sceneBounds(cur);
+        const wt = ((t % LOOPv()) + LOOPv()) % LOOPv();
+        const lt = wt - s0;
+        const dur = s1 - s0;
+        if (lt >= curWins[i][0] * dur && lt < curWins[i][1] * dur) { seg = curWins[i]; break; }
+      }
+      if (!seg) seg = curWins[0] || [0, 1];
+      // 连续窗口回溯：本场景窗口从 0 开始且上一场景有窗口以 1 结束 → 视为同一连续窗口（相位不重置、burst 不重复触发）
+      const EPS = 1e-6;
+      while (cur > 0 && seg[0] < EPS) {
+        const prevWins = winsOf(cur - 1);
+        if (!prevWins) break;
+        const prevEnd = prevWins.find(sg => sg[1] > 1 - EPS);
+        if (!prevEnd) break;
+        const [ps0, ps1] = sceneBounds(cur - 1);
+        seg = prevEnd;
+        cur = cur - 1;
+        if (ps1 - ps0 <= 0) break;
+        // 回溯到上一场景该窗口起点（该窗口若也连续则继续回溯）
+        if (seg[0] < EPS) continue;
+        return ps0 + seg[0] * (ps1 - ps0);
+      }
+      const [s0, s1] = sceneBounds(cur);
+      return s0 + seg[0] * (s1 - s0);
     }
     if (e.show && Array.isArray(e.show.scenes)) return sceneBounds(scene(t))[0];
     if (Array.isArray(e.show)) return e.show[0] || 0;

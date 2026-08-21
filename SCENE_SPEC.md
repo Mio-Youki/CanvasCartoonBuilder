@@ -72,7 +72,9 @@ const DEFAULT_HOME_SCENE = {
    （否则分段语义按 4 段兜底，规范自检会提示）。
 4. **显示时间 = show 窗口数组**：`show: [win0, win1, …]`（长度=场景数），
    win = `null`（该场景隐藏）| `[f0,f1]`（单窗口）| `[[f0,f1],…]`（多窗口，如 `[[0,0.5],[0.7,0.85]]`），
-   f 为**场景内 0~1 比例**（场景边界调整不影响显示）。**legacy 格式** `{scenes:[..]}` / `[t0,t1]` / `hidden` 布尔
+   f 为**场景内 0~1 比例**（场景边界调整不影响显示）。**连续窗口（v2.9）**：相邻场景窗口首尾相接
+   （本场景窗口 f0==0 且上一场景有 f1==1 的窗口）视为**同一连续窗口**——滚动相位跨场景不重置、
+   一次性爆发（burst）只在连续链起点触发一次（不跨循环回绕）。**legacy 格式** `{scenes:[..]}` / `[t0,t1]` / `hidden` 布尔
    仍被渲染端与工具解析（打开旧 js 自动迁移为窗口数组）。
 5. **动态效果显式声明**：抖动/闪烁/暗场切换等**随时间动态**的效果属于代码层——静态几何 parts 化，
    时间动画（闪烁/震动/光束）保留为**动态覆盖（fx）**，见 §七「动态元素 parts 化」；无法拆解的
@@ -144,10 +146,10 @@ anim: { bob: { amp: 1, period: 1/6 }, blink: { period: 2333, duty: 6/7, phase: 1
 - **相位窗口归零**：`off = wrap((t - t0) × speed, span)`，t0 = 元素**当前 show 窗口起点**——元素在**每个显示窗口的最初以配置坐标 (x,y) 出现**（相位=0），随后沿 angle 运动；无 show 元素 t0=0（从全局 t=0 起算，行为不变）。
 
 **后处理 FX（v2.7，全局 `CFG.fx`，默认无字段 = 全关零开销）**：
-- **segs 模型（v2.7补三）**：`CFG.fx.segs[scene] = [{f:[f0,f1], crt, glitch, vignette, noise, palette, hue, brightness, contrast, saturation, pixelDiv, crtOpacity, crtSpacing, noiseAlpha, noiseFrames, vignetteStrength}, …]`——**每个时段段独立存全套 A+B 参数**（f 为场景内 0~1 比例，段按 f 排序覆盖 [0,1]）；渲染按 t 找当前段读配置；旧模型（顶层按项：常量/按场景数组/窗口数组）向后兼容；
+- **segs 模型（v2.7补三）**：`CFG.fx.segs[scene] = [{f:[f0,f1], crt, glitch, vignette, noise, palette, hue, brightness, contrast, saturation, pixelDiv, crtOpacity, crtSpacing, noiseAlpha, noiseFrames, vignetteStrength, vignetteColor}, …]`——**每个时段段独立存全套 A+B 参数**（f 为场景内 0~1 比例，段按 f 排序覆盖 [0,1]；`vignetteColor` v2.9 起为暗角末端色 hex，默认 #000000）；渲染按 t 找当前段读配置；旧模型（顶层按项：常量/按场景数组/窗口数组）向后兼容；
 - **A 档叠加层（段内字段）**：`crt`（CRT 扫描线，`crtOpacity`/`crtSpacing` 可调）、`vignette`（径向暗角，`vignetteStrength` 可调）、`noise`（**N 帧噪点轮换**，`noiseAlpha`/`noiseFrames` 可调）——纹理预生成缓存；`glitch`（确定性随机水平位移条）；
 - **B 档像素滤镜（段内字段，管线：降采样 → 调色 → 色板 → 放大）**：`palette: 'pico8'|'nes'|'vga'|'gb'`（与素材减色**共用色板定义** + 通用 LUT 查表）、`hue`（色相偏移度）、`brightness`（-100~100）/`contrast`（0~3）/`saturation`（0~2）——**调色与色相级联合并单 3×3 矩阵**（每像素 9 次乘加，零额外开销）；`pixelDiv`（整数 ≥1，整帧降采样颗粒感，调色开销 ÷ div²）；
-- **场景过渡（场景级，按场景独立，同一场景的分段共享）**：`transition`（fade 暗场 / scan 扫描 / wipe 擦除 / **dissolve 溶解——旧场景帧直接溶解为新场景，不经过暗场**）与 `transitionDur`（秒，默认 0.25，范围 0.05~1）支持常量或**按场景数组**——替换原硬编码"每场景段开头 0.25s 暗场"；Agent 生成配置即可选用；
+- **场景过渡（场景级，按场景独立，同一场景的分段共享）**：`transition`（fade 暗场 / scan 扫描 / wipe 擦除 / **dissolve 溶解——旧场景帧直接溶解为新场景，不经过暗场**）+ `transitionColor`（覆盖色 hex，fade/scan/wipe 用，默认 #03060f 深蓝；白场填 #ffffff）+ `transitionDur`（秒，默认 0.25，范围 0.05~1）支持常量或**按场景数组**——替换原硬编码"每场景段开头 0.25s 暗场"；Agent 生成配置即可选用；scan/wipe/dissolve 过渡期间**旧场景活帧渲染**（条带前旧场景仍在运动，条带后新场景），fade 保持暗场；
 - 渲染顺序：场景层 → 降采样 → 调色矩阵 → LUT 色板 → 放大 → A 叠加层 → 过渡覆盖；装配模式不渲染 fx。
 
 **粒子系统（v2.8 工具配套，程序元素变体）**：任何顶层元素带 `particle` 字段即成为**粒子系统**——
