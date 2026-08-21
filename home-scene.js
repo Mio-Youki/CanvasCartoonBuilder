@@ -223,7 +223,7 @@ function syncCfg() {
 }
 // 内置键（结构性 + 硬编码元素名）：其余顶层对象视为「通用程序元素」（有 parts → 图元渲染；
 // 有 particle → 粒子系统渲染）——工具/Agent 生成的新元素无需改渲染器即可生效
-const SCENE_KEYS = ['w', 'h', 'loop', 'bg', 'scenes', 'sceneBorders', 'images', 'fx',
+const SCENE_KEYS = ['format', 'formatVersion', 'kind', 'name', 'meta', 'w', 'h', 'loop', 'bg', 'scenes', 'sceneBorders', 'images', 'fx',
   'stars', 'moon', 'clouds', 'mountains', 'farForest', 'poles', 'rail', 'train', 'foreground', 'fog', 'signal', 'bridge'];
 
 const HomeScene = (() => {

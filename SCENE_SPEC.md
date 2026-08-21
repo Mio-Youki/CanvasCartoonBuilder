@@ -1,13 +1,18 @@
-# 参数化场景 js 生成规范（SCENE_SPEC）
+# 场景工程与参数化脚本规范（SCENE_SPEC）
 
 > 供「识图/生成类 Agent」在**第 ② 步（结构参数化）**遵循的书面规范：按本规范生成的场景 js
-> 可被 `tools/img2asset.html` 完整解析为可调图层（打开 js → 图层栏调参 → 保存写回 → 首页刷新即生效）。
+> 可被 `tools/img2asset.html` 完整解析为可调图层（打开 → 图层栏调参 → 保存写回）。
+> 新建作品应使用 `GENERIC_SCENE`；`HOME_SCENE` / `DEFAULT_HOME_SCENE` 仅用于已有项目脚本的兼容编辑。
 > 工具在打开 js 时会做「规范自检」（`checkSceneSpec`），不符合项会提示。
 
 ## 一、顶层结构
 
 ```js
-const DEFAULT_HOME_SCENE = {
+const GENERIC_SCENE = {
+  format: 'canvas-cartoon-scene',
+  formatVersion: 1,
+  kind: 'generic',
+  name: '未命名场景',
   w: 320,            // 画布宽
   h: 118,            // 画布高
   loop: 48,          // 循环周期（秒）
@@ -16,9 +21,9 @@ const DEFAULT_HOME_SCENE = {
   // sceneBorders: [12, 24, 36],          // 可选：场景边界秒数（长度 = scenes 数 - 1）；缺省=等分
 
   // —— 程序化元素：扁平键，每元素一个对象 ——
-  stars: { z: 1, color: [...], points: [...] },
-  moon:  { z: 2, color: "#d5d8bb", x: [253,253,253,68], y: [17,17,23,17] },
-  // …… 其余元素 ……
+  sparkles: { z: 1, parts: [/* 图元 */] },
+  rain: { z: 20, parts: [/* 图元实体 */], particle: {/* 粒子参数 */} },
+  // …… 任意具名程序元素 ……
 
   images: [ /* 素材层（工具导入的图片元素，同一 schema） */ ],
 };

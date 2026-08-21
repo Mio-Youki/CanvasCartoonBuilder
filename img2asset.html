@@ -183,7 +183,8 @@
   <!-- 中：场景文件 + 全局设置 + 画布 + 时间轴 -->
   <div class="panel p-stage">
     <div class="sf-row">
-      <button id="btn-open" class="small">打开 js</button>
+      <button id="btn-new" class="small">新建场景</button>
+      <button id="btn-open" class="small">打开场景</button>
       <input id="jsfile" type="file" accept=".js,text/javascript,.json" hidden>
       <span class="sf-sep"></span>
       <label class="sf-l nm">全局</label>
@@ -228,7 +229,8 @@
   <div class="panel p-props">
     <div class="props-head">
       <label>图层（点击卡片展开调参 · 拖拽排序=z）</label>
-      <button id="btn-save" class="small primary">保存 js</button>
+      <button id="btn-particle" class="small">+ 粒子</button>
+      <button id="btn-save" class="small primary">保存场景</button>
     </div>
     <div id="cfgform"></div>
     <div class="meta" id="m-props"></div>
@@ -267,6 +269,22 @@ function paletteLut(name) {
 }
 const $ = id => document.getElementById(id);
 
+/* ---------------- 通用场景工程（工具的默认入口，不依赖任何项目脚本） ----------------
+ * HomeScene 是当前共享 Canvas runtime 的兼容名称；通用场景只使用其
+ * "非内置顶层对象 + parts/particle/images/fx" 的通用渲染能力，不含列车等专用键。
+ */
+const DEFAULT_GENERIC_SCENE = {
+  format: 'canvas-cartoon-scene',
+  formatVersion: 1,
+  kind: 'generic',
+  name: '未命名场景',
+  w: 320, h: 180, loop: 4,
+  bg: '#10131d',
+  scenes: ['场景 1'],
+  images: [],
+  fx: { segs: [[{ f: [0, 1] }]], transition: 'none', transitionDur: 0.25, transitionColor: '#03060f' },
+};
+
 /* ---------------- 状态 ---------------- */
 const state = {
   sources: [],        // {id, name, img, dataUrl, w, h}
@@ -278,8 +296,8 @@ const state = {
   last: 0,
   raf: 0,
   cw: 320, ch: 118,
-  showScene: false,   // 初始不预设载入场景：打开实际 js 后场景层才显示（对应画面）
-  sceneParamsMode: false, // 已打开参数化场景（HOME_SCENE）：素材写入其 images 层，保存随配置写回
+  showScene: true,    // 默认就是通用场景，完整 runtime 常驻；打开脚本场景只是在此基础上切换配置
+  sceneParamsMode: true, // 通用场景与脚本场景共用完整参数/时间线/FX 编辑通道
   lastTlScene: -1,    // 图层栏跟随时间轴：当前编辑场景（播放头所在段）
   zoom: 1,            // 画布内容缩放（Alt+滚轮；1=适应显示框）
   pan: { x: 0, y: 0 }, // 内容平移（CSS px；缩放以鼠标为中心时保持光标下坐标不动）
@@ -2227,6 +2245,34 @@ function buildExportText() {
 /* ---------------- 打开 / 保存 js（页面内修改） ---------------- */
 let fileText = null, cfgStart = -1, cfgEnd = -1, fileName = 'scene.js';
 
+function buildGenericSceneText(cfg) {
+  return '/* Canvas Cartoon Builder 场景工程 · 可由 tools/img2asset.html 继续编辑 */\n' +
+    'const GENERIC_SCENE = ' + JSON.stringify(cfg, (k, v) => (k === '_img' || k === '_asset' || k === 'srcId') ? undefined : v, 2) + ';\n';
+}
+
+function createGenericScene(confirmReplace) {
+  if (confirmReplace && !window.confirm('新建场景会替换当前未保存的编辑内容，是否继续？')) return;
+  const cfg = JSON.parse(JSON.stringify(DEFAULT_GENERIC_SCENE));
+  const raw = buildGenericSceneText(cfg);
+  const parsed = extractObj(raw, 'GENERIC_SCENE');
+  state.sceneParamsMode = true;
+  state.showScene = true;
+  $('showscene').checked = true;
+  $('home-scene').style.display = 'block';
+  window.HOME_SCENE = cfg; // 运行时兼容别名；工程文件本身不使用 HOME_SCENE 名称
+  state.elements = cfg.images;
+  state.selEl = null; state.selProg = null; state.partSel = null;
+  state.t = 0; state.lastTlScene = -1;
+  fileText = raw; fileName = 'scene.js';
+  cfgStart = parsed.start; cfgEnd = parsed.end;
+  layerOpen = {}; partsOpenEl = null; showFocusEl = null;
+  syncCanvasSize();
+  if (window.HomeScene && HomeScene.resize) HomeScene.resize();
+  resizeStageWrap();
+  buildLayerList(cfg); syncGlobals(); renderSceneBar(); refreshStage();
+  $('m-stage').textContent = '新建通用场景（' + cfg.w + '×' + cfg.h + '）——可直接添加素材、图元、粒子、FX 与转场';
+}
+
 // 提取 js 中的对象字面量（平衡括号，支持嵌套；JS 对象字面量用求值解析）
 // 返回 {obj, start, end} 或 {err}（解析失败）或 null（未找到声明）
 function extractObj(text, name) {
@@ -2380,7 +2426,7 @@ function syncGlobals() {
 }));
 
 /* ---------------- PS 式图层列表（元素卡片栏：收起/展开/拖拽排序写 z） ---------------- */
-const PROG_SKIP = ['w', 'h', 'loop', 'bg', 'images', 'fx']; // fx=后处理面板状态（非场景元素），不渲染成卡片
+const PROG_SKIP = ['format', 'formatVersion', 'kind', 'name', 'meta', 'w', 'h', 'loop', 'bg', 'scenes', 'sceneBorders', 'images', 'fx']; // 场景元数据/结构字段不渲染成图层卡片
 let layerOpen = {};
 let partsOpenEl = null;  // 唯一开启的 [编辑] 图元面板（同时只能一个；开启时矢量绘制锁定到该元素）
 let tlCurScene = -1;   // 图层栏当前编辑场景（播放头所在段；-1=无 scenes）
@@ -2907,6 +2953,21 @@ function dupAsParticle(srcEl, srcKey) {
   buildLayerList(cfg);
   refreshStage();
 }
+$('btn-particle').addEventListener('click', () => {
+  const cfg = window.HOME_SCENE;
+  if (!cfg || !state.sceneParamsMode) return;
+  pushHistory();
+  let key = '粒子'; let n = 2;
+  while (cfg[key]) key = '粒子' + (n++);
+  cfg[key] = {
+    z: 50,
+    parts: [{ type: 'rect', x: 0, y: 0, w: 2, h: 2, fill: '#ffd66c' }],
+    particle: { count: 40, rate: 20, life: 1.5, speed: 30, dir: 270, spread: 45, gravity: 0, wind: 0, spin: 0, spinSpeed: 0, sizeVar: 0.3, alpha: 1, fade: true, seed: 1 },
+  };
+  layerOpen[key] = true;
+  state.selProg = cfg[key]; state.selEl = null;
+  buildLayerList(cfg); refreshStage();
+});
 function layerOrderOf(cfg) {
   const progKeys = Object.keys(cfg).filter(k => PROG_SKIP.indexOf(k) < 0 && cfg[k] && typeof cfg[k] === 'object' && !Array.isArray(cfg[k]));
   const imgs = cfg.images || [];
@@ -4073,6 +4134,7 @@ async function saveToFile(filename, content) {
 }
 
 $('btn-open').addEventListener('click', () => $('jsfile').click());
+$('btn-new').addEventListener('click', () => createGenericScene(true));
 $('jsfile').addEventListener('change', () => {
   const f = $('jsfile').files[0];
   if (!f) return;
@@ -4083,13 +4145,16 @@ $('jsfile').addEventListener('change', () => {
 });
 function loadJs(text) {
   fileText = text;
+  const generic = extractObj(text, 'GENERIC_SCENE');
+  if (generic && generic.obj && generic.obj.format === 'canvas-cartoon-scene') { loadSceneParams(generic, generic.start, generic.end); return; }
+  if (generic && generic.err) { $('m-props').textContent = generic.err; return; }
   const s = extractObj(text, 'SCENE');
   if (s && s.obj && Array.isArray(s.obj.elements)) { loadAssembly(s); return; }
   if (s && s.err) { $('m-props').textContent = s.err; return; }
   const hs = extractObj(text, 'HOME_SCENE') || extractObj(text, 'DEFAULT_HOME_SCENE') || extractObj(text, 'HOME_SCENE_DEFAULT');
   if (hs && hs.obj) { loadSceneParams(hs, hs.start, hs.end); return; }
   if (hs && hs.err) { $('m-props').textContent = hs.err; return; }
-  $('m-props').textContent = '未找到 SCENE 或 HOME_SCENE 配置——请打开本工具导出的 js 或参数化场景 js';
+  $('m-props').textContent = '未找到 GENERIC_SCENE、SCENE 或 HOME_SCENE 配置——请打开本工具保存的场景或参数化脚本';
 }
 $('btn-save').addEventListener('click', () => {
   if (window.HOME_SCENE && cfgStart >= 0 && fileText) {
@@ -4103,7 +4168,7 @@ $('btn-save').addEventListener('click', () => {
     const json = JSON.stringify(window.HOME_SCENE, (k, v) => (k === '_img' || k === '_asset' || k === 'srcId') ? undefined : v, 2);
     const newText = fileText.slice(0, cfgStart) + json + fileText.slice(cfgEnd);
     // 保存前自检：写回后的文件必须能被重新提取解析（防写坏文件导致下次导入失败）
-    const check = extractObj(newText, 'SCENE') || extractObj(newText, 'HOME_SCENE') || extractObj(newText, 'DEFAULT_HOME_SCENE');
+    const check = extractObj(newText, 'GENERIC_SCENE') || extractObj(newText, 'SCENE') || extractObj(newText, 'HOME_SCENE') || extractObj(newText, 'DEFAULT_HOME_SCENE');
     if (!check || !check.obj) {
       $('m-props').textContent = '保存自检失败：写回结果无法重新解析（' + (check && check.err ? check.err : '未找到配置') + '），未写文件';
       return;
@@ -4566,6 +4631,7 @@ if (!window.HomeScene) {
 }
 renderLib();
 renderStyleCtl();
+createGenericScene(false);
 syncGlobals();
 ensureAllImages();
 renderSceneBar();
