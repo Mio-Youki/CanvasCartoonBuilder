@@ -115,7 +115,10 @@
   #cfgform::-webkit-scrollbar-thumb { background: #3a4678; border-radius: 4px; }
   #cfgform::-webkit-scrollbar-thumb:hover { background: #4a5890; }
   .layer-card { border: 2px solid #1a2350; background: #101736; margin: 3px 0; user-select: none; -webkit-user-select: none; } /* 整卡禁文本选择：拖拽走 HTML5 drag，不触发浏览器「拖拽搜索」 */
-  .layer-card input, .layer-card textarea { user-select: text; -webkit-user-select: text; } /* 输入框内仍可选中/编辑文本 */
+  /* 表单控件不继承父级 user-select（UA 默认保持可选）——必须直接设 none：否则从卡片内输入框拖起仍会触发 Edge「拖拽搜索」；输入仍可点击聚焦/键入（鼠标框选文本受限，可用键盘 Shift+方向键） */
+  .layer-card input, .layer-card textarea, .layer-card select,
+  .cf-box input, .cf-box textarea, .cf-box select,
+  .layer-card button, .cf-box button { user-select: none; -webkit-user-select: none; }
   .layer-card.sel { border-color: var(--yellow); box-shadow: 0 0 0 1px var(--yellow); } /* 选中强调：黄色描线 */
   .layer-card.global { border-color: var(--dim); }
   .layer-card.img { border-color: #2a3a66; }
@@ -3399,11 +3402,13 @@ function renderBackgroundLayers(cfg, box) {
   const title = document.createElement('div'); title.className = 'cf-group'; title.textContent = '背景层（固定在底部，不参与普通图层排序）'; box.appendChild(title);
   for (const [bgIndex, el] of bgs.entries()) {
     const card = document.createElement('div'); card.className = 'layer-card img'; card.dataset.elid = el.id;
-    card.draggable = true;
-    const head = document.createElement('div'); head.className = 'layer-head';
+    card.draggable = false; // 拖拽源 = 标题（避免从输入框/文本拖起触发 Edge 搜索）
+    const head = document.createElement('div'); head.className = 'layer-head'; head.draggable = true;
     head.innerHTML = '<span class="lgrip">⠿</span><span class="layer-z">BG' + (bgs.length - bgIndex) + '</span><span class="layer-name">' + escapeHtml(el.name || '图片背景') + '</span>' +
       '<button class="hb" data-act="show" title="显示时间">S</button><button class="hb' + (el.hidden ? ' hid' : '') + '" data-act="hide" title="' + (el.hidden ? '显示背景图片' : '隐藏背景图片') + '">' + (el.hidden ? '显示' : '隐藏') + '</button><button class="hb" data-act="replace" title="从外部文件替换图片">替换</button><button class="hb" data-act="del" title="删除图片背景">删除</button>';
     card.appendChild(head);
+    head.addEventListener('selectstart', ev => ev.preventDefault());
+    head.addEventListener('dragstart', ev => { ev.dataTransfer.setData('text/plain', 'bg:' + el.id); card.classList.add('drag'); });
     const body = document.createElement('div'); body.className = 'layer-body';
     const add = (label, input) => { const row = document.createElement('div'); row.className = 'cf-row'; const l = document.createElement('label'); l.textContent = label; row.append(l, input); body.appendChild(row); };
     const size = document.createElement('span'); size.className = 'cf-ro'; size.textContent = '处理后尺寸：' + (el.w || 0) + ' × ' + (el.h || 0) + (el.frames > 1 ? ' · ' + el.frames + ' 帧' : ''); add('图片', size);
@@ -3426,7 +3431,6 @@ function renderBackgroundLayers(cfg, box) {
       else if (act.dataset.act === 'replace') chooseBackgroundFile('replace', el.id);
       else if (act.dataset.act === 'del') delElement(el);
     });
-    card.addEventListener('dragstart', ev => { ev.dataTransfer.setData('text/plain', 'bg:' + el.id); card.classList.add('drag'); });
     card.addEventListener('dragover', ev => ev.preventDefault());
     card.addEventListener('drop', ev => { ev.preventDefault(); const data = ev.dataTransfer.getData('text/plain'); if (!data.startsWith('bg:')) return; reorderBackgroundLayers(cfg, data.slice(3), el.id); });
     card.addEventListener('dragend', () => card.classList.remove('drag'));
