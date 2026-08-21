@@ -44,11 +44,18 @@
   /* 显示框高度由 JS 按 cfg.w:cfg.h 比例计算（上限 = 视口高 × 2/3，防高比例 js 吞掉时间轴）；
      双画布绝对定位 + JS 显式尺寸（fit × 缩放），像素化缩放；超出部分被容器裁剪 */
   .stage-wrap canvas { position: absolute; left: 0; top: 0; display: block; image-rendering: pixelated; }
+  .stage-wrap canvas.editor-overlay { image-rendering: auto !important; pointer-events: none; z-index: 3; }
   #home-scene { display: none; } /* 初始不载入场景：载入实际 js 后才显示 */
   #stage { position: absolute; }
-  .zoom-badge { position: absolute; top: 3px; right: 3px; z-index: 5; font-size: 8px; color: var(--yellow); background: rgba(0,0,0,.65); padding: 1px 5px; display: none; }
+  .zoom-badge { position: absolute; top: 3px; right: 3px; z-index: 5; font-size: 8px; color: var(--yellow); background: rgba(0,0,0,.65); padding: 1px 5px; display: none; cursor: pointer; }
   .zoom-badge.on { display: block; }
   .timeline { width: 100%; height: 20px; display: block; margin-top: 6px; border: 2px solid var(--dim); background: #05070f; cursor: crosshair; }
+  .timeline-labels { position: relative; height: 14px; margin-top: 3px; overflow: hidden; font-size: 8px; line-height: 14px; color: var(--dim); user-select: none; }
+  .timeline-labels.top { margin-top: 6px; color: var(--ink); }
+  .timeline-label { position: absolute; max-width: 28%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transform: translateX(-50%); pointer-events: none; }
+  .timeline-label.tick { transform: translateX(-50%); color: var(--dim); }
+  .timeline-label.tick.edge-left { transform: none; }
+  .timeline-label.tick.edge-right { transform: translateX(-100%); }
   .tl-bar { margin-top: 6px; padding: 6px 8px; border: 2px solid var(--dim); background: #0b1120; }
   .scene-bar { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; min-height: 18px; align-items: center; }
   .scene-chip { margin: 0; padding: 2px 6px; min-height: 18px; font-size: 8px; border-width: 2px; }
@@ -58,6 +65,12 @@
   .hb.sbtn { margin: 0; padding: 1px 5px; min-height: 16px; font-size: 8px; line-height: 1; color: var(--dim); background: #1a2350; }
   .hb.sbtn.on { background: var(--yellow); color: #0b1026; }
   .show-pop { z-index: 99; background: #101736; border: 2px solid var(--yellow); padding: 6px; min-width: 170px; box-shadow: 4px 4px 0 #000; }
+  .wizard-mask { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; background: rgba(3,6,18,.78); padding: 16px; }
+  .wizard { width: min(620px, 100%); background: #141b3d; border: 3px solid var(--yellow); box-shadow: 7px 7px 0 #000; padding: 14px; }
+  .wizard h2 { margin: 0 0 8px; color: var(--yellow); font-size: 13px; }
+  .wizard .preview { min-height: 148px; display: grid; place-items: center; margin: 10px 0; border: 2px solid var(--dim); background: #05070f; overflow: hidden; }
+  .wizard .preview canvas { max-width: 100%; max-height: 250px; image-rendering: pixelated; }
+  .wizard .choice { margin: 0; min-height: 28px; padding: 4px 7px; font-size: 9px; }
   .show-pop-title { font-size: 8px; color: var(--dim); margin-bottom: 4px; }
   .show-row-wrap { margin-bottom: 5px; }
   .show-row { display: flex; align-items: center; gap: 6px; width: 100%; margin: 2px 0; padding: 3px 6px; font-size: 9px; min-height: 20px; border-width: 2px; background: #1a2350; color: var(--dim); text-align: left; }
@@ -84,6 +97,10 @@
   .draw-row .small { margin: 0; padding: 3px 7px; min-height: 22px; font-size: 8px; }
   .draw-row .dbtn.active { background: var(--yellow); color: #0b1026; border-color: #8a6d00; }
   .draw-row select.sf-n { width: 86px; padding: 2px 4px; font-size: 9px; }
+  .draw-style { display: inline-flex; align-items: center; gap: 3px; padding: 2px 5px; min-height: 28px; border: 1px solid #2c3560; background: #101736; }
+  .draw-style .sf-l { margin: 0; }
+  .draw-style input[type=checkbox] { margin: 0; }
+  .draw-style .sf-n { width: 42px; height: 22px; }
   .hint-inline { font-size: 8px; color: var(--dim); }
   .hint { font-size: 9px; color: var(--dim); line-height: 1.8; margin-top: 8px; }
   .hint b { color: var(--yellow); }
@@ -97,13 +114,16 @@
   #cfgform::-webkit-scrollbar-track { background: #0a0e22; }
   #cfgform::-webkit-scrollbar-thumb { background: #3a4678; border-radius: 4px; }
   #cfgform::-webkit-scrollbar-thumb:hover { background: #4a5890; }
-  .layer-card { border: 2px solid #1a2350; background: #101736; margin: 3px 0; }
+  .layer-card { border: 2px solid #1a2350; background: #101736; margin: 3px 0; user-select: none; -webkit-user-select: none; } /* 整卡禁文本选择：拖拽走 HTML5 drag，不触发浏览器「拖拽搜索」 */
+  .layer-card input, .layer-card textarea { user-select: text; -webkit-user-select: text; } /* 输入框内仍可选中/编辑文本 */
   .layer-card.sel { border-color: var(--yellow); box-shadow: 0 0 0 1px var(--yellow); } /* 选中强调：黄色描线 */
   .layer-card.global { border-color: var(--dim); }
   .layer-card.img { border-color: #2a3a66; }
   .layer-card.drag { opacity: .5; border-color: var(--yellow); }
+  .layer-card.insert-before { box-shadow: 0 -3px 0 var(--yellow); }
+  .layer-card.insert-after { box-shadow: 0 3px 0 var(--yellow); }
   .layer-card.hid { opacity: .45; }
-  .layer-head { display: flex; align-items: center; gap: 5px; padding: 4px 5px; cursor: pointer; font-size: 9px; }
+  .layer-head { display: flex; align-items: center; gap: 5px; padding: 4px 5px; cursor: pointer; font-size: 9px; user-select: none; -webkit-user-select: none; }
   .layer-head:hover { background: #16204a; }
   .lgrip { color: var(--dim); cursor: grab; }
   .layer-z { font-size: 8px; color: var(--yellow); min-width: 22px; }
@@ -113,7 +133,22 @@
   .layer-head .hb { margin: 0; padding: 1px 5px; min-height: 16px; font-size: 8px; line-height: 1; }
   .layer-head .hb.hid { background: #33270f; color: var(--dim); }
   .layer-head .hb.on { background: #33270f; color: var(--yellow); }
-  .cf-box { border: 1px dashed #2c3560; padding: 2px 4px; margin: 3px 0; }
+  .cf-box { border: 1px dashed #2c3560; padding: 3px 4px; margin: 3px 0; background: #0b1128; }
+  .cf-box[draggable=true] { cursor: grab; }
+  .cf-box.drag { opacity: .45; border-color: var(--yellow); }
+  .cf-box.insert-before { box-shadow: 0 -3px 0 var(--yellow); }
+  .cf-box.insert-after { box-shadow: 0 3px 0 var(--yellow); }
+  .part-head { display: flex; align-items: center; gap: 5px; min-height: 20px; cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .part-head .part-title { flex: 1; font-size: 8px; color: var(--ink); }
+  .part-head .lgrip { font-size: 10px; }
+  .part-head .hb { margin: 0; padding: 1px 5px; min-height: 16px; font-size: 8px; }
+  .part-style { display: flex; align-items: center; gap: 5px; min-height: 24px; padding-top: 3px; font-size: 8px; color: var(--dim); }
+  .part-style label { margin: 0; font-size: 8px; }
+  .part-style input[type=color] { width: 23px; height: 19px; padding: 0; border: 1px solid var(--dim); }
+  .part-style input[type=number] { width: 38px; padding: 2px 3px; font-size: 9px; }
+  .part-extra { border-top: 1px dashed #2c3560; margin-top: 3px; padding-top: 2px; }
+  .cf-box { user-select: none; -webkit-user-select: none; }
+  .part-extra .part-legacy-style { display: none; }
   .layer-body { border-top: 1px dashed #2c3560; padding: 4px 6px 6px; }
   .cf-row { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
   .cf-row-inline { display: flex; align-items: center; gap: 6px; flex: 1; }
@@ -168,10 +203,19 @@
       <input id="quant" type="range" min="0" max="8" value="0">
       <label>去背景容差（0=关；按左上角颜色抠除）</label>
       <input id="bgtol" type="range" min="0" max="60" value="0">
+      <label>尺寸调整（处理后素材尺寸）</label>
+      <div class="row">
+        <input id="srcw" type="number" min="1" value="160" title="处理后宽度">
+        <span>×</span><input id="srch" type="number" min="1" value="90" title="处理后高度">
+        <label style="margin:0"><input id="src-lock" type="checkbox" checked> 锁比</label>
+      </div>
       <label>素材库（点击选中，再"添加到场景"）</label>
       <div id="lib" class="lib"></div>
-      <button id="btn-add" class="primary">添加到场景 →</button>
-      <button id="btn-del-src">删除选中素材</button>
+      <div class="row">
+        <button id="btn-add" class="primary" style="flex:1">添加到场景 →</button>
+        <button id="btn-del-src" style="flex:1">删除选中素材</button>
+      </div>
+      <button id="btn-background" class="primary">作为背景添加到场景 →</button>
       <div class="meta" id="m-import"></div>
     </div>
     <div id="side-anim" style="display:none">
@@ -202,9 +246,8 @@
       <button class="small dbtn" data-mode="ellipse">椭圆</button>
       <button class="small dbtn" data-mode="poly">多边形</button>
       <span class="sf-sep"></span>
-      <label class="sf-l nm">填</label><input id="draw-fillc" class="sf-c" type="color" value="#ffd23f">
-      <label class="sf-l nm">描</label><input id="draw-strokeon" type="checkbox" title="启用描边"><input id="draw-strokec" class="sf-c" type="color" value="#000000">
-      <label class="sf-l nm">线</label><input id="draw-strokew" class="sf-n" type="number" value="1" min="0">
+      <span class="draw-style"><label class="sf-l nm">填</label><input id="draw-fillon" type="checkbox" checked title="启用填充"><input id="draw-fillc" class="sf-c" type="color" value="#ffd23f"></span>
+      <span class="draw-style"><label class="sf-l nm">描</label><input id="draw-strokeon" type="checkbox" title="启用描边"><input id="draw-strokec" class="sf-c" type="color" value="#000000"><label class="sf-l">宽</label><input id="draw-strokew" class="sf-n" type="number" value="1" min="0"></span>
       <label class="sf-l nm">目标</label>
       <select id="draw-target" class="sf-n" style="width:86px"><option value="new">新建元素</option><option value="sel">当前选中</option></select>
       <span class="hint-inline" id="draw-hint"></span>
@@ -212,10 +255,13 @@
     <div id="stage-wrap" class="stage-wrap">
       <canvas id="home-scene"></canvas>
       <canvas id="stage" class="stage"></canvas>
+      <canvas id="editor-overlay" class="editor-overlay"></canvas>
       <div id="zoom-badge" class="zoom-badge"></div>
     </div>
     <div id="scene-bar" class="scene-bar"></div>
+    <div id="tl-label-top" class="timeline-labels top"></div>
     <canvas id="tl" class="timeline" width="320" height="20"></canvas>
+    <div id="tl-label-bottom" class="timeline-labels"></div>
     <canvas id="tl-fx" class="timeline" width="320" height="18" style="display:none"></canvas>
     <div id="tl-bar" class="tl-bar"></div>
     <div class="meta" id="m-stage"></div>
@@ -279,7 +325,7 @@ const DEFAULT_GENERIC_SCENE = {
   kind: 'generic',
   name: '未命名场景',
   w: 320, h: 180, loop: 4,
-  bg: '#10131d',
+  bg: '#10131d', transparent: false,
   scenes: ['场景 1'],
   images: [],
   fx: { segs: [[{ f: [0, 1] }]], transition: 'none', transitionDur: 0.25, transitionColor: '#03060f' },
@@ -302,8 +348,10 @@ const state = {
   zoom: 1,            // 画布内容缩放（Alt+滚轮；1=适应显示框）
   pan: { x: 0, y: 0 }, // 内容平移（CSS px；缩放以鼠标为中心时保持光标下坐标不动）
   asmBg: '#09132c',   // 装配模式背景色（图层栏顶部「背景」行，随场景模式切到 cfg.bg）
+  pendingBg: null,    // 从“由图片建立”直接选文件后，保留新建/新增/替换背景的处理上下文
   drawMode: 'select', // 矢量绘制：select|rect|line|ellipse|poly
   drawFillColor: '#ffd23f',
+  drawFillOn: true,
   drawStrokeColor: '#000000',
   drawStrokeOn: false,
   drawStrokeW: 1,
@@ -318,14 +366,20 @@ const state = {
   regionRect: null,   // 发射区框选进行中的矩形（粒子 [框选]，画布坐标）
 };
 function wrapMod(x, m) { return ((x % m) + m) % m; }
+// 编辑控件使用屏幕像素尺寸，换算回场景坐标后绘制/命中；缩放不会让手柄遮挡素材或难以点击。
+function uiWorld(px) {
+  const st = document.getElementById('stage');
+  const scale = st && st.getBoundingClientRect().width ? st.getBoundingClientRect().width / Math.max(1, state.cw) : 1;
+  return px / Math.max(0.001, scale);
+}
 /* 选择框四角命中：tl/tr/bl/br */
 function hitCorner(p, box, t) {
-  t = t || 6;
-  const e = 0.5; // 浮点容差：stagePos 除法可能产生 ±1e-15 误差，边界点必须命中
-  if (p.x >= box.x - e && p.x <= box.x + t + e && p.y >= box.y - e && p.y <= box.y + t + e) return 'tl';
-  if (p.x >= box.x + box.w - t - e && p.x <= box.x + box.w + e && p.y >= box.y - e && p.y <= box.y + t + e) return 'tr';
-  if (p.x >= box.x - e && p.x <= box.x + t + e && p.y >= box.y + box.h - t - e && p.y <= box.y + box.h + e) return 'bl';
-  if (p.x >= box.x + box.w - t - e && p.x <= box.x + box.w + e && p.y >= box.y + box.h - t - e && p.y <= box.y + box.h + e) return 'br';
+  const half = (t || uiWorld(10)) / 2, e = 0.5;
+  const hit = (x, y) => Math.abs(p.x - x) <= half + e && Math.abs(p.y - y) <= half + e;
+  if (hit(box.x, box.y)) return 'tl';
+  if (hit(box.x + box.w, box.y)) return 'tr';
+  if (hit(box.x, box.y + box.h)) return 'bl';
+  if (hit(box.x + box.w, box.y + box.h)) return 'br';
   return null;
 }
 /* 按角缩放图元：围绕对角锚点缩放（part 相对坐标） */
@@ -345,6 +399,22 @@ function scalePartAround(p, ax, ay, rw, rh) {
     q.points = (q.points || []).map(pt => [Math.round(tr(pt[0], pt[1])[0]), Math.round(tr(pt[0], pt[1])[1])]);
   }
   return q;
+}
+/* 元素拥有 parts 时，parts 坐标始终相对元素左上角保存。
+   四角缩放先以场景坐标围绕固定对角缩放，再减去新元素原点，避免左/上角拖动后父子坐标系脱节。 */
+function scalePartsWithParent(parts, oldBox, newBox, corner) {
+  const ax = (corner === 'bl' || corner === 'tl') ? oldBox.x + oldBox.w : oldBox.x;
+  const ay = (corner === 'tr' || corner === 'tl') ? oldBox.y + oldBox.h : oldBox.y;
+  const rw = newBox.w / oldBox.w, rh = newBox.h / oldBox.h;
+  return (parts || []).map(p => {
+    const q = scalePartAround(p, ax - oldBox.x, ay - oldBox.y, rw, rh);
+    // scalePartAround 的结果仍以旧父级原点为参考；换到新父级局部空间。
+    const dx = oldBox.x - newBox.x, dy = oldBox.y - newBox.y;
+    if (q.type === 'rect' || q.type === 'ellipse') { q.x += dx; q.y += dy; }
+    else if (q.type === 'line') { q.x += dx; q.y += dy; q.x2 += dx; q.y2 += dy; }
+    else if (q.type === 'poly') q.points = (q.points || []).map(pt => [pt[0] + dx, pt[1] + dy]);
+    return q;
+  });
 }
 /* 四角缩放：返回 {nx,ny,nw,nh}（元素/图元包围盒按角调整） */
 function cornerResize(box, corner, dx, dy) {
@@ -425,37 +495,57 @@ function applyAlphaMode(canvas, mode) {
 /* 素材 = 原图（基图）+ 参数快照（样式化开关/采样除数/色板/量化/去背景）；采样结果惰性缓存。
    采样尺寸 = 基图 ÷ 除数（styleOn 关 = 1:1 原样）；基图始终保留 = 风格化/恢复的依据。 */
 function sourceSampleSize(s) {
+  if (s.resizeW && s.resizeH) return { w: Math.max(1, Math.round(s.resizeW)), h: Math.max(1, Math.round(s.resizeH)) };
   const div = (s.styleOn !== false && s.divisor) ? s.divisor : 1;
   return {
     w: Math.max(1, Math.round(s.img.width / div)),
     h: Math.max(1, Math.round(s.img.height / div)),
   };
 }
+function sourcePixelSize(s) {
+  const div = (s.styleOn !== false && s.divisor) ? s.divisor : 1;
+  return { w: Math.max(1, Math.round(s.img.width / div)), h: Math.max(1, Math.round(s.img.height / div)) };
+}
+function sourceFrameSize(s) {
+  const sz = sourceSampleSize(s), frames = Math.max(1, s.frames || 1);
+  return { w: Math.max(1, Math.floor(sz.w / frames)), h: sz.h };
+}
+function scaleCanvasNearest(src, w, h) {
+  if (src.width === w && src.height === h) return src;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(src, 0, 0, w, h);
+  return c;
+}
+function drawSourceFrame(ctx, s, x, y, w, h, frame) {
+  const c = getSourceCanvas(s), frames = Math.max(1, s.frames || 1);
+  const fw = Math.max(1, Math.floor(c.width / frames));
+  const f = ((frame || 0) % frames + frames) % frames;
+  ctx.drawImage(c, f * fw, 0, fw, c.height, Math.round(x), Math.round(y), w, h);
+}
 function getSourceCanvas(s) {
   if (!s._canvas) {
-    const div = (s.styleOn !== false && s.divisor) ? s.divisor : 1;
     const opts = { palette: s.palette, quant: s.quant, bgtol: s.bgtol, alphaMode: s.alphaMode };
-    const sz = sourceSampleSize(s);
+    const sz = sourceSampleSize(s), sample = sourcePixelSize(s);
     if (s.frames > 1) {
-      // 多帧 sheet：切帧恒用基图帧宽（s.img.width/frames，导入时固定——改除数不破坏帧边界），
-      // 每帧缩到采样宽再逐帧风格化后横向拼接（输出宽 = 每帧采样宽 × frames）
+      // 多帧 sheet：先逐帧按采样数缩小/处理，再最近邻放大到输出尺寸；输出尺寸不会吞掉采样效果。
       const baseFrameW = s.img.width / s.frames;
-      const frameW = Math.max(1, Math.round(baseFrameW / div));
+      const sampleFrameW = Math.max(1, Math.round(sample.w / s.frames));
+      const frameW = Math.max(1, Math.round(sz.w / s.frames));
       const c = document.createElement('canvas');
       c.width = frameW * s.frames; c.height = sz.h;
       const g = c.getContext('2d');
       g.imageSmoothingEnabled = false;
       for (let f = 0; f < s.frames; f++) {
         const fc = document.createElement('canvas');
-        fc.width = frameW; fc.height = sz.h;
+        fc.width = sampleFrameW; fc.height = sample.h;
         const fg = fc.getContext('2d');
         fg.imageSmoothingEnabled = false;
-        fg.drawImage(s.img, f * baseFrameW, 0, baseFrameW, s.img.height, 0, 0, frameW, sz.h);
-        g.drawImage(pixelate(fc, frameW, sz.h, opts), f * frameW, 0);
+        fg.drawImage(s.img, f * baseFrameW, 0, baseFrameW, s.img.height, 0, 0, sampleFrameW, sample.h);
+        g.drawImage(scaleCanvasNearest(pixelate(fc, sampleFrameW, sample.h, opts), frameW, sz.h), f * frameW, 0);
       }
       s._canvas = c;
     } else {
-      s._canvas = pixelate(s.img, sz.w, sz.h, opts);
+      s._canvas = scaleCanvasNearest(pixelate(s.img, sample.w, sample.h, opts), sz.w, sz.h);
     }
   }
   return s._canvas;
@@ -483,7 +573,7 @@ function syncElementAssets() {
 /* ---------------- 素材库 ---------------- */
 function addSource(img, name, frames) {
   const src = {
-    id: 's' + Math.random().toString(36).slice(2, 7),
+    id: 's' + Math.random().toString(36).slice(2, 10),
     name: name || 'src' + (state.sources.length + 1),
     img: img, // 基图（原图；风格化/恢复的依据，始终保留）
     frames: frames || 1,
@@ -493,42 +583,52 @@ function addSource(img, name, frames) {
     alphaMode: $('alpha-mode').value || 'keep', // 边缘透明像素：keep/remove（<128透明+>=128拉满）/boost（全拉满）
     _canvas: null, _dataUrl: null, // 惰性采样缓存
   };
-  const sz = sourceSampleSize(src);
+  const sz = sourceFrameSize(src);
   state.sources.push(src);
   state.selSrc = src.id;
   renderLib();
   renderStyleCtl();
   $('m-import').textContent = '已导入 ' + src.name + '（采样 ' + sz.w + '×' + sz.h + (src.frames > 1 ? ' · ' + src.frames + '帧' : '') + '）——点「添加到场景」';
+  afterBackgroundImport();
 }
+let libPreviewVersion = 0;
 function renderLib() {
+  const previewVersion = ++libPreviewVersion;
   const lib = $('lib');
   lib.innerHTML = '';
+  const previews = [];
   for (const s of state.sources) {
     const d = document.createElement('div');
     d.className = 'lib-item' + (state.selSrc === s.id ? ' active' : '');
     const cv = document.createElement('canvas');
-    const sz = sourceSampleSize(s);
+    const sz = sourceFrameSize(s);
     cv.width = sz.w; cv.height = sz.h;
-    const g = cv.getContext('2d');
-    g.imageSmoothingEnabled = false;
-    const im = new Image();
-    im.onload = () => { g.clearRect(0, 0, sz.w, sz.h); g.drawImage(im, 0, 0); };
-    im.src = getSourceDataUrl(s);
+    previews.push({ cv, s, sz });
     const nm = document.createElement('div');
     nm.className = 'nm';
-    nm.textContent = s.name + ' ' + sz.w + '×' + sz.h;
+    nm.textContent = s.name + ' ' + sz.w + '×' + sz.h + (s.frames > 1 ? ' · ' + s.frames + '帧' : '');
     d.appendChild(cv);
     d.appendChild(nm);
     d.onclick = () => { state.selSrc = s.id; renderLib(); renderStyleCtl(); };
     lib.appendChild(d);
   }
+  const paint = now => {
+    if (previewVersion !== libPreviewVersion) return;
+    previews.forEach(({ cv, s, sz }) => { const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, sz.w, sz.h); drawSourceFrame(g, s, 0, 0, sz.w, sz.h, Math.floor(now / 160)); });
+    if (previews.some(p => p.s.frames > 1)) requestAnimationFrame(paint);
+  };
+  requestAnimationFrame(paint);
   $('btn-add').disabled = !state.sources.length;
 }
 function selSource() { return state.sources.find(s => s.id === state.selSrc); }
+function afterBackgroundImport() {
+  if (!state.pendingBg) return;
+  openBackgroundProcessModal();
+}
 
 /* ---------------- 元素 ---------------- */
 function addElement(src) {
-  const sz = sourceSampleSize(src);
+  const sz = sourceFrameSize(src);
   // 默认显示尺寸：最大边 ≤ 画布较小边的一半（如 320×118 → 最大边 59），保持原比例；用户可再拉伸
   const maxDim = Math.max(4, Math.floor(Math.min(state.cw, state.ch) / 2));
   const fit = Math.min(1, maxDim / Math.max(1, Math.max(sz.w, sz.h)));
@@ -537,7 +637,7 @@ function addElement(src) {
   const el = {
     id: 'e' + Math.random().toString(36).slice(2, 7),
     name: src.name,
-    srcId: src.id,              // 引用素材（原图+参数快照）：渲染实时采样，改参数自动同步
+    srcId: src.id,              // 会话内引用；保存时移除，回退为 src 的硬编码快照
     src: getSourceDataUrl(src), // 当前采样 dataUrl（旧路径兼容 + 保存时冻结硬编码）
     x: Math.floor((state.cw - w) / 2), y: Math.floor((state.ch - h) / 2),
     w: w, h: h,                 // 显示尺寸（默认 ≤ 较小边/2，靠用户拉伸：放大仍像素风）
@@ -558,7 +658,7 @@ function addElement(src) {
   refreshStage();
   $('m-stage').textContent = '已添加 ' + el.name + '——拖拽调位置，点击卡片/画布展开参数' + (state.sceneParamsMode ? '（将随场景配置一起保存）' : '');
 }
-function selEl() { return state.elements.find(e => e.id === state.selEl); }
+function selEl() { const e = state.elements.find(e => e.id === state.selEl); return e && e.role !== 'background' ? e : null; }
 
 /* ---------------- 场景渲染（预览与导出共用逻辑） ---------------- */
 /* 滚动相位窗口起点：元素当前所在显示窗口的起点（秒）；无 show → 0（全局起算）
@@ -629,6 +729,7 @@ function drawElement(ctx, e, t, imgMap) {
 }
 function renderStage() {
   syncElementAssets(); // 元素 srcId → 素材采样 canvas（场景层 home-scene 读 e._asset）；初始化缓存失效判定在此
+  beginEditorOverlay(); // 编辑控件独立高 DPI 覆盖层，避免低分辨率场景 Canvas 被放大后模糊
   const cv = $('stage');
   cv.width = state.cw; cv.height = state.ch;
   const ctx = cv.getContext('2d');
@@ -924,37 +1025,55 @@ function partMultiBox() {
   if (!isFinite(minX)) return null;
   return { x: Math.round(minX), y: Math.round(minY), w: Math.round(maxX - minX), h: Math.round(maxY - minY) };
 }
-function drawSelBox(ctx, box, color, opts) {
+let editorOverlayCtx = null, editorOverlayScale = 1;
+function beginEditorOverlay() {
+  const ov = $('editor-overlay');
+  if (!ov) { editorOverlayCtx = null; return; }
+  const cssW = Math.max(1, ov.clientWidth || 1), cssH = Math.max(1, ov.clientHeight || 1), dpr = window.devicePixelRatio || 1;
+  const w = Math.max(1, Math.round(cssW * dpr)), h = Math.max(1, Math.round(cssH * dpr));
+  if (ov.width !== w || ov.height !== h) { ov.width = w; ov.height = h; }
+  editorOverlayCtx = ov.getContext('2d');
+  editorOverlayCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  editorOverlayCtx.clearRect(0, 0, cssW, cssH);
+  editorOverlayScale = cssW / Math.max(1, state.cw);
+}
+function drawSelBox(_ctx, box, color, opts) {
+  const ctx = editorOverlayCtx;
+  if (!ctx) return;
   opts = opts || {};
+  const x = box.x * editorOverlayScale, y = box.y * editorOverlayScale, w = box.w * editorOverlayScale, h = box.h * editorOverlayScale;
+  const line = 1.25, inset = 1;
   ctx.strokeStyle = color;
-  ctx.lineWidth = 1;
+  ctx.lineWidth = line;
   ctx.setLineDash(opts.dash || [3, 2]);
-  ctx.strokeRect(box.x - 1, box.y - 1, box.w + 2, box.h + 2);
+  ctx.strokeRect(x - inset, y - inset, w + inset * 2, h + inset * 2);
   ctx.setLineDash([]);
   if (opts.noHandles) return;
-  if (!opts.noCorners) drawCorners(ctx, box.x, box.y, box.w, box.h, color);
-  if (!opts.noRot) drawRotationHandle(ctx, box, color);
-  if (!opts.noMirror) drawMirrorButtons(ctx, box, color);
+  const screenBox = { x, y, w, h };
+  if (!opts.noCorners) drawCorners(ctx, x, y, w, h, color);
+  if (!opts.noRot) drawRotationHandle(ctx, screenBox, color);
+  if (!opts.noMirror) drawMirrorButtons(ctx, screenBox, color);
 }
 /* 选择框四角缩放手柄点（v2.1 缩小为 4×4 = 原 7×7 的 1/2 向上取整） */
 function drawCorners(ctx, x, y, w, h, color) {
+  const size = 8, half = size / 2;
   ctx.fillStyle = color;
-  ctx.fillRect(x - 2, y - 2, 4, 4);
-  ctx.fillRect(x + w - 3, y - 2, 4, 4);
-  ctx.fillRect(x - 2, y + h - 3, 4, 4);
-  ctx.fillRect(x + w - 3, y + h - 3, 4, 4);
+  ctx.fillRect(x - half, y - half, size, size);
+  ctx.fillRect(x + w - half, y - half, size, size);
+  ctx.fillRect(x - half, y + h - half, size, size);
+  ctx.fillRect(x + w - half, y + h - half, size, size);
 }
 /* 旋转手柄：选中框顶部中央的小圆；命中返回 {hx,hy}（v2.1 半径 2 = 原 4 的 1/2，命中区 5） */
 function rotHandleHit(p, box) {
-  const hx = box.x + box.w / 2, hy = box.y - 8;
-  return Math.hypot(p.x - hx, p.y - hy) <= 5 ? { hx: hx, hy: hy } : null;
+  const hx = box.x + box.w / 2, hy = box.y - uiWorld(16);
+  return Math.hypot(p.x - hx, p.y - hy) <= uiWorld(8) ? { hx: hx, hy: hy } : null;
 }
 function drawRotationHandle(ctx, box, color) {
-  const hx = box.x + box.w / 2, hy = box.y - 8;
+  const hx = box.x + box.w / 2, hy = box.y - 16, radius = 3.5;
   ctx.strokeStyle = color;
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(hx, box.y); ctx.lineTo(hx, hy + 2); ctx.stroke();
-  ctx.beginPath(); ctx.arc(hx, hy, 2, 0, Math.PI * 2); ctx.stroke();
+  ctx.lineWidth = 1.25;
+  ctx.beginPath(); ctx.moveTo(hx, box.y); ctx.lineTo(hx, hy + radius); ctx.stroke();
+  ctx.beginPath(); ctx.arc(hx, hy, radius, 0, Math.PI * 2); ctx.stroke();
 }
 /* 绘制中形状预览（虚线黄框） */
 function drawShapePreview(ctx, s) {
@@ -1021,14 +1140,22 @@ function applyCanvasDisplay() {
   const ch = Math.max(2, Math.round(state.ch * s));
   const hs = document.getElementById('home-scene');
   const st = document.getElementById('stage');
+  const ov = document.getElementById('editor-overlay');
   if (hs) { hs.style.left = state.pan.x + 'px'; hs.style.top = state.pan.y + 'px'; hs.style.width = cw + 'px'; hs.style.height = ch + 'px'; }
   if (st) { st.style.left = state.pan.x + 'px'; st.style.top = state.pan.y + 'px'; st.style.width = cw + 'px'; st.style.height = ch + 'px'; }
+  if (ov) { ov.style.left = state.pan.x + 'px'; ov.style.top = state.pan.y + 'px'; ov.style.width = cw + 'px'; ov.style.height = ch + 'px'; }
   const zb = document.getElementById('zoom-badge');
   if (zb) {
     const z = state.zoom || 1;
-    zb.textContent = '×' + z.toFixed(1) + '（双击复位）';
+    zb.textContent = '×' + z.toFixed(1) + ' · 重置';
+    zb.title = '点击重置缩放（Alt + 双击画布也可）';
     zb.classList.toggle('on', Math.abs(z - 1) > 0.01);
   }
+}
+function resetCanvasZoom() {
+  if (Math.abs((state.zoom || 1) - 1) <= 0.01 && !state.pan.x && !state.pan.y) return;
+  state.zoom = 1; state.pan = { x: 0, y: 0 };
+  applyCanvasDisplay(); refreshStage();
 }
 $('stage-wrap').addEventListener('wheel', ev => {
   if (!ev.altKey) return;
@@ -1049,12 +1176,8 @@ $('stage-wrap').addEventListener('wheel', ev => {
   applyCanvasDisplay();
   refreshStage();
 }, { passive: false });
-$('stage-wrap').addEventListener('dblclick', () => {
-  if (Math.abs((state.zoom || 1) - 1) > 0.01 || state.pan.x || state.pan.y) {
-    state.zoom = 1; state.pan = { x: 0, y: 0 };
-    applyCanvasDisplay(); refreshStage();
-  }
-});
+$('zoom-badge').addEventListener('click', ev => { ev.stopPropagation(); resetCanvasZoom(); });
+$('stage-wrap').addEventListener('dblclick', ev => { if (ev.altKey) { ev.preventDefault(); ev.stopPropagation(); resetCanvasZoom(); } });
 window.addEventListener('resize', () => { resizeStageWrap(); renderStage(); renderTimeline(); });
 function ensureImage(e) {
   if (e._img && e._img.width) return;
@@ -1095,7 +1218,7 @@ stage.addEventListener('pointerdown', ev => {
     renderStage();
     return;
   }
-  const sorted = [...state.elements].sort((a, b) => b.z - a.z);
+  const sorted = state.elements.filter(e => e.role !== 'background').sort((a, b) => b.z - a.z);
   // 子图元命中：仅 [编辑] 模式（partsOpenEl）——选择模式只做整体选中，防误拖
   const hitParts = (e) => {
     if (!e.parts || !e.parts.length) return -1;
@@ -1113,6 +1236,7 @@ stage.addEventListener('pointerdown', ev => {
     return -1;
   };
   const pickPartDrag = (e, i) => {
+    // 先写临时选中供手柄/拖拽计算，末尾通过 activatePart 统一父卡片状态并重建 UI。
     state.partSel = { el: e, index: i };
     const pp = e.parts[i];
     const bb = e.partsBand ? null : partBBox(pp, elVal(e, 'x') + scrollOffsets(e, state.t).x, elVal(e, 'y') + scrollOffsets(e, state.t).y);
@@ -1133,7 +1257,7 @@ stage.addEventListener('pointerdown', ev => {
       }
     }
     renderStage();
-    syncSelUI(true); // ② 画布选中 part → 图层栏跳转并青框高亮 + 左侧动画面板更新
+    activatePart(e, i, true); // 画布选中 part → 父卡片保持展开、定位到对应条目
   };
   if (partsOpenEl) {
     // [编辑] 模式：旋转手柄 + 镜像按钮（当前选中图元，手柄在包围盒上方）优先命中
@@ -1428,7 +1552,7 @@ stage.addEventListener('pointermove', ev => {
     const ay = (drag.corner === 'tr' || drag.corner === 'tl') ? drag.mb0.y + drag.mb0.h : drag.mb0.y;
     const ex0 = elVal(drag.el, 'x') + scrollOffsets(drag.el, state.t).x, ey0 = elVal(drag.el, 'y') + scrollOffsets(drag.el, state.t).y;
     drag.indexes.forEach((i, k) => {
-      const pp = drag.el.parts[i];
+      const pp = drag.orig[k];
       if (!pp) return;
       drag.el.parts[i] = scalePartAround(pp, ax - ex0, ay - ey0, prop, prop);
     });
@@ -1558,13 +1682,9 @@ stage.addEventListener('pointermove', ev => {
       if (drag.corner === 'tr' || drag.corner === 'tl') ny = drag.y0 + (drag.oh - nh);
       r = { nx, ny, nw, nh };
     }
-    if (drag.parts0) {
-      // 锚点（对角）在 parts 相对空间 = 元素 bbox 的对角（拖 br 锚 tl…）
-      const ax = (drag.corner === 'bl' || drag.corner === 'tl') ? drag.ow : 0;
-      const ay = (drag.corner === 'tr' || drag.corner === 'tl') ? drag.oh : 0;
-      const rw = r.nw / drag.ow, rh = r.nh / drag.oh;
-      e.parts = drag.parts0.map(pp => scalePartAround(pp, ax, ay, rw, rh));
-    }
+    if (drag.parts0) e.parts = scalePartsWithParent(drag.parts0,
+      { x: drag.x0, y: drag.y0, w: drag.ow, h: drag.oh },
+      { x: r.nx, y: r.ny, w: r.nw, h: r.nh }, drag.corner);
     e.x = Math.round(r.nx); e.y = Math.round(r.ny);
     e.w = Math.round(r.nw); e.h = Math.round(r.nh);
     if (e.scroll) e.scroll.span = e.w; // 矢量元素（无 scroll 字段）跳过
@@ -1588,6 +1708,7 @@ stage.addEventListener('pointerup', ev => {
 });
 stage.addEventListener('pointerleave', () => { if (drag) refreshStage(); drag = null; state.drawDrag = false; });
 stage.addEventListener('dblclick', ev => {
+  if (ev.altKey) return; // Alt + 双击专用于缩放复位，不能进入元素编辑
   // 多边形：双击闭合提交
   if (state.drawMode === 'poly' && state.drawPts.length >= 2) {
     commitDrawShape();
@@ -1717,13 +1838,46 @@ function setDrawMode(mode) {
   document.querySelectorAll('#draw-row .dbtn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
   const hint = $('draw-hint');
   hint.textContent = mode === 'select' ? '' : (mode === 'poly' ? '单击加顶点 · 双击/回车闭合 · Esc 取消' : '拖拽绘制 · Esc 取消');
+  if (selectedDrawPart()) syncDrawStyleFromPart();
   renderStage();
 }
 document.querySelectorAll('#draw-row .dbtn').forEach(b => b.addEventListener('click', () => setDrawMode(b.dataset.mode)));
-$('draw-fillc').addEventListener('input', () => { state.drawFillColor = $('draw-fillc').value; });
-$('draw-strokec').addEventListener('input', () => { state.drawStrokeColor = $('draw-strokec').value; });
-$('draw-strokeon').addEventListener('change', () => { state.drawStrokeOn = $('draw-strokeon').checked; });
-$('draw-strokew').addEventListener('change', () => { state.drawStrokeW = Math.max(0, parseInt($('draw-strokew').value) || 0); });
+function selectedDrawPart() {
+  const ps = state.partSel;
+  return ps && ps.el && ps.el.parts && ps.el.parts[ps.index] ? ps.el.parts[ps.index] : null;
+}
+function syncDrawStyleFromPart() {
+  const p = selectedDrawPart();
+  const hint = $('draw-hint');
+  if (p) {
+    normPart(p);
+    state.drawFillOn = !!p.fill; state.drawFillColor = normColor(p.fill || p._fillColor || state.drawFillColor);
+    state.drawStrokeOn = !!p.stroke; state.drawStrokeColor = normColor(p.stroke || p._strokeColor || state.drawStrokeColor);
+    state.drawStrokeW = p.strokeWidth != null ? p.strokeWidth : 1;
+    hint.textContent = '编辑图元 #' + (state.partSel.index + 1) + ' · 样式即时生效';
+  } else if (state.drawMode === 'select') hint.textContent = '';
+  $('draw-fillon').checked = state.drawFillOn; $('draw-fillc').value = state.drawFillColor; $('draw-fillc').disabled = !state.drawFillOn;
+  $('draw-strokeon').checked = state.drawStrokeOn; $('draw-strokec').value = state.drawStrokeColor; $('draw-strokec').disabled = !state.drawStrokeOn;
+  $('draw-strokew').value = state.drawStrokeW;
+}
+function applyDrawStyle() {
+  const p = selectedDrawPart();
+  if (p) {
+    normPart(p);
+    if (state.drawFillOn) { p.fill = state.drawFillColor; delete p._fillColor; }
+    else { p._fillColor = p.fill || state.drawFillColor; p.fill = null; }
+    if (state.drawStrokeOn) { p.stroke = state.drawStrokeColor; delete p._strokeColor; }
+    else { p._strokeColor = p.stroke || state.drawStrokeColor; p.stroke = null; }
+    p.strokeWidth = state.drawStrokeW;
+    refreshStage();
+  }
+  syncDrawStyleFromPart();
+}
+$('draw-fillon').addEventListener('change', () => { state.drawFillOn = $('draw-fillon').checked; applyDrawStyle(); });
+$('draw-fillc').addEventListener('input', () => { state.drawFillColor = $('draw-fillc').value; state.drawFillOn = true; applyDrawStyle(); });
+$('draw-strokec').addEventListener('input', () => { state.drawStrokeColor = $('draw-strokec').value; state.drawStrokeOn = true; applyDrawStyle(); });
+$('draw-strokeon').addEventListener('change', () => { state.drawStrokeOn = $('draw-strokeon').checked; applyDrawStyle(); });
+$('draw-strokew').addEventListener('change', () => { state.drawStrokeW = Math.max(0, parseInt($('draw-strokew').value) || 0); applyDrawStyle(); });
 $('draw-target').addEventListener('change', () => { state.drawTarget = $('draw-target').value; });
 function drawTargetEl() {
   // 目标解析：开启 [编辑] 时锁定为编辑元素；否则按目标选择器
@@ -1750,10 +1904,38 @@ function openEdit(el) {
     buildLayerList(cfg);
   }
 }
+/* part 选择永远保留其父元素的选中与展开状态，避免图层栏重建后丢失编辑上下文。 */
+function activatePart(el, index, scrollPart) {
+  if (!el || !el.parts || !el.parts[index]) return;
+  partsOpenEl = el;
+  state.partSel = { el: el, index: index };
+  if (el.id) { state.selEl = el.id; state.selProg = null; }
+  else if (window.HOME_SCENE) {
+    state.selProg = el; state.selEl = null;
+    const key = Object.keys(window.HOME_SCENE).find(k => window.HOME_SCENE[k] === el);
+    if (key) layerOpen[key] = true;
+  }
+  syncDrawStyleFromPart();
+  // 编辑状态内不重建图层栏：原生 click/pointer 仍在派发时清空父卡片会导致选中条目消失。
+  // 卡片未展开（无 .cf-box）时先重建（activatePart 已置 partsOpenEl/layerOpen），重建后重新查询再高亮/滚动。
+  let boxes = [...$('cfgform').querySelectorAll('.cf-box[data-part-index]')];
+  if (!boxes.length) {
+    buildLayerList(layerCfg());
+    boxes = [...$('cfgform').querySelectorAll('.cf-box[data-part-index]')];
+  }
+  boxes.forEach(box => {
+    const on = Number(box.dataset.partIndex) === index;
+    box.classList.toggle('sel', on);
+    const extra = box.querySelector('.part-extra'); if (extra) extra.style.display = on ? '' : 'none';
+    const arrow = box.querySelector('.lcarr'); if (arrow) arrow.textContent = on ? '▾' : '▸';
+  });
+  if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel();
+  if (scrollPart) requestAnimationFrame(() => { const box = $('cfgform').querySelector('.cf-box.sel'); if (box && box.scrollIntoView) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
+}
 function commitDrawShape() {
   const s = state.drawShape; if (!s) return;
   let part = null;
-  const FC = state.drawFillColor;
+  const FC = state.drawFillOn ? state.drawFillColor : null;
   const SC = state.drawStrokeOn ? state.drawStrokeColor : null;
   const SW = state.drawStrokeW;
   if (s.type === 'rect' || s.type === 'ellipse') {
@@ -1822,17 +2004,17 @@ function loadFiles(files) {
     return;
   }
   // 多张 → 逐张像素化 → 横向拼 sheet
-  const imgs = [];
+  const imgs = Array(list.length);
   let done = 0;
-  for (const f of list) {
+  list.forEach((f, index) => {
     const reader = new FileReader();
     reader.onload = () => {
       const img = new Image();
-      img.onload = () => { imgs.push(img); done++; if (done === list.length) finishCompose(); };
+      img.onload = () => { imgs[index] = img; done++; if (done === list.length) finishCompose(); };
       img.src = reader.result;
     };
     reader.readAsDataURL(f);
-  }
+  });
   function finishCompose() {
     // 基图 = 每帧最近邻缩到「第一帧原尺寸」的干净 sheet（不风格化；帧宽固定 → 改除数不破坏帧边界）
     const W0 = imgs[0].naturalWidth || imgs[0].width, H0 = imgs[0].naturalHeight || imgs[0].height;
@@ -1842,7 +2024,7 @@ function loadFiles(files) {
     g.imageSmoothingEnabled = false;
     imgs.forEach((im, i) => g.drawImage(im, i * W0, 0, W0, H0));
     const src = {
-      id: 's' + Math.random().toString(36).slice(2, 7),
+      id: 'asset_' + Math.random().toString(36).slice(2, 10),
       name: (list[0].name.replace(/\.[^.$]+$/, '').slice(0, 8) || 'frame') + '×' + imgs.length,
       img: sheet,
       frames: imgs.length,
@@ -1852,12 +2034,13 @@ function loadFiles(files) {
       alphaMode: $('alpha-mode').value || 'keep',
       _canvas: null, _dataUrl: null,
     };
-    const sz = sourceSampleSize(src);
+    const sz = sourceFrameSize(src);
     state.sources.push(src);
     state.selSrc = src.id;
     renderLib();
     renderStyleCtl();
     $('m-import').textContent = '已合成 ' + imgs.length + ' 帧素材「' + src.name + '」（采样 ' + sz.w + '×' + sz.h + ' ×' + imgs.length + ' 帧）——点「添加到场景」';
+    afterBackgroundImport();
   }
 }
 /* —— 左侧栏双状态：素材导入 / 动画调整 —— */
@@ -1870,6 +2053,7 @@ document.querySelectorAll('.side-tab').forEach(b => b.addEventListener('click', 
 /* 三端选中同步：图层栏重建（元素黄线/part 青框高亮）+ 左侧动画面板刷新（若可见）；
    scrollPart=true 时滚动到选中 part 条目 */
 function syncSelUI(scrollPart) {
+  syncDrawStyleFromPart();
   if (window.HOME_SCENE || state.elements.length) buildLayerList(layerCfg());
   if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel();
   if (scrollPart) {
@@ -1981,6 +2165,9 @@ function renderStyleCtl() {
     $('quant').value = s.quant || 0;
     $('bgtol').value = s.bgtol || 0;
     $('alpha-mode').value = s.alphaMode || 'keep';
+    const sz = sourceFrameSize(s);
+    $('srcw').value = sz.w; $('srch').value = sz.h;
+    $('src-lock').checked = s.resizeLock !== false;
   }
 }
 $('style-on').addEventListener('change', () => { const s = selSource(); if (s) applyStyleToSource(s, true); });
@@ -1989,6 +2176,25 @@ $('alpha-mode').addEventListener('change', () => { const s = selSource(); if (s)
 $('palette').addEventListener('input', () => { const s = selSource(); if (s) applyStyleToSource(s, false); });
 $('quant').addEventListener('input', () => { const s = selSource(); if (s) applyStyleToSource(s, false); });
 $('bgtol').addEventListener('input', () => { const s = selSource(); if (s) applyStyleToSource(s, false); });
+function applySourceResize(axis) {
+  const s = selSource(); if (!s) return;
+  const baseW = s.img.width / Math.max(1, s.frames || 1), baseH = s.img.height;
+  let w = Math.max(1, parseInt($('srcw').value) || sourceFrameSize(s).w);
+  let h = Math.max(1, parseInt($('srch').value) || sourceFrameSize(s).h);
+  s.resizeLock = $('src-lock').checked;
+  if (s.resizeLock) {
+    if (axis === 'w') h = Math.max(1, Math.round(w * baseH / baseW));
+    if (axis === 'h') w = Math.max(1, Math.round(h * baseW / baseH));
+  }
+  s.resizeW = w * Math.max(1, s.frames || 1); s.resizeH = h;
+  $('srcw').value = w; $('srch').value = h;
+  invalidateSource(s);
+  if (window.HomeScene && HomeScene.clearImageCache) HomeScene.clearImageCache();
+  renderLib(); refreshStage();
+}
+$('srcw').addEventListener('change', () => applySourceResize('w'));
+$('srch').addEventListener('change', () => applySourceResize('h'));
+$('src-lock').addEventListener('change', () => { const s = selSource(); if (s) { s.resizeLock = $('src-lock').checked; } });
 ['palette', 'quant', 'bgtol'].forEach(id => $(id).addEventListener('change', () => { if (selSource()) renderLib(); }));
 $('btn-add').addEventListener('click', () => { const s = selSource(); if (s) addElement(s); });
 $('btn-del-src').addEventListener('click', () => {
@@ -2250,7 +2456,14 @@ function buildGenericSceneText(cfg) {
     'const GENERIC_SCENE = ' + JSON.stringify(cfg, (k, v) => (k === '_img' || k === '_asset' || k === 'srcId') ? undefined : v, 2) + ';\n';
 }
 
-function createGenericScene(confirmReplace) {
+function freezeSceneAssets(cfg) {
+  (cfg.images || []).forEach(el => {
+    const s = el.srcId && state.sources.find(x => x.id === el.srcId);
+    if (s) el.src = getSourceDataUrl(s);
+  });
+}
+
+function createGenericScene(confirmReplace, keepSources) {
   if (confirmReplace && !window.confirm('新建场景会替换当前未保存的编辑内容，是否继续？')) return;
   const cfg = JSON.parse(JSON.stringify(DEFAULT_GENERIC_SCENE));
   const raw = buildGenericSceneText(cfg);
@@ -2260,6 +2473,7 @@ function createGenericScene(confirmReplace) {
   $('showscene').checked = true;
   $('home-scene').style.display = 'block';
   window.HOME_SCENE = cfg; // 运行时兼容别名；工程文件本身不使用 HOME_SCENE 名称
+  if (!keepSources) { state.sources = []; state.selSrc = null; }
   state.elements = cfg.images;
   state.selEl = null; state.selProg = null; state.partSel = null;
   state.t = 0; state.lastTlScene = -1;
@@ -2271,6 +2485,143 @@ function createGenericScene(confirmReplace) {
   resizeStageWrap();
   buildLayerList(cfg); syncGlobals(); renderSceneBar(); refreshStage();
   $('m-stage').textContent = '新建通用场景（' + cfg.w + '×' + cfg.h + '）——可直接添加素材、图元、粒子、FX 与转场';
+}
+
+/* 图片背景向导：处理仍在左侧素材面板完成；这里只决定画布与可持续的背景布局语义。 */
+function openNewSceneChoice() {
+  const mask = document.createElement('div'); mask.className = 'wizard-mask';
+  const box = document.createElement('div'); box.className = 'wizard';
+  box.innerHTML = '<h2>新建通用场景</h2><div class="hint">空白场景从默认画布开始；由图片建立会直接选择外部图片，再进入素材处理与背景放置流程。</div>';
+  const row = document.createElement('div'); row.className = 'row';
+  const blank = document.createElement('button'); blank.className = 'primary'; blank.textContent = '空白场景';
+  blank.onclick = () => { mask.remove(); createGenericScene(true); };
+  const from = document.createElement('button'); from.textContent = '由图片建立';
+  from.onclick = () => { mask.remove(); chooseBackgroundFile('new'); };
+  const cancel = document.createElement('button'); cancel.textContent = '取消'; cancel.onclick = () => mask.remove();
+  row.append(blank, from, cancel); box.append(row); mask.append(box); document.body.append(mask);
+}
+function chooseBackgroundFile(intent, targetId) {
+  state.pendingBg = { intent, targetId: targetId || null };
+  const picker = document.createElement('input');
+  picker.type = 'file'; picker.accept = 'image/*'; picker.multiple = true; picker.hidden = true;
+  picker.addEventListener('change', () => {
+    const files = picker.files;
+    picker.remove();
+    if (!files || !files.length) { state.pendingBg = null; return; }
+    loadFiles(files);
+  });
+  document.body.appendChild(picker); picker.click();
+}
+function applyBackgroundReplacement(target, src) {
+    const sz = sourceFrameSize(src);
+  target.name = src.name + ' 背景'; target.srcId = src.id; target.src = getSourceDataUrl(src);
+  target.w = sz.w; target.h = sz.h; target.frames = src.frames || 1; target.fps = src.fps || 8;
+  target._asset = null;
+  syncElementAssets(); refreshStage(); buildLayerList(layerCfg());
+  $('m-stage').textContent = '已替换背景图片；保留原有布局、透明度和显示时间设置。';
+}
+function finishBackgroundProcess() {
+  const pending = state.pendingBg, src = selSource();
+  if (!pending || !src) return;
+  state.pendingBg = null;
+  if (pending.intent === 'replace') {
+    const cfg = layerCfg(); const target = (cfg.images || []).find(e => e.id === pending.targetId && e.role === 'background');
+    if (target) applyBackgroundReplacement(target, src);
+    return;
+  }
+  openBackgroundWizard(pending.intent);
+}
+function openBackgroundProcessModal() {
+  const src = selSource(), pending = state.pendingBg;
+  if (!src || !pending) return;
+  const mask = document.createElement('div'); mask.className = 'wizard-mask';
+  const box = document.createElement('div'); box.className = 'wizard';
+  const action = pending.intent === 'new' ? '由图片建立场景' : pending.intent === 'replace' ? '替换图片背景' : '添加图片背景';
+  box.innerHTML = '<h2>' + action + ' · 图片处理</h2><div class="hint">此处的处理只作用于刚选中的图片；确认后进入背景放置面板，左侧素材库不会被打断。</div>';
+  const controls = document.createElement('div');
+  controls.innerHTML = '<label><input class="style" type="checkbox"> 样式化（关 = 原样 1:1）</label>' +
+    '<label>采样数（原图 ÷ N）</label><div class="row"><input class="divisor" type="number" min="1" step="1"><select class="alpha"><option value="keep">边缘:保留</option><option value="remove">边缘:消除</option><option value="boost">边缘:增强</option></select></div>' +
+    '<label>减色色板</label><select class="palette"></select><label>均匀量化</label><input class="quant" type="range" min="0" max="8">' +
+    '<label>去背景容差</label><input class="bgtol" type="range" min="0" max="60">' +
+    '<label>处理后尺寸</label><div class="row"><input class="sw" type="number" min="1"><span>×</span><input class="sh" type="number" min="1"><label style="margin:0"><input class="lock" type="checkbox"> 锁比</label></div>';
+  const q = s => controls.querySelector(s); q('.style').checked = src.styleOn !== false; q('.divisor').value = src.divisor || 2; q('.alpha').value = src.alphaMode || 'keep'; q('.palette').innerHTML = $('palette').innerHTML; q('.palette').value = src.palette || ''; q('.quant').value = src.quant || 0; q('.bgtol').value = src.bgtol || 0;
+  const sz = sourceFrameSize(src); q('.sw').value = sz.w; q('.sh').value = sz.h; q('.lock').checked = src.resizeLock !== false;
+  const preview = document.createElement('div'); preview.className = 'preview'; const cv = document.createElement('canvas'); preview.append(cv);
+  const update = axis => {
+    let w = Math.max(1, +q('.sw').value || sz.w), h = Math.max(1, +q('.sh').value || sz.h);
+    const baseW = src.img.width / Math.max(1, src.frames || 1);
+    if (q('.lock').checked) { if (axis === 'w') h = Math.max(1, Math.round(w * src.img.height / baseW)); else if (axis === 'h') w = Math.max(1, Math.round(h * baseW / src.img.height)); }
+    src.styleOn = q('.style').checked; src.divisor = Math.max(1, +q('.divisor').value || 1); src.alphaMode = q('.alpha').value; src.palette = q('.palette').value; src.quant = +q('.quant').value || 0; src.bgtol = +q('.bgtol').value || 0; src.resizeW = w * Math.max(1, src.frames || 1); src.resizeH = h; src.resizeLock = q('.lock').checked;
+    q('.sw').value = w; q('.sh').value = h; invalidateSource(src); if (window.HomeScene && HomeScene.clearImageCache) HomeScene.clearImageCache();
+    const out = sourceFrameSize(src), scale = Math.min(1, 440 / out.w, 230 / out.h); cv.width = out.w; cv.height = out.h; cv.style.width = Math.round(out.w * scale) + 'px'; cv.style.height = Math.round(out.h * scale) + 'px'; const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, out.w, out.h); drawSourceFrame(g, src, 0, 0, out.w, out.h, Math.floor(performance.now() / 160));
+  };
+  ['style', 'divisor', 'alpha', 'palette', 'quant', 'bgtol'].forEach(k => q('.' + k).addEventListener(k === 'quant' || k === 'bgtol' ? 'input' : 'change', () => update()));
+  q('.sw').addEventListener('change', () => update('w')); q('.sh').addEventListener('change', () => update('h')); q('.lock').addEventListener('change', () => update());
+  let previewStopped = false;
+  const animate = () => { if (previewStopped) return; if (src.frames > 1) { const out = sourceFrameSize(src), g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, out.w, out.h); drawSourceFrame(g, src, 0, 0, out.w, out.h, Math.floor(performance.now() / 160)); } requestAnimationFrame(animate); };
+  const actions = document.createElement('div'); actions.className = 'row'; const next = document.createElement('button'); next.className = 'primary'; next.textContent = pending.intent === 'replace' ? '应用替换' : '下一步：放置背景'; next.onclick = () => { previewStopped = true; renderLib(); renderStyleCtl(); mask.remove(); finishBackgroundProcess(); }; const cancel = document.createElement('button'); cancel.textContent = '取消'; cancel.onclick = () => { previewStopped = true; state.pendingBg = null; mask.remove(); }; actions.append(next, cancel);
+  box.append(controls, preview, actions); mask.append(box); document.body.append(mask); update(); requestAnimationFrame(animate);
+}
+function backgroundShow(mode) {
+  const count = Math.max(1, sceneNames().length || 1);
+  if (mode === 'all') return null;
+  const cur = Math.max(0, Math.min(tlCurScene < 0 ? 0 : tlCurScene, count - 1));
+  return Array.from({ length: count }, (_, i) => i === cur ? [[0, 1]] : null);
+}
+function openBackgroundWizard(intent) {
+  const src = selSource();
+  if (!src) {
+    const importTab = document.querySelector('[data-panel="import"]'); if (importTab) importTab.click();
+    $('m-import').textContent = '请先通过“由图片建立”选择外部图片。';
+    return;
+  }
+  const sz = sourceFrameSize(src), existing = intent !== 'new';
+  const initialW = existing ? (window.HOME_SCENE && window.HOME_SCENE.w) || state.cw : sz.w;
+  const initialH = existing ? (window.HOME_SCENE && window.HOME_SCENE.h) || state.ch : sz.h;
+  const mask = document.createElement('div'); mask.className = 'wizard-mask';
+  const box = document.createElement('div'); box.className = 'wizard';
+  box.innerHTML = '<h2>' + (existing ? '由素材建立背景' : '由图片建立场景') + '</h2>' +
+    '<div class="hint">素材“' + src.name.replace(/[&<>]/g, '') + '”当前处理尺寸为 ' + sz.w + '×' + sz.h + '。预览中图片保持原尺寸并居中；布局规则会随以后画布尺寸变化继续生效。</div>';
+  const dims = document.createElement('div'); dims.className = 'row';
+  dims.innerHTML = '<label style="margin:0">画布宽 <input class="bw" type="number" min="1" value="' + initialW + '"></label><label style="margin:0">高 <input class="bh" type="number" min="1" value="' + initialH + '"></label><label style="margin:0"><input class="block" type="checkbox" checked> 锁比</label>';
+  const bw = dims.querySelector('.bw'), bh = dims.querySelector('.bh'), block = dims.querySelector('.block');
+  const syncDim = axis => { let w = Math.max(1, +bw.value || initialW), h = Math.max(1, +bh.value || initialH); if (block.checked) { if (axis === 'w') h = Math.max(1, Math.round(w * initialH / initialW)); else w = Math.max(1, Math.round(h * initialW / initialH)); } bw.value = w; bh.value = h; renderPreview(); };
+  bw.onchange = () => syncDim('w'); bh.onchange = () => syncDim('h');
+  const preview = document.createElement('div'); preview.className = 'preview';
+  const pvc = document.createElement('canvas'); preview.append(pvc);
+  const renderPreview = () => {
+    const w = Math.max(1, +bw.value || initialW), h = Math.max(1, +bh.value || initialH), scale = Math.min(1, 440 / w, 220 / h);
+    pvc.width = w; pvc.height = h; pvc.style.width = Math.round(w * scale) + 'px'; pvc.style.height = Math.round(h * scale) + 'px';
+    const g = pvc.getContext('2d'); g.imageSmoothingEnabled = false; g.fillStyle = '#10131d'; g.fillRect(0, 0, w, h);
+    const selected = box.querySelector('input[name=bg-layout]:checked').value;
+    const paint = (x, y, dw, dh) => drawSourceFrame(g, src, x, y, dw, dh, Math.floor(performance.now() / 160));
+    if (selected === 'stretch') paint(0, 0, w, h);
+    else if (selected === 'tile') { for (let y = ((h - sz.h) / 2) % sz.h - sz.h; y < h; y += sz.h) for (let x = ((w - sz.w) / 2) % sz.w - sz.w; x < w; x += sz.w) paint(Math.round(x), Math.round(y), sz.w, sz.h); }
+    else paint(Math.round((w - sz.w) / 2), Math.round((h - sz.h) / 2), sz.w, sz.h);
+  };
+  const layouts = document.createElement('div'); layouts.className = 'row';
+  [['none', 'A. 保持原状（居中）'], ['stretch', 'B. 拉伸图片'], ['tile', 'C. 重复纹理']].forEach(([v, label], i) => { const l = document.createElement('label'); l.className = 'choice'; l.innerHTML = '<input type="radio" name="bg-layout" value="' + v + '"' + (!i ? ' checked' : '') + '> ' + label; layouts.append(l); });
+  layouts.onchange = renderPreview;
+  const scope = document.createElement('div'); scope.className = 'row';
+  if (existing) scope.innerHTML = '<label class="choice"><input type="radio" name="bg-scope" value="current" checked> 仅当前场景</label><label class="choice"><input type="radio" name="bg-scope" value="all"> 所有场景</label>';
+  const actions = document.createElement('div'); actions.className = 'row';
+  const create = document.createElement('button'); create.className = 'primary'; create.textContent = existing ? '创建背景层' : '创建并进入编辑器';
+  create.onclick = () => {
+    const w = Math.max(1, Math.round(+bw.value || initialW)), h = Math.max(1, Math.round(+bh.value || initialH));
+    if (!existing) createGenericScene(false, true);
+    const cfg = window.HOME_SCENE; cfg.w = w; cfg.h = h; cfg.images = cfg.images || []; state.elements = cfg.images;
+    const layout = box.querySelector('input[name=bg-layout]:checked').value;
+    const scopeMode = existing ? box.querySelector('input[name=bg-scope]:checked').value : 'all';
+    const bgOrder = (cfg.images || []).filter(e => e.role === 'background').length;
+    const el = { id: 'bg' + Math.random().toString(36).slice(2, 8), name: src.name + ' 背景', role: 'background', layout, anchor: 'center', srcId: src.id, src: getSourceDataUrl(src), x: 0, y: 0, w: sz.w, h: sz.h, alpha: 1, z: -1000 + bgOrder, frames: src.frames || 1, fps: src.fps || 8, frameLoop: true, show: backgroundShow(scopeMode), _asset: null };
+    cfg.images.unshift(el); state.elements = cfg.images; state.selEl = null; syncCanvasSize(); if (window.HomeScene && HomeScene.resize) HomeScene.resize(); syncElementAssets(); buildLayerList(cfg); syncGlobals(); renderSceneBar(); refreshStage(); mask.remove();
+    $('m-stage').textContent = '已建立背景层：' + (layout === 'none' ? '保持原状' : layout === 'stretch' ? '拉伸图片' : '重复纹理') + '；之后调整画布仍会按此规则显示。';
+  };
+  let previewStopped = false;
+  const animate = () => { if (previewStopped) return; if (src.frames > 1) renderPreview(); requestAnimationFrame(animate); };
+  const cancel = document.createElement('button'); cancel.textContent = '取消'; cancel.onclick = () => { previewStopped = true; mask.remove(); }; actions.append(create, cancel);
+  const oldCreate = create.onclick; create.onclick = () => { previewStopped = true; oldCreate(); };
+  box.append(dims, preview, layouts, scope, actions); mask.append(box); document.body.append(mask); renderPreview(); requestAnimationFrame(animate);
 }
 
 // 提取 js 中的对象字面量（平衡括号，支持嵌套；JS 对象字面量用求值解析）
@@ -2333,6 +2684,7 @@ function loadSceneParams(hs, rawStart, rawEnd) {
   state.sceneParamsMode = true;
   $('home-scene').style.display = 'block';
   window.HOME_SCENE = hs.obj;
+  if (hs.obj.format === 'canvas-cartoon-scene') { state.sources = []; state.selSrc = null; renderLib(); }
   syncCanvasSize();
   resizeStageWrap(); // 显示框高度跟随载入 js 的宽高比
   if (window.HomeScene && HomeScene.resize) HomeScene.resize();
@@ -2426,7 +2778,7 @@ function syncGlobals() {
 }));
 
 /* ---------------- PS 式图层列表（元素卡片栏：收起/展开/拖拽排序写 z） ---------------- */
-const PROG_SKIP = ['format', 'formatVersion', 'kind', 'name', 'meta', 'w', 'h', 'loop', 'bg', 'scenes', 'sceneBorders', 'images', 'fx']; // 场景元数据/结构字段不渲染成图层卡片
+const PROG_SKIP = ['format', 'formatVersion', 'kind', 'name', 'meta', 'w', 'h', 'loop', 'bg', 'transparent', 'scenes', 'sceneBorders', 'images', 'fx']; // 场景元数据/结构字段不渲染成图层卡片
 let layerOpen = {};
 let partsOpenEl = null;  // 唯一开启的 [编辑] 图元面板（同时只能一个；开启时矢量绘制锁定到该元素）
 let tlCurScene = -1;   // 图层栏当前编辑场景（播放头所在段；-1=无 scenes）
@@ -2448,6 +2800,7 @@ function walkForm(obj, path, box, cardKey) {
     w.appendChild(el);
     if (extra) w.appendChild(extra);
     box.appendChild(w);
+    return w;
   };
   const rebuild = () => buildLayerList(layerCfg());
   const rk = k => cardKey + '|' + path + k;
@@ -2671,7 +3024,7 @@ const PARTICLE_PRESETS = [
   { name: '火星（burst 全向喷发）', parts: [{ type: 'rect', x: 0, y: 0, w: 2, h: 2, fill: '#ffd66c' }], particle: { count: 50, burst: true, life: 1.2, speed: 70, dir: 270, spread: 360, gravity: 120, alpha: 1 } },
   { name: '光尘（低透明慢漂移）', parts: [{ type: 'rect', x: 0, y: 0, w: 3, h: 3, fill: 'rgba(150,170,190,0.25)' }], particle: { count: 20, rate: 8, life: 5, speed: 4, dir: 0, wind: 6, sizeVar: 0.8, alpha: 0.5 } },
 ];
-/* 粒子系统参数表单（程序元素含 particle 字段时显示）：实体 = 元素自身 parts；
+/* 粒子系统参数表单（程序元素含 particle 字段时显示）：实体 = 元素自身 parts 或图片素材；
    发射区 = 元素 x/y/w/h（空 = 全画布 → 全局雨/雪）；运动参数全部确定性（种子随机，可像素回归） */
 function particleForm(el, box, cardKey) {
   const add = (label, ctrl, hint) => {
@@ -2712,8 +3065,52 @@ function particleForm(el, box, cardKey) {
   };
   const tip = document.createElement('div');
   tip.className = 'cf-ro';
-  tip.textContent = '粒子：实体=本元素 parts；运动确定性（种子随机）；pixelDiv/颜色抖动走精灵缓存（开销≈0）';
+  tip.textContent = '粒子：实体可为本元素 parts 或已导入图片；运动确定性（种子随机）；pixelDiv/颜色抖动走精灵缓存（开销≈0）';
   box.appendChild(tip);
+  // —— 实体来源：parts（默认）或已有素材图片。图片以稳定 imageId 引用，不复制 data URL；可指定静态帧或按粒子寿命播放整张 sprite sheet。——
+  const sourceRow = document.createElement('div');
+  sourceRow.className = 'cf-row';
+  const sourceLabel = document.createElement('label'); sourceLabel.textContent = '粒子实体';
+  sourceLabel.title = '图元=本元素 parts；图片=引用场景中已导入的素材。图片粒子使用精灵缓存，删除源素材会使该粒子失去实体。';
+  sourceRow.appendChild(sourceLabel);
+  const sourceSel = document.createElement('select');
+  sourceSel.appendChild(new Option('图元 parts', 'parts'));
+  const sourceImages = (window.HOME_SCENE && window.HOME_SCENE.images || []).filter(x => x && x.id);
+  sourceImages.forEach(img => sourceSel.appendChild(new Option('图片：' + (img.name || img.id), 'image:' + img.id)));
+  const source = P.source;
+  sourceSel.value = source && source.type === 'image' ? 'image:' + source.imageId : 'parts';
+  if (sourceSel.value !== 'parts' && sourceSel.selectedIndex < 0) sourceSel.value = 'parts';
+  sourceSel.addEventListener('change', () => {
+    pushHistory();
+    if (sourceSel.value === 'parts') delete P.source;
+    else P.source = { type: 'image', imageId: sourceSel.value.slice(6), frame: 0, playback: 'static' };
+    buildLayerList(layerCfg()); refreshStage();
+  });
+  sourceRow.appendChild(sourceSel);
+  if (source && source.type === 'image') {
+    const playback = document.createElement('select');
+    playback.appendChild(new Option('静态帧', 'static'));
+    playback.appendChild(new Option('按粒子寿命播放', 'particle-age'));
+    playback.value = source.playback === 'particle-age' ? 'particle-age' : 'static';
+    playback.title = '静态帧=所有粒子使用同一帧；按粒子寿命播放=每颗粒子从第 0 帧开始独立播放 sprite sheet';
+    playback.addEventListener('change', () => { pushHistory(); source.playback = playback.value; buildLayerList(layerCfg()); refreshStage(); });
+    sourceRow.appendChild(playback);
+    if (playback.value === 'static') {
+      const frame = document.createElement('input'); frame.type = 'number'; frame.min = 0; frame.step = 1; frame.style.width = '38px';
+      frame.value = source.frame || 0; frame.title = '图片精灵图的静态帧序号（从 0 开始）';
+      frame.addEventListener('change', () => { pushHistory(); source.frame = Math.max(0, Math.round(parseFloat(frame.value) || 0)); frame.value = source.frame; refreshStage(); });
+      sourceRow.appendChild(frame);
+    } else {
+      const fps = document.createElement('input'); fps.type = 'number'; fps.min = 1; fps.max = 60; fps.step = 1; fps.style.width = '38px';
+      fps.value = source.fps || ((sourceImages.find(x => x.id === source.imageId) || {}).fps || 8); fps.title = '每颗粒子播放精灵图的帧率';
+      fps.addEventListener('change', () => { pushHistory(); source.fps = Math.max(1, Math.min(60, Math.round(parseFloat(fps.value) || 8))); fps.value = source.fps; refreshStage(); });
+      sourceRow.appendChild(fps);
+      const loop = document.createElement('input'); loop.type = 'checkbox'; loop.checked = !!source.loop; loop.title = '循环播放：关=停在最后一帧；开=按粒子寿命循环精灵图';
+      loop.addEventListener('change', () => { pushHistory(); source.loop = loop.checked; refreshStage(); });
+      sourceRow.appendChild(loop);
+    }
+  }
+  box.appendChild(sourceRow);
   // —— 预设（粒子数之上）：默认仅载入运动方式；[同时载入元素] 勾选才覆盖实体 parts ——
   const presets = PARTICLE_PRESETS.concat(window.PARTICLE_PRESETS || []);
   const prRow = document.createElement('div');
@@ -2953,6 +3350,25 @@ function dupAsParticle(srcEl, srcKey) {
   buildLayerList(cfg);
   refreshStage();
 }
+function dupAsImageParticle(srcEl) {
+  const cfg = window.HOME_SCENE;
+  if (!cfg || !srcEl || !srcEl.id) return;
+  pushHistory();
+  const base = srcEl.name || '图片';
+  let key = base + '图片粒子'; let n = 2;
+  while (cfg[key]) key = base + '图片粒子' + (n++);
+  cfg[key] = {
+    z: (srcEl.z != null ? srcEl.z : 50) + 1,
+    particle: {
+      source: { type: 'image', imageId: srcEl.id, frame: 0, playback: srcEl.frames > 1 ? 'particle-age' : 'static', fps: srcEl.fps || 8, loop: false },
+      count: 30, rate: 20, life: 1.5, speed: 28, dir: 270, spread: 50,
+      gravity: 0, wind: 0, spin: 0, spinSpeed: 0, sizeVar: 0.25, alpha: 1, fade: true,
+    },
+  };
+  layerOpen[key] = true;
+  state.selProg = cfg[key]; state.selEl = null;
+  buildLayerList(cfg); refreshStage();
+}
 $('btn-particle').addEventListener('click', () => {
   const cfg = window.HOME_SCENE;
   if (!cfg || !state.sceneParamsMode) return;
@@ -2971,7 +3387,60 @@ $('btn-particle').addEventListener('click', () => {
 function layerOrderOf(cfg) {
   const progKeys = Object.keys(cfg).filter(k => PROG_SKIP.indexOf(k) < 0 && cfg[k] && typeof cfg[k] === 'object' && !Array.isArray(cfg[k]));
   const imgs = cfg.images || [];
-  return progKeys.map(k => ({ kind: 'prog', key: k })).concat(imgs.map((e, i) => ({ kind: 'img', idx: i })));
+  const order = progKeys.map(k => ({ kind: 'prog', key: k, z: cfg[k].z != null ? cfg[k].z : 0 }))
+    .concat(imgs.filter(e => e.role !== 'background').map(e => ({ kind: 'img', idx: imgs.indexOf(e), z: e.z != null ? e.z : 0 })));
+  // Photoshop 语义：图层栏顶部即画布最前景（z 最大）。
+  return order.sort((a, b) => b.z - a.z);
+}
+function renderBackgroundLayers(cfg, box) {
+  // 图层栏从上到下 = 画布从上到下（z 大的背景先显示在卡片顶部）。
+  const bgs = (cfg.images || []).filter(e => e.role === 'background').sort((a, b) => (b.z == null ? -1000 : b.z) - (a.z == null ? -1000 : a.z));
+  if (!bgs.length) return;
+  const title = document.createElement('div'); title.className = 'cf-group'; title.textContent = '背景层（固定在底部，不参与普通图层排序）'; box.appendChild(title);
+  for (const [bgIndex, el] of bgs.entries()) {
+    const card = document.createElement('div'); card.className = 'layer-card img'; card.dataset.elid = el.id;
+    card.draggable = true;
+    const head = document.createElement('div'); head.className = 'layer-head';
+    head.innerHTML = '<span class="lgrip">⠿</span><span class="layer-z">BG' + (bgs.length - bgIndex) + '</span><span class="layer-name">' + escapeHtml(el.name || '图片背景') + '</span>' +
+      '<button class="hb" data-act="show" title="显示时间">S</button><button class="hb' + (el.hidden ? ' hid' : '') + '" data-act="hide" title="' + (el.hidden ? '显示背景图片' : '隐藏背景图片') + '">' + (el.hidden ? '显示' : '隐藏') + '</button><button class="hb" data-act="replace" title="从外部文件替换图片">替换</button><button class="hb" data-act="del" title="删除图片背景">删除</button>';
+    card.appendChild(head);
+    const body = document.createElement('div'); body.className = 'layer-body';
+    const add = (label, input) => { const row = document.createElement('div'); row.className = 'cf-row'; const l = document.createElement('label'); l.textContent = label; row.append(l, input); body.appendChild(row); };
+    const size = document.createElement('span'); size.className = 'cf-ro'; size.textContent = '处理后尺寸：' + (el.w || 0) + ' × ' + (el.h || 0) + (el.frames > 1 ? ' · ' + el.frames + ' 帧' : ''); add('图片', size);
+    const layout = document.createElement('select'); [['none', '保持原状（居中）'], ['stretch', '拉伸图片'], ['tile', '重复纹理']].forEach(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; o.selected = (el.layout || 'none') === v; layout.appendChild(o); });
+    layout.addEventListener('change', () => { pushHistory(); el.layout = layout.value; refreshStage(); }); add('布局', layout);
+    const alpha = document.createElement('input'); alpha.type = 'number'; alpha.min = '0'; alpha.max = '1'; alpha.step = '0.05'; alpha.value = el.alpha == null ? 1 : el.alpha;
+    alpha.addEventListener('change', () => { pushHistory(); el.alpha = Math.max(0, Math.min(1, +alpha.value || 0)); alpha.value = el.alpha; refreshStage(); }); add('透明度', alpha);
+    if (el.frames > 1) {
+      const fps = document.createElement('input'); fps.type = 'number'; fps.min = '1'; fps.max = '60'; fps.step = '1'; fps.value = el.fps || 8;
+      fps.addEventListener('change', () => { pushHistory(); el.fps = Math.max(1, +fps.value || 8); fps.value = el.fps; refreshStage(); }); add('多帧速度', fps);
+      const loop = document.createElement('input'); loop.type = 'checkbox'; loop.checked = el.frameLoop !== false;
+      loop.addEventListener('change', () => { pushHistory(); el.frameLoop = loop.checked; refreshStage(); }); add('循环播放', loop);
+    }
+    card.appendChild(body);
+    head.addEventListener('click', ev => {
+      ev.stopPropagation(); const act = ev.target.closest && ev.target.closest('[data-act]');
+      if (!act) return;
+      if (act.dataset.act === 'show') toggleShowPopup(el, cfg, act);
+      else if (act.dataset.act === 'hide') toggleHidden(el, cfg);
+      else if (act.dataset.act === 'replace') chooseBackgroundFile('replace', el.id);
+      else if (act.dataset.act === 'del') delElement(el);
+    });
+    card.addEventListener('dragstart', ev => { ev.dataTransfer.setData('text/plain', 'bg:' + el.id); card.classList.add('drag'); });
+    card.addEventListener('dragover', ev => ev.preventDefault());
+    card.addEventListener('drop', ev => { ev.preventDefault(); const data = ev.dataTransfer.getData('text/plain'); if (!data.startsWith('bg:')) return; reorderBackgroundLayers(cfg, data.slice(3), el.id); });
+    card.addEventListener('dragend', () => card.classList.remove('drag'));
+    box.appendChild(card);
+  }
+}
+function reorderBackgroundLayers(cfg, fromId, toId) {
+  if (fromId === toId) return;
+  const bgs = (cfg.images || []).filter(e => e.role === 'background').sort((a, b) => (b.z == null ? -1000 : b.z) - (a.z == null ? -1000 : a.z));
+  const from = bgs.findIndex(e => e.id === fromId), to = bgs.findIndex(e => e.id === toId);
+  if (from < 0 || to < 0) return;
+  pushHistory(); const [moved] = bgs.splice(from, 1); bgs.splice(to, 0, moved);
+  bgs.slice().reverse().forEach((e, i) => { e.z = -1000 + i; });
+  buildLayerList(cfg); refreshStage();
 }
 function layerCfg() {
   // 图层栏的配置源：场景参数模式读 HOME_SCENE（程序元素+素材）；装配模式素材即元素
@@ -3017,6 +3486,20 @@ function renderBgRow(cfg, box) {
   inp.addEventListener('change', pushHistory); // 松开拾色器记一步历史
   head.appendChild(nm);
   head.appendChild(inp);
+  if (inScene) {
+    const alpha = document.createElement('input');
+    alpha.type = 'checkbox'; alpha.checked = !!cfg.transparent;
+    alpha.title = '透明背景：Canvas 保留 alpha；适合 PNG / APNG / WebP 表情包。GIF 仅保留全透明像素。';
+    alpha.addEventListener('change', () => { pushHistory(); cfg.transparent = alpha.checked; refreshStage(); });
+    const alphaLabel = document.createElement('label');
+    alphaLabel.className = 'sf-l nm'; alphaLabel.textContent = '透明'; alphaLabel.title = alpha.title;
+    alphaLabel.prepend(alpha);
+    head.appendChild(alphaLabel);
+    const imageBg = document.createElement('button');
+    imageBg.className = 'hb sbtn'; imageBg.textContent = '图片'; imageBg.title = '从外部文件选择图片，处理后建立背景层';
+    imageBg.addEventListener('click', () => chooseBackgroundFile('existing'));
+    head.appendChild(imageBg);
+  }
   if (curS >= 0) {
     const b = document.createElement('button');
     b.className = 'hb sbtn' + (on ? ' on' : '');
@@ -3528,17 +4011,19 @@ function buildLayerList(cfg) {
     if (!el) continue;
     const nm = item.kind === 'prog' ? item.key : (el.name || 'img' + item.idx);
     const z = el.z != null ? el.z : (item.kind === 'img' ? 99 : '');
-    const isSel = (item.kind === 'img' && el.id && el.id === state.selEl) || (item.kind === 'prog' && state.selProg === el); // 选中强调（黄线）：素材或程序元素
-    const open = item.kind === 'prog' ? !!layerOpen[nm] : isSel;
+    const isEditing = partsOpenEl === el || (state.partSel && state.partSel.el === el);
+    const isSel = (item.kind === 'img' && el.id && el.id === state.selEl) || (item.kind === 'prog' && state.selProg === el) || isEditing;
+    const open = isEditing || (item.kind === 'prog' ? !!layerOpen[nm] : isSel);
     const isHid = !!el.hidden;
     const cardKey = item.kind === 'prog' ? 'p:' + item.key : 'i:' + el.id;
     const card = document.createElement('div');
     card.className = 'layer-card' + (item.kind === 'img' ? ' img' : '') + (isSel ? ' sel' : '') + (isHid ? ' hid' : '');
-    card.draggable = true;
+    card.draggable = false;
     if (item.kind === 'img') card.dataset.elid = el.id;
     else card.dataset.key = item.key;
     const head = document.createElement('div');
     head.className = 'layer-head';
+    head.draggable = true;
     const zTxt = item.kind === 'img' ? (el.frames > 1 ? '帧' + el.frames + '·z' + z : 'z' + z) : 'z' + z;
     head.innerHTML = '<span class="lgrip">⠿</span><span class="layer-z">' + zTxt + '</span>' +
       '<span class="lcarr">' + (open ? '▾' : '▸') + '</span>' +
@@ -3548,6 +4033,13 @@ function buildLayerList(cfg) {
       '<button class="hb' + (partsOpenEl === el ? ' on' : '') + '" data-act="edit" title="编辑：图元 parts 子面板（矢量绘制/逐图元调参）">编辑</button>' +
       '<button class="hb" data-act="del" title="删除该元素">删除</button>';
     card.appendChild(head);
+    head.addEventListener('selectstart', ev => ev.preventDefault());
+    head.addEventListener('dragstart', ev => {
+      if (ev.target.closest && ev.target.closest('button')) { ev.preventDefault(); return; }
+      ev.stopPropagation(); ev.dataTransfer.effectAllowed = 'move';
+      ev.dataTransfer.setData('text/plain', item.kind + ':' + (item.kind === 'prog' ? item.key : item.idx));
+      card.classList.add('drag');
+    });
     if (open) {
       const body = document.createElement('div');
       body.className = 'layer-body';
@@ -3561,6 +4053,10 @@ function buildLayerList(cfg) {
         const bp = document.createElement('button'); bp.className = 'small'; bp.textContent = '复制';
         bp.addEventListener('click', () => { dupElement(el); });
         ops.appendChild(bp);
+        const ip = document.createElement('button'); ip.className = 'small'; ip.textContent = '复制为图片粒子';
+        ip.title = '以此图片（或其 sprite sheet 指定帧）作为粒子实体；源图片仍保留，可自行隐藏';
+        ip.addEventListener('click', () => { dupAsImageParticle(el); });
+        ops.appendChild(ip);
         if (el.parts && el.parts.length) {
           const pp = document.createElement('button'); pp.className = 'small'; pp.textContent = '复制为粒子';
           pp.title = '以本素材的图元为实体，生成粒子系统元素（发射区默认全画布，可改 x/y/w/h）';
@@ -3614,18 +4110,25 @@ function buildLayerList(cfg) {
       ev.dataTransfer.setData('text/plain', item.kind + ':' + (item.kind === 'prog' ? item.key : item.idx));
       card.classList.add('drag');
     });
-    card.addEventListener('dragover', ev => { ev.preventDefault(); });
+    card.addEventListener('dragover', ev => {
+      const data = ev.dataTransfer.getData('text/plain'); if (!data || data.startsWith('part:')) return;
+      ev.preventDefault(); const before = ev.clientY < card.getBoundingClientRect().top + card.getBoundingClientRect().height / 2;
+      card.dataset.insert = before ? 'before' : 'after'; card.classList.toggle('insert-before', before); card.classList.toggle('insert-after', !before);
+    });
+    card.addEventListener('dragleave', () => { card.classList.remove('insert-before', 'insert-after'); });
     card.addEventListener('drop', ev => {
-      ev.preventDefault();
+      ev.preventDefault(); card.classList.remove('insert-before', 'insert-after');
       const data = ev.dataTransfer.getData('text/plain');
       if (!data) return;
       const [kind, key] = data.split(':');
-      reorderLayers(cfg, kind, key, item);
+      if (kind === 'part') return;
+      reorderLayers(cfg, kind, key, item, card.dataset.insert !== 'after');
     });
-    card.addEventListener('dragend', () => card.classList.remove('drag'));
+    card.addEventListener('dragend', () => { card.classList.remove('drag', 'insert-before', 'insert-after'); });
     box.appendChild(card);
   }
-  if (!order.length) {
+  renderBackgroundLayers(cfg, box);
+  if (!order.length && !(cfg.images || []).some(e => e.role === 'background')) {
     const d = document.createElement('div');
     d.className = 'cf-ro';
     d.textContent = '（空——打开场景 js 或添加素材）';
@@ -3650,8 +4153,9 @@ function normShowWindows(show, n) {
   if (show && Array.isArray(show) && show.length && (show[0] === null || Array.isArray(show[0]))) {
     for (let i = 0; i < Math.min(n, show.length); i++) {
       const wi = show[i];
-      if (!wi) continue;
-      w[i] = (Array.isArray(wi[0]) ? wi : [wi]).map(seg => [seg[0], seg[1]]);
+      if (!wi || !wi.length) continue; // 空数组不是“亮但无时段”，而是隐藏
+      const segs = (Array.isArray(wi[0]) ? wi : [wi]).filter(seg => Array.isArray(seg) && seg.length >= 2 && Number.isFinite(seg[0]) && Number.isFinite(seg[1]) && seg[1] > seg[0]);
+      if (segs.length) w[i] = segs.map(seg => [seg[0], seg[1]]);
     }
   } else {
     for (let i = 0; i < n; i++) w[i] = [[0, 1]]; // 无 show = 全程显示（每场景独立数组，勿共享引用）
@@ -3843,7 +4347,11 @@ function migrateShow(cfg) {
     // hidden 保留（独立维度，导出写 hidden:true）；仅迁移 show 格式
     if (e.show === undefined || e.show === null) return;
     const s = e.show;
-    if (Array.isArray(s) && s.length && (s[0] === null || Array.isArray(s[0]))) return; // 已是窗口数组
+    if (Array.isArray(s) && s.length && (s[0] === null || Array.isArray(s[0]))) {
+      const normalized = normShowWindows(s, n);
+      if (windowsAllFull(normalized)) delete e.show; else e.show = normalized;
+      return;
+    }
     const windows = Array(n).fill(null);
     if (s && Array.isArray(s.scenes)) {
       s.scenes.forEach(i => { if (i >= 0 && i < n) windows[i] = [[0, 1]]; });
@@ -3891,6 +4399,7 @@ function partForm(p, box, rebuild) {
     w.appendChild(el);
     if (extra) w.appendChild(extra);
     box.appendChild(w);
+    return w; // 供链式调用（如 .classList.add）
   };
   const commit = () => { rebuild(); refreshStage(); };
   // 填充（颜色 + 无填充开关）：取消勾选时原色保留在 _fillColor（重建/重开后恢复，不再变黑）
@@ -3904,7 +4413,7 @@ function partForm(p, box, rebuild) {
   });
   fC.addEventListener('input', () => { p.fill = fC.value; delete p._fillColor; fOn.checked = true; fC.disabled = false; refreshStage(); }); // 实时改色不重建 DOM（保持拾色器打开）
   const fWrap = document.createElement('div'); fWrap.className = 'cf-arr'; fWrap.appendChild(fOn); fWrap.appendChild(fC);
-  add('填充', fWrap);
+  add('填充', fWrap).classList.add('part-legacy-style');
   // 描边（颜色 + 无描边开关 + 线宽）：同填充——原色保留在 _strokeColor
   const sOn = document.createElement('input'); sOn.type = 'checkbox'; sOn.checked = !!p.stroke;
   const sC = document.createElement('input'); sC.type = 'color'; sC.value = normColor(p.stroke || p._strokeColor || '#000000'); sC.disabled = !p.stroke;
@@ -3918,7 +4427,7 @@ function partForm(p, box, rebuild) {
   const sW = document.createElement('input'); sW.type = 'number'; sW.value = p.strokeWidth != null ? p.strokeWidth : 1; sW.min = 0; sW.style.width = '38px';
   sW.addEventListener('change', () => { p.strokeWidth = Math.max(0, parseInt(sW.value) || 0); commit(); });
   const sWrap = document.createElement('div'); sWrap.className = 'cf-arr'; sWrap.appendChild(sOn); sWrap.appendChild(sC); sWrap.appendChild(sW);
-  add('描边', sWrap);
+  add('描边', sWrap).classList.add('part-legacy-style');
   // 透明度（图元级，与元素级相乘）
   const aInp = document.createElement('input'); aInp.type = 'number'; aInp.value = p.alpha != null ? p.alpha : 1; aInp.min = 0; aInp.max = 1; aInp.step = 0.05; aInp.style.width = '46px';
   aInp.addEventListener('change', () => { p.alpha = Math.max(0, Math.min(1, parseFloat(aInp.value) || 1)); commit(); });
@@ -3958,8 +4467,11 @@ function mirrorPartFlip(p, axis) {
   if (axis === 'h') p.flipH = !p.flipH; else p.flipV = !p.flipV;
   if (p.rot) p.rot = -p.rot;
 }
-/* 元素级镜像（黄色框按钮）：图元元素 → parts 坐标绕元素包围盒中心镜像 + 各 part rot 取反；
-   图片元素 → flipH/flipV 参数 + rot 取反（渲染端绕自身中心翻转） */
+function isImageElement(el) {
+  return !!(el && (el.src || el._asset));
+}
+/* 元素级镜像（黄色框按钮）：图片 + parts 是一个组合元素。
+   图片本体使用 flip，叠加 parts 围绕图片框中心改写局部坐标；纯矢量则围绕自身 parts 包围盒。 */
 function mirrorElement(el, axis) {
   if (el.parts && el.parts.length) {
     // 局部包围盒（不滚动；parts 相对元素原点）
@@ -3971,8 +4483,14 @@ function mirrorElement(el, axis) {
       else if (p.type === 'poly') (p.points || []).forEach(pt => ext(pt[0], pt[1]));
     });
     if (isFinite(minX)) {
-      const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+      const image = isImageElement(el);
+      const cx = image ? (el.w || 0) / 2 : (minX + maxX) / 2;
+      const cy = image ? (el.h || 0) / 2 : (minY + maxY) / 2;
       (el.parts || []).forEach(p => { mirrorPartAt(p, axis, cx, cy); if (p.rot) p.rot = -p.rot; });
+      if (image) {
+        if (axis === 'h') el.flipH = !el.flipH; else el.flipV = !el.flipV;
+        if (el.rot) el.rot = -el.rot;
+      }
     }
   } else {
     if (axis === 'h') el.flipH = !el.flipH; else el.flipV = !el.flipV;
@@ -3981,55 +4499,103 @@ function mirrorElement(el, axis) {
 }
 /* 镜像按钮（4×4 方框 = 原 7×7 的 1/2 向上取整）：[|] 垂直镜像在旋转 ● 上方，[一] 水平镜像在包围盒中心右侧 */
 function mirrorBtnHit(p, box, axis) {
+  const half = uiWorld(7), rotGap = uiWorld(31), sideGap = uiWorld(18);
   if (axis === 'h') {
-    const bx = box.x + box.w / 2, by = box.y - 17;
-    return p.x >= bx - 2 && p.x <= bx + 2 && p.y >= by - 2 && p.y <= by + 2;
+    const bx = box.x + box.w / 2, by = box.y - rotGap;
+    return p.x >= bx - half && p.x <= bx + half && p.y >= by - half && p.y <= by + half;
   }
-  const hx = box.x + box.w + 9, hy = box.y + box.h / 2;
-  return p.x >= hx - 2 && p.x <= hx + 2 && p.y >= hy - 2 && p.y <= hy + 2;
+  const hx = box.x + box.w + sideGap, hy = box.y + box.h / 2;
+  return p.x >= hx - half && p.x <= hx + half && p.y >= hy - half && p.y <= hy + half;
 }
 function drawMirrorButtons(ctx, box, color) {
-  // [|] 垂直镜像（绕竖轴）：旋转 ●（y-8）上方 y-17
-  const bx = box.x + box.w / 2, by = box.y - 17;
+  const size = 12, half = size / 2, rotGap = 31, sideGap = 18, line = 1.25;
+  // [|] 垂直镜像（绕竖轴）：旋转 ● 上方，控件均保持固定屏幕尺寸
+  const bx = box.x + box.w / 2, by = box.y - rotGap;
   ctx.fillStyle = '#20262e';
-  ctx.fillRect(Math.round(bx - 2), Math.round(by - 2), 4, 4);
+  ctx.fillRect(Math.round(bx - half), Math.round(by - half), size, size);
   ctx.strokeStyle = color;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(Math.round(bx - 2), Math.round(by - 2), 4, 4);
-  ctx.beginPath(); ctx.moveTo(Math.round(bx), Math.round(by - 1)); ctx.lineTo(Math.round(bx), Math.round(by + 1)); ctx.stroke();
+  ctx.lineWidth = line;
+  ctx.strokeRect(Math.round(bx - half), Math.round(by - half), size, size);
+  ctx.beginPath(); ctx.moveTo(Math.round(bx), Math.round(by - 3)); ctx.lineTo(Math.round(bx), Math.round(by + 3)); ctx.stroke();
   // [一] 水平镜像（绕横轴）：包围盒中心右侧 x+w+9
-  const hx = box.x + box.w + 9, hy = box.y + box.h / 2;
+  const hx = box.x + box.w + sideGap, hy = box.y + box.h / 2;
   ctx.fillStyle = '#20262e';
-  ctx.fillRect(Math.round(hx - 2), Math.round(hy - 2), 4, 4);
+  ctx.fillRect(Math.round(hx - half), Math.round(hy - half), size, size);
   ctx.strokeStyle = color;
-  ctx.strokeRect(Math.round(hx - 2), Math.round(hy - 2), 4, 4);
-  ctx.beginPath(); ctx.moveTo(Math.round(hx - 1), Math.round(hy)); ctx.lineTo(Math.round(hx + 1), Math.round(hy)); ctx.stroke();
+  ctx.strokeRect(Math.round(hx - half), Math.round(hy - half), size, size);
+  ctx.beginPath(); ctx.moveTo(Math.round(hx - 3), Math.round(hy)); ctx.lineTo(Math.round(hx + 3), Math.round(hy)); ctx.stroke();
 }
 function partsEditor(el, body, cardKey) {
   const g = document.createElement('div');
   g.className = 'cf-group';
-  g.textContent = '图元 parts（坐标相对元素原点；绘制目标已锁定到本元素）';
+  g.textContent = '图元 parts（上方 = 画布前景；拖拽排序）';
   body.appendChild(g);
   const rebuild = () => buildLayerList(layerCfg());
-  (el.parts || []).forEach((p, i) => {
+  const style = (p) => {
+    normPart(p);
+    const row = document.createElement('div'); row.className = 'part-style';
+    const fillOn = document.createElement('input'); fillOn.type = 'checkbox'; fillOn.checked = !!p.fill;
+    const fillC = document.createElement('input'); fillC.type = 'color'; fillC.value = normColor(p.fill || p._fillColor || '#000000'); fillC.disabled = !p.fill;
+    const strokeOn = document.createElement('input'); strokeOn.type = 'checkbox'; strokeOn.checked = !!p.stroke;
+    const strokeC = document.createElement('input'); strokeC.type = 'color'; strokeC.value = normColor(p.stroke || p._strokeColor || '#000000'); strokeC.disabled = !p.stroke;
+    const sw = document.createElement('input'); sw.type = 'number'; sw.min = 0; sw.value = p.strokeWidth != null ? p.strokeWidth : 1;
+    const add = (text, input) => { const l = document.createElement('label'); l.textContent = text; row.appendChild(l); row.appendChild(input); };
+    add('填', fillOn); row.appendChild(fillC); add('描', strokeOn); row.appendChild(strokeC); add('宽', sw);
+    const commit = () => { refreshStage(); if (selectedDrawPart() === p) syncDrawStyleFromPart(); };
+    fillOn.addEventListener('change', () => { if (fillOn.checked) { p.fill = p._fillColor || fillC.value; delete p._fillColor; } else { p._fillColor = p.fill || fillC.value; p.fill = null; } fillC.disabled = !fillOn.checked; commit(); });
+    fillC.addEventListener('input', () => { p.fill = fillC.value; delete p._fillColor; fillOn.checked = true; fillC.disabled = false; commit(); });
+    strokeOn.addEventListener('change', () => { if (strokeOn.checked) { p.stroke = p._strokeColor || strokeC.value; delete p._strokeColor; } else { p._strokeColor = p.stroke || strokeC.value; p.stroke = null; } strokeC.disabled = !strokeOn.checked; commit(); });
+    strokeC.addEventListener('input', () => { p.stroke = strokeC.value; delete p._strokeColor; strokeOn.checked = true; strokeC.disabled = false; commit(); });
+    sw.addEventListener('change', () => { p.strokeWidth = Math.max(0, parseInt(sw.value) || 0); commit(); });
+    return row;
+  };
+  // parts 数组由后至先绘制；面板反向展示，故最上卡片就是画布最前景。
+  (el.parts || []).map((p, i) => ({ p, i })).reverse().forEach(({ p, i }) => {
     const box = document.createElement('div');
-    box.className = 'cf-box' + (state.partSel && state.partSel.el === el && state.partSel.index === i ? ' sel' : ''); // 选中图元卡片高亮（青框）
-    const hd = document.createElement('div');
-    hd.className = 'cf-ro';
-    hd.textContent = '#' + i + ' · ' + p.type;
+    const selected = state.partSel && state.partSel.el === el && state.partSel.index === i;
+    box.className = 'cf-box' + (selected ? ' sel' : '');
+    box.draggable = false;
+    box.dataset.partIndex = i;
+    const hd = document.createElement('div'); hd.className = 'part-head'; hd.draggable = true;
+    hd.innerHTML = '<span class="lgrip">⠿</span><span class="part-title">#' + (i + 1) + ' · ' + escapeHtml(p.name || p.type) + '</span><span class="lcarr">' + (selected ? '▾' : '▸') + '</span>';
     const del = document.createElement('button'); del.className = 'hb'; del.textContent = '删除';
     del.addEventListener('click', ev => { ev.stopPropagation(); pushHistory(); el.parts.splice(i, 1); buildLayerList(layerCfg()); refreshStage(); });
     hd.appendChild(del);
     box.appendChild(hd);
+    hd.addEventListener('selectstart', ev => ev.preventDefault());
+    hd.addEventListener('dragstart', ev => {
+      if (ev.target.closest && ev.target.closest('button')) { ev.preventDefault(); return; }
+      ev.stopPropagation(); ev.dataTransfer.effectAllowed = 'move'; ev.dataTransfer.setData('text/plain', 'part:' + i); box.classList.add('drag');
+    });
+    box.appendChild(style(p));
     box.addEventListener('click', ev => {
-      // ② 点击图层栏 parts 条目 → 画布选中该图元（青框）+ 左侧动画面板更新
       if (ev.target.closest && (ev.target.closest('input') || ev.target.closest('button') || ev.target.closest('select'))) return;
-      if (state.partSel && state.partSel.el === el && state.partSel.index === i) return;
-      state.partSel = { el: el, index: i };
-      syncSelUI(false);
+      if (state.partSel && state.partSel.el === el && state.partSel.index === i) {
+        state.partSel = null; syncDrawStyleFromPart();
+        box.classList.remove('sel'); extra.style.display = 'none'; const arrow = box.querySelector('.lcarr'); if (arrow) arrow.textContent = '▸';
+        renderStage(); return;
+      }
+      activatePart(el, i, true);
       renderStage();
     });
-    partForm(p, box, rebuild);
+    const extra = document.createElement('div'); extra.className = 'part-extra'; extra.style.display = selected ? '' : 'none'; partForm(p, extra, rebuild); box.appendChild(extra);
+    // 拖拽源 = 头部手柄（hd.draggable=true）；box 本身 draggable=false，无需 box 级 dragstart
+    box.addEventListener('dragover', ev => {
+      const src = ev.dataTransfer.getData('text/plain'); if (!src.startsWith('part:')) return;
+      ev.preventDefault(); ev.stopPropagation(); const before = ev.clientY < box.getBoundingClientRect().top + box.getBoundingClientRect().height / 2;
+      box.dataset.insert = before ? 'before' : 'after'; box.classList.toggle('insert-before', before); box.classList.toggle('insert-after', !before);
+    });
+    box.addEventListener('dragleave', () => box.classList.remove('insert-before', 'insert-after'));
+    box.addEventListener('drop', ev => {
+      ev.preventDefault(); ev.stopPropagation(); box.classList.remove('insert-before', 'insert-after'); const src = ev.dataTransfer.getData('text/plain'); if (!src.startsWith('part:')) return;
+      const from = parseInt(src.slice(5), 10); if (!Number.isInteger(from) || from === i) return;
+      // 面板是顶→底；插入线前/后分别代表目标的前景/背景。
+      pushHistory(); const selectedPart = state.partSel && state.partSel.el === el ? el.parts[state.partSel.index] : null;
+      const [moved] = el.parts.splice(from, 1); let to = i + (box.dataset.insert === 'after' ? 0 : 1); if (from < to) to--; el.parts.splice(to, 0, moved);
+      if (selectedPart) state.partSel.index = el.parts.indexOf(selectedPart);
+      buildLayerList(layerCfg()); refreshStage();
+    });
+    box.addEventListener('dragend', ev => { ev.stopPropagation(); box.classList.remove('drag', 'insert-before', 'insert-after'); });
     body.appendChild(box);
   });
   const add = document.createElement('button');
@@ -4040,7 +4606,7 @@ function partsEditor(el, body, cardKey) {
     if (isBandEl(el) && !el.partsBand) el.partsBand = true;
     pushHistory();
     el.parts = el.parts || [];
-    const np = { type: 'rect', x: 0, y: 0, w: 16, h: 16, fill: state.drawFillColor, stroke: state.drawStrokeOn ? state.drawStrokeColor : null, strokeWidth: state.drawStrokeW };
+    const np = { type: 'rect', x: 0, y: 0, w: 16, h: 16, fill: state.drawFillOn ? state.drawFillColor : null, stroke: state.drawStrokeOn ? state.drawStrokeColor : null, strokeWidth: state.drawStrokeW };
     if (el.partsBand) convertBandPart(el, np); // 带元素：x 转瓦片相位
     el.parts.push(np);
     buildLayerList(layerCfg());
@@ -4086,17 +4652,20 @@ function dupElement(e) {
   ensureImage(n);
   refreshStage();
 }
-function reorderLayers(cfg, srcKind, srcKey, dstItem) {
+function reorderLayers(cfg, srcKind, srcKey, dstItem, before) {
   pushHistory();
   const order = layerOrderOf(cfg);
   const srcIdx = order.findIndex(x => x.kind === srcKind && String(x.kind === 'prog' ? x.key : x.idx) === String(srcKey));
   const dstIdx = order.findIndex(x => x.kind === dstItem.kind && (dstItem.kind === 'prog' ? x.key === dstItem.key : x.idx === dstItem.idx));
   if (srcIdx < 0 || dstIdx < 0) return;
   const [it] = order.splice(srcIdx, 1);
-  order.splice(dstIdx, 0, it);
+  let at = dstIdx + (before ? 0 : 1);
+  if (srcIdx < at) at--;
+  order.splice(Math.max(0, at), 0, it);
   const imgs = cfg.images || [];
   // 1) z 重排（0..N-1，程序元素与素材统一）
-  order.forEach((o, z) => {
+  order.forEach((o, index) => {
+    const z = order.length - 1 - index;
     if (o.kind === 'prog') cfg[o.key].z = z;
     else imgs[o.idx].z = z;
   });
@@ -4134,7 +4703,8 @@ async function saveToFile(filename, content) {
 }
 
 $('btn-open').addEventListener('click', () => $('jsfile').click());
-$('btn-new').addEventListener('click', () => createGenericScene(true));
+$('btn-new').addEventListener('click', openNewSceneChoice);
+$('btn-background').addEventListener('click', () => openBackgroundWizard('existing'));
 $('jsfile').addEventListener('change', () => {
   const f = $('jsfile').files[0];
   if (!f) return;
@@ -4159,12 +4729,7 @@ function loadJs(text) {
 $('btn-save').addEventListener('click', () => {
   if (window.HOME_SCENE && cfgStart >= 0 && fileText) {
     // 场景参数模式：先把引用素材的元素冻结为硬编码 dataUrl（素材参数快照不入配置），再序列化写回
-    (window.HOME_SCENE.images || []).forEach(el => {
-      if (el.srcId) {
-        const s = state.sources.find(x => x.id === el.srcId);
-        if (s) el.src = getSourceDataUrl(s);
-      }
-    });
+    freezeSceneAssets(window.HOME_SCENE);
     const json = JSON.stringify(window.HOME_SCENE, (k, v) => (k === '_img' || k === '_asset' || k === 'srcId') ? undefined : v, 2);
     const newText = fileText.slice(0, cfgStart) + json + fileText.slice(cfgEnd);
     // 保存前自检：写回后的文件必须能被重新提取解析（防写坏文件导致下次导入失败）
@@ -4262,6 +4827,20 @@ function legacyShowRange(e, loop) {
   if (Array.isArray(e.show)) return [e.show[0] || 0, e.show[1] == null ? loop : e.show[1]];
   return null;
 }
+function renderTimelineLabels(loop, scenes, step) {
+  const top = $('tl-label-top'), bottom = $('tl-label-bottom');
+  if (!top || !bottom) return;
+  top.innerHTML = ''; bottom.innerHTML = '';
+  const add = (parent, text, pct, cls, title) => { const d = document.createElement('span'); d.className = 'timeline-label ' + (cls || ''); d.textContent = text; d.style.left = Math.max(0, Math.min(100, pct)) + '%'; if (title) d.title = title; parent.appendChild(d); };
+  if (scenes) {
+    const borders = currentBorders(window.HOME_SCENE); let a = 0;
+    scenes.forEach((name, i) => { const b = i < borders.length ? borders[i] : loop; if (name) add(top, name, ((a + b) / 2 / loop) * 100, 'scene', name); a = b; });
+  }
+  for (let s = 0; s <= loop; s += step) {
+    const edge = s === 0 ? 'tick edge-left' : s + step > loop ? 'tick edge-right' : 'tick';
+    add(bottom, s + 's', (s / loop) * 100, edge);
+  }
+}
 function renderTimeline() {
   const cv = $('tl');
   if (!cv || !cv.getContext) return;
@@ -4278,20 +4857,16 @@ function renderTimeline() {
   ctx.imageSmoothingEnabled = false;
   const loop = tlLoop();
   const scenes = tlScenes();
+  const step = Math.max(1, Math.round(loop / 8));
+  renderTimelineLabels(loop, scenes, step);
   // 构建原理：0~loop 秒按比例映射到画布宽度（x = t/loop*W），
   // 刻度/段分隔/色块/播放头全部按该比例定位；loop 每帧刷新播放头。
   // 通用模式：中性浅色轨道；打开含 scenes 的 js 后叠加段底色与段名。
   ctx.fillStyle = '#f2f3f8'; ctx.fillRect(0, 0, Wcss, Hcss);
-  const step = Math.max(1, Math.round(loop / 8));
-  ctx.font = '9px monospace';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'bottom';
   for (let s = 0; s <= loop; s += step) {
     const x = Math.round((s / loop) * Wcss);
     ctx.fillStyle = '#c3c9d8';
     ctx.fillRect(x, 0, 1, Hcss);
-    ctx.fillStyle = '#4a5266';
-    ctx.fillText(String(s), x + 2, Hcss - 1);
   }
   const cols = ['#e5484d', '#3d9bf2', '#2fbf6a', '#e6a23c', '#9b59d0', '#00b8a0'];
   if (scenes) {
@@ -4310,13 +4885,6 @@ function renderTimeline() {
       ctx.globalAlpha = 0.10;
       ctx.fillRect(x0, 0, x1 - x0, Hcss);
       ctx.globalAlpha = 1;
-      if (nm) {
-        ctx.fillStyle = '#4a5266';
-        ctx.font = '9px monospace';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        ctx.fillText(nm, Math.round((x0 + x1) / 2), 1);
-      }
     });
     borders.forEach(bt => {
       const x = Math.round((bt / loop) * Wcss);
@@ -4325,36 +4893,6 @@ function renderTimeline() {
       ctx.fillStyle = '#4a5266';
       ctx.beginPath(); ctx.moveTo(x - 3, 0); ctx.lineTo(x + 3, 0); ctx.lineTo(x, 4); ctx.closePath(); ctx.fill();
     });
-  }
-  // 最近打开的 [S] 面板元素（showFocusEl）的窗口绝对秒标注：数值映射到时间轴，[S] 面板保持干净
-  const popEl = showFocusEl;
-  if (popEl && popEl.show && Array.isArray(popEl.show) && popEl.show.length && (popEl.show[0] === null || Array.isArray(popEl.show[0]))) {
-    ctx.font = '6px monospace';
-    ctx.textBaseline = 'top';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#d23b44';
-    popEl.show.forEach((w, i) => {
-      if (!w) return;
-      const wins = Array.isArray(w[0]) ? w : [w];
-      const [s0, s1] = tlSceneRange(i);
-      wins.forEach(seg => {
-        const a = s0 + seg[0] * (s1 - s0);
-        const b = s0 + seg[1] * (s1 - s0);
-        ctx.fillText(a.toFixed(1), Math.min(Wcss - 20, Math.round((a / loop) * Wcss) + 2), 8);
-        ctx.fillText(b.toFixed(1), Math.max(0, Math.round((b / loop) * Wcss) - 14), 8);
-      });
-    });
-  }
-  // 场景边界拖拽中：显示当前边界的绝对时间（0.1s 精度）
-  if (tlDragBorder != null && window.HOME_SCENE) {
-    const b = currentBorders(window.HOME_SCENE);
-    const bt = b[tlDragBorder];
-    const x = Math.round((bt / loop) * Wcss);
-    ctx.font = '7px monospace';
-    ctx.textBaseline = 'bottom';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#e5484d';
-    ctx.fillText(bt.toFixed(1) + 's', x + 3, Hcss - 1);
   }
   // show 时段色块（只映射最近打开的 [S] 面板元素；未打开过则显示全部）
   const items = [];
@@ -4382,15 +4920,10 @@ function renderTimeline() {
       ctx.globalAlpha = 1;
     });
   });
-  // 播放头 + 当前秒
+  // 播放头（数字标签由 Canvas 下方的 DOM 标签层绘制）
   const px = Math.round(((state.t % loop) / loop) * Wcss);
   ctx.fillStyle = '#e5484d';
   ctx.fillRect(px, 0, 1, Hcss);
-  ctx.fillStyle = '#e5484d';
-  ctx.font = '9px monospace';
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'bottom';
-  ctx.fillText(Math.round(state.t) + 's', Wcss - 2, Hcss - 1);
   renderFxTrack(); // FX 时间轴轨（#tl-fx，滤镜时段色块）
 }
 function tlSeek(ev) {

@@ -223,7 +223,7 @@ function syncCfg() {
 }
 // 内置键（结构性 + 硬编码元素名）：其余顶层对象视为「通用程序元素」（有 parts → 图元渲染；
 // 有 particle → 粒子系统渲染）——工具/Agent 生成的新元素无需改渲染器即可生效
-const SCENE_KEYS = ['format', 'formatVersion', 'kind', 'name', 'meta', 'w', 'h', 'loop', 'bg', 'scenes', 'sceneBorders', 'images', 'fx',
+const SCENE_KEYS = ['format', 'formatVersion', 'kind', 'name', 'meta', 'w', 'h', 'loop', 'bg', 'transparent', 'scenes', 'sceneBorders', 'images', 'fx',
   'stars', 'moon', 'clouds', 'mountains', 'farForest', 'poles', 'rail', 'train', 'foreground', 'fog', 'signal', 'bridge'];
 
 const HomeScene = (() => {
@@ -642,23 +642,49 @@ const HomeScene = (() => {
   // colorJitter(每粒颜色抖动 0~1，映射色相/亮度/饱和度/对比度各自最大档) pixelDiv(精灵像素化除数)
   // 精灵缓存：每帧每元素把 parts 渲染一次到离屏（应用 pixelDiv/alphaMode；part 级 anim 生效；元素级 anim/scroll
   // 不参与——粒子运动归粒子参数），粒子本体只做 blit —— 每粒属性（pixelDiv/颜色抖动）成本 ≈ 0
+  function particleImageSource(e) {
+    const src = e.particle && e.particle.source;
+    if (!src || src.type !== 'image' || !src.imageId) return null;
+    const el = (CFG.images || []).find(x => x && x.id === src.imageId);
+    if (!el) return null;
+    const img = el._asset || (el.src && (imgCache[el.src] || (imgCache[el.src] = (() => { const i = new Image(); i.src = el.src; return i; })())));
+    if (!img || !img.width || !img.height) return null;
+    return {
+      el, img,
+      frame: Math.max(0, src.frame | 0),
+      playback: src.playback === 'particle-age' ? 'particle-age' : 'static',
+      fps: Math.max(1, src.fps || el.fps || 8),
+      loop: !!src.loop,
+    };
+  }
   function particleSprites(e, t, cj, cjDim) {
-    const lb = partsLocalBox(e);
+    const imageSource = particleImageSource(e);
+    const lb = imageSource ? { x: 0, y: 0, w: imageSource.el.w || imageSource.img.width, h: imageSource.el.h || imageSource.img.height }
+      : partsLocalBox(e);
     if (!lb) return null;
     const div = (e.pixelDiv && e.pixelDiv > 1) ? e.pixelDiv : 1;
     // 尺寸下限 1：纯竖线/水平线 part 包围盒宽/高可为 0 → 精灵至少 1px（否则 blit 宽 0 不可见）
     const W = Math.max(1, Math.round(lb.w / div)), H = Math.max(1, Math.round(lb.h / div));
-    const render = () => {
+    const render = (imageFrame) => {
       const oc = document.createElement('canvas');
       oc.width = W; oc.height = H;
       const og = oc.getContext('2d');
       og.imageSmoothingEnabled = false;
-      og.scale(1 / div, 1 / div);
-      og.translate(-lb.x, -lb.y);
-      const savedCtx = ctx;
-      ctx = og;
-      drawPartsRaw({ x: 0, y: 0, parts: e.parts, anim: null, scroll: null, rot: 0 }, t, 1); // 局部坐标不透明版（粒子 alpha 在 blit 时应用）
-      ctx = savedCtx;
+      if (imageSource) {
+        const frames = Math.max(1, imageSource.el.frames || 1);
+        const frame = Math.min(frames - 1, imageFrame == null ? imageSource.frame : imageFrame);
+        const sw = Math.floor(imageSource.img.width / frames) || imageSource.img.width;
+        og.globalAlpha = imageSource.el.alpha != null ? imageSource.el.alpha : 1;
+        og.drawImage(imageSource.img, frame * sw, 0, sw, imageSource.img.height, 0, 0, W, H);
+        og.globalAlpha = 1;
+      } else {
+        og.scale(1 / div, 1 / div);
+        og.translate(-lb.x, -lb.y);
+        const savedCtx = ctx;
+        ctx = og;
+        drawPartsRaw({ x: 0, y: 0, parts: e.parts, anim: null, scroll: null, rot: 0 }, t, 1); // 局部坐标不透明版（粒子 alpha 在 blit 时应用）
+        ctx = savedCtx;
+      }
       if (e.alphaMode === 'remove' || e.alphaMode === 'boost') {
         const id = og.getImageData(0, 0, oc.width, oc.height);
         const d = id.data;
@@ -668,38 +694,43 @@ const HomeScene = (() => {
       }
       return oc;
     };
-    const base = render();
-    if (!(cj > 0)) return { base: base, lb: lb, W: W, H: H, variants: null };
+    const imageFrames = imageSource && imageSource.playback === 'particle-age' ? Math.max(1, imageSource.el.frames || 1) : 1;
+    const bases = Array.from({ length: imageFrames }, (_, i) => render(imageSource && imageSource.playback === 'particle-age' ? i : undefined));
+    if (!(cj > 0)) return { frames: bases.map(base => ({ base: base, variants: null })), lb: lb, W: W, H: H, fps: imageSource && imageSource.fps, loopFrames: !!(imageSource && imageSource.loop) };
     // 颜色抖动分桶（8 档确定性幅度）：只抖动所选维度（colorJitterDim：hue/brightness/saturation/contrast）
-    const variants = [];
+    const frameSets = [];
     const B = 8;
-    for (let b = 0; b < B; b++) {
-      const amt = ((b / (B - 1)) - 0.5) * 2; // [-1, 1]
-      const cm = cjDim === 'brightness' ? colorMatrixOf(0, amt * cj * 30, 1, 1)
-        : cjDim === 'saturation' ? colorMatrixOf(0, 0, 1, 1 + amt * cj * 0.3)
-        : cjDim === 'contrast' ? colorMatrixOf(0, 0, 1 + amt * cj * 0.2, 1)
-        : colorMatrixOf(amt * cj * 40, 0, 1, 1); // 默认色相
-      const v = document.createElement('canvas');
-      v.width = W; v.height = H;
-      const vg = v.getContext('2d');
-      vg.drawImage(base, 0, 0);
-      const id = vg.getImageData(0, 0, W, H);
-      const d = id.data, m = cm.m, mo = cm.mo;
-      for (let i = 0; i < d.length; i += 4) {
-        const r = d[i], g = d[i + 1], b2 = d[i + 2];
-        d[i] = Math.min(255, Math.max(0, m[0] * r + m[1] * g + m[2] * b2 + mo));
-        d[i + 1] = Math.min(255, Math.max(0, m[3] * r + m[4] * g + m[5] * b2 + mo));
-        d[i + 2] = Math.min(255, Math.max(0, m[6] * r + m[7] * g + m[8] * b2 + mo));
+    for (const base of bases) {
+      const variants = [];
+      for (let b = 0; b < B; b++) {
+        const amt = ((b / (B - 1)) - 0.5) * 2; // [-1, 1]
+        const cm = cjDim === 'brightness' ? colorMatrixOf(0, amt * cj * 30, 1, 1)
+          : cjDim === 'saturation' ? colorMatrixOf(0, 0, 1, 1 + amt * cj * 0.3)
+          : cjDim === 'contrast' ? colorMatrixOf(0, 0, 1 + amt * cj * 0.2, 1)
+          : colorMatrixOf(amt * cj * 40, 0, 1, 1); // 默认色相
+        const v = document.createElement('canvas');
+        v.width = W; v.height = H;
+        const vg = v.getContext('2d');
+        vg.drawImage(base, 0, 0);
+        const id = vg.getImageData(0, 0, W, H);
+        const d = id.data, m = cm.m, mo = cm.mo;
+        for (let i = 0; i < d.length; i += 4) {
+          const r = d[i], g = d[i + 1], b2 = d[i + 2];
+          d[i] = Math.min(255, Math.max(0, m[0] * r + m[1] * g + m[2] * b2 + mo));
+          d[i + 1] = Math.min(255, Math.max(0, m[3] * r + m[4] * g + m[5] * b2 + mo));
+          d[i + 2] = Math.min(255, Math.max(0, m[6] * r + m[7] * g + m[8] * b2 + mo));
+        }
+        vg.putImageData(id, 0, 0);
+        variants.push(v);
       }
-      vg.putImageData(id, 0, 0);
-      variants.push(v);
+      frameSets.push({ base, variants });
     }
-    return { base: base, lb: lb, W: W, H: H, variants: variants };
+    return { frames: frameSets, lb: lb, W: W, H: H, fps: imageSource && imageSource.fps, loopFrames: !!(imageSource && imageSource.loop) };
   }
   function drawParticles(e, t, key) {
     const p = e.particle || {};
     const count = Math.max(0, Math.min(600, p.count != null ? p.count : 40));
-    if (!count || !e.parts || !e.parts.length) return;
+    if (!count || ((!e.parts || !e.parts.length) && !(p.source && p.source.type === 'image'))) return;
     const loop = LOOPv();
     const t0 = ((t % loop) + loop) % loop;
     const rate = p.rate != null ? p.rate : 40;
@@ -748,7 +779,13 @@ const HomeScene = (() => {
       const size = 1 + (rnd(i, 5) * 2 - 1) * sizeVar; // 全幅 [1-a, 1+a]
       const a = alpha0 * (fade ? Math.max(0, 1 - age / life) : 1);
       const rot = spin + spinSpeed * age;
-      const spr = (cj > 0 && sprites.variants) ? sprites.variants[(rnd(i, 7) * sprites.variants.length) | 0] : sprites.base;
+      let frameIndex = 0;
+      if (sprites.frames.length > 1) {
+        const raw = Math.floor(age * sprites.fps);
+        frameIndex = sprites.loopFrames ? raw % sprites.frames.length : Math.min(sprites.frames.length - 1, raw);
+      }
+      const frameSet = sprites.frames[frameIndex] || sprites.frames[0];
+      const spr = (cj > 0 && frameSet.variants) ? frameSet.variants[(rnd(i, 7) * frameSet.variants.length) | 0] : frameSet.base;
       const wpx = sprW * size, hpx = sprH * size;
       ctx.save();
       ctx.globalAlpha = a;
@@ -763,7 +800,8 @@ const HomeScene = (() => {
   // 渲染「背景 + 图层」（不含 fx/过渡）；sceneOverride 生效时按覆盖场景渲染（过渡活帧用）
   function renderLayers(t) {
     const part = scene(t);
-    rect(0, 0, W, H, Array.isArray(CFG.bg) ? CFG.bg[Math.min(part, CFG.bg.length - 1)] : CFG.bg);
+    ctx.clearRect(0, 0, W, H);
+    if (!CFG.transparent) rect(0, 0, W, H, Array.isArray(CFG.bg) ? CFG.bg[Math.min(part, CFG.bg.length - 1)] : CFG.bg);
     // 图层按 z 排序渲染（z 越大越靠上；素材 images 默认 99）
     // 工具图层栏可删除程序元素（cfg 键缺失则跳过）、隐藏元素（hidden 为真则不绘制）；
     // 所有元素统一尊重 elShown；有 parts：partsMode==='overlay' 时原绘制+图元叠加，否则图元替代
@@ -798,7 +836,7 @@ const HomeScene = (() => {
           hidden: el.hidden,
           fn: () => {
             if (!elShown(el, t)) return;
-            if (el.particle && el.parts && el.parts.length) drawParticles(el, t, k);
+            if (el.particle && ((el.parts && el.parts.length) || (el.particle.source && el.particle.source.type === 'image'))) drawParticles(el, t, k);
             else if (el.parts && el.parts.length) drawParts(el, t);
           },
         };
@@ -1296,7 +1334,8 @@ const HomeScene = (() => {
     // 多帧（sprite sheet 横向）：frames > 1 时按 fps 取帧
     const frames = e.frames > 1 ? e.frames : 1;
     const fps = e.fps || 8;
-    const fx = frames > 1 ? Math.floor(t * fps) % frames : 0;
+    const frameAt = frames > 1 ? Math.floor(t * fps) : 0;
+    const fx = frames > 1 ? (e.frameLoop === false ? Math.min(frames - 1, frameAt) : frameAt % frames) : 0;
     const sw = frames > 1 ? Math.floor(img.width / frames) : img.width;
     const srcX = fx * sw;
     const so = scrollOffsets(e, t);
@@ -1308,6 +1347,21 @@ const HomeScene = (() => {
     const w = e.w * scale, h = e.h * scale;
     const bobX = ea.xOff, bobY = ea.yOff;
     ctx.globalAlpha = alpha;
+    // 语义背景层：保存的是处理后的图片快照和布局规则，因此画布改尺寸后仍能重排，无需原素材文件。
+    if (e.role === 'background') {
+      const layout = e.layout || 'none';
+      if (layout === 'stretch') {
+        ctx.drawImage(img, srcX, 0, sw, img.height, 0, 0, W, H);
+      } else if (layout === 'tile') {
+        const tw = Math.max(1, Math.round(w)), th = Math.max(1, Math.round(h));
+        const startX = ((W - tw) / 2) % tw - tw, startY = ((H - th) / 2) % th - th;
+        for (let y = startY; y < H; y += th) for (let x = startX; x < W; x += tw) ctx.drawImage(img, srcX, 0, sw, img.height, Math.round(x), Math.round(y), tw, th);
+      } else {
+        ctx.drawImage(img, srcX, 0, sw, img.height, Math.round((W - w) / 2), Math.round((H - h) / 2), w, h);
+      }
+      ctx.globalAlpha = 1;
+      return;
+    }
     const rot = (e.rot || 0) + (ea.rot || 0), fh = e.flipH ? -1 : 1, fv = e.flipV ? -1 : 1;
     const blit = (dx, dy) => {
       const dxx = dx + bobX, dyy = dy + bobY;

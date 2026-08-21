@@ -17,12 +17,14 @@ const GENERIC_SCENE = {
   h: 118,            // 画布高
   loop: 48,          // 循环周期（秒）
   bg: ["#09132c", "#071126", "#0b1531", "#050b1d"], // 每场景一色（按场景数组）
+  transparent: false, // true=Canvas 保留透明背景（PNG/APNG/WebP；GIF 仅二值透明）
   scenes: ["夜原", "雾", "山口", "桥"],   // 场景段名（可选；声明后时间轴显示段划分、工具可增删/拖边界）
   // sceneBorders: [12, 24, 36],          // 可选：场景边界秒数（长度 = scenes 数 - 1）；缺省=等分
 
   // —— 程序化元素：扁平键，每元素一个对象 ——
   sparkles: { z: 1, parts: [/* 图元 */] },
   rain: { z: 20, parts: [/* 图元实体 */], particle: {/* 粒子参数 */} },
+  leaves: { z: 20, particle: { source: { type: 'image', imageId: 'leaf', playback: 'particle-age', fps: 8 } } },
   // …… 任意具名程序元素 ……
 
   images: [ /* 素材层（工具导入的图片元素，同一 schema） */ ],
@@ -51,6 +53,44 @@ const GENERIC_SCENE = {
 ```
 
 > **Agent 只需生成常量参数**（见四.1）：按场景取值由工具按需生成（[s] 单场景编辑自动写数组）。
+
+### 粒子图片实体
+
+粒子默认以元素自身 `parts` 为实体；也可引用 `images` 中一个稳定 `id`：
+
+```js
+petals: {
+  z: 30,
+  particle: {
+    source: { type: 'image', imageId: 'petal-sprite', frame: 0 },
+    count: 36, life: 2, speed: 24, dir: 90, spread: 35, fade: true
+  }
+}
+```
+
+`imageId` 必须指向 `images` 内的素材元素。`playback: 'static'`（默认）配合 `frame` 选择固定帧；`playback: 'particle-age'` 让每颗粒子从第 0 帧按 `fps` 独立播放，可加 `loop:true` 循环。不要内嵌图片副本或对象引用。
+
+多文件导入时，工具按用户选择顺序生成横向 sprite sheet：第 1 张图定义单帧宽高，其余帧最近邻缩放到同一尺寸（不裁切、不补边）。`images[].w/h` 对多帧图片表示**单帧**显示尺寸，`frames` 表示横向帧数；预览不得把整张 sheet 当作一张静态图片显示。
+
+`images[].src` 保存处理后的 data URL 快照，因此单个 js 可独立运行。浏览器版本暂不保存原图及处理配方；可重连素材与项目目录将在桌面应用封装后加入。
+
+### 图片背景层
+
+图片元素可标为语义背景层；`layout` 是持久规则，运行时会按当前画布尺寸重新布局：
+
+```js
+{
+  id: 'bg-forest', role: 'background',
+  src: 'data:image/png;base64,...',
+  w: 160, h: 90, alpha: 1, z: -100,
+  layout: 'none', // 'none'=原尺寸居中；'stretch'=拉伸至画布；'tile'=重复填满画布
+  anchor: 'center',
+  show: null
+}
+```
+
+背景仍是 `images[]` 的一个图层，因而可使用 `show` 控制场景可见性。`none` 和 `tile` 使用保存时的处理后尺寸；`stretch` 始终填满当前画布。
+编辑器会将 `role:'background'` 的图片独立放在图层栏底部，且不允许从画布选中；仅编辑 `layout`、`alpha`、多帧 `fps`/`frameLoop`、`show`、`hidden` 与替换/删除。背景之间以保留给背景的 `z` 区间（`-1000` 起）排序，可在背景区拖拽重排，不影响普通图层顺序；卡片从上到下与画布叠放从上到下相同。`frameLoop:false` 会在最后一帧停住，缺省为循环。
 
 ## 三、参数类型（工具表单按类型自动生成编辑控件）
 
@@ -235,6 +275,7 @@ bob/wave/blink/pulse 四原语参数（开关 + 数值，bob 含角度），参�
 - **图元层编辑**（v2+）：parts 元素可打开 [编辑] 面板——矢量绘制（矩形/直线/椭圆/多边形）、
   逐图元颜色/描边/坐标、四角缩放/旋转 ●/镜像按钮、`pixelDiv`（元素级重采样 1/2/1/4）、
   `alphaMode`（边缘透明像素 保留/消除/增强）。
+  `parts[]` 的数组顺序为**底 → 顶**（后项后绘制）；编辑器以**顶 → 底**显示，通过插入线拖拽调序。普通图层也以顶→底显示，编辑器重排其 `z`，无需新增格式字段。图片加 parts 时，parts 始终使用图片元素的局部坐标；任意角缩放或元素镜像会同步保持图片与 parts 的相对布局。
 
 ## 六、自检项 ↔ 本规范对照
 
