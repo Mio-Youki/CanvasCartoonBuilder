@@ -145,3 +145,7 @@
 | [CHANGELOG.md](CHANGELOG.md) | 工具版本历史 |
 | [PLAN.md](PLAN.md) | 路线图（第二版） |
 | [RUNTIME_ADAPTER_PLAN.md](docs/architecture/RUNTIME_ADAPTER_PLAN.md) | 导出与关键帧前的轻量渲染内核计划、当前问题清单 |
+| [DESIGN_SYSTEM.md](docs/design/DESIGN_SYSTEM.md) | 视觉语言与设计 token（待定稿） |
+| [UI_INFORMATION_ARCHITECTURE.md](docs/design/UI_INFORMATION_ARCHITECTURE.md) | 工作区、信息层级与渐进披露（待定稿） |
+| [COMPONENT_REGISTRY.md](docs/design/COMPONENT_REGISTRY.md) | 可复用组件的状态、变体和实现入口（待定稿） |
+| [INTERACTION_AND_MOTION.md](docs/design/INTERACTION_AND_MOTION.md) | 交互反馈与动效规范（待定稿） |
