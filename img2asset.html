@@ -71,6 +71,12 @@
   .wizard .preview { min-height: 148px; display: grid; place-items: center; margin: 10px 0; border: 2px solid var(--dim); background: #05070f; overflow: hidden; }
   .wizard .preview canvas { max-width: 100%; max-height: 250px; image-rendering: pixelated; }
   .wizard .choice { margin: 0; min-height: 28px; padding: 4px 7px; font-size: 9px; }
+  .export-mode { display: block; width: 100%; text-align: left; margin: 4px 0; min-height: 30px; padding: 5px 7px; border: 2px solid #2c3560; background: #101736; color: var(--ink); cursor: pointer; font-size: 9px; }
+  .export-mode:has(input:checked) { border-color: var(--yellow); background: #33270f; }
+  .export-mode small { color: var(--dim); display: block; margin-left: 17px; font-size: 8px; }
+  .export-range { display: flex; align-items: center; gap: 6px; margin: 3px 0; padding: 3px 6px; border: 1px solid #2c3560; background: #101736; font-size: 9px; }
+  .export-range input { margin: 0; }
+  .export-count { color: var(--cyan); font-size: 9px; min-height: 14px; margin-top: 7px; }
   .show-pop-title { font-size: 8px; color: var(--dim); margin-bottom: 4px; }
   .show-row-wrap { margin-bottom: 5px; }
   .show-row { display: flex; align-items: center; gap: 6px; width: 100%; margin: 2px 0; padding: 3px 6px; font-size: 9px; min-height: 20px; border-width: 2px; background: #1a2350; color: var(--dim); text-align: left; }
@@ -109,6 +115,14 @@
   .props-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px; }
   .props-head label { margin: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .props-head .small { margin: 0; min-height: 26px; padding: 4px 10px; }
+  .props-tabs { display: flex; gap: 3px; flex: none; }
+  .props-tabs .small { padding: 4px 6px; font-size: 8px; }
+  .props-tabs .small.active { border-color: var(--yellow); color: var(--yellow); background: #33270f; }
+  .props-tools, .props-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+  .props-tools { margin: 2px 0 5px; }
+  .props-tools .small, .props-actions .small { margin: 0; min-height: 25px; padding: 4px 8px; }
+  .props-actions { padding-top: 2px; }
+  .subhead { color: var(--yellow); font-size: 9px; letter-spacing: 1px; margin: 10px 0 3px; border-top: 1px dashed #2c3560; padding-top: 7px; }
   #cfgform { flex: 1 1 0; height: 0; min-height: 100px; max-height: calc(100vh - 210px); overflow-y: auto; border: 2px solid #0a0e22; padding: 4px; margin-bottom: 6px; background: #0d1330; scrollbar-width: thin; scrollbar-color: #3a4678 #0a0e22; }
   #cfgform::-webkit-scrollbar { width: 8px; }
   #cfgform::-webkit-scrollbar-track { background: #0a0e22; }
@@ -277,16 +291,24 @@
   <!-- 右：图层栏（元素卡片） -->
   <div class="panel p-props">
     <div class="props-head">
-      <label>图层（点击卡片展开调参 · 拖拽排序=z）</label>
+      <label id="props-title">图层元素（点击卡片展开调参 · 拖拽排序=z）</label>
+      <span class="props-tabs"><button id="tab-layers" class="small active">图层元素</button><button id="tab-fx" class="small">局部效果</button></span>
+    </div>
+    <div class="props-tools">
       <button id="btn-particle" class="small">+ 粒子</button>
-      <button id="btn-save" class="small primary">保存场景</button>
+      <button id="btn-local-fx" class="small">+ 局部效果</button>
     </div>
     <div id="cfgform"></div>
+    <div class="props-actions"><button id="btn-export" class="small">导出帧</button><button id="btn-save" class="small primary">保存场景</button><button id="btn-test-scene" class="small">测试场景</button></div>
     <div class="meta" id="m-props"></div>
   </div>
 </div>
 
 <script src="../public/home-scene.js" onerror="window.__sceneLoadFail = true"></script>
+<!-- 内部模块：保持 classic script 共享全局函数，兼容 file:// 双击运行；页面脚本仅负责 UI 编排。 -->
+<script src="editor/geometry.js"></script>
+<script src="editor/scene-model.js"></script>
+<script src="editor/exporter.js"></script>
 <script>
 'use strict';
 /* ---------------- 色板 ---------------- */
@@ -366,7 +388,7 @@ const state = {
   selProg: null,      // 选择模式整体选中的程序元素（带包围盒 + 图层栏跳卡片）
   multi: [],          // Ctrl 多选：元素列表（批量移动/删除/复制）
   partMulti: null,    // 编辑状态 part 多选（Ctrl+A 全选）：{el, indexes:[]}
-  regionRect: null,   // 发射区框选进行中的矩形（粒子 [框选]，画布坐标）
+  regionRect: null,   // 统一范围框选进行中的矩形（粒子发射范围 / 任意图层裁剪蒙版，画布坐标）
 };
 function wrapMod(x, m) { return ((x % m) + m) % m; }
 // 编辑控件使用屏幕像素尺寸，换算回场景坐标后绘制/命中；缩放不会让手柄遮挡素材或难以点击。
@@ -385,51 +407,6 @@ function hitCorner(p, box, t) {
   if (hit(box.x + box.w, box.y + box.h)) return 'br';
   return null;
 }
-/* 按角缩放图元：围绕对角锚点缩放（part 相对坐标） */
-function scalePartAround(p, ax, ay, rw, rh) {
-  const q = Object.assign({}, p);
-  const tr = (x, y) => [ax + (x - ax) * rw, ay + (y - ay) * rh];
-  if (q.type === 'rect' || q.type === 'ellipse') {
-    const [x1, y1] = tr(q.x || 0, q.y || 0);
-    const [x2, y2] = tr((q.x || 0) + (q.w || 1), (q.y || 0) + (q.h || 1));
-    q.x = Math.round(Math.min(x1, x2)); q.y = Math.round(Math.min(y1, y2));
-    q.w = Math.max(1, Math.round(Math.abs(x2 - x1))); q.h = Math.max(1, Math.round(Math.abs(y2 - y1)));
-  } else if (q.type === 'line') {
-    const [x1, y1] = tr(q.x || 0, q.y || 0);
-    const [x2, y2] = tr(q.x2 || 0, q.y2 || 0);
-    q.x = Math.round(x1); q.y = Math.round(y1); q.x2 = Math.round(x2); q.y2 = Math.round(y2);
-  } else if (q.type === 'poly') {
-    q.points = (q.points || []).map(pt => [Math.round(tr(pt[0], pt[1])[0]), Math.round(tr(pt[0], pt[1])[1])]);
-  }
-  return q;
-}
-/* 元素拥有 parts 时，parts 坐标始终相对元素左上角保存。
-   四角缩放先以场景坐标围绕固定对角缩放，再减去新元素原点，避免左/上角拖动后父子坐标系脱节。 */
-function scalePartsWithParent(parts, oldBox, newBox, corner) {
-  const ax = (corner === 'bl' || corner === 'tl') ? oldBox.x + oldBox.w : oldBox.x;
-  const ay = (corner === 'tr' || corner === 'tl') ? oldBox.y + oldBox.h : oldBox.y;
-  const rw = newBox.w / oldBox.w, rh = newBox.h / oldBox.h;
-  return (parts || []).map(p => {
-    const q = scalePartAround(p, ax - oldBox.x, ay - oldBox.y, rw, rh);
-    // scalePartAround 的结果仍以旧父级原点为参考；换到新父级局部空间。
-    const dx = oldBox.x - newBox.x, dy = oldBox.y - newBox.y;
-    if (q.type === 'rect' || q.type === 'ellipse') { q.x += dx; q.y += dy; }
-    else if (q.type === 'line') { q.x += dx; q.y += dy; q.x2 += dx; q.y2 += dy; }
-    else if (q.type === 'poly') q.points = (q.points || []).map(pt => [pt[0] + dx, pt[1] + dy]);
-    return q;
-  });
-}
-/* 四角缩放：返回 {nx,ny,nw,nh}（元素/图元包围盒按角调整） */
-function cornerResize(box, corner, dx, dy) {
-  let nx = box.x, ny = box.y, nw = box.w, nh = box.h;
-  if (corner === 'br') { nw = box.w + dx; nh = box.h + dy; }
-  else if (corner === 'bl') { nw = box.w - dx; nx = box.x + dx; nh = box.h + dy; }
-  else if (corner === 'tr') { nw = box.w + dx; nh = box.h - dy; ny = box.y + dy; }
-  else if (corner === 'tl') { nw = box.w - dx; nx = box.x + dx; nh = box.h - dy; ny = box.y + dy; }
-  nw = Math.max(4, nw); nh = Math.max(4, nh);
-  return { nx, ny, nw, nh };
-}
-
 /* ---------------- 像素化管线 ---------------- */
 function nearestPalette(r, g, b, pal) {
   let bi = 0, bd = Infinity;
@@ -630,6 +607,33 @@ function afterBackgroundImport() {
 }
 
 /* ---------------- 元素 ---------------- */
+// 场景模式中 state.elements 是 cfg.images 的工作引用；所有写入只能落到同一个数组一次，
+// 否则同一对象会在图层栏出现两张卡片，并在按 id 删除时一起消失。
+function appendEditableElement(el) {
+  if (state.sceneParamsMode && window.HOME_SCENE) {
+    const imgs = window.HOME_SCENE.images = window.HOME_SCENE.images || [];
+    if (!imgs.includes(el)) imgs.push(el);
+    state.elements = imgs;
+  } else state.elements.push(el);
+  return el;
+}
+function unbindFxTargets(cfg, ids) {
+  const idSet = new Set(ids || []); let changed = 0;
+  const layers = cfg && cfg.fx && Array.isArray(cfg.fx.layers) ? cfg.fx.layers : [];
+  layers.forEach(layer => { if (layer && layer.bind && idSet.has(layer.bind.targetId)) { delete layer.bind; changed++; } });
+  return changed;
+}
+function removeEditableElements(ids) {
+  const idSet = new Set(ids || []), cfg = state.sceneParamsMode && window.HOME_SCENE;
+  if (cfg) {
+    const imgs = cfg.images = cfg.images || [];
+    for (let i = imgs.length - 1; i >= 0; i--) if (idSet.has(imgs[i] && imgs[i].id)) imgs.splice(i, 1);
+    state.elements = imgs;
+    return unbindFxTargets(cfg, ids);
+  }
+  state.elements = state.elements.filter(x => !idSet.has(x.id));
+  return 0;
+}
 function addElement(src) {
   const sz = sourceFrameSize(src);
   // 默认显示尺寸：最大边 ≤ 画布较小边的一半（如 320×118 → 最大边 59），保持原比例；用户可再拉伸
@@ -650,18 +654,14 @@ function addElement(src) {
     frames: src.frames || 1, fps: 8,
     _asset: null, // 采样 canvas（渲染用，不序列化；syncElementAssets 维护）
   };
-  state.elements.push(el);
-  if (state.sceneParamsMode && window.HOME_SCENE) {
-    // 场景参数模式：同一引用写入 HOME_SCENE.images → 场景层实时渲染 + 保存随配置写回
-    (window.HOME_SCENE.images = window.HOME_SCENE.images || []).push(el);
-  }
+  appendEditableElement(el);
   state.selEl = el.id;
   syncElementAssets();
   buildLayerList(layerCfg());
   refreshStage();
   $('m-stage').textContent = '已添加 ' + el.name + '——拖拽调位置，点击卡片/画布展开参数' + (state.sceneParamsMode ? '（将随场景配置一起保存）' : '');
 }
-function selEl() { const e = state.elements.find(e => e.id === state.selEl); return e && e.role !== 'background' ? e : null; }
+function selEl() { const e = state.elements.find(e => e.id === state.selEl); return e && e.role !== 'background' && e.role !== 'mask' ? e : null; }
 
 /* ---------------- 场景渲染（预览与导出共用逻辑） ---------------- */
 /* 滚动相位窗口起点：元素当前所在显示窗口的起点（秒）；无 show → 0（全局起算）
@@ -757,10 +757,13 @@ function renderStage() {
   }
   // 矢量绘制预览（进行中的形状）
   if (state.drawShape) drawShapePreview(ctx, state.drawShape);
-  // 粒子元素发射区可视化：选中的粒子元素（非全画布）→ 黄色虚线框；框选模式 → 暗化覆盖 + 当前框选青色框
+  // 粒子发射范围与裁剪蒙版都使用统一的框选交互：发射范围=黄色，蒙版=青色。
   if (state.selProg && state.selProg.particle && state.selProg.x != null && state.selProg.w != null) {
     drawSelBox(ctx, { x: Math.round(state.selProg.x), y: Math.round(state.selProg.y), w: Math.round(state.selProg.w), h: Math.round(state.selProg.h) }, '#ffd23f', { dash: [4, 3], noHandles: true });
   }
+  const maskGuideEl = state.selProg || selEl();
+  if (maskEdit) drawMaskEdit(ctx, maskEdit.el.mask);
+  else if (maskGuideEl && maskGuideEl.mask) drawMaskGuide(ctx, maskGuideEl.mask);
   if (regionSelectEl || state.regionRect) {
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.fillRect(0, 0, state.cw, state.ch);
@@ -815,7 +818,8 @@ function renderStage() {
    元素级重采样（pixelDiv > 1）：parts 画到「包围盒 ÷ 除数」的离屏小画布 → 最近邻放大回显示区域（锯齿感）。 */
 function drawPartsTool(ctx, e, t) {
   const div = e.pixelDiv || 1;
-  if (div > 1 && !e.partsBand && !(e.scroll && e.scroll.speed && e.scroll.span)) {
+  const animPose = applyAnims(animList(e.anim), t, { yOff: 0, xOff: 0, rot: 0, scale: 1, alpha: 1 });
+  if (div > 1 && !animPose.rot && Math.abs(animPose.scale - 1) < .001 && !e.partsBand && !(e.scroll && e.scroll.speed && e.scroll.span)) {
     return drawPartsToolDiv(ctx, e, t, div);
   }
   drawPartsToolRaw(ctx, e, t);
@@ -848,30 +852,8 @@ function drawPartsToolDiv(ctx, e, t, div) {
   ctx.drawImage(oc, 0, 0, W, H, Math.round(bx), Math.round(by), Math.round(bw), Math.round(bh));
   ctx.restore();
 }
-function normPart(p) {
-  if (typeof p.fill === 'boolean') {
-    if (p.fill) p.fill = p.color || null;
-    else { p.stroke = p.color || null; p.fill = null; }
-  } else if (!('fill' in p)) {
-    p.fill = p.color || null;
-  }
-  if (!('stroke' in p)) p.stroke = null;
-  if (!('strokeWidth' in p)) p.strokeWidth = p.width || 1;
-  return p;
-}
-/* 图元变换中心：矩形/椭圆 = 中心；线段 = 中点；多边形 = 顶点包围盒中心 */
-function partCenter(p) {
-  if (p.type === 'rect' || p.type === 'ellipse') return { cx: (p.x || 0) + (p.w || 1) / 2, cy: (p.y || 0) + (p.h || 1) / 2 };
-  if (p.type === 'line') return { cx: ((p.x || 0) + (p.x2 || 0)) / 2, cy: ((p.y || 0) + (p.y2 || 0)) / 2 };
-  if (p.type === 'poly' && (p.points || []).length) {
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    p.points.forEach(pt => { if (pt[0] < minX) minX = pt[0]; if (pt[1] < minY) minY = pt[1]; if (pt[0] > maxX) maxX = pt[0]; if (pt[1] > maxY) maxY = pt[1]; });
-    return { cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 };
-  }
-  return { cx: (p.x || 0) + 0.5, cy: (p.y || 0) + 0.5 };
-}
 /* —— 通用动画原语（与 home-scene 同语义）—— anim 字段可叠加（字符串简写 / 单对象 / 多动画对象）；
-   作用顺序：bob（平移，可 angle 斜向）→ wave（旋转摆动）→ pulse（缩放）→ blink（透明度） */
+   作用顺序：bob（平移，可 angle 斜向）→ spin（匀速旋转）→ wave（旋转摆动）→ pulse（缩放）→ blink（透明度） */
 function animList(a) {
   if (!a) return [];
   if (typeof a === 'string') return [{ type: a, params: {} }];
@@ -888,6 +870,8 @@ function applyAnims(list, t, init) {
       const ang = (pr.angle != null ? pr.angle : 0) * Math.PI / 180;
       xOff += Math.sin(ang) * phase;
       yOff += Math.cos(ang) * phase;
+    } else if (an.type === 'spin') {
+      rot += (pr.speed != null ? pr.speed : 30) * t;
     } else if (an.type === 'wave') {
       const per = pr.period != null ? pr.period : 1;
       rot += (pr.amp != null ? pr.amp : 10) * Math.sin(t / per * Math.PI * 2);
@@ -905,22 +889,10 @@ function applyAnims(list, t, init) {
   }
   return { yOff, xOff, rot, scale, alpha };
 }
-/* 图元局部包围盒（元素级 wave 旋转中心 / pixelDiv 离屏用；不含 scroll 偏移） */
-function partsLocalBox(e) {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  const ext = (x, y) => { if (x < minX) minX = x; if (y < minY) minY = y; if (x > maxX) maxX = x; if (y > maxY) maxY = y; };
-  (e.parts || []).forEach(p => {
-    if (p.type === 'rect' || p.type === 'ellipse') { ext(p.x || 0, p.y || 0); ext((p.x || 0) + (p.w || 1), (p.y || 0) + (p.h || 1)); }
-    else if (p.type === 'line') { ext(p.x || 0, p.y || 0); ext(p.x2 || 0, p.y2 || 0); }
-    else if (p.type === 'poly') (p.points || []).forEach(pt => ext(pt[0], pt[1]));
-  });
-  if (!isFinite(minX)) return null;
-  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
-}
 function drawPartsToolRaw(ctx, e, t, alphaOverride) {
   const so = scrollOffsets(e, t);
   const x0 = elVal(e, 'x') + so.x, y0 = elVal(e, 'y') + so.y;
-  // 元素级动画（可叠加）：bob（平移，可 angle 斜向）→ wave（旋转摆动）→ pulse 缩放 → blink 透明度
+  // 元素级动画（可叠加）：bob（平移）→ spin（匀速旋转）→ wave（摆旋）→ pulse 缩放 → blink 透明度
   const ea = applyAnims(animList(e.anim), t, { yOff: 0, xOff: 0, rot: 0, scale: 1, alpha: alphaOverride != null ? alphaOverride : (e.alpha != null ? e.alpha : 1) });
   const X0 = x0 + ea.xOff, Y0 = y0 + ea.yOff;
   const alpha = ea.alpha;
@@ -930,7 +902,7 @@ function drawPartsToolRaw(ctx, e, t, alphaOverride) {
     const Y = Y0 + (yAdd || 0);
     for (const p of (e.parts || [])) {
       const q = normPart(p);
-      // 图元级动画（bob/wave/blink；pulse 留元素级）
+      // 图元级动画（bob/spin/wave/blink；pulse 留元素级）
       const pa = applyAnims(animList(q.anim), t, { yOff: 0, xOff: 0, rot: 0, scale: 1, alpha: q.alpha != null ? q.alpha : 1 });
       ctx.globalAlpha = alpha * pa.alpha; // 元素级 × 图元级 × 图元动画
       const PX = Math.round(X + pa.xOff + (q.x || 0)), PY = Math.round(Y + pa.yOff + (q.y || 0));
@@ -947,7 +919,7 @@ function drawPartsToolRaw(ctx, e, t, alphaOverride) {
       }
       const hasStroke = q.stroke && q.strokeWidth > 0;
       if (q.type === 'rect') {
-        const w = Math.max(1, Math.round((q.w || 1) * scale)), h = Math.max(1, Math.round((q.h || 1) * scale));
+        const w = Math.max(1, Math.round(q.w || 1)), h = Math.max(1, Math.round(q.h || 1));
         if (q.fill) { ctx.fillStyle = q.fill; ctx.fillRect(PX, PY, w, h); }
         if (hasStroke) { ctx.strokeStyle = q.stroke; ctx.lineWidth = q.strokeWidth; ctx.strokeRect(PX, PY, w, h); }
       } else if (q.type === 'line') {
@@ -970,14 +942,14 @@ function drawPartsToolRaw(ctx, e, t, alphaOverride) {
       if (rot || fh < 0 || fv < 0) ctx.restore();
     }
   };
-  // 元素级旋转（e.rot 静态 + wave 动态）：绕元素包围盒中心（包住全部绘制）
+  // 元素级 wave / pulse：统一绕元素包围盒中心变换，所有 part 类型保持一致。
   let wv = null;
   const totalRot = (e.rot || 0) + (ea.rot || 0);
-  if (totalRot) {
+  if (totalRot || Math.abs(scale - 1) > .001) {
     const lb = partsLocalBox(e);
     if (lb) wv = { cx: X0 + lb.x + lb.w / 2, cy: Y0 + lb.y + lb.h / 2 };
   }
-  if (wv) { ctx.save(); ctx.translate(wv.cx, wv.cy); ctx.rotate(totalRot * Math.PI / 180); ctx.translate(-wv.cx, -wv.cy); }
+  if (wv) { ctx.save(); ctx.translate(wv.cx, wv.cy); if (totalRot) ctx.rotate(totalRot * Math.PI / 180); if (Math.abs(scale - 1) > .001) ctx.scale(scale, scale); ctx.translate(-wv.cx, -wv.cy); }
   if (e.partsBand && bandSpeed(e) && bandSpan(e)) {
     // 带元素：母带同款 wrap 公式逐瓦片（图元 x 为瓦片相位偏移）
     const span = bandSpan(e);
@@ -1202,7 +1174,8 @@ function stagePos(ev) {
 }
 stage.addEventListener('pointerdown', ev => {
   const p = stagePos(ev);
-  // 发射区框选模式（粒子元素 [框选]）：拖拽矩形，松手写回 x/y/w/h
+  if (maskEdit) { beginMaskDrag(p); ev.preventDefault(); return; }
+  // 统一范围框选：粒子发射范围或裁剪蒙版，松手写回相应数据。
   if (regionSelectEl) {
     regionDrag = { x0: p.x, y0: p.y };
     state.regionRect = { x: p.x, y: p.y, w: 0, h: 0 };
@@ -1221,7 +1194,7 @@ stage.addEventListener('pointerdown', ev => {
     renderStage();
     return;
   }
-  const sorted = state.elements.filter(e => e.role !== 'background').sort((a, b) => b.z - a.z);
+  const sorted = state.elements.filter(e => e.role !== 'background' && e.role !== 'mask').sort((a, b) => b.z - a.z);
   // 子图元命中：仅 [编辑] 模式（partsOpenEl）——选择模式只做整体选中，防误拖
   const hitParts = (e) => {
     if (!e.parts || !e.parts.length) return -1;
@@ -1495,6 +1468,7 @@ stage.addEventListener('pointerdown', ev => {
   renderStage();
 });
 stage.addEventListener('pointermove', ev => {
+  if (maskEdit && maskEdit.drag) { moveMaskEdit(stagePos(ev)); return; }
   if (state.drawShape && state.drawDrag) {
     const p = stagePos(ev);
     if (state.drawShape.type === 'line') { state.drawShape.x2 = p.x; state.drawShape.y2 = p.y; }
@@ -1695,6 +1669,12 @@ stage.addEventListener('pointermove', ev => {
   renderStage();
 });
 stage.addEventListener('pointerup', ev => {
+  if (maskEdit && maskEdit.drag) {
+    if (maskEdit.drag.changed) pushHistory();
+    maskEdit.drag = null;
+    refreshStage();
+    return;
+  }
   if (state.drawShape && state.drawDrag) {
     state.drawDrag = false;
     // 单击（几乎无位移）不生成图元——只有拖动才生成，防误触；且自动切回[选择]
@@ -1709,9 +1689,16 @@ stage.addEventListener('pointerup', ev => {
   if (drag) { pushHistory(); refreshStage(); } // 移动/缩放/图元拖动各记一步
   drag = null;
 });
-stage.addEventListener('pointerleave', () => { if (drag) refreshStage(); drag = null; state.drawDrag = false; });
+stage.addEventListener('pointerleave', () => { if (maskEdit && maskEdit.drag) { maskEdit.drag = null; refreshStage(); } if (drag) refreshStage(); drag = null; state.drawDrag = false; });
 stage.addEventListener('dblclick', ev => {
   if (ev.altKey) return; // Alt + 双击专用于缩放复位，不能进入元素编辑
+  if (maskEdit && maskEdit.el.mask && maskEdit.el.mask.type === 'poly') {
+    const pts = maskEdit.el.mask.points || [];
+    // 浏览器双击会先产生第二次 pointerdown；若末点与倒数点重合，去掉这个重复点再完成。
+    if (pts.length > 1 && Math.hypot(pts[pts.length - 1][0] - pts[pts.length - 2][0], pts[pts.length - 1][1] - pts[pts.length - 2][1]) < 1) pts.pop();
+    if (pts.length >= 3) { maskEdit.adding = false; maskEdit.vertex = -1; $('m-props').textContent = '多边形蒙版：拖绿色点调整，点击边线可插入点；点击“完成”退出编辑。'; renderStage(); }
+    return;
+  }
   // 多边形：双击闭合提交
   if (state.drawMode === 'poly' && state.drawPts.length >= 2) {
     commitDrawShape();
@@ -1724,6 +1711,13 @@ stage.addEventListener('dblclick', ev => {
   if (el) { openEdit(el); renderStage(); }
 });
 window.addEventListener('keydown', ev => {
+  if (maskEdit) {
+    if (ev.key === 'Escape') { endMaskEdit(true); return; }
+    if ((ev.key === 'Enter') && maskEdit.el.mask && maskEdit.el.mask.type === 'poly') { if ((maskEdit.el.mask.points || []).length >= 3) { maskEdit.adding = false; maskEdit.vertex = -1; renderStage(); } return; }
+    if ((ev.key === 'Delete' || ev.key === 'Backspace') && maskEdit.el.mask && maskEdit.el.mask.type === 'poly' && maskEdit.vertex >= 0) {
+      const pts = maskEdit.el.mask.points; if (pts.length > 3) { pushHistory(); pts.splice(maskEdit.vertex, 1); maskEdit.vertex = -1; renderStage(); } return;
+    }
+  }
   if (ev.key === 'Escape') {
     if (state.drawShape || state.drawPts.length) { state.drawShape = null; state.drawPts = []; renderStage(); }
     else if (state.partMulti) { state.partMulti = null; drag = null; renderStage(); }          // 退出 part 多选（保留黄框）
@@ -1971,8 +1965,7 @@ function commitDrawShape() {
       name: '矢量' + (state.elements.length + 1), x: 0, y: 0, w: 8, h: 8,
       alpha: 1, z: 99, parts: [part],
     };
-    state.elements.push(n);
-    if (state.sceneParamsMode && window.HOME_SCENE) (window.HOME_SCENE.images = window.HOME_SCENE.images || []).push(n);
+    appendEditableElement(n);
     normalizePartsEl(n); // 包围盒归一化：选中框框住图形、整体移动/缩放 parts 有意义
     pushHistory();
     state.selEl = n.id;
@@ -2087,6 +2080,7 @@ function animTarget() {
 }
 const ANIM_PRIMS = [
   { type: 'bob', label: 'bob · 轻震', fields: [['amp', '幅度', 0.5], ['period', '翻转秒', 0.05], ['angle', '角度°', 15]] },
+  { type: 'spin', label: 'spin · 旋转', fields: [['speed', '角速度°/秒', 1]] },
   { type: 'wave', label: 'wave · 摆旋', fields: [['amp', '幅度°', 5], ['period', '周期秒', 0.1]] },
   { type: 'blink', label: 'blink · 闪烁', fields: [['on', '亮α', 0.05], ['off', '暗α', 0.05], ['period', '周期ms', 10], ['duty', '亮占比', 0.05], ['phase', '起点', 0.05]] },
   { type: 'pulse', label: 'pulse · 脉动', fields: [['amp', '幅度', 0.05], ['period', '周期秒', 0.1]] },
@@ -2100,7 +2094,7 @@ function renderAnimPanel() {
     ed.innerHTML = '';
     return;
   }
-  mt.textContent = '动画目标：' + t.label + '（多动画可叠加；bob→pulse→blink 顺序应用）';
+  mt.textContent = '动画目标：' + t.label + '（多动画可叠加；bob→spin→wave→pulse→blink 顺序应用）';
   ed.innerHTML = '';
   const targets = t.multi ? t.els : [t.obj];
   const cur = {};
@@ -2122,7 +2116,7 @@ function renderAnimPanel() {
     row.appendChild(on); row.appendChild(label);
     const wrap = document.createElement('div'); wrap.className = 'cf-row-inline';
     pr.fields.forEach(([key, nm, step]) => {
-      const def = key === 'on' ? 1 : key === 'off' ? 0.25 : key === 'period' ? (pr.type === 'blink' ? 700 : pr.type === 'bob' ? 1 / 6 : pr.type === 'wave' ? 1 : 0.7) : key === 'duty' ? 0.5 : key === 'phase' ? 0 : key === 'angle' ? 0 : 1;
+      const def = key === 'on' ? 1 : key === 'off' ? 0.25 : key === 'period' ? (pr.type === 'blink' ? 700 : pr.type === 'bob' ? 1 / 6 : pr.type === 'wave' ? 1 : 0.7) : key === 'speed' ? 30 : key === 'duty' ? 0.5 : key === 'phase' ? 0 : key === 'angle' ? 0 : 1;
       const inp = document.createElement('input'); inp.type = 'number'; inp.step = step; inp.style.width = '52px';
       inp.value = cur[pr.type] && cur[pr.type][key] != null ? cur[pr.type][key] : def;
       inp.disabled = !on.checked;
@@ -2135,7 +2129,7 @@ function renderAnimPanel() {
     ed.appendChild(row);
   });
   const hint = document.createElement('div'); hint.className = 'cf-ro';
-  hint.textContent = '参数进配置随保存写回；bob=1px 轻震/blink=透明度方波（duty 亮占比、phase on 起点）/pulse=缩放脉动';
+  hint.textContent = '参数进配置随保存写回；spin=角速度（负数反向，可与 wave 叠加）；bob=1px 轻震；blink=透明度方波；pulse=缩放脉动';
   ed.appendChild(hint);
 }
 /* 素材样式化（左侧栏）：参数作用于选中素材（素材级快照），原图保留可还原；
@@ -2294,8 +2288,7 @@ function cutSel() {
 }
 function delElements(els) {
   const ids = els.map(m => m.id);
-  state.elements = state.elements.filter(x => ids.indexOf(x.id) < 0);
-  if (state.sceneParamsMode && window.HOME_SCENE) window.HOME_SCENE.images = (window.HOME_SCENE.images || []).filter(x => ids.indexOf(x.id) < 0);
+  removeEditableElements(ids);
 }
 function pasteClip() {
   const c = state.clipboard;
@@ -2307,8 +2300,7 @@ function pasteClip() {
       const n = JSON.parse(JSON.stringify(src));
       n.id = 'e' + Math.random().toString(36).slice(2, 7);
       n.x = (n.x || 0) + 8; n.y = (n.y || 0) + 8; n._img = null;
-      state.elements.push(n);
-      if (state.sceneParamsMode && window.HOME_SCENE) (window.HOME_SCENE.images = window.HOME_SCENE.images || []).push(n);
+      appendEditableElement(n);
       return n;
     });
     state.multi = added;
@@ -2328,8 +2320,7 @@ function pasteClip() {
     const n = JSON.parse(JSON.stringify(c.data));
     n.id = 'e' + Math.random().toString(36).slice(2, 7);
     n.x = (n.x || 0) + 8; n.y = (n.y || 0) + 8; n._img = null;
-    state.elements.push(n);
-    if (state.sceneParamsMode && window.HOME_SCENE) (window.HOME_SCENE.images = window.HOME_SCENE.images || []).push(n);
+    appendEditableElement(n);
     state.selEl = n.id;
     buildLayerList(layerCfg()); ensureImage(n); refreshStage();
   }
@@ -2482,7 +2473,7 @@ function createGenericScene(confirmReplace, keepSources) {
   state.t = 0; state.lastTlScene = -1;
   fileText = raw; fileName = 'scene.js';
   cfgStart = parsed.start; cfgEnd = parsed.end;
-  layerOpen = {}; partsOpenEl = null; showFocusEl = null;
+  layerOpen = {}; fxLayerOpen = {}; partsOpenEl = null; showFocusEl = null;
   syncCanvasSize();
   if (window.HomeScene && HomeScene.resize) HomeScene.resize();
   resizeStageWrap();
@@ -2707,11 +2698,16 @@ function loadSceneParams(hs, rawStart, rawEnd) {
   renderStage();
   renderTimeline();
   $('m-stage').textContent = '已载入场景配置（' + (hs.obj.w || '?') + '×' + (hs.obj.h || '?') + '，素材层 ' + state.elements.length + ' 项）——调整参数实时生效，点「保存 js」写回文件';
-  // 规范自检：提示可参数化性与结构问题（详见 SCENE_SPEC.md）
-  const warns = checkSceneSpec(hs.obj);
+  // 此处是“通用场景可编辑性诊断”，不是 Runtime 或导出资格检查。
+  // SCENE_SPEC 只约束新 GENERIC_SCENE；HOME_SCENE 可以保留专用绘制函数，
+  // 由 HomeScene Runtime 兼容执行，不按 parts 规则诊断。
+  const isGeneric = hs.obj && hs.obj.format === 'canvas-cartoon-scene' && hs.obj.kind === 'generic';
+  const warns = checkGenericEditability(hs.obj, isGeneric);
   if (warns.length) {
-    $('m-props').textContent = '⚠ 规范自检 ' + warns.length + ' 项：\n- ' + warns.join('\n- ');
-    $('m-stage').textContent = '已载入场景配置（' + (hs.obj.w || '?') + '×' + (hs.obj.h || '?') + '，素材层 ' + state.elements.length + ' 项）⚠ 规范自检 ' + warns.length + ' 项';
+    $('m-props').textContent = '⚠ 通用场景可编辑性诊断 ' + warns.length + ' 项：\n- ' + warns.join('\n- ');
+    $('m-stage').textContent = '已载入场景配置（' + (hs.obj.w || '?') + '×' + (hs.obj.h || '?') + '，素材层 ' + state.elements.length + ' 项）⚠ 可编辑性诊断 ' + warns.length + ' 项';
+  } else if (!isGeneric) {
+    $('m-props').textContent = '兼容项目脚本：由专用 Runtime 执行；不按通用场景的可编辑性规则诊断。';
   }
   // 初始化缓存失效判定：元素引用素材 → _asset 同步；无引用 → 渲染缓存清空（素材库原图+参数始终保留）
   syncElementAssets();
@@ -2719,12 +2715,52 @@ function loadSceneParams(hs, rawStart, rawEnd) {
   renderStyleCtl();
 }
 
-/* ---------------- 规范自检（详见 SCENE_SPEC.md） ---------------- */
-function checkSceneSpec(cfg) {
+/* ---------------- 通用场景可编辑性诊断（详见 SCENE_SPEC.md） ---------------- */
+function checkGenericEditability(cfg, isGeneric) {
   const warns = [];
+  if (!isGeneric) return warns;
+  const builtins = new Set(['train-beam']);
   const n = cfg.scenes && cfg.scenes.length ? cfg.scenes.length : null;
+  const warn = s => { if (!warns.includes(s)) warns.push(s); };
+  if (cfg.format && cfg.format !== 'canvas-cartoon-scene') warn('format 应为 "canvas-cartoon-scene"；当前工具只把该格式视为通用场景工程');
+  if (!Number.isFinite(cfg.w) || cfg.w <= 0 || !Number.isFinite(cfg.h) || cfg.h <= 0) warn('画布 w/h 必须是大于 0 的数值');
+  if (!Number.isFinite(cfg.loop) || cfg.loop <= 0) warn('loop 必须是大于 0 的秒数');
+  if (cfg.sceneBorders && (!n || cfg.sceneBorders.length !== n - 1 || cfg.sceneBorders.some((v, i, a) => !Number.isFinite(v) || v <= 0 || v >= cfg.loop || (i && v <= a[i - 1])))) warn('sceneBorders 必须严格递增、位于 0~loop 内，且长度 = scenes 数 - 1');
+  const imageIds = new Set();
+  (cfg.images || []).forEach((img, i) => {
+    const at = 'images[' + i + ']';
+    if (!img || typeof img !== 'object') return warn(at + ' 必须是对象');
+    if (img.id) { if (imageIds.has(img.id)) warn('images.id 重复：「' + img.id + '」'); imageIds.add(img.id); }
+    const vectorOnly = img.parts && img.parts.length;
+    if (!vectorOnly && (!img.id || !img.src || !Number.isFinite(img.x) || !Number.isFinite(img.y) || !Number.isFinite(img.w) || !Number.isFinite(img.h))) warn(at + ' 图片元素需要 id、src、x、y、w、h；纯 parts 元素除外');
+    if (img.src && typeof img.src === 'string' && !img.src.startsWith('data:')) warn(at + '.src 不是 data: 快照；浏览器版保存后可能无法独立携带该素材');
+  });
+  const reserved = new Set(['format', 'formatVersion', 'kind', 'name', 'meta', 'w', 'h', 'loop', 'bg', 'transparent', 'scenes', 'sceneBorders', 'images', 'fx']);
+  const validateParts = (key, parts) => (Array.isArray(parts) ? parts : []).forEach((p, i) => {
+    const at = key + '.parts[' + i + ']';
+    if (!p || !['rect', 'line', 'ellipse', 'poly'].includes(p.type)) return warn(at + '.type 必须为 rect/line/ellipse/poly');
+    if ('keyframes' in p) warn(at + '.keyframes 尚未实现，不能作为当前 Agent 输出');
+    if ('color' in p || typeof p.fill === 'boolean' || 'width' in p) warn(at + ' 使用旧式 color/fill:boolean/width；新文件应使用 fill/stroke/strokeWidth');
+    if (p.type === 'poly') { if (!Array.isArray(p.points) || p.points.length < 3) warn(at + '.points 至少需要 3 个顶点'); }
+    else if (p.type === 'line') { if (![p.x, p.y, p.x2, p.y2].every(Number.isFinite)) warn(at + ' 的 x/y/x2/y2 必须为数值'); }
+    else if (![p.x, p.y, p.w, p.h].every(Number.isFinite) || p.w <= 0 || p.h <= 0) warn(at + ' 的 x/y/w/h 必须为有效数值且 w/h > 0');
+  });
+  const validateMask = (key, mask) => {
+    if (!mask) return;
+    if (!['rect', 'ellipse', 'poly', 'alpha'].includes(mask.type)) return warn('「' + key + '.mask.type」必须为 rect / ellipse / poly / alpha');
+    if ((mask.type === 'rect' || mask.type === 'ellipse' || mask.type === 'alpha') && (![mask.x, mask.y, mask.w, mask.h].every(Number.isFinite) || mask.w <= 0 || mask.h <= 0)) warn('「' + key + '.mask」的 x/y/w/h 必须为有效数值且 w/h > 0');
+    if (mask.type === 'poly' && (!Array.isArray(mask.points) || mask.points.length < 3 || mask.points.some(p => !Array.isArray(p) || p.length < 2 || !Number.isFinite(p[0]) || !Number.isFinite(p[1])))) warn('「' + key + '.mask.points」至少需要 3 个有效 [x,y] 顶点');
+    if (mask.type === 'alpha' && !imageIds.has(mask.imageId)) warn('「' + key + '.mask.imageId」必须指向 images[] 内的图片或蒙版素材');
+  };
   for (const [key, el] of Object.entries(cfg)) {
-    if (!el || typeof el !== 'object' || Array.isArray(el) || key === 'images') continue;
+    if (!el || typeof el !== 'object' || Array.isArray(el) || reserved.has(key)) continue;
+    if (!el.id || typeof el.id !== 'string') warn('「' + key + '」缺少稳定 id；通用程序元素必须提供 id，供 FX 绑定与后续 Agent 精准定位');
+    if ('keyframes' in el) warn('「' + key + '.keyframes」尚未实现，不能作为当前 Agent 输出');
+    if (el.kind === 'builtin' && !builtins.has(el.builtin)) warn('「' + key + '.builtin」未注册；通用 Runtime 不会执行未知内建元素');
+    else if (!el.parts && !el.particle && el.kind !== 'builtin') warn('「' + key + '」没有 parts、particle 或已注册 builtin；通用 Runtime 不会绘制该顶层对象');
+    validateParts(key, el.parts);
+    validateMask(key, el.mask);
+    if (el.particle && el.particle.source && el.particle.source.type === 'image' && !imageIds.has(el.particle.source.imageId)) warn('「' + key + '.particle.source.imageId」未指向 images[] 内的稳定 id');
     for (const k of Object.keys(el)) {
       // 1) 按场景散键：x3 / color3 等（存在基础键）
       const m = /^(.*?)(\d+)$/.exec(k);
@@ -2738,6 +2774,16 @@ function checkSceneSpec(cfg) {
       }
     }
   }
+  (cfg.images || []).forEach((el, i) => { validateParts('images[' + i + ']', el && el.parts); validateMask('images[' + i + ']', el && el.mask); if (el && 'keyframes' in el) warn('「images[' + i + '].keyframes」尚未实现，不能作为当前 Agent 输出'); });
+  (cfg.fx && Array.isArray(cfg.fx.layers) ? cfg.fx.layers : []).forEach((layer, i) => {
+    if (!layer || typeof layer !== 'object') return warn('fx.layers[' + i + '] 必须是对象');
+    validateMask('fx.layers[' + i + ']', layer.mask);
+    if (layer.blend && !['normal', 'screen', 'multiply', 'lighter'].includes(layer.blend)) warn('「fx.layers[' + i + '].blend」必须为 normal / screen / multiply / lighter');
+    if (layer.palette && !['none', 'pico8', 'nes', 'vga', 'gb'].includes(layer.palette)) warn('「fx.layers[' + i + '].palette」必须为 none / pico8 / nes / vga / gb');
+    if (layer.pixelDiv != null && (!Number.isFinite(+layer.pixelDiv) || +layer.pixelDiv < 1 || +layer.pixelDiv > 4)) warn('「fx.layers[' + i + '].pixelDiv」必须为 1~4');
+    if (layer.bind && (!layer.bind.targetId || typeof layer.bind.targetId !== 'string')) warn('「fx.layers[' + i + '].bind.targetId」必须引用有稳定 id 的顶层元素');
+    if (layer.bind && layer.bind.mode && !['anchor', 'clip'].includes(layer.bind.mode)) warn('「fx.layers[' + i + '].bind.mode」必须为 anchor / clip');
+  });
   // 3) 用了 show:{scenes} 但未声明 scenes
   if (n === null) {
     let usedShow = false;
@@ -2783,7 +2829,10 @@ function syncGlobals() {
 /* ---------------- PS 式图层列表（元素卡片栏：收起/展开/拖拽排序写 z） ---------------- */
 const PROG_SKIP = ['format', 'formatVersion', 'kind', 'name', 'meta', 'w', 'h', 'loop', 'bg', 'transparent', 'scenes', 'sceneBorders', 'images', 'fx']; // 场景元数据/结构字段不渲染成图层卡片
 let layerOpen = {};
+let fxLayerOpen = {};
+let rightPane = 'layers'; // layers | fx：右栏只切换编辑对象，不改变 Runtime 合成顺序
 let partsOpenEl = null;  // 唯一开启的 [编辑] 图元面板（同时只能一个；开启时矢量绘制锁定到该元素）
+let listDragKind = null; // layer | part | fx：拖动期间仅用于声明对应插入目标有效，具体数据仍在 drop 读取
 let tlCurScene = -1;   // 图层栏当前编辑场景（播放头所在段；-1=无 scenes）
 const rowS = {};       // 参数行 [s] 开关：key = cardKey|path（开=改动只写当前场景槽）
 const normColor = c => (c && c.length === 4 ? '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3] : c);
@@ -2823,7 +2872,7 @@ function walkForm(obj, path, box, cardKey) {
     add('像素化除数', pixelDivControl(obj));
   }
   for (const [k, v] of Object.entries(obj)) {
-    if (k === 'show' || k === 'parts' || k === 'particle') continue; // show=弹窗管理；parts=图元编辑面板；particle=粒子参数专表
+    if (k === 'show' || k === 'parts' || k === 'particle' || k === 'mask') continue; // 专用面板管理：show / parts / particle / mask
     if (obj.particle && (k === 'x' || k === 'y' || k === 'w' || k === 'h')) continue; // 粒子元素：x/y/w/h 归发射区（particleForm 管理）
     const isNumArr = Array.isArray(v) && v.length && v.every(x => typeof x === 'number');
     if (typeof v === 'number' || isNumArr) {
@@ -3027,7 +3076,7 @@ const PARTICLE_PRESETS = [
   { name: '火星（burst 全向喷发）', parts: [{ type: 'rect', x: 0, y: 0, w: 2, h: 2, fill: '#ffd66c' }], particle: { count: 50, burst: true, life: 1.2, speed: 70, dir: 270, spread: 360, gravity: 120, alpha: 1 } },
   { name: '光尘（低透明慢漂移）', parts: [{ type: 'rect', x: 0, y: 0, w: 3, h: 3, fill: 'rgba(150,170,190,0.25)' }], particle: { count: 20, rate: 8, life: 5, speed: 4, dir: 0, wind: 6, sizeVar: 0.8, alpha: 0.5 } },
 ];
-/* 粒子系统参数表单（程序元素含 particle 字段时显示）：实体 = 元素自身 parts 或图片素材；
+/* 粒子系统参数表单（程序元素含 particle 字段时显示）：实体 = 元素自身 parts、图片，或二者组合；
    发射区 = 元素 x/y/w/h（空 = 全画布 → 全局雨/雪）；运动参数全部确定性（种子随机，可像素回归） */
 function particleForm(el, box, cardKey) {
   const add = (label, ctrl, hint) => {
@@ -3068,25 +3117,32 @@ function particleForm(el, box, cardKey) {
   };
   const tip = document.createElement('div');
   tip.className = 'cf-ro';
-  tip.textContent = '粒子：实体可为本元素 parts 或已导入图片；运动确定性（种子随机）；pixelDiv/颜色抖动走精灵缓存（开销≈0）';
+  tip.textContent = '粒子：实体可为本元素 parts、已导入图片或图片 + parts；运动确定性（种子随机）；pixelDiv/颜色抖动走精灵缓存（开销≈0）';
   box.appendChild(tip);
-  // —— 实体来源：parts（默认）或已有素材图片。图片以稳定 imageId 引用，不复制 data URL；可指定静态帧或按粒子寿命播放整张 sprite sheet。——
+  // —— 实体来源：parts（默认）、已有素材图片或图片 + parts。图片以稳定 imageId 引用，不复制 data URL；可指定静态帧或按粒子寿命播放整张 sprite sheet。——
   const sourceRow = document.createElement('div');
   sourceRow.className = 'cf-row';
   const sourceLabel = document.createElement('label'); sourceLabel.textContent = '粒子实体';
-  sourceLabel.title = '图元=本元素 parts；图片=引用场景中已导入的素材。图片粒子使用精灵缓存，删除源素材会使该粒子失去实体。';
+  sourceLabel.title = '图元=本元素 parts；图片=引用场景中已导入的素材；图片+图元=先画图片再叠加本元素 parts。图片粒子使用精灵缓存，删除源素材会使图片部分失效。';
   sourceRow.appendChild(sourceLabel);
   const sourceSel = document.createElement('select');
   sourceSel.appendChild(new Option('图元 parts', 'parts'));
-  const sourceImages = (window.HOME_SCENE && window.HOME_SCENE.images || []).filter(x => x && x.id);
-  sourceImages.forEach(img => sourceSel.appendChild(new Option('图片：' + (img.name || img.id), 'image:' + img.id)));
+  const sourceImages = (window.HOME_SCENE && window.HOME_SCENE.images || []).filter(x => x && x.id && x.role !== 'mask');
+  sourceImages.forEach(img => {
+    sourceSel.appendChild(new Option('图片：' + (img.name || img.id), 'image:' + img.id));
+    if (el.parts && el.parts.length) sourceSel.appendChild(new Option('图片 + 图元：' + (img.name || img.id), 'composite:' + img.id));
+  });
   const source = P.source;
-  sourceSel.value = source && source.type === 'image' ? 'image:' + source.imageId : 'parts';
+  sourceSel.value = source && source.type === 'image' ? (source.compose === 'image+parts' ? 'composite:' : 'image:') + source.imageId : 'parts';
   if (sourceSel.value !== 'parts' && sourceSel.selectedIndex < 0) sourceSel.value = 'parts';
   sourceSel.addEventListener('change', () => {
     pushHistory();
     if (sourceSel.value === 'parts') delete P.source;
-    else P.source = { type: 'image', imageId: sourceSel.value.slice(6), frame: 0, playback: 'static' };
+    else {
+      const isComposite = sourceSel.value.indexOf('composite:') === 0;
+      P.source = { type: 'image', imageId: sourceSel.value.slice(isComposite ? 10 : 6), frame: 0, playback: 'static' };
+      if (isComposite) P.source.compose = 'image+parts';
+    }
     buildLayerList(layerCfg()); refreshStage();
   });
   sourceRow.appendChild(sourceSel);
@@ -3155,19 +3211,19 @@ function particleForm(el, box, cardKey) {
   });
   prRow.appendChild(prSel);
   box.appendChild(prRow);
-  // —— 发射区：x/y/w/h（留空 = 全画布）；[框选] canvas 拖拽返回；[全画布] 清除 ——
+  // —— 发射范围：x/y/w/h（留空 = 全画布）；同一 [框选] 工具也供裁剪蒙版使用 ——
   const rgRow = document.createElement('div');
   rgRow.className = 'cf-row';
   const rgl = document.createElement('label');
-  rgl.textContent = '发射区';
-  rgl.title = 'x/y/w/h = 发射区（留空 = 全画布 → 全局雨/雪）；[框选] 在画布拖拽矩形返回坐标；[全画布] 清除';
+  rgl.textContent = '发射范围';
+  rgl.title = 'x/y/w/h = 发射范围（留空 = 全画布 → 全局雨/雪）；[框选] 在画布拖拽矩形返回坐标；[全画布] 清除。它决定粒子从哪里出生，不等同于裁剪蒙版。';
   rgRow.appendChild(rgl);
   const boxBtn = document.createElement('button'); boxBtn.className = 'small'; boxBtn.textContent = '框选';
-  boxBtn.title = '在画布上拖拽矩形框选发射区（再点一次取消）';
-  boxBtn.addEventListener('click', () => { startRegionSelect(el, boxBtn); });
+  boxBtn.title = '在画布上拖拽矩形框选发射范围（再点一次取消）';
+  boxBtn.addEventListener('click', () => { startRegionSelect(el, boxBtn, 'emission'); });
   rgRow.appendChild(boxBtn);
   const fullBtn = document.createElement('button'); fullBtn.className = 'small'; fullBtn.textContent = '全画布';
-  fullBtn.title = '清除发射区 → 全画布（全局雨/雪）';
+  fullBtn.title = '清除发射范围 → 全画布（全局雨/雪）';
   fullBtn.addEventListener('click', () => {
     pushHistory();
     delete el.x; delete el.y; delete el.w; delete el.h;
@@ -3274,6 +3330,105 @@ function particleForm(el, box, cardKey) {
   seedRow.appendChild(sInp);
   box.appendChild(seedRow);
 }
+// 将左侧素材库的“当前处理结果”冻结为场景内隐藏蒙版素材。这样 Alpha 蒙版不依赖会话状态，
+// 保存后的 js 与其他网页 Runtime 都能按 imageId 找到同一张 data URL。
+function ensureMaskAssetFromSource(src, cfg) {
+  if (!src || !cfg) return null;
+  cfg.images = cfg.images || [];
+  let asset = cfg.images.find(e => e && e.role === 'mask' && e.srcId === src.id);
+  const sz = sourceFrameSize(src);
+  if (!asset) {
+    asset = { id: 'mask' + Math.random().toString(36).slice(2, 9), name: src.name + ' 蒙版', role: 'mask', hidden: true, srcId: src.id, src: getSourceDataUrl(src), x: 0, y: 0, w: sz.w, h: sz.h, frames: src.frames || 1, fps: src.fps || 8, frameLoop: true, _asset: null };
+    cfg.images.push(asset);
+  } else {
+    asset.name = src.name + ' 蒙版'; asset.src = getSourceDataUrl(src); asset.w = sz.w; asset.h = sz.h; asset.frames = src.frames || 1; asset._asset = null;
+  }
+  if (!state.elements.includes(asset)) state.elements = cfg.images;
+  syncElementAssets();
+  return asset;
+}
+// 保存路径：素材库选择 → role:'mask' 隐藏 images[] 项 → mask.imageId 引用；保存时冻结为 data URL。
+// 清除路径：任何 Alpha 引用消失后，未被引用的 role:'mask' 项立即删除，避免蒙版素材反复嵌套或堆积。
+function cleanupOrphanMaskAssets(cfg) {
+  if (!cfg || !Array.isArray(cfg.images)) return;
+  const refs = new Set();
+  const see = el => { if (el && el.mask && el.mask.type === 'alpha' && el.mask.imageId) refs.add(el.mask.imageId); };
+  Object.keys(cfg).forEach(k => { const v = cfg[k]; if (v && typeof v === 'object' && !Array.isArray(v)) see(v); });
+  cfg.images.forEach(see);
+  (cfg.fx && Array.isArray(cfg.fx.layers) ? cfg.fx.layers : []).forEach(see);
+  for (let i = cfg.images.length - 1; i >= 0; i--) if (cfg.images[i] && cfg.images[i].role === 'mask' && !refs.has(cfg.images[i].id)) cfg.images.splice(i, 1);
+  if (state.sceneParamsMode && window.HOME_SCENE === cfg) state.elements = cfg.images;
+}
+/* 裁剪蒙版：保存为元素级 mask；与粒子发射范围共用画布框选，但语义不同——
+   发射范围决定出生位置，蒙版决定最终可见区域。坐标均为画布绝对坐标。 */
+function maskForm(el, box) {
+  if (!state.sceneParamsMode) return;
+  const row = document.createElement('div'); row.className = 'cf-row';
+  const label = document.createElement('label'); label.textContent = '裁剪蒙版';
+  label.title = '限制当前图层最终可见区域；图片、图元、粒子和内建元素均可用。蒙版不改变粒子从哪里出生。'; row.appendChild(label);
+  const type = document.createElement('select');
+  [['none', '无'], ['rect', '矩形'], ['ellipse', '椭圆'], ['poly', '多边形'], ['alpha', 'Alpha 图片']].forEach(([v, text]) => type.appendChild(new Option(text, v)));
+  type.value = el.mask && el.mask.type || 'none';
+  type.addEventListener('change', () => {
+    pushHistory();
+    if (type.value === 'none') delete el.mask;
+    else if (type.value === 'poly') el.mask = { type: 'poly', points: el.mask && Array.isArray(el.mask.points) && el.mask.type === 'poly' ? el.mask.points : [] };
+    else {
+      const prior = el.mask || {};
+      // 新建蒙版先保持零尺寸，点击“框选”后由画布拖拽创建；切换已有矩形/椭圆时保留原范围。
+      const cfg = layerCfg();
+      el.mask = { type: type.value, x: Number.isFinite(prior.x) ? prior.x : 0, y: Number.isFinite(prior.y) ? prior.y : 0, w: Number.isFinite(prior.w) ? prior.w : 0, h: Number.isFinite(prior.h) ? prior.h : 0 };
+      if (type.value === 'alpha') {
+        // 先选图、后框选时默认覆盖全画布；框选操作会保留这一对象的所有非几何字段。
+        el.mask.w = Number.isFinite(prior.w) && prior.w > 0 ? prior.w : (cfg.w || state.cw);
+        el.mask.h = Number.isFinite(prior.h) && prior.h > 0 ? prior.h : (cfg.h || state.ch);
+        el.mask.imageId = prior.imageId || '';
+        el.mask.mode = prior.mode === 'luma' ? 'luma' : 'alpha';
+        el.mask.invert = !!prior.invert;
+      }
+    }
+    buildLayerList(layerCfg()); refreshStage();
+  });
+  row.appendChild(type);
+  if (type.value !== 'none') {
+    const pick = document.createElement('button'); pick.className = 'small'; pick.textContent = maskEdit && maskEdit.el === el ? '完成' : (el.mask && ((el.mask.points && el.mask.points.length) || el.mask.w > 0) ? '编辑' : '框选');
+    pick.title = type.value === 'poly' ? '进入点选多边形蒙版模式；单击加点、双击完成，已有蒙版可拖顶点或点边线插点' : '进入蒙版编辑模式；拖内部移动、拖绿角缩放，空白处拖拽可重新框选';
+    pick.addEventListener('click', () => { if (maskEdit && maskEdit.el === el) endMaskEdit(false); else beginMaskEdit(el, pick); });
+    row.appendChild(pick);
+  }
+  box.appendChild(row);
+  if (type.value === 'alpha') {
+    const sourceRow = document.createElement('div'); sourceRow.className = 'cf-row';
+    const sourceLabel = document.createElement('label'); sourceLabel.textContent = 'Alpha 素材'; sourceLabel.title = '使用该图片的透明度作为蒙版；白/不透明=保留，透明=隐藏。可将处理后的透明 PNG 导入素材库后在此引用。'; sourceRow.appendChild(sourceLabel);
+    const source = document.createElement('select');
+    const cfg = layerCfg();
+    const images = (cfg.images || []).filter(x => x && x.id && x.src && !(x.parts && !x.src)); // 排除纯矢量元素
+    source.appendChild(new Option('选择素材…', ''));
+    state.sources.filter(s => s && s.img).forEach(s => source.appendChild(new Option('素材库 · ' + s.name, 'lib:' + s.id)));
+    const selectedMaskAsset = images.find(img => img.id === el.mask.imageId && img.role === 'mask');
+    if (selectedMaskAsset) source.appendChild(new Option('当前蒙版 · ' + (selectedMaskAsset.name || selectedMaskAsset.id), 'img:' + selectedMaskAsset.id));
+    images.filter(img => img.role !== 'mask').forEach(img => source.appendChild(new Option('场景 · ' + (img.name || img.id), 'img:' + img.id)));
+    source.value = el.mask.imageId || '';
+    // 当前值是裸 imageId；选项使用 img: 前缀避免与素材库 id 冲突。
+    if (el.mask.imageId) source.value = 'img:' + el.mask.imageId;
+    source.addEventListener('change', () => {
+      pushHistory();
+      if (source.value.startsWith('lib:')) {
+        const src = state.sources.find(s => s.id === source.value.slice(4));
+        const asset = ensureMaskAssetFromSource(src, cfg);
+        el.mask.imageId = asset ? asset.id : '';
+      } else el.mask.imageId = source.value.startsWith('img:') ? source.value.slice(4) : '';
+      buildLayerList(cfg); refreshStage();
+    }); sourceRow.appendChild(source);
+    const mode = document.createElement('select');
+    [['alpha', 'Alpha'], ['luma', '明度']].forEach(([v, label]) => mode.appendChild(new Option(label, v)));
+    mode.value = el.mask.mode === 'luma' ? 'luma' : 'alpha'; mode.title = 'Alpha：使用透明度；明度：黑透明、白不透明（仍乘原 Alpha）';
+    mode.addEventListener('change', () => { pushHistory(); el.mask.mode = mode.value; refreshStage(); }); sourceRow.appendChild(mode);
+    const invert = document.createElement('input'); invert.type = 'checkbox'; invert.checked = !!el.mask.invert; invert.title = '反相：透明 PNG 覆盖区改为隐藏区';
+    invert.addEventListener('change', () => { pushHistory(); el.mask.invert = invert.checked; refreshStage(); }); sourceRow.appendChild(invert);
+    box.appendChild(sourceRow);
+  }
+}
 /* 当前 [S] 显示窗口段起点（秒，本循环内）：与渲染端 scrollWindowStart 同语义（含连续窗口回溯——
    相邻场景窗口 f1_prev==1 && f0_cur==0 视为同一连续窗口，回溯到连续链起点）；无 show → 0（循环起点）。
    用于 burst 应用后把播放头跳到爆发点立即可见 */
@@ -3315,11 +3470,13 @@ function showWindowStart(el) {
   }
   return 0;
 }
-/* 发射区框选模式：点 [框选] 进入，在 stage 画布拖拽矩形，松手写回元素 x/y/w/h */
-let regionSelectEl = null;   // 正在框选发射区的粒子元素
+/* 统一范围框选：粒子发射范围写回 x/y/w/h；裁剪蒙版写回 el.mask。 */
+let regionSelectEl = null;   // 正在框选的目标元素
 let regionSelectBtn = null;  // 对应 [框选] 按钮（用于高亮/取消）
 let regionDrag = null;       // 进行中的框选拖拽 {x0,y0}
-function startRegionSelect(el, btn) {
+let regionSelectTarget = 'emission';
+let maskEdit = null;         // {el, before, btn, vertex, drag, adding}：绿色蒙版编辑模式
+function startRegionSelect(el, btn, target) {
   if (regionSelectEl) { // 再点一次取消
     regionSelectEl = null; regionDrag = null; state.regionRect = null;
     if (regionSelectBtn) { regionSelectBtn.classList.remove('on'); regionSelectBtn = null; }
@@ -3327,16 +3484,106 @@ function startRegionSelect(el, btn) {
     return;
   }
   regionSelectEl = el;
+  regionSelectTarget = target || 'emission';
   regionSelectBtn = btn || null;
   if (btn) btn.classList.add('on');
   state.regionRect = null;
   renderStage();
 }
+function maskContains(mask, p) {
+  if (!mask) return false;
+  if (mask.type === 'rect' || mask.type === 'alpha') return p.x >= mask.x && p.x <= mask.x + mask.w && p.y >= mask.y && p.y <= mask.y + mask.h;
+  if (mask.type === 'ellipse') { const rx = Math.max(.001, mask.w / 2), ry = Math.max(.001, mask.h / 2); return ((p.x - (mask.x + rx)) / rx) ** 2 + ((p.y - (mask.y + ry)) / ry) ** 2 <= 1; }
+  if (mask.type === 'poly' && Array.isArray(mask.points) && mask.points.length >= 3) {
+    let inside = false; const pts = mask.points;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const a = pts[i], b = pts[j]; if (((a[1] > p.y) !== (b[1] > p.y)) && p.x < (b[0] - a[0]) * (p.y - a[1]) / (b[1] - a[1]) + a[0]) inside = !inside; }
+    return inside;
+  }
+  return false;
+}
+function nearMaskVertex(mask, p) {
+  if (!mask || !Array.isArray(mask.points)) return -1;
+  const hit = uiWorld(7);
+  return mask.points.findIndex(pt => Math.hypot(p.x - pt[0], p.y - pt[1]) <= hit);
+}
+function nearMaskSegment(mask, p) {
+  if (!mask || !Array.isArray(mask.points) || mask.points.length < 2) return -1;
+  const pts = mask.points, hit = uiWorld(7); let best = -1, dist = Infinity;
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], b = pts[(i + 1) % pts.length], dx = b[0] - a[0], dy = b[1] - a[1], len2 = dx * dx + dy * dy || 1;
+    const q = Math.max(0, Math.min(1, ((p.x - a[0]) * dx + (p.y - a[1]) * dy) / len2));
+    const d = Math.hypot(p.x - (a[0] + q * dx), p.y - (a[1] + q * dy));
+    if (d < hit && d < dist) { dist = d; best = i; }
+  }
+  return best;
+}
+function beginMaskEdit(el, btn) {
+  if (!el.mask || el.mask.type === 'none') return;
+  if (maskEdit) endMaskEdit(false);
+  const isImage = (window.HOME_SCENE && window.HOME_SCENE.images || []).includes(el);
+  state.selProg = isImage ? null : el; state.selEl = isImage ? el.id : null;
+  maskEdit = { el, btn, before: JSON.parse(JSON.stringify(el.mask)), vertex: -1, drag: null, adding: el.mask.type === 'poly' && !(el.mask.points || []).length };
+  if (btn) { btn.classList.add('on'); btn.textContent = '完成'; }
+  $('m-props').textContent = el.mask.type === 'poly' ? '蒙版点选：单击加点；双击或 Enter 完成；拖绿色点调整；点边线可插入点。' : '蒙版编辑：拖内部移动，拖绿色角缩放；在空白处拖拽可重新框选。';
+  renderStage();
+}
+function endMaskEdit(cancel) {
+  if (!maskEdit) return;
+  const edit = maskEdit;
+  if (cancel) edit.el.mask = edit.before;
+  if (edit.el.mask && edit.el.mask.type === 'poly' && (!edit.el.mask.points || edit.el.mask.points.length < 3)) edit.el.mask = edit.before && edit.before.points && edit.before.points.length >= 3 ? edit.before : undefined;
+  if (!edit.el.mask) delete edit.el.mask;
+  if (edit.btn) edit.btn.classList.remove('on');
+  maskEdit = null;
+  buildLayerList(layerCfg()); refreshStage();
+}
+function beginMaskDrag(p) {
+  const edit = maskEdit, mask = edit && edit.el.mask; if (!edit || !mask) return false;
+  if (mask.type === 'poly') {
+    const vertex = nearMaskVertex(mask, p);
+    if (vertex >= 0) { edit.vertex = vertex; edit.drag = { type: 'vertex', sx: p.x, sy: p.y, orig: mask.points[vertex].slice() }; renderStage(); return true; }
+    const segment = nearMaskSegment(mask, p);
+    if (segment >= 0) { pushHistory(); mask.points.splice(segment + 1, 0, [Math.round(p.x), Math.round(p.y)]); edit.vertex = segment + 1; edit.drag = { type: 'vertex', sx: p.x, sy: p.y, orig: mask.points[segment + 1].slice() }; renderStage(); return true; }
+    if (edit.adding) { pushHistory(); mask.points.push([Math.round(p.x), Math.round(p.y)]); edit.vertex = mask.points.length - 1; renderStage(); return true; }
+    if (maskContains(mask, p)) { edit.drag = { type: 'move', sx: p.x, sy: p.y, points: mask.points.map(pt => pt.slice()) }; renderStage(); return true; }
+    return true;
+  }
+  const box = maskBox(mask), corner = box && hitCorner(p, box);
+  if (corner) { edit.drag = { type: 'resize', corner, sx: p.x, sy: p.y, orig: Object.assign({}, mask) }; return true; }
+  if (maskContains(mask, p)) { edit.drag = { type: 'move', sx: p.x, sy: p.y, orig: Object.assign({}, mask) }; return true; }
+  // 空白单击只记录候选起点；与绘制工具一样，超过阈值的拖动才真正重新框选。
+  edit.drag = { type: 'new-pending', sx: p.x, sy: p.y, original: Object.assign({}, mask) }; return true;
+}
+function moveMaskEdit(p) {
+  const edit = maskEdit, d = edit && edit.drag; let mask = edit && edit.el.mask; if (!d || !mask) return;
+  if (d.type === 'vertex') { d.changed = true; mask.points[edit.vertex] = [Math.round(d.orig[0] + p.x - d.sx), Math.round(d.orig[1] + p.y - d.sy)]; }
+  else if (d.type === 'move') {
+    d.changed = true;
+    const dx = Math.round(p.x - d.sx), dy = Math.round(p.y - d.sy);
+    if (mask.type === 'poly') mask.points = d.points.map(pt => [pt[0] + dx, pt[1] + dy]);
+    else { mask.x = d.orig.x + dx; mask.y = d.orig.y + dy; }
+  } else if (d.type === 'resize') {
+    d.changed = true;
+    const r = cornerResize({ x: d.orig.x, y: d.orig.y, w: d.orig.w, h: d.orig.h }, d.corner, p.x - d.sx, p.y - d.sy);
+    mask.x = Math.round(r.nx); mask.y = Math.round(r.ny); mask.w = Math.max(1, Math.round(r.nw)); mask.h = Math.max(1, Math.round(r.nh));
+  } else if (d.type === 'new-pending') {
+    if (Math.hypot(p.x - d.sx, p.y - d.sy) < uiWorld(3)) return;
+    // 保留 imageId / mode / invert 等非几何字段，避免“选图后编辑范围”丢失选择。
+    edit.el.mask = Object.assign({}, d.original, { x: Math.round(d.sx), y: Math.round(d.sy), w: 1, h: 1 });
+    mask = edit.el.mask; d.type = 'new'; d.changed = true;
+    mask.x = Math.round(Math.min(d.sx, p.x)); mask.y = Math.round(Math.min(d.sy, p.y)); mask.w = Math.max(1, Math.round(Math.abs(p.x - d.sx))); mask.h = Math.max(1, Math.round(Math.abs(p.y - d.sy)));
+  } else if (d.type === 'new') {
+    d.changed = true;
+    mask.x = Math.round(Math.min(d.sx, p.x)); mask.y = Math.round(Math.min(d.sy, p.y)); mask.w = Math.max(1, Math.round(Math.abs(p.x - d.sx))); mask.h = Math.max(1, Math.round(Math.abs(p.y - d.sy)));
+  }
+  renderStage();
+}
 function dupAsParticle(srcEl, srcKey) {
-  // 「复制为粒子」：以现有元素（程序元素/带 parts 的素材）的图元为实体，生成新的粒子系统元素
+  // 「复制为粒子」：程序元素取 parts；图片元素取图片，若含 parts 则生成「图片 + parts」组合实体。
   const cfg = window.HOME_SCENE; if (!cfg) return;
   const parts = (srcEl.parts || []).map(p => JSON.parse(JSON.stringify(p)));
-  if (!parts.length) return;
+  const isImage = !!(srcEl.id && (cfg.images || []).includes(srcEl));
+  if (!parts.length && !isImage) return;
   pushHistory();
   const base = srcKey || srcEl.name || '元素';
   let k = base + '粒子';
@@ -3344,33 +3591,19 @@ function dupAsParticle(srcEl, srcKey) {
   while (cfg[k]) k = base + '粒子' + (n++);
   const np = {
     z: (srcEl.z != null ? srcEl.z : 50) + 1,
-    parts: parts,
     particle: { count: 40, rate: 40, life: 1.5, speed: 30, dir: 90, spread: 0, gravity: 0, wind: 0, spin: 0, spinSpeed: 0, sizeVar: 0.3, alpha: 1, fade: true },
   };
+  if (parts.length) np.parts = parts;
+  if (isImage) {
+    np.particle.source = { type: 'image', imageId: srcEl.id, frame: 0, playback: srcEl.frames > 1 ? 'particle-age' : 'static', fps: srcEl.fps || 8, loop: false };
+    if (parts.length) np.particle.source.compose = 'image+parts';
+    np.particle.count = 30; np.particle.rate = 20; np.particle.speed = 28; np.particle.dir = 270; np.particle.spread = 50; np.particle.sizeVar = 0.25;
+  }
   if (srcEl.pixelDiv) np.pixelDiv = srcEl.pixelDiv;   // 继承像素化除数
   if (srcEl.alphaMode) np.alphaMode = srcEl.alphaMode; // 继承边缘透明处理
   cfg[k] = np;
   buildLayerList(cfg);
   refreshStage();
-}
-function dupAsImageParticle(srcEl) {
-  const cfg = window.HOME_SCENE;
-  if (!cfg || !srcEl || !srcEl.id) return;
-  pushHistory();
-  const base = srcEl.name || '图片';
-  let key = base + '图片粒子'; let n = 2;
-  while (cfg[key]) key = base + '图片粒子' + (n++);
-  cfg[key] = {
-    z: (srcEl.z != null ? srcEl.z : 50) + 1,
-    particle: {
-      source: { type: 'image', imageId: srcEl.id, frame: 0, playback: srcEl.frames > 1 ? 'particle-age' : 'static', fps: srcEl.fps || 8, loop: false },
-      count: 30, rate: 20, life: 1.5, speed: 28, dir: 270, spread: 50,
-      gravity: 0, wind: 0, spin: 0, spinSpeed: 0, sizeVar: 0.25, alpha: 1, fade: true,
-    },
-  };
-  layerOpen[key] = true;
-  state.selProg = cfg[key]; state.selEl = null;
-  buildLayerList(cfg); refreshStage();
 }
 $('btn-particle').addEventListener('click', () => {
   const cfg = window.HOME_SCENE;
@@ -3387,11 +3620,23 @@ $('btn-particle').addEventListener('click', () => {
   state.selProg = cfg[key]; state.selEl = null;
   buildLayerList(cfg); refreshStage();
 });
+$('btn-local-fx').addEventListener('click', () => {
+  const cfg = window.HOME_SCENE;
+  if (!cfg || !state.sceneParamsMode) return;
+  pushHistory();
+  const fx = cfg.fx = cfg.fx || {}; fx.layers = Array.isArray(fx.layers) ? fx.layers : [];
+  const cw = +cfg.w || 320, ch = +cfg.h || 180;
+  const layer = { id: 'local-fx-' + Date.now(), name: '局部光效', color: '#ffd36b', alpha: 0.22, blend: 'screen', grain: 0, scan: 0, scanSpacing: 4, flicker: 0, mask: { type: 'rect', x: Math.round(cw * .25), y: Math.round(ch * .25), w: Math.round(cw * .5), h: Math.round(ch * .5) } };
+  fx.layers.push(layer); fxLayerOpen[layer.id] = true; rightPane = 'fx';
+  buildLayerList(cfg); refreshStage();
+});
+$('tab-layers').addEventListener('click', () => { rightPane = 'layers'; buildLayerList(layerCfg()); });
+$('tab-fx').addEventListener('click', () => { rightPane = 'fx'; buildLayerList(layerCfg()); });
 function layerOrderOf(cfg) {
   const progKeys = Object.keys(cfg).filter(k => PROG_SKIP.indexOf(k) < 0 && cfg[k] && typeof cfg[k] === 'object' && !Array.isArray(cfg[k]));
   const imgs = cfg.images || [];
   const order = progKeys.map(k => ({ kind: 'prog', key: k, z: cfg[k].z != null ? cfg[k].z : 0 }))
-    .concat(imgs.filter(e => e.role !== 'background').map(e => ({ kind: 'img', idx: imgs.indexOf(e), z: e.z != null ? e.z : 0 })));
+    .concat(imgs.filter(e => e.role !== 'background' && e.role !== 'mask').map(e => ({ kind: 'img', idx: imgs.indexOf(e), z: e.z != null ? e.z : 0 })));
   // Photoshop 语义：图层栏顶部即画布最前景（z 最大）。
   return order.sort((a, b) => b.z - a.z);
 }
@@ -3849,9 +4094,175 @@ function renderFxPanel(cfg, box) {
     numSeg('亮度', 'brightness', 5, -100, 100, 0, '亮度偏移（-100~100）');
     numSeg('对比度', 'contrast', 0.1, 0, 3, 1, '对比度（1=原样）');
     numSeg('饱和度', 'saturation', 0.1, 0, 2, 1, '饱和度（1=原样；0=灰度）');
+    // 局部 FX 已迁至右侧“局部效果”页；此旧块仅保留源码邻接性，实际不再挂入全局 FX 面板。
+    if (false) {
+    const localTitle = document.createElement('div');
+    localTitle.className = 'subhead';
+    localTitle.textContent = '局部合成 FX';
+    localTitle.title = '按列表顺序叠加在已调色的场景上；蒙版只限制效果，不裁掉场景图层。';
+    card.appendChild(localTitle);
+    const addLocal = document.createElement('button');
+    addLocal.className = 'small'; addLocal.textContent = '+ 局部 FX';
+    addLocal.title = '新增一个带矩形作用范围的局部颜色/颗粒/扫描线合成层';
+    addLocal.addEventListener('click', () => {
+      pushHistory();
+      const cw = +cfg.w || 320, ch = +cfg.h || 180;
+      fx.layers = Array.isArray(fx.layers) ? fx.layers : [];
+      fx.layers.push({ id: 'local-fx-' + Date.now(), name: '局部光效', color: '#ffd36b', alpha: 0.22, blend: 'screen', grain: 0, scan: 0, scanSpacing: 4, flicker: 0, mask: { type: 'rect', x: Math.round(cw * 0.25), y: Math.round(ch * 0.25), w: Math.round(cw * 0.5), h: Math.round(ch * 0.5) } });
+      refreshStage(); buildLayerList(cfg);
+    });
+    card.appendChild(addLocal);
+    const localLayers = Array.isArray(fx.layers) ? fx.layers : [];
+    const localNum = (holder, label, key, step, min, max, def, hint) => {
+      const row = document.createElement('div'); row.className = 'cf-row';
+      const lab = document.createElement('label'); lab.textContent = label; lab.title = hint || ''; row.appendChild(lab);
+      const inp = document.createElement('input'); inp.type = 'number'; inp.step = step; inp.min = min; inp.max = max; inp.style.width = '46px';
+      inp.value = holder[key] != null ? holder[key] : def;
+      inp.addEventListener('change', () => { const v = Math.max(min, Math.min(max, parseFloat(inp.value) || def)); inp.value = v; pushHistory(); holder[key] = v; refreshStage(); });
+      row.appendChild(inp); return row;
+    };
+    localLayers.forEach((layer, idx) => {
+      const lc = document.createElement('div'); lc.className = 'layer-card bg-card'; lc.style.margin = '5px 0 0';
+      const lh = document.createElement('div'); lh.className = 'layer-head';
+      const name = document.createElement('input'); name.type = 'text'; name.className = 'layer-name'; name.value = layer.name || ('局部 FX ' + (idx + 1)); name.title = '局部 FX 名称';
+      name.addEventListener('change', () => { pushHistory(); layer.name = name.value || ('局部 FX ' + (idx + 1)); }); lh.appendChild(name);
+      const hide = document.createElement('button'); hide.className = 'hb'; hide.textContent = layer.hidden ? '○' : '◉'; hide.title = layer.hidden ? '显示此局部 FX' : '隐藏此局部 FX';
+      hide.addEventListener('click', () => { pushHistory(); layer.hidden = !layer.hidden; refreshStage(); buildLayerList(cfg); }); lh.appendChild(hide);
+      const del = document.createElement('button'); del.className = 'hb'; del.textContent = '×'; del.title = '删除局部 FX';
+      del.addEventListener('click', () => { pushHistory(); fx.layers.splice(idx, 1); refreshStage(); buildLayerList(cfg); }); lh.appendChild(del);
+      lc.appendChild(lh);
+      const colorRow = document.createElement('div'); colorRow.className = 'cf-row';
+      const colorLab = document.createElement('label'); colorLab.textContent = '颜色 / 混合'; colorRow.appendChild(colorLab);
+      const color = document.createElement('input'); color.type = 'color'; color.value = normColor(layer.color || '#ffffff'); color.title = '叠加颜色';
+      color.addEventListener('input', () => { pushHistory(); layer.color = color.value; refreshStage(); }); colorRow.appendChild(color);
+      const blend = document.createElement('select'); [['normal', '正常'], ['screen', '滤色'], ['multiply', '正片叠底'], ['lighter', '变亮']].forEach(([v, text]) => blend.appendChild(new Option(text, v)));
+      blend.value = layer.blend || 'normal'; blend.title = 'Canvas 合成模式';
+      blend.addEventListener('change', () => { pushHistory(); layer.blend = blend.value; refreshStage(); }); colorRow.appendChild(blend);
+      lc.appendChild(colorRow);
+      lc.appendChild(localNum(layer, '不透明度', 'alpha', 0.05, 0, 1, 0.22, '效果基础不透明度'));
+      lc.appendChild(localNum(layer, '颗粒', 'grain', 0.05, 0, 1, 0, '局部确定性颗粒强度'));
+      lc.appendChild(localNum(layer, '扫描线', 'scan', 0.05, 0, 1, 0, '局部横向扫描线强度'));
+      lc.appendChild(localNum(layer, '线距', 'scanSpacing', 1, 2, 16, 4, '扫描线像素间距'));
+      lc.appendChild(localNum(layer, '闪烁', 'flicker', 0.05, 0, 1, 0, '随时间轻微改变效果强度'));
+      maskForm(layer, lc);
+      card.appendChild(lc);
+    });
+    }
     // 注：过渡设置已移至上方 scene chip 行右侧（样式含「无过渡」+ 时长 + 颜色）
   }
   box.appendChild(card);
+}
+/* 右栏「局部效果」页：FX 是后处理合成层，不与实体按 z 混排；但在本列表中可像图层一样
+   显隐、排序、设显示窗口、编辑蒙版。数组顺序 = 同一合成阶段内从下到上的覆盖顺序。 */
+function renderLocalFxLayers(cfg, box) {
+  const fx = cfg.fx = cfg.fx || {};
+  const layers = fx.layers = Array.isArray(fx.layers) ? fx.layers : [];
+  const title = document.createElement('div'); title.className = 'cf-group';
+  title.textContent = '局部效果（同阶段内按卡片顺序合成 · 不改变实体图层 z）'; box.appendChild(title);
+  if (!layers.length) {
+    const empty = document.createElement('div'); empty.className = 'cf-ro'; empty.textContent = '（空——用“+ 局部效果”创建局部光、雾色、颗粒或扫描效果）'; box.appendChild(empty); return;
+  }
+  const numberRow = (layer, label, key, step, min, max, fallback) => {
+    const row = document.createElement('div'); row.className = 'cf-row';
+    const lab = document.createElement('label'); lab.textContent = label; row.appendChild(lab);
+    const inp = document.createElement('input'); inp.type = 'number'; inp.step = step; inp.min = min; inp.max = max; inp.style.width = '48px'; inp.value = layer[key] != null ? layer[key] : fallback;
+    inp.addEventListener('change', () => { const v = Math.max(min, Math.min(max, parseFloat(inp.value) || fallback)); inp.value = v; pushHistory(); layer[key] = v; refreshStage(); }); row.appendChild(inp);
+    return row;
+  };
+  layers.forEach((layer, idx) => {
+    const id = layer.id || (layer.id = 'local-fx-' + Date.now() + '-' + idx);
+    const open = !!fxLayerOpen[id];
+    const card = document.createElement('div'); card.className = 'layer-card' + (layer.hidden ? ' hid' : ''); card.draggable = false;
+    const head = document.createElement('div'); head.className = 'layer-head'; head.draggable = true;
+    head.innerHTML = '<span class="lgrip">⠿</span><span class="layer-z">FX' + (layers.length - idx) + '</span><span class="lcarr">' + (open ? '▾' : '▸') + '</span><span class="layer-name">' + escapeHtml(layer.name || ('局部效果 ' + (idx + 1))) + '</span><button class="hb" data-act="show" title="显示时间（每场景显隐 + 场景内窗口）">S</button><button class="hb' + (layer.hidden ? ' hid' : '') + '" data-act="hide" title="显示/隐藏局部效果">' + (layer.hidden ? '显示' : '隐藏') + '</button><button class="hb" data-act="del" title="删除局部效果">删除</button>';
+    card.appendChild(head);
+    head.addEventListener('selectstart', ev => ev.preventDefault());
+    head.addEventListener('dragstart', ev => { if (ev.target.closest && ev.target.closest('button')) { ev.preventDefault(); return; } ev.stopPropagation(); ev.dataTransfer.effectAllowed = 'move'; ev.dataTransfer.setData('text/plain', 'fx:' + idx); listDragKind = 'fx'; card.classList.add('drag'); });
+    head.addEventListener('click', ev => {
+      ev.stopPropagation(); const btn = ev.target.closest ? ev.target.closest('[data-act]') : null;
+      if (btn) {
+        if (btn.dataset.act === 'show') toggleShowPopup(layer, cfg, btn);
+        else if (btn.dataset.act === 'hide') { pushHistory(); layer.hidden = !layer.hidden; refreshStage(); buildLayerList(cfg); }
+        else if (btn.dataset.act === 'del') { pushHistory(); layers.splice(idx, 1); delete fxLayerOpen[id]; refreshStage(); buildLayerList(cfg); }
+        return;
+      }
+      fxLayerOpen[id] = !open; buildLayerList(cfg);
+    });
+    if (open) {
+      const body = document.createElement('div'); body.className = 'layer-body';
+      const nameRow = document.createElement('div'); nameRow.className = 'cf-row'; const nameLab = document.createElement('label'); nameLab.textContent = '名称'; nameRow.appendChild(nameLab);
+      const name = document.createElement('input'); name.type = 'text'; name.value = layer.name || ('局部效果 ' + (idx + 1)); name.addEventListener('change', () => { pushHistory(); layer.name = name.value || ('局部效果 ' + (idx + 1)); buildLayerList(cfg); }); nameRow.appendChild(name); body.appendChild(nameRow);
+      if ('phase' in layer) delete layer.phase; // 新模型固定走场景合成；编辑一次即清理历史字段。
+      const phaseHint = document.createElement('div'); phaseHint.className = 'cf-ro'; phaseHint.textContent = '局部效果固定先于全局采样、调色、色板、CRT 与转场合成。'; body.appendChild(phaseHint);
+      const bindTitle = document.createElement('div'); bindTitle.className = 'subhead'; bindTitle.textContent = '绑定元素'; body.appendChild(bindTitle);
+      const targetRow = document.createElement('div'); targetRow.className = 'cf-row'; const targetLab = document.createElement('label'); targetLab.textContent = '目标'; targetLab.title = '绑定后，FX 的显示时间仍由自身卡片控制；目标被隐藏或不在当前时段时，FX 也不会绘制。'; targetRow.appendChild(targetLab);
+      const target = document.createElement('select'); target.appendChild(new Option('不绑定（画布绝对范围）', ''));
+      const seenTarget = new Set();
+      layerOrderOf(cfg).forEach(item => {
+        const el = item.kind === 'img' ? (cfg.images || [])[item.idx] : cfg[item.key];
+        if (!el || !el.id || el.role === 'background' || el.role === 'mask' || seenTarget.has(el.id)) return;
+        seenTarget.add(el.id); target.appendChild(new Option((item.kind === 'img' ? '图片 · ' : '元素 · ') + (el.name || item.key || el.id), el.id));
+      });
+      if (layer.bind && layer.bind.targetId && !seenTarget.has(layer.bind.targetId)) target.appendChild(new Option('缺失目标 · ' + layer.bind.targetId, layer.bind.targetId));
+      target.value = layer.bind && layer.bind.targetId || '';
+      target.addEventListener('change', () => { pushHistory(); if (!target.value) delete layer.bind; else layer.bind = { targetId: target.value, mode: layer.bind && layer.bind.mode || 'anchor', at: state.t }; buildLayerList(cfg); refreshStage(); }); targetRow.appendChild(target); body.appendChild(targetRow);
+      if (layer.bind && layer.bind.targetId) {
+        const modeRow = document.createElement('div'); modeRow.className = 'cf-row'; const modeLab = document.createElement('label'); modeLab.textContent = '绑定方式'; modeLab.title = '跟随元素：FX 自己的蒙版跟随目标的滚动与动画位移。裁入元素：FX 还会和目标的实际像素轮廓、目标自身蒙版相交。'; modeRow.appendChild(modeLab);
+        const mode = document.createElement('select'); [['anchor', '跟随元素'], ['clip', '裁入元素']].forEach(([v, text]) => mode.appendChild(new Option(text, v))); mode.value = layer.bind.mode === 'clip' ? 'clip' : 'anchor';
+        mode.addEventListener('change', () => { pushHistory(); layer.bind.mode = mode.value; if (layer.bind.at == null) layer.bind.at = state.t; buildLayerList(cfg); refreshStage(); }); modeRow.appendChild(mode); body.appendChild(modeRow);
+        const bindHint = document.createElement('div'); bindHint.className = 'cf-ro'; bindHint.textContent = mode.value === 'clip' ? '结果 = FX 蒙版 ∩ 目标实际 Alpha（已包含目标自己的蒙版）。' : 'FX 蒙版保持原形，仅随目标的滚动与 bob 等位移移动。'; body.appendChild(bindHint);
+      }
+      const gradeTitle = document.createElement('div'); gradeTitle.className = 'subhead'; gradeTitle.textContent = '局部像素处理'; body.appendChild(gradeTitle);
+      const pixelHint = document.createElement('div'); pixelHint.className = 'cf-ro'; pixelHint.textContent = '只处理蒙版包围盒；采样、调色与色板复用全局算法。'; body.appendChild(pixelHint);
+      body.appendChild(numberRow(layer, '局部采样', 'pixelDiv', 1, 1, 4, 1));
+      const paletteRow = document.createElement('div'); paletteRow.className = 'cf-row'; const paletteLab = document.createElement('label'); paletteLab.textContent = '局部色板'; paletteRow.appendChild(paletteLab);
+      const palette = document.createElement('select'); [['none', '无'], ['pico8', 'PICO-8'], ['nes', 'NES'], ['vga', 'VGA'], ['gb', 'GB']].forEach(([v, text]) => palette.appendChild(new Option(text, v))); palette.value = layer.palette || 'none'; palette.addEventListener('change', () => { pushHistory(); layer.palette = palette.value; refreshStage(); }); paletteRow.appendChild(palette); body.appendChild(paletteRow);
+      body.appendChild(numberRow(layer, '色相°', 'hue', 5, -180, 180, 0));
+      body.appendChild(numberRow(layer, '亮度', 'brightness', 5, -100, 100, 0));
+      body.appendChild(numberRow(layer, '对比度', 'contrast', 0.1, 0, 3, 1));
+      body.appendChild(numberRow(layer, '饱和度', 'saturation', 0.1, 0, 2, 1));
+      const blendRow = document.createElement('div'); blendRow.className = 'cf-row'; const blendLab = document.createElement('label'); blendLab.textContent = '颜色 / 混合'; blendRow.appendChild(blendLab);
+      const colorOn = document.createElement('input'); colorOn.type = 'checkbox'; colorOn.checked = layer.colorOn !== false; colorOn.title = '关闭时不铺满颜色，仅保留光晕/噪点/扫描线/暗角'; colorOn.addEventListener('change', () => { pushHistory(); layer.colorOn = colorOn.checked; refreshStage(); }); blendRow.appendChild(colorOn);
+      const color = document.createElement('input'); color.type = 'color'; color.value = normColor(layer.color || '#ffffff'); color.addEventListener('input', () => { pushHistory(); layer.color = color.value; refreshStage(); }); blendRow.appendChild(color);
+      const blend = document.createElement('select'); [['normal', '正常'], ['screen', '滤色'], ['multiply', '正片叠底'], ['lighter', '变亮']].forEach(([v, text]) => blend.appendChild(new Option(text, v))); blend.value = layer.blend || 'normal'; blend.addEventListener('change', () => { pushHistory(); layer.blend = blend.value; refreshStage(); }); blendRow.appendChild(blend); body.appendChild(blendRow);
+      body.appendChild(numberRow(layer, '不透明度', 'alpha', 0.05, 0, 1, 0.22));
+      const fogTitle = document.createElement('div'); fogTitle.className = 'subhead'; fogTitle.textContent = '像素雾'; body.appendChild(fogTitle);
+      body.appendChild(numberRow(layer, '雾强度', 'fog', 0.05, 0, 1, 0));
+      body.appendChild(numberRow(layer, '雾带数', 'fogBands', 1, 2, 18, 6));
+      body.appendChild(numberRow(layer, '雾块尺度', 'fogScale', 1, 4, 96, 24));
+      body.appendChild(numberRow(layer, '雾漂移', 'fogDrift', 1, -80, 80, 8));
+      const fogColorRow = document.createElement('div'); fogColorRow.className = 'cf-row'; const fogColorLab = document.createElement('label'); fogColorLab.textContent = '雾颜色'; fogColorRow.appendChild(fogColorLab);
+      const fogColor = document.createElement('input'); fogColor.type = 'color'; fogColor.value = normColor(layer.fogColor || layer.color || '#d7e8ef'); fogColor.addEventListener('input', () => { pushHistory(); layer.fogColor = fogColor.value; refreshStage(); }); fogColorRow.appendChild(fogColor); body.appendChild(fogColorRow);
+      body.appendChild(numberRow(layer, '像素光晕', 'glow', 0.05, 0, 1, 0));
+      body.appendChild(numberRow(layer, '光晕圈数', 'glowBands', 1, 2, 8, 4));
+      body.appendChild(numberRow(layer, '光晕半径', 'glowRadius', 0.1, 0.1, 1.5, 1));
+      const glowColorRow = document.createElement('div'); glowColorRow.className = 'cf-row'; const glowColorLab = document.createElement('label'); glowColorLab.textContent = '光晕颜色'; glowColorRow.appendChild(glowColorLab);
+      const glowColor = document.createElement('input'); glowColor.type = 'color'; glowColor.value = normColor(layer.glowColor || layer.color || '#ffffff'); glowColor.addEventListener('input', () => { pushHistory(); layer.glowColor = glowColor.value; refreshStage(); }); glowColorRow.appendChild(glowColor); body.appendChild(glowColorRow);
+      body.appendChild(numberRow(layer, '局部暗角', 'vignette', 0.05, 0, 1, 0));
+      const vigColorRow = document.createElement('div'); vigColorRow.className = 'cf-row'; const vigColorLab = document.createElement('label'); vigColorLab.textContent = '暗角颜色'; vigColorRow.appendChild(vigColorLab);
+      const vigColor = document.createElement('input'); vigColor.type = 'color'; vigColor.value = normColor(layer.vignetteColor || '#000000'); vigColor.addEventListener('input', () => { pushHistory(); layer.vignetteColor = vigColor.value; refreshStage(); }); vigColorRow.appendChild(vigColor); body.appendChild(vigColorRow);
+      body.appendChild(numberRow(layer, '噪点', 'noise', 0.05, 0, 1, layer.grain || 0));
+      body.appendChild(numberRow(layer, '噪点尺寸', 'noiseSize', 1, 1, 4, 1));
+      body.appendChild(numberRow(layer, '扫描线', 'scan', 0.05, 0, 1, 0));
+      body.appendChild(numberRow(layer, '线距', 'scanSpacing', 1, 2, 16, 4));
+      body.appendChild(numberRow(layer, '局部 CRT', 'crt', 0.05, 0, 1, 0));
+      body.appendChild(numberRow(layer, 'CRT 线距', 'crtSpacing', 1, 2, 16, 3));
+      body.appendChild(numberRow(layer, '局部故障', 'glitch', 0.05, 0, 1, 0));
+      body.appendChild(numberRow(layer, '闪烁', 'flicker', 0.05, 0, 1, 0));
+      maskForm(layer, body);
+      card.appendChild(body);
+    }
+    card.addEventListener('dragenter', ev => { if (listDragKind === 'fx') ev.preventDefault(); });
+    card.addEventListener('dragover', ev => { if (listDragKind !== 'fx') return; ev.preventDefault(); const before = ev.clientY < card.getBoundingClientRect().top + card.getBoundingClientRect().height / 2; card.dataset.insert = before ? 'before' : 'after'; card.classList.toggle('insert-before', before); card.classList.toggle('insert-after', !before); });
+    card.addEventListener('dragleave', () => card.classList.remove('insert-before', 'insert-after'));
+    card.addEventListener('drop', ev => { ev.preventDefault(); card.classList.remove('insert-before', 'insert-after'); const data = ev.dataTransfer.getData('text/plain'); if (!data || !data.startsWith('fx:')) return; reorderLocalFx(cfg, +data.slice(3), idx, card.dataset.insert !== 'after'); });
+    card.addEventListener('dragend', () => { listDragKind = null; card.classList.remove('drag', 'insert-before', 'insert-after'); });
+    box.appendChild(card);
+  });
+}
+function reorderLocalFx(cfg, source, target, before) {
+  const layers = cfg.fx && cfg.fx.layers; if (!layers || source < 0 || target < 0 || source >= layers.length || target >= layers.length) return;
+  pushHistory(); const [item] = layers.splice(source, 1); let at = target + (before ? 0 : 1); if (source < at) at--; layers.splice(Math.max(0, at), 0, item); buildLayerList(cfg); refreshStage();
 }
 /* FX 工具辅助（segs 模型）：读取 cfg.fx.segs 当前场景时段段 */
 function fxSegsArr(cfg) {
@@ -3998,8 +4409,15 @@ function renderFxTrack() {
   });
 })();
 function buildLayerList(cfg) {
+  cleanupOrphanMaskAssets(cfg);
   const box = $('cfgform');
   box.innerHTML = '';
+  const isFxPane = rightPane === 'fx' && state.sceneParamsMode && window.HOME_SCENE;
+  $('tab-layers').classList.toggle('active', !isFxPane);
+  $('tab-fx').classList.toggle('active', isFxPane);
+  $('props-title').textContent = isFxPane ? '局部效果（拖拽排序=合成顺序）' : '图层元素（点击卡片展开调参 · 拖拽排序=z）';
+  $('btn-particle').style.display = isFxPane ? 'none' : '';
+  $('btn-local-fx').style.display = '';
   tlCurScene = tlScene(); // 图层栏跟随时间轴：显示当前场景值
   // 背景行 + 后处理 FX 面板：渲染到时间轴下方（#tl-bar），cfgform 只放元素卡片
   const tlBar = $('tl-bar');
@@ -4007,6 +4425,10 @@ function buildLayerList(cfg) {
     tlBar.innerHTML = '';
     renderBgRow(cfg, tlBar);
     renderFxPanel(cfg, tlBar);
+  }
+  if (isFxPane) {
+    renderLocalFxLayers(cfg, box);
+    return;
   }
   const order = layerOrderOf(cfg);
   const imgs = cfg.images || [];
@@ -4042,6 +4464,7 @@ function buildLayerList(cfg) {
       if (ev.target.closest && ev.target.closest('button')) { ev.preventDefault(); return; }
       ev.stopPropagation(); ev.dataTransfer.effectAllowed = 'move';
       ev.dataTransfer.setData('text/plain', item.kind + ':' + (item.kind === 'prog' ? item.key : item.idx));
+      listDragKind = 'layer';
       card.classList.add('drag');
     });
     if (open) {
@@ -4050,6 +4473,7 @@ function buildLayerList(cfg) {
       if (item.kind === 'img') imgForm(el, body, cardKey); // 素材卡片：中文说明表单（滚动/动画/多帧）
       else walkForm(el, '', body, cardKey);                // 程序元素：通用参数表单
       if (el.particle) particleForm(el, body, cardKey);    // 粒子系统：运动参数专表（实体=自身 parts）
+      maskForm(el, body);                                  // 所有 Runtime 图层统一的裁剪蒙版
       if (partsOpenEl === el) partsEditor(el, body, cardKey); // [编辑]：图元 parts 子面板
       if (item.kind === 'img') {
         const ops = document.createElement('div');
@@ -4057,16 +4481,10 @@ function buildLayerList(cfg) {
         const bp = document.createElement('button'); bp.className = 'small'; bp.textContent = '复制';
         bp.addEventListener('click', () => { dupElement(el); });
         ops.appendChild(bp);
-        const ip = document.createElement('button'); ip.className = 'small'; ip.textContent = '复制为图片粒子';
-        ip.title = '以此图片（或其 sprite sheet 指定帧）作为粒子实体；源图片仍保留，可自行隐藏';
-        ip.addEventListener('click', () => { dupAsImageParticle(el); });
-        ops.appendChild(ip);
-        if (el.parts && el.parts.length) {
-          const pp = document.createElement('button'); pp.className = 'small'; pp.textContent = '复制为粒子';
-          pp.title = '以本素材的图元为实体，生成粒子系统元素（发射区默认全画布，可改 x/y/w/h）';
-          pp.addEventListener('click', () => { dupAsParticle(el, el.name); });
-          ops.appendChild(pp);
-        }
+        const pp = document.createElement('button'); pp.className = 'small'; pp.textContent = '复制为粒子';
+        pp.title = el.parts && el.parts.length ? '以此图片与其图元叠加构成一个组合粒子实体；源图片仍保留，可自行隐藏' : '以此图片（或其 sprite sheet）作为粒子实体；源图片仍保留，可自行隐藏';
+        pp.addEventListener('click', () => { dupAsParticle(el, el.name); });
+        ops.appendChild(pp);
         body.appendChild(ops);
       } else if (el.parts && el.parts.length) {
         const ops = document.createElement('div');
@@ -4114,8 +4532,9 @@ function buildLayerList(cfg) {
       ev.dataTransfer.setData('text/plain', item.kind + ':' + (item.kind === 'prog' ? item.key : item.idx));
       card.classList.add('drag');
     });
+    card.addEventListener('dragenter', ev => { if (listDragKind === 'layer') ev.preventDefault(); });
     card.addEventListener('dragover', ev => {
-      const data = ev.dataTransfer.getData('text/plain'); if (!data || data.startsWith('part:')) return;
+      if (listDragKind !== 'layer') return;
       ev.preventDefault(); const before = ev.clientY < card.getBoundingClientRect().top + card.getBoundingClientRect().height / 2;
       card.dataset.insert = before ? 'before' : 'after'; card.classList.toggle('insert-before', before); card.classList.toggle('insert-after', !before);
     });
@@ -4128,7 +4547,7 @@ function buildLayerList(cfg) {
       if (kind === 'part') return;
       reorderLayers(cfg, kind, key, item, card.dataset.insert !== 'after');
     });
-    card.addEventListener('dragend', () => { card.classList.remove('drag', 'insert-before', 'insert-after'); });
+    card.addEventListener('dragend', () => { listDragKind = null; card.classList.remove('drag', 'insert-before', 'insert-after'); });
     box.appendChild(card);
   }
   renderBackgroundLayers(cfg, box);
@@ -4382,10 +4801,13 @@ function migrateShow(cfg) {
 }
 function delProgElement(cfg, key) {
   if (!window.confirm('删除场景元素「' + key + '」？保存后场景将不再绘制它。')) return;
+  pushHistory();
+  const released = cfg[key] && cfg[key].id ? unbindFxTargets(cfg, [cfg[key].id]) : 0;
   delete cfg[key];
   delete layerOpen[key];
   buildLayerList(cfg);
   renderStage();
+  if (released) $('m-props').textContent = '已删除元素；' + released + ' 个局部效果已解除绑定并保留。';
 }
 function focusLayerCard(elId) {
   const card = $('cfgform').querySelector('[data-elid="' + elId + '"]');
@@ -4569,7 +4991,7 @@ function partsEditor(el, body, cardKey) {
     hd.addEventListener('selectstart', ev => ev.preventDefault());
     hd.addEventListener('dragstart', ev => {
       if (ev.target.closest && ev.target.closest('button')) { ev.preventDefault(); return; }
-      ev.stopPropagation(); ev.dataTransfer.effectAllowed = 'move'; ev.dataTransfer.setData('text/plain', 'part:' + i); box.classList.add('drag');
+      ev.stopPropagation(); ev.dataTransfer.effectAllowed = 'move'; ev.dataTransfer.setData('text/plain', 'part:' + i); listDragKind = 'part'; box.classList.add('drag');
     });
     box.appendChild(style(p));
     box.addEventListener('click', ev => {
@@ -4584,8 +5006,9 @@ function partsEditor(el, body, cardKey) {
     });
     const extra = document.createElement('div'); extra.className = 'part-extra'; extra.style.display = selected ? '' : 'none'; partForm(p, extra, rebuild); box.appendChild(extra);
     // 拖拽源 = 头部手柄（hd.draggable=true）；box 本身 draggable=false，无需 box 级 dragstart
+    box.addEventListener('dragenter', ev => { if (listDragKind === 'part') { ev.preventDefault(); ev.stopPropagation(); } });
     box.addEventListener('dragover', ev => {
-      const src = ev.dataTransfer.getData('text/plain'); if (!src.startsWith('part:')) return;
+      if (listDragKind !== 'part') return;
       ev.preventDefault(); ev.stopPropagation(); const before = ev.clientY < box.getBoundingClientRect().top + box.getBoundingClientRect().height / 2;
       box.dataset.insert = before ? 'before' : 'after'; box.classList.toggle('insert-before', before); box.classList.toggle('insert-after', !before);
     });
@@ -4599,7 +5022,7 @@ function partsEditor(el, body, cardKey) {
       if (selectedPart) state.partSel.index = el.parts.indexOf(selectedPart);
       buildLayerList(layerCfg()); refreshStage();
     });
-    box.addEventListener('dragend', ev => { ev.stopPropagation(); box.classList.remove('drag', 'insert-before', 'insert-after'); });
+    box.addEventListener('dragend', ev => { ev.stopPropagation(); listDragKind = null; box.classList.remove('drag', 'insert-before', 'insert-after'); });
     body.appendChild(box);
   });
   const add = document.createElement('button');
@@ -4635,22 +5058,17 @@ function partsEditor(el, body, cardKey) {
 }
 function delElement(e) {
   pushHistory();
-  state.elements = state.elements.filter(x => x.id !== e.id);
-  if (state.sceneParamsMode && window.HOME_SCENE) {
-    window.HOME_SCENE.images = (window.HOME_SCENE.images || []).filter(x => x !== e);
-  }
+  const released = removeEditableElements([e.id]);
   if (partsOpenEl === e) partsOpenEl = null;
   state.selEl = null;
   buildLayerList(layerCfg());
   refreshStage();
+  if (released) $('m-props').textContent = '已删除元素；' + released + ' 个局部效果已解除绑定并保留。';
 }
 function dupElement(e) {
   pushHistory();
   const n = Object.assign({}, e, { id: 'e' + Math.random().toString(36).slice(2, 7), x: e.x + 8, y: e.y + 8, _img: null });
-  state.elements.push(n);
-  if (state.sceneParamsMode && window.HOME_SCENE) {
-    (window.HOME_SCENE.images = window.HOME_SCENE.images || []).push(n);
-  }
+  appendEditableElement(n);
   state.selEl = n.id;
   buildLayerList(layerCfg());
   ensureImage(n);
@@ -4685,12 +5103,13 @@ function reorderLayers(cfg, srcKind, srcKey, dstItem, before) {
 }
 
 // 保存：File System Access API（localhost/https）优先，失败/不支持则下载
-async function saveToFile(filename, content) {
+async function saveToFile(filename, content, fileType) {
+  const type = fileType || { mime: 'text/javascript', description: 'JavaScript', ext: '.js' };
   try {
     if (window.showSaveFilePicker) {
       const h = await window.showSaveFilePicker({
         suggestedName: filename,
-        types: [{ description: 'JavaScript', accept: { 'text/javascript': ['.js'] } }],
+        types: [{ description: type.description, accept: { [type.mime]: [type.ext] } }],
       });
       const w = await h.createWritable();
       await w.write(content);
@@ -4700,15 +5119,194 @@ async function saveToFile(filename, content) {
     }
   } catch (e) { /* 用户取消或环境不支持 */ }
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([content], { type: 'text/javascript' }));
+  a.href = URL.createObjectURL(new Blob([content], { type: type.mime }));
   a.download = filename;
   a.click();
   $('m-props').textContent = '当前环境不支持直接写文件，已触发下载：' + filename;
 }
 
+function currentTestSceneScript() {
+  if (window.HOME_SCENE && cfgStart >= 0 && fileText) {
+    freezeSceneAssets(window.HOME_SCENE);
+    const script = fileText.slice(0, cfgStart) + JSON.stringify(window.HOME_SCENE, (k, v) => (k === '_img' || k === '_asset' || k === 'srcId') ? undefined : v, 2) + fileText.slice(cfgEnd);
+    return { script, mode: /window\.HomeScene\s*=/.test(fileText) ? 'home' : 'unknown' };
+  }
+  if (!state.sceneParamsMode && state.elements.length) return { script: buildExportText(), mode: 'assembly' };
+  return null;
+}
+function buildTestSceneHtml(payload) {
+  const isHome = payload.mode === 'home';
+  const safeScript = payload.script.replace(/<\/script/gi, '<\\/script');
+  const canvasId = isHome ? 'home-scene' : 'scene-canvas';
+  return '<!doctype html>\n<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Canvas Scene Test</title><style>html,body{height:100%;margin:0;background:#10131d;color:#dce8ff;font:14px system-ui;display:grid;place-items:center}main{display:grid;gap:12px;justify-items:center}canvas{image-rendering:pixelated;image-rendering:crisp-edges;max-width:min(96vw,960px);max-height:78vh;width:auto;height:auto;border:1px solid #506687;background:transparent;box-shadow:0 12px 40px #0008}.tip{opacity:.7}</style></head><body><main><canvas id="' + canvasId + '"></canvas><div class="tip">自包含场景测试 · 直接在浏览器打开即可运行</div></main><script>' + safeScript + '<\/script></body></html>\n';
+}
+$('btn-test-scene').addEventListener('click', () => {
+  const payload = currentTestSceneScript();
+  if (!payload) { $('m-props').textContent = '没有可测试的场景：请先打开含 Runtime 的 home-scene.js，或在装配模式先添加素材。'; return; }
+  if (payload.mode === 'unknown') { $('m-props').textContent = '当前 JS 只含场景数据、未携带 Runtime，无法生成自包含测试页；请打开带 HomeScene Runtime 的场景脚本。'; return; }
+  const stem = (fileName || 'scene').replace(/\.[^.]+$/, '');
+  saveToFile(stem + '-test.html', buildTestSceneHtml(payload), { mime: 'text/html', description: 'Self-contained Scene Test', ext: '.html' });
+});
+
 $('btn-open').addEventListener('click', () => $('jsfile').click());
 $('btn-new').addEventListener('click', openNewSceneChoice);
 $('btn-background').addEventListener('click', () => openBackgroundWizard('existing'));
+function exportSceneRanges(cfg, picked) {
+  const loop = Math.max(.001, Number(cfg.loop) || 1), names = Array.isArray(cfg.scenes) && cfg.scenes.length ? cfg.scenes : null;
+  if (!names) return [[0, loop]];
+  const bounds = [0].concat(currentBorders(cfg), [loop]);
+  return names.map((_, i) => [bounds[i], bounds[i + 1]]).filter((_, i) => picked[i]);
+}
+function drawMaskGuide(ctx, mask) {
+  if (!mask || !mask.type || mask.type === 'none') return;
+  ctx.save();
+  ctx.strokeStyle = '#4dc3ff'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]); ctx.beginPath();
+  if ((mask.type === 'rect' || mask.type === 'ellipse' || mask.type === 'alpha') && [mask.x, mask.y, mask.w, mask.h].every(Number.isFinite) && mask.w > 0 && mask.h > 0) {
+    if (mask.type === 'ellipse') ctx.ellipse(mask.x + mask.w / 2, mask.y + mask.h / 2, mask.w / 2, mask.h / 2, 0, 0, Math.PI * 2);
+    else ctx.rect(mask.x, mask.y, mask.w, mask.h);
+    ctx.stroke();
+  } else if (mask.type === 'poly' && Array.isArray(mask.points) && mask.points.length >= 3) {
+    const pts = mask.points.filter(p => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]));
+    if (pts.length >= 3) { ctx.moveTo(pts[0][0], pts[0][1]); pts.slice(1).forEach(p => ctx.lineTo(p[0], p[1])); ctx.closePath(); ctx.stroke(); }
+  }
+  ctx.restore();
+}
+function maskBox(mask) {
+  if (!mask) return null;
+  if ((mask.type === 'rect' || mask.type === 'ellipse' || mask.type === 'alpha') && [mask.x, mask.y, mask.w, mask.h].every(Number.isFinite)) return { x: mask.x, y: mask.y, w: mask.w, h: mask.h };
+  if (mask.type === 'poly' && Array.isArray(mask.points) && mask.points.length) {
+    const xs = mask.points.map(p => p[0]), ys = mask.points.map(p => p[1]);
+    return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+  }
+  return null;
+}
+function traceMask(ctx, mask, scale) {
+  const s = scale || 1;
+  if (!mask) return false;
+  if ((mask.type === 'rect' || mask.type === 'ellipse' || mask.type === 'alpha') && [mask.x, mask.y, mask.w, mask.h].every(Number.isFinite) && mask.w > 0 && mask.h > 0) {
+    if (mask.type === 'ellipse') ctx.ellipse((mask.x + mask.w / 2) * s, (mask.y + mask.h / 2) * s, mask.w * s / 2, mask.h * s / 2, 0, 0, Math.PI * 2);
+    else ctx.rect(mask.x * s, mask.y * s, mask.w * s, mask.h * s);
+    return true;
+  }
+  if (mask.type === 'poly' && Array.isArray(mask.points) && mask.points.length) {
+    ctx.moveTo(mask.points[0][0] * s, mask.points[0][1] * s);
+    for (let i = 1; i < mask.points.length; i++) ctx.lineTo(mask.points[i][0] * s, mask.points[i][1] * s);
+    if (mask.points.length >= 3) ctx.closePath();
+    return true;
+  }
+  return false;
+}
+// 编辑中的蒙版：绿色路径和控件画在高 DPI 覆盖层；内部保持通透，外部轻度压暗。
+function drawMaskEdit(ctx, mask) {
+  if (!mask) return;
+  ctx.save();
+  ctx.fillStyle = 'rgba(1, 22, 10, .35)'; ctx.fillRect(0, 0, state.cw, state.ch);
+  ctx.globalCompositeOperation = 'destination-out'; ctx.beginPath();
+  if (traceMask(ctx, mask, 1) && (mask.type !== 'poly' || (mask.points || []).length >= 3)) ctx.fill();
+  ctx.restore();
+  // Alpha 蒙版编辑时把实际素材半透明叠到作用范围，便于对齐树冠/水面等细节；退出编辑即消失。
+  if (mask.type === 'alpha' && mask.imageId) {
+    const asset = (layerCfg().images || []).find(e => e && e.id === mask.imageId);
+    const img = asset && (asset._asset || asset._img);
+    if (asset && img && img.width && img.height) {
+      const frames = Math.max(1, asset.frames || 1), frame = Math.max(0, Math.min(frames - 1, mask.frame | 0));
+      const sw = Math.floor(img.width / frames) || img.width;
+      ctx.save(); ctx.globalAlpha = .38; ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, frame * sw, 0, sw, img.height, mask.x || 0, mask.y || 0, mask.w || state.cw, mask.h || state.ch);
+      ctx.restore();
+    }
+  }
+  const ov = editorOverlayCtx; if (!ov) return;
+  const s = editorOverlayScale;
+  ov.save(); ov.strokeStyle = '#2fbf6a'; ov.lineWidth = 1.5; ov.setLineDash([4, 3]); ov.beginPath();
+  if (traceMask(ov, mask, s)) ov.stroke();
+  ov.setLineDash([]);
+  if (mask.type === 'rect' || mask.type === 'ellipse' || mask.type === 'alpha') {
+    const box = maskBox(mask); if (box) drawCorners(ov, box.x * s, box.y * s, box.w * s, box.h * s, '#2fbf6a');
+  } else if (mask.type === 'poly') {
+    (mask.points || []).forEach((p, i) => { const size = i === (maskEdit && maskEdit.vertex) ? 8 : 6; ov.fillStyle = '#2fbf6a'; ov.fillRect(p[0] * s - size / 2, p[1] * s - size / 2, size, size); });
+  }
+  ov.restore();
+}
+function openExportPanel() {
+  const cfg = window.HOME_SCENE;
+  if (!cfg || !window.SceneExporter) { $('m-props').textContent = '请先打开或新建场景'; return; }
+  const mask = document.createElement('div'); mask.className = 'wizard-mask';
+  const box = document.createElement('div'); box.className = 'wizard';
+  box.innerHTML = '<h2>导出帧</h2><div class="hint">导出使用固定时间 Runtime，不影响当前预览。精灵图供程序播放；多帧 PNG 会分别下载；GIF 使用全局自适应 256 色与二值透明。</div>';
+  const modes = document.createElement('div');
+  [
+    ['cover', '当前帧 PNG', '按播放头当前位置输出一张 PNG。'],
+    ['sprite', '精灵图 Sprite PNG', '按时段、帧率合并为规则网格。最多 240 帧。'],
+    ['frames', '多帧 PNG', '每一帧各下载一张 PNG。最多 120 帧。'],
+    ['gif', 'GIF', '按时段连续播放。最多 600 帧；半透明会转为二值透明。']
+  ].forEach(([value, title, desc], i) => {
+    const label = document.createElement('label'); label.className = 'export-mode';
+    label.innerHTML = '<input type="radio" name="export-mode" value="' + value + '"' + (!i ? ' checked' : '') + '> ' + title + '<small>' + desc + '</small>';
+    modes.append(label);
+  });
+  const controls = document.createElement('div');
+  controls.innerHTML = '<label>帧率</label><div class="row"><input class="export-fps" type="number" min="1" max="30" value="12"><span class="hint-inline">帧/秒</span></div><label>时段</label>';
+  const ranges = document.createElement('div'); ranges.className = 'export-ranges';
+  const names = Array.isArray(cfg.scenes) && cfg.scenes.length ? cfg.scenes : null;
+  if (names) {
+    const bounds = [0].concat(currentBorders(cfg), [cfg.loop || 1]);
+    names.forEach((name, i) => {
+      const label = document.createElement('label'); label.className = 'export-range';
+      label.innerHTML = '<input type="checkbox" data-export-scene="' + i + '" checked> <span>' + (i + 1) + ' · ' + String(name).replace(/[&<>]/g, '') + '</span><span class="hint-inline">' + bounds[i].toFixed(2) + '–' + bounds[i + 1].toFixed(2) + 's</span>';
+      ranges.append(label);
+    });
+  } else ranges.innerHTML = '<div class="export-range"><input type="checkbox" checked disabled> <span>全周期</span><span class="hint-inline">0.00–' + (cfg.loop || 1).toFixed(2) + 's</span></div>';
+  const extras = document.createElement('label'); extras.className = 'choice'; extras.innerHTML = '<input class="export-contact" type="checkbox"> 同时导出时间采样拼图（最多 16 格，含时间标注；用于审阅，不是关键帧轨道）';
+  const count = document.createElement('div'); count.className = 'export-count';
+  const actions = document.createElement('div'); actions.className = 'row';
+  const submit = document.createElement('button'); submit.className = 'primary'; submit.textContent = '开始导出';
+  const cancel = document.createElement('button'); cancel.textContent = '取消'; cancel.onclick = () => mask.remove(); actions.append(submit, cancel);
+  box.append(modes, controls, ranges, extras, count, actions); mask.append(box); document.body.append(mask);
+  const mode = () => box.querySelector('input[name=export-mode]:checked').value;
+  const fps = () => Math.max(1, Math.min(30, parseInt(controls.querySelector('.export-fps').value, 10) || 1));
+  const picked = () => names ? names.map((_, i) => !!ranges.querySelector('[data-export-scene="' + i + '"]').checked) : [true];
+  const maxFor = value => value === 'sprite' ? 240 : value === 'frames' ? 120 : value === 'gif' ? 600 : Infinity;
+  const update = (recommend) => {
+    const value = mode(), isCover = value === 'cover';
+    controls.style.display = ranges.style.display = extras.style.display = isCover ? 'none' : '';
+    if (!isCover && recommend) {
+      const seconds = exportSceneRanges(cfg, picked()).reduce((n, r) => n + r[1] - r[0], 0);
+      const ceiling = value === 'gif' ? 20 : 30;
+      controls.querySelector('.export-fps').value = Math.max(1, Math.min(ceiling, Math.floor(maxFor(value) / Math.max(.001, seconds))));
+    }
+    if (isCover) { count.textContent = '将导出播放头 t=' + (state.t || 0).toFixed(2) + 's 的单帧。'; submit.disabled = false; return; }
+    const selected = exportSceneRanges(cfg, picked());
+    let total = 0; try { total = SceneExporter.frameTimes(cfg, { fps: fps(), ranges: selected }).length; } catch (_) {}
+    const max = maxFor(value), ok = selected.length && total <= max;
+    count.textContent = selected.length ? ('所选时段：' + total + ' 帧（' + fps() + ' fps，最多 ' + max + ' 帧）' + (ok ? '' : ' · 超出上限，请降低帧率或取消部分时段')) : '请至少选择一个时段。';
+    submit.disabled = !ok;
+  };
+  modes.addEventListener('change', () => update(true)); controls.addEventListener('input', () => update(false)); ranges.addEventListener('change', () => update(false)); update(false);
+  submit.onclick = async () => {
+    const value = mode(), exportNotes = SceneExporter.diagnose ? SceneExporter.diagnose(cfg) : [];
+    const rate = fps(), selected = exportSceneRanges(cfg, picked()), opt = { fps: rate, ranges: selected, width: cfg.w, height: cfg.h };
+    try {
+      mask.remove(); $('m-props').textContent = '正在离线渲染…';
+      const base = (cfg.name || 'scene').replace(/[\\/:*?"<>|]+/g, '-');
+      let detail = '';
+      if (value === 'cover') { SceneExporter.download(await SceneExporter.png(cfg, state.t, opt), base + '-cover.png'); detail = '当前帧 PNG'; }
+      else if (value === 'sprite') { const times = SceneExporter.frameTimes(cfg, opt, 240); SceneExporter.download(await SceneExporter.spriteSheet(cfg, opt), base + '-sprite-' + rate + 'fps.png'); detail = times.length + ' 帧精灵图 PNG'; }
+      else if (value === 'frames') {
+        const frames = await SceneExporter.pngFrames(cfg, opt);
+        frames.forEach((f, i) => SceneExporter.download(f.blob, base + '-frame-' + String(i + 1).padStart(3, '0') + '-t' + f.t.toFixed(2) + 's.png'));
+        detail = frames.length + ' 帧 PNG（浏览器可能要求允许多文件下载）';
+      } else { const times = SceneExporter.frameTimes(cfg, opt, 600); SceneExporter.download(await SceneExporter.gif(cfg, opt), base + '-' + rate + 'fps.gif'); detail = times.length + ' 帧 GIF（256 色 / 二值透明）'; }
+      if (extras.querySelector('.export-contact').checked && value !== 'cover') { SceneExporter.download(await SceneExporter.contactSheet(cfg, opt), base + '-time-samples.png'); detail += ' + 时间采样拼图'; }
+      $('m-props').textContent = '已导出 ' + detail + (exportNotes.length ? '\n导出提示：' + exportNotes.join('；') : '');
+    } catch (err) { $('m-props').textContent = '导出失败：' + (err && err.message ? err.message : err); }
+  };
+}
+$('btn-export').addEventListener('click', openExportPanel);
+/*
+ * 导出格式只依赖固定时间 Runtime。通用场景可编辑性诊断与此无关：
+ * HOME_SCENE 兼容项目脚本、图片背景和已注册 builtin 只要能画出画面，就可导出。
+ */
 $('jsfile').addEventListener('change', () => {
   const f = $('jsfile').files[0];
   if (!f) return;
@@ -4989,15 +5587,27 @@ window.addEventListener('pointermove', ev => {
   if (tlDragging) tlSeek(ev);
 });
 window.addEventListener('pointerup', () => {
+  if (maskEdit && maskEdit.drag) {
+    maskEdit.drag = null;
+    pushHistory();
+    refreshStage();
+    return;
+  }
   if (regionDrag) {
     regionDrag = null;
     const r = state.regionRect;
     if (r && r.w >= 2 && r.h >= 2 && regionSelectEl) {
       pushHistory();
-      regionSelectEl.x = Math.round(r.x); regionSelectEl.y = Math.round(r.y);
-      regionSelectEl.w = Math.round(r.w); regionSelectEl.h = Math.round(r.h);
+      if (regionSelectTarget === 'mask') {
+        const prior = regionSelectEl.mask || {};
+        regionSelectEl.mask = { type: prior.type === 'ellipse' ? 'ellipse' : 'rect', x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.w), h: Math.round(r.h) };
+      } else {
+        regionSelectEl.x = Math.round(r.x); regionSelectEl.y = Math.round(r.y);
+        regionSelectEl.w = Math.round(r.w); regionSelectEl.h = Math.round(r.h);
+      }
     }
     regionSelectEl = null;
+    regionSelectTarget = 'emission';
     state.regionRect = null;
     if (regionSelectBtn) { regionSelectBtn.classList.remove('on'); regionSelectBtn = null; }
     buildLayerList(layerCfg());

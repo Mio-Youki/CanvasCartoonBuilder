@@ -21,6 +21,7 @@ const DEFAULT_HOME_SCENE = {
     "#050b1d"
   ],
   "stars": {
+    "id": "home-stars",
     "z": 1,
     "color": ["#7597c9", "#7597c9", "#7597c9", "#bcd8ff"],
     "points": [
@@ -71,6 +72,7 @@ const DEFAULT_HOME_SCENE = {
     ]
   },
   "moon": {
+    "id": "home-moon",
     "z": 2,
     "color": "#d5d8bb",
     "dark": "#9ba69d",
@@ -86,6 +88,7 @@ const DEFAULT_HOME_SCENE = {
     ]
   },
   "clouds": {
+    "id": "home-clouds",
     "z": 3,
     "speed": [-5, -13, -5, -5],
     "span": 92,
@@ -94,6 +97,7 @@ const DEFAULT_HOME_SCENE = {
     "color": ["#182b4c", "#33445c", "#182b4c", "#182b4c"]
   },
   "mountains": {
+    "id": "home-mountains",
     "z": 4,
     "speed": [-4, -4, -16, -4],
     "span": 170,
@@ -103,6 +107,7 @@ const DEFAULT_HOME_SCENE = {
     "fill2": ["#233a57", "#233a57", "#30496a", "#233a57"]
   },
   "farForest": {
+    "id": "home-far-forest",
     "z": 5,
     "speed": -11,
     "span": 33,
@@ -111,6 +116,7 @@ const DEFAULT_HOME_SCENE = {
     "leaf": "#17454a"
   },
   "poles": {
+    "id": "home-poles",
     "z": 6,
     "speed": -26,
     "span": 74,
@@ -120,6 +126,7 @@ const DEFAULT_HOME_SCENE = {
     "top": "#2f4f75"
   },
   "rail": {
+    "id": "home-rail",
     "z": 7,
     "speed": -52,
     "span": 18,
@@ -128,6 +135,7 @@ const DEFAULT_HOME_SCENE = {
     "tie": "#4a3740"
   },
   "train": {
+    "id": "home-train",
     "z": 8,
     "x": 211,
     "y": 75,
@@ -173,6 +181,7 @@ const DEFAULT_HOME_SCENE = {
     ]
   },
   "foreground": {
+    "id": "home-foreground",
     "z": 9,
     "speed": -43,
     "span": 48,
@@ -182,6 +191,7 @@ const DEFAULT_HOME_SCENE = {
     "g3": "#1d5a3c"
   },
   "fog": {
+    "id": "home-fog",
     "z": 10,
     "speed": -29,
     "span": 70,
@@ -190,6 +200,7 @@ const DEFAULT_HOME_SCENE = {
     "a3": "rgba(142,168,176,.18)"
   },
   "signal": {
+    "id": "home-signal",
     "z": 10,
     "x": 161,
     "y": 54,
@@ -205,6 +216,7 @@ const DEFAULT_HOME_SCENE = {
     ]
   },
   "bridge": {
+    "id": "home-bridge",
     "z": 10,
     "speed": -38,
     "span": 26,
@@ -218,7 +230,10 @@ const DEFAULT_HOME_SCENE = {
 // 运行时配置：优先外部注入（工具可改 window.HOME_SCENE 实时生效），否则用默认。
 // 注意：必须是可变的 let + 每帧同步（draw 开头 syncCfg），否则工具"打开 js → 调参"不会生效。
 let CFG = (typeof window !== 'undefined' && window.HOME_SCENE) || DEFAULT_HOME_SCENE;
+// Runtime Adapter 离线渲染时临时指定 Scene；预览仍优先跟随 window.HOME_SCENE。
+let CFG_OVERRIDE = null;
 function syncCfg() {
+  if (CFG_OVERRIDE) { CFG = CFG_OVERRIDE; return; }
   if (typeof window !== 'undefined' && window.HOME_SCENE) CFG = window.HOME_SCENE;
 }
 // 内置键（结构性 + 硬编码元素名）：其余顶层对象视为「通用程序元素」（有 parts → 图元渲染；
@@ -231,6 +246,13 @@ const HomeScene = (() => {
   let canvas, ctx, raf = 0, last = 0, elapsed = 0, running = false;
   let sceneOverride = null; // 过渡活帧：渲染旧场景时临时覆盖 scene(t) 返回值
   let altCanvas = null;     // 过渡活帧：旧场景离屏（scan/wipe/dissolve 合成用）
+  let alphaMaskCanvas = null; // Alpha 蒙版临时内容层：仅存在 alpha mask 时创建/复用
+  let localGlitchCanvas = null; // 局部故障采样：只在启用 glitch 的帧复制当前画面
+  let localGradeCanvas = null;  // 局部采样/调色：尺寸仅为蒙版包围盒 ÷ pixelDiv
+  let fxTargetMaskCanvas = null; // 绑定元素的实际可见轮廓（仅 clip 模式创建/复用）
+  let boundFxCanvas = null;      // 先画 FX 再按元素轮廓裁入（仅 clip 模式创建/复用）
+  const localLutCache = {};
+  let lumaMaskCache = new WeakMap(); // 素材画布/图片对象 → 各帧明度 Alpha 缓存
   let transFrom = null;     // 过渡的旧场景号（边界处记录，过渡结束清空）
   let lastPart = -1;        // 上一帧场景号（边界检测）
   let reduceMotion = false;
@@ -640,7 +662,7 @@ const HomeScene = (() => {
   // life 寿命(秒) / speed dir(度,0=右 90=下 180=左 270=上) spread(扩散锥) gravity wind(水平加速度) /
   // spin(初始自旋度) spinSpeed(度/秒) sizeVar(尺寸抖动 [1-a,1+a]) alpha(初始透明度) fade(淡出) /
   // colorJitter(每粒颜色抖动 0~1，映射色相/亮度/饱和度/对比度各自最大档) pixelDiv(精灵像素化除数)
-  // 精灵缓存：每帧每元素把 parts 渲染一次到离屏（应用 pixelDiv/alphaMode；part 级 anim 生效；元素级 anim/scroll
+  // 精灵缓存：每帧每元素把 parts 或「图片 + parts」渲染一次到离屏（应用 pixelDiv/alphaMode；part 级 anim 生效；元素级 anim/scroll
   // 不参与——粒子运动归粒子参数），粒子本体只做 blit —— 每粒属性（pixelDiv/颜色抖动）成本 ≈ 0
   function particleImageSource(e) {
     const src = e.particle && e.particle.source;
@@ -657,10 +679,23 @@ const HomeScene = (() => {
       loop: !!src.loop,
     };
   }
+  function particleUsesParts(e) {
+    const src = e.particle && e.particle.source;
+    return !!(e.parts && e.parts.length && (!src || src.type !== 'image' || src.compose === 'image+parts'));
+  }
   function particleSprites(e, t, cj, cjDim) {
     const imageSource = particleImageSource(e);
-    const lb = imageSource ? { x: 0, y: 0, w: imageSource.el.w || imageSource.img.width, h: imageSource.el.h || imageSource.img.height }
+    let lb = imageSource ? { x: 0, y: 0, w: imageSource.el.w || imageSource.img.width, h: imageSource.el.h || imageSource.img.height }
       : partsLocalBox(e);
+    // 组合粒子：图片与 parts 使用原元素相同的局部坐标，精灵包围盒须容纳两者（parts 可越出图片边缘）。
+    if (imageSource && particleUsesParts(e)) {
+      const pb = partsLocalBox(e);
+      if (pb) {
+        const minX = Math.min(lb.x, pb.x), minY = Math.min(lb.y, pb.y);
+        const maxX = Math.max(lb.x + lb.w, pb.x + pb.w), maxY = Math.max(lb.y + lb.h, pb.y + pb.h);
+        lb = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+      }
+    }
     if (!lb) return null;
     const div = (e.pixelDiv && e.pixelDiv > 1) ? e.pixelDiv : 1;
     // 尺寸下限 1：纯竖线/水平线 part 包围盒宽/高可为 0 → 精灵至少 1px（否则 blit 宽 0 不可见）
@@ -675,9 +710,12 @@ const HomeScene = (() => {
         const frame = Math.min(frames - 1, imageFrame == null ? imageSource.frame : imageFrame);
         const sw = Math.floor(imageSource.img.width / frames) || imageSource.img.width;
         og.globalAlpha = imageSource.el.alpha != null ? imageSource.el.alpha : 1;
-        og.drawImage(imageSource.img, frame * sw, 0, sw, imageSource.img.height, 0, 0, W, H);
+        const iw = (imageSource.el.w || imageSource.img.width) / div;
+        const ih = (imageSource.el.h || imageSource.img.height) / div;
+        og.drawImage(imageSource.img, frame * sw, 0, sw, imageSource.img.height, -lb.x / div, -lb.y / div, iw, ih);
         og.globalAlpha = 1;
-      } else {
+      }
+      if (particleUsesParts(e)) {
         og.scale(1 / div, 1 / div);
         og.translate(-lb.x, -lb.y);
         const savedCtx = ctx;
@@ -730,7 +768,7 @@ const HomeScene = (() => {
   function drawParticles(e, t, key) {
     const p = e.particle || {};
     const count = Math.max(0, Math.min(600, p.count != null ? p.count : 40));
-    if (!count || ((!e.parts || !e.parts.length) && !(p.source && p.source.type === 'image'))) return;
+    if (!count || (!particleUsesParts(e) && !(p.source && p.source.type === 'image'))) return;
     const loop = LOOPv();
     const t0 = ((t % loop) + loop) % loop;
     const rate = p.rate != null ? p.rate : 40;
@@ -797,11 +835,331 @@ const HomeScene = (() => {
     ctx.globalAlpha = 1;
   }
 
-  // 渲染「背景 + 图层」（不含 fx/过渡）；sceneOverride 生效时按覆盖场景渲染（过渡活帧用）
-  function renderLayers(t) {
+  // 统一裁剪蒙版：所有图层（图片、parts、粒子、builtin 与兼容项目元素）都使用同一份
+  // mask 数据。蒙版坐标是画布绝对坐标；发射范围 x/y/w/h 仍只决定粒子从哪里出生。
+  function maskPath(mask, t) {
+    if (!mask || !mask.type || mask.type === 'none') return false;
+    const x = val(mask, 'x', t), y = val(mask, 'y', t), w = val(mask, 'w', t), h = val(mask, 'h', t);
+    ctx.beginPath();
+    if ((mask.type === 'rect' || mask.type === 'ellipse') && [x, y, w, h].every(Number.isFinite) && w > 0 && h > 0) {
+      if (mask.type === 'ellipse') ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+      else ctx.rect(x, y, w, h);
+      return true;
+    }
+    if (mask.type === 'poly' && Array.isArray(mask.points) && mask.points.length >= 3) {
+      const pts = mask.points.filter(p => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]));
+      if (pts.length < 3) return false;
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.closePath();
+      return true;
+    }
+    return false;
+  }
+  function alphaMaskSource(mask) {
+    if (!mask || mask.type !== 'alpha' || !mask.imageId) return null;
+    const el = (CFG.images || []).find(x => x && x.id === mask.imageId);
+    if (!el) return null;
+    const img = el._asset || (el.src && (imgCache[el.src] || (imgCache[el.src] = (() => { const i = new Image(); i.src = el.src; return i; })())));
+    if (!img || !img.width || !img.height) return null;
+    return { el, img };
+  }
+  function drawAlphaMask(mask, target) {
+    const source = alphaMaskSource(mask);
+    if (!source) return false;
+    const frames = Math.max(1, source.el.frames || 1);
+    const frame = Math.max(0, Math.min(frames - 1, mask.frame | 0));
+    const sw = Math.floor(source.img.width / frames) || source.img.width;
+    const x = Number.isFinite(mask.x) ? mask.x : 0, y = Number.isFinite(mask.y) ? mask.y : 0;
+    const w = Number.isFinite(mask.w) && mask.w > 0 ? mask.w : W, h = Number.isFinite(mask.h) && mask.h > 0 ? mask.h : H;
+    let maskImg = source.img, sx = frame * sw;
+    if (mask.mode === 'luma') {
+      try {
+        let framesCache = lumaMaskCache.get(source.img);
+        if (!framesCache) { framesCache = {}; lumaMaskCache.set(source.img, framesCache); }
+        if (!framesCache[frame]) {
+          const c = createSurface(sw, source.img.height), g = c && c.getContext && c.getContext('2d');
+          if (g) {
+            g.clearRect(0, 0, sw, source.img.height); g.drawImage(source.img, frame * sw, 0, sw, source.img.height, 0, 0, sw, source.img.height);
+            const data = g.getImageData(0, 0, sw, source.img.height), d = data.data;
+            for (let i = 0; i < d.length; i += 4) d[i + 3] = Math.round(d[i + 3] * (d[i] * .2126 + d[i + 1] * .7152 + d[i + 2] * .0722) / 255);
+            g.putImageData(data, 0, 0); framesCache[frame] = c;
+          }
+        }
+        if (framesCache[frame]) { maskImg = framesCache[frame]; sx = 0; }
+      } catch (e) { /* 非可读跨域图片退化为原 Alpha；自包含 data URL 不受影响 */ }
+    }
+    const affine = mask._fxAffine;
+    if (affine) {
+      const scale = affine.to.scale / Math.max(.0001, affine.from.scale), ang = (affine.to.rot - affine.from.rot) * Math.PI / 180;
+      target.save(); target.translate(affine.to.cx, affine.to.cy); target.rotate(ang); target.scale(scale, scale); target.translate(-affine.from.cx, -affine.from.cy);
+      target.drawImage(maskImg, sx, 0, sw, source.img.height, x, y, w, h); target.restore();
+    } else target.drawImage(maskImg, sx, 0, sw, source.img.height, x, y, w, h);
+    return true;
+  }
+  function drawAlphaMasked(mask, t, fn) {
+    if (!alphaMaskCanvas) alphaMaskCanvas = createSurface(W, H);
+    if (!alphaMaskCanvas) return;
+    if (alphaMaskCanvas.width !== W || alphaMaskCanvas.height !== H) { alphaMaskCanvas.width = W; alphaMaskCanvas.height = H; }
+    const off = alphaMaskCanvas.getContext('2d');
+    if (!off) return;
+    const main = ctx;
+    off.clearRect(0, 0, W, H);
+    ctx = off;
+    try { fn(); } finally { ctx = main; }
+    off.save();
+    off.globalCompositeOperation = mask.invert ? 'destination-out' : 'destination-in';
+    if (!drawAlphaMask(mask, off)) { off.restore(); return; }
+    off.restore();
+    main.drawImage(alphaMaskCanvas, 0, 0);
+  }
+  function drawMasked(el, t, fn) {
+    if (!el || !el.mask) { fn(); return; }
+    if (el.mask.type === 'alpha') { drawAlphaMasked(el.mask, t, fn); return; }
+    ctx.save();
+    if (maskPath(el.mask, t)) { ctx.clip(); fn(); }
+    else fn();
+    ctx.restore();
+  }
+
+  // 局部 FX：独立于全局后处理的有序合成层。每层先按自身 mask 裁剪，再以 Canvas
+  // 混合模式叠加颜色 / 扫描线 / 颗粒；没有 fx.layers 时不进入该路径。
+  function maskBounds(mask) {
+    if (!mask) return { x: 0, y: 0, w: W, h: H };
+    if (mask._fxBounds) return mask._fxBounds;
+    let x = +mask.x, y = +mask.y, w = +mask.w, h = +mask.h;
+    if (mask.type === 'poly' && Array.isArray(mask.points) && mask.points.length) {
+      const pts = mask.points.filter(p => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]));
+      if (pts.length) {
+        const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+        x = Math.min.apply(null, xs); y = Math.min.apply(null, ys);
+        w = Math.max.apply(null, xs) - x; h = Math.max.apply(null, ys) - y;
+      }
+    }
+    x = Number.isFinite(x) ? Math.max(0, x) : 0;
+    y = Number.isFinite(y) ? Math.max(0, y) : 0;
+    w = Number.isFinite(w) ? Math.max(0, Math.min(W - x, w)) : W - x;
+    h = Number.isFinite(h) ? Math.max(0, Math.min(H - y, h)) : H - y;
+    return { x, y, w, h };
+  }
+  // FX 可绑定有稳定 id 的顶层图片/通用元素。anchor 仅把 FX 自身蒙版随目标的滚动/动画位移带走；
+  // clip 则将 FX 的结果再与目标的实际绘制 Alpha（已包含目标自己的 mask）相交。
+  function fxTargetLayer(targetId, t) {
+    if (!targetId) return null;
+    const layer = renderableLayers(t).find(l => l && l.el && l.el.id === targetId && !l.hidden && elShown(l.el, t));
+    return layer || null;
+  }
+  function fxTargetAnchor(el, t) {
+    const so = scrollOffsets(el, t), ea = applyAnims(animList(el.anim), t, { yOff: 0, xOff: 0, scale: 1, alpha: 1 });
+    return { x: (val(el, 'x', t) || 0) + so.x + ea.xOff, y: (val(el, 'y', t) || 0) + so.y + ea.yOff };
+  }
+  function fxTargetPose(el, t) {
+    const so = scrollOffsets(el, t), ea = applyAnims(animList(el.anim), t, { yOff: 0, xOff: 0, rot: 0, scale: 1, alpha: 1 });
+    const lb = el.parts && el.parts.length ? partsLocalBox(el) : { x: 0, y: 0, w: val(el, 'w', t) || el.w || 1, h: val(el, 'h', t) || el.h || 1 };
+    const x = (val(el, 'x', t) || 0) + so.x + ea.xOff, y = (val(el, 'y', t) || 0) + so.y + ea.yOff;
+    return { cx: x + lb.x + lb.w / 2, cy: y + lb.y + lb.h / 2, rot: (el.rot || 0) + ea.rot, scale: ea.scale || 1 };
+  }
+  function transformFxPoint(p, from, to) {
+    const scale = to.scale / Math.max(.0001, from.scale), ang = (to.rot - from.rot) * Math.PI / 180;
+    const x = (p[0] - from.cx) * scale, y = (p[1] - from.cy) * scale, c = Math.cos(ang), s = Math.sin(ang);
+    return [to.cx + x * c - y * s, to.cy + x * s + y * c];
+  }
+  function transformedFxMask(mask, from, to) {
+    const moved = Math.abs(to.cx - from.cx) > .001 || Math.abs(to.cy - from.cy) > .001 || Math.abs(to.rot - from.rot) > .001 || Math.abs(to.scale - from.scale) > .001;
+    if (!moved) return mask;
+    const out = Object.assign({}, mask);
+    if (mask.type === 'alpha') {
+      const corners = [[mask.x, mask.y], [mask.x + mask.w, mask.y], [mask.x + mask.w, mask.y + mask.h], [mask.x, mask.y + mask.h]].map(p => transformFxPoint(p, from, to));
+      const xs = corners.map(p => p[0]), ys = corners.map(p => p[1]);
+      const bx = Math.max(0, Math.min.apply(null, xs)), by = Math.max(0, Math.min.apply(null, ys));
+      out._fxAffine = { from, to }; out._fxBounds = { x: bx, y: by, w: Math.max(0, Math.min(W, Math.max.apply(null, xs)) - bx), h: Math.max(0, Math.min(H, Math.max.apply(null, ys)) - by) };
+      return out;
+    }
+    let points;
+    if (mask.type === 'poly') points = (mask.points || []).map(p => transformFxPoint(p, from, to));
+    else if (mask.type === 'ellipse') { points = []; for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; points.push(transformFxPoint([mask.x + mask.w / 2 + Math.cos(a) * mask.w / 2, mask.y + mask.h / 2 + Math.sin(a) * mask.h / 2], from, to)); } }
+    else points = [[mask.x, mask.y], [mask.x + mask.w, mask.y], [mask.x + mask.w, mask.y + mask.h], [mask.x, mask.y + mask.h]].map(p => transformFxPoint(p, from, to));
+    return Object.assign(out, { type: 'poly', points });
+  }
+  function anchoredFxLayer(layer, target, t) {
+    const bind = layer && layer.bind;
+    if (!bind || !target || !layer.mask) return layer;
+    const now = fxTargetPose(target.el, t), then = fxTargetPose(target.el, bind.at != null ? bind.at : 0);
+    return Object.assign({}, layer, { mask: transformedFxMask(layer.mask, then, now) });
+  }
+  function renderFxTargetMask(target, t) {
+    if (!target) return false;
+    if (!fxTargetMaskCanvas) fxTargetMaskCanvas = createSurface(W, H);
+    if (!fxTargetMaskCanvas) return false;
+    if (fxTargetMaskCanvas.width !== W || fxTargetMaskCanvas.height !== H) { fxTargetMaskCanvas.width = W; fxTargetMaskCanvas.height = H; }
+    const g = fxTargetMaskCanvas.getContext && fxTargetMaskCanvas.getContext('2d'); if (!g) return false;
+    const main = ctx; g.clearRect(0, 0, W, H); ctx = g;
+    try { drawMasked(target.el, t, target.fn); } finally { ctx = main; }
+    return true;
+  }
+  function drawFxMasked(layer, target, t, fn) {
+    const clip = layer && layer.bind && layer.bind.mode === 'clip';
+    if (!clip) { drawMasked(layer, t, fn); return; }
+    if (!renderFxTargetMask(target, t)) return;
+    if (!boundFxCanvas) boundFxCanvas = createSurface(W, H);
+    if (!boundFxCanvas) return;
+    if (boundFxCanvas.width !== W || boundFxCanvas.height !== H) { boundFxCanvas.width = W; boundFxCanvas.height = H; }
+    const g = boundFxCanvas.getContext && boundFxCanvas.getContext('2d'); if (!g) return;
+    const main = ctx; g.clearRect(0, 0, W, H); ctx = g;
+    try { drawMasked(layer, t, fn); } finally { ctx = main; }
+    g.save(); g.globalCompositeOperation = 'destination-in'; g.drawImage(fxTargetMaskCanvas, 0, 0); g.restore();
+    main.drawImage(boundFxCanvas, 0, 0);
+  }
+  function applyLocalGrade(layer, t, bounds, alpha, target) {
+    const palette = layer.palette || 'none', hue = +layer.hue || 0, brightness = +layer.brightness || 0;
+    const contrast = layer.contrast != null ? +layer.contrast : 1, saturation = layer.saturation != null ? +layer.saturation : 1;
+    const div = Math.max(1, Math.min(4, Math.round(+layer.pixelDiv || 1)));
+    if (palette === 'none' && !hue && !brightness && contrast === 1 && saturation === 1 && div <= 1) return;
+    const bx = Math.max(0, Math.floor(bounds.x)), by = Math.max(0, Math.floor(bounds.y));
+    const bw = Math.max(1, Math.min(W - bx, Math.ceil(bounds.w))), bh = Math.max(1, Math.min(H - by, Math.ceil(bounds.h)));
+    const sw = Math.max(1, Math.round(bw / div)), sh = Math.max(1, Math.round(bh / div));
+    if (!localGradeCanvas) localGradeCanvas = createSurface(sw, sh);
+    if (!localGradeCanvas) return;
+    if (localGradeCanvas.width !== sw || localGradeCanvas.height !== sh) { localGradeCanvas.width = sw; localGradeCanvas.height = sh; }
+    const g = localGradeCanvas.getContext('2d'); if (!g) return;
+    try {
+      g.clearRect(0, 0, sw, sh); g.imageSmoothingEnabled = false; g.drawImage(canvas, bx, by, bw, bh, 0, 0, sw, sh);
+      const data = g.getImageData(0, 0, sw, sh), d = data.data, cm = colorMatrixOf(hue, brightness, contrast, saturation), m = cm.m, mo = cm.mo;
+      for (let i = 0; i < d.length; i += 4) { const r = d[i], gg = d[i + 1], b = d[i + 2]; d[i] = Math.min(255, Math.max(0, m[0] * r + m[1] * gg + m[2] * b + mo)); d[i + 1] = Math.min(255, Math.max(0, m[3] * r + m[4] * gg + m[5] * b + mo)); d[i + 2] = Math.min(255, Math.max(0, m[6] * r + m[7] * gg + m[8] * b + mo)); }
+      if (palette !== 'none' && FX_PALETTES[palette]) {
+        const lut = localLutCache[palette] || (localLutCache[palette] = buildLut(FX_PALETTES[palette]));
+        for (let i = 0; i < d.length; i += 4) { const ix = ((d[i] >> 3) << 11) | ((d[i + 1] >> 2) << 5) | (d[i + 2] >> 3); d[i] = lut[ix * 3]; d[i + 1] = lut[ix * 3 + 1]; d[i + 2] = lut[ix * 3 + 2]; }
+      }
+      g.putImageData(data, 0, 0);
+      drawFxMasked(layer, target, t, () => { ctx.save(); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = alpha; ctx.imageSmoothingEnabled = false; ctx.drawImage(localGradeCanvas, 0, 0, sw, sh, bx, by, bw, bh); ctx.restore(); });
+    } catch (e) { /* 不可读跨域 Canvas 时安全跳过；自包含 data URL 正常可用 */ }
+  }
+  // 局部 FX 固定作为场景合成：所有局部层先合成，再统一交给全局像素滤镜与覆盖层处理。
+  // 旧文件的 phase 字段被安全忽略，避免局部效果拥有第二条不可预测的后处理路径。
+  function applyMaskedFxLayers(t) {
+    const list = CFG.fx && Array.isArray(CFG.fx.layers) ? CFG.fx.layers : null;
+    if (!list || !list.length) return;
+    const modes = { normal: 'source-over', screen: 'screen', multiply: 'multiply', lighter: 'lighter' };
+    list.forEach((layer, li) => {
+      if (!layer || layer.hidden || !layer.mask || !elShown(layer, t)) return;
+      const target = layer.bind && layer.bind.targetId ? fxTargetLayer(layer.bind.targetId, t) : null;
+      if (layer.bind && layer.bind.targetId && !target) return;
+      const fxLayer = anchoredFxLayer(layer, target, t);
+      const alpha = Math.max(0, Math.min(1, +fxLayer.alpha || 0));
+      if (!alpha) return;
+      const flicker = Math.max(0, Math.min(1, +layer.flicker || 0));
+      const pulse = flicker ? 1 - flicker * (0.5 + 0.5 * Math.sin(t * 19.7 + li * 13.1)) : 1;
+      const bounds = maskBounds(fxLayer.mask);
+      if (!bounds.w || !bounds.h) return;
+      // 先处理局部像素区：采样/调色/色板只读写蒙版包围盒，随后再叠加本层雾、光、屏幕材质。
+      applyLocalGrade(fxLayer, t, bounds, alpha * pulse, target);
+      const glitch = Math.max(0, Math.min(1, +fxLayer.glitch || 0));
+      let glitchSource = null;
+      if (glitch && canvas) {
+        if (!localGlitchCanvas) localGlitchCanvas = createSurface(W, H);
+        if (localGlitchCanvas && (localGlitchCanvas.width !== W || localGlitchCanvas.height !== H)) { localGlitchCanvas.width = W; localGlitchCanvas.height = H; }
+        const gg = localGlitchCanvas && localGlitchCanvas.getContext && localGlitchCanvas.getContext('2d');
+        if (gg) { gg.clearRect(0, 0, W, H); gg.drawImage(canvas, 0, 0); glitchSource = localGlitchCanvas; }
+      }
+      drawFxMasked(fxLayer, target, t, () => {
+      ctx.save();
+      const blend = modes[layer.blend] || 'source-over';
+      ctx.globalCompositeOperation = blend;
+      if (layer.colorOn !== false) { ctx.globalAlpha = alpha * pulse; ctx.fillStyle = layer.color || '#ffffff'; ctx.fillRect(0, 0, W, H); }
+      // 像素雾：确定性、缓慢漂移的低不透明度雾带 + 小块抖动，不做边缘高斯模糊。
+      const fog = Math.max(0, Math.min(1, +layer.fog || 0));
+      if (fog) {
+        const bands = Math.max(2, Math.min(18, Math.round(+layer.fogBands || 6))), scale = Math.max(4, Math.min(96, +layer.fogScale || 24));
+        const drift = Math.max(-80, Math.min(80, +layer.fogDrift || 8)), tick = t * drift;
+        ctx.globalCompositeOperation = blend; ctx.fillStyle = layer.fogColor || layer.color || '#d7e8ef';
+        for (let fi = 0; fi < bands; fi++) {
+          const seed = Math.sin((fi + 1) * 45.17) * 43758.5453, r = seed - Math.floor(seed);
+          const y = bounds.y + ((fi * scale * .72 + r * scale + t * 3) % Math.max(1, bounds.h));
+          const x = bounds.x + (((fi * scale * 1.31 + r * bounds.w + tick) % (bounds.w + scale)) - scale);
+          const w = Math.min(bounds.w + scale, scale * (2.2 + r * 2.4)), h = Math.max(1, Math.round(scale * (.12 + r * .22)));
+          ctx.globalAlpha = alpha * fog * pulse * (.16 + r * .16); ctx.fillRect(x, y, w, h);
+        }
+      }
+      // 像素光晕：用少量同心硬边椭圆叠加，而非高斯模糊；场景阶段会继续经过 pixelDiv/色板。
+      const glow = Math.max(0, Math.min(1, +layer.glow || 0));
+      if (glow) {
+        const bands = Math.max(2, Math.min(8, Math.round(+layer.glowBands || 4)));
+        const radius = Math.max(.1, Math.min(1.5, +layer.glowRadius || 1));
+        const cx = bounds.x + bounds.w / 2, cy = bounds.y + bounds.h / 2;
+        ctx.fillStyle = layer.glowColor || layer.color || '#ffffff';
+        for (let bi = bands; bi >= 1; bi--) {
+          const f = radius * bi / bands;
+          ctx.globalAlpha = alpha * glow * pulse * (0.08 + (bands - bi + 1) / bands * 0.18);
+          ctx.beginPath(); ctx.ellipse(cx, cy, Math.max(1, bounds.w * .5 * f), Math.max(1, bounds.h * .5 * f), 0, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      // 局部暗角：蒙版裁剪后再铺径向边缘色，故矩形/椭圆/多边形/Alpha 都能生效。
+      const vignette = Math.max(0, Math.min(1, +layer.vignette || 0));
+      if (vignette) {
+        const cx = bounds.x + bounds.w / 2, cy = bounds.y + bounds.h / 2, radius = Math.max(1, Math.hypot(bounds.w, bounds.h) / 2);
+        const grad = ctx.createRadialGradient(cx, cy, Math.max(0, radius * .18), cx, cy, radius);
+        grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(1, layer.vignetteColor || '#000000');
+        ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = alpha * vignette * pulse; ctx.fillStyle = grad; ctx.fillRect(bounds.x, bounds.y, bounds.w, bounds.h);
+        ctx.globalCompositeOperation = blend;
+      }
+      const scan = Math.max(0, Math.min(1, +layer.scan || 0));
+      if (scan) {
+        const spacing = Math.max(2, Math.min(16, Math.round(+layer.scanSpacing || 4)));
+        ctx.globalAlpha = alpha * scan * 0.45 * pulse;
+        ctx.fillStyle = (blend === 'screen' || blend === 'lighter') ? (layer.color || '#ffffff') : '#000000';
+        for (let y = Math.ceil(bounds.y / spacing) * spacing; y < bounds.y + bounds.h; y += spacing) ctx.fillRect(bounds.x, y, bounds.w, 1);
+      }
+      // 局部 CRT：扫描黑线 + 稀疏 RGB 荧光栅格，局限在蒙版内；不模拟曲面屏，避免引入几何扭曲。
+      const crt = Math.max(0, Math.min(1, +layer.crt || 0));
+      if (crt) {
+        const spacing = Math.max(2, Math.min(16, Math.round(+layer.crtSpacing || 3)));
+        ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = alpha * crt * .42 * pulse; ctx.fillStyle = '#000000';
+        for (let y = Math.ceil(bounds.y / spacing) * spacing; y < bounds.y + bounds.h; y += spacing) ctx.fillRect(bounds.x, y, bounds.w, 1);
+        ctx.globalAlpha = alpha * crt * .16 * pulse;
+        for (let y = Math.ceil(bounds.y / spacing) * spacing + 1; y < bounds.y + bounds.h; y += spacing) {
+          for (let x = Math.ceil(bounds.x / 3) * 3; x < bounds.x + bounds.w; x += 3) {
+            ctx.fillStyle = '#ff5f71'; ctx.fillRect(x, y, 1, 1); ctx.fillStyle = '#79ef9d'; ctx.fillRect(x + 1, y, 1, 1); ctx.fillStyle = '#6faeff'; ctx.fillRect(x + 2, y, 1, 1);
+          }
+        }
+        ctx.globalCompositeOperation = blend;
+      }
+      const noise = Math.max(0, Math.min(1, layer.noise != null ? +layer.noise : (+layer.grain || 0)));
+      if (noise) {
+        const dots = Math.min(360, Math.max(1, Math.round(bounds.w * bounds.h * noise / 14)));
+        const noiseSize = Math.max(1, Math.min(4, Math.round(+layer.noiseSize || 1)));
+        const tick = Math.floor(t * 12);
+        ctx.globalAlpha = alpha * noise * 0.62 * pulse;
+        ctx.fillStyle = (blend === 'screen' || blend === 'lighter') ? '#ffffff' : '#000000';
+        for (let i = 0; i < dots; i++) {
+          const seed = Math.sin((i + 1) * 12.9898 + (li + 1) * 78.233 + tick * 37.719) * 43758.5453;
+          const seed2 = Math.sin((i + 1) * 93.9898 + (li + 1) * 17.233 + tick * 11.719) * 24634.6345;
+          const rx = seed - Math.floor(seed), ry = seed2 - Math.floor(seed2);
+          ctx.fillRect(Math.floor(bounds.x + rx * bounds.w), Math.floor(bounds.y + ry * bounds.h), noiseSize, noiseSize);
+        }
+      }
+      // 局部故障：先缓存当前画面，再把确定性的水平条带错位回贴；掩膜确保只污染目标区域。
+      if (glitchSource) {
+        const tick = Math.floor(t * 12), strips = Math.max(2, Math.round(3 + glitch * 12));
+        ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = glitch * .8 * pulse;
+        for (let si = 0; si < strips; si++) {
+          const r1 = Math.sin((si + 1) * 19.17 + tick * 8.31 + li * 5.1) * 43758.5453;
+          const r2 = Math.sin((si + 1) * 71.31 + tick * 3.17 + li * 9.7) * 24634.6345;
+          const fy = r1 - Math.floor(r1), fx = r2 - Math.floor(r2);
+          const y = Math.floor(bounds.y + fy * Math.max(1, bounds.h - 1));
+          const h = Math.max(1, Math.min(5, Math.round(1 + glitch * 4)));
+          const dx = Math.round((fx * 2 - 1) * Math.max(1, bounds.w * .12) * glitch);
+          ctx.drawImage(glitchSource, bounds.x, y, bounds.w, h, bounds.x + dx, y, bounds.w, h);
+        }
+        ctx.globalCompositeOperation = blend;
+      }
+      ctx.restore();
+      });
+    });
+  }
+
+  // 构建实体图层描述：渲染与“裁入元素”的 FX 轮廓采样共用，避免第二套元素绘制规则。
+  function renderableLayers(t) {
     const part = scene(t);
-    ctx.clearRect(0, 0, W, H);
-    if (!CFG.transparent) rect(0, 0, W, H, Array.isArray(CFG.bg) ? CFG.bg[Math.min(part, CFG.bg.length - 1)] : CFG.bg);
     // 图层按 z 排序渲染（z 越大越靠上；素材 images 默认 99）
     // 工具图层栏可删除程序元素（cfg 键缺失则跳过）、隐藏元素（hidden 为真则不绘制）；
     // 所有元素统一尊重 elShown；有 parts：partsMode==='overlay' 时原绘制+图元叠加，否则图元替代
@@ -811,20 +1169,20 @@ const HomeScene = (() => {
       else drawParts(el, tt);
     };
     const layers = [
-      CFG.stars && { z: CFG.stars.z || 1, hidden: CFG.stars.hidden, fn: () => { if (elShown(CFG.stars, t)) elDraw(CFG.stars, stars, t, part); } },
-      CFG.moon && { z: CFG.moon.z || 2, hidden: CFG.moon.hidden, fn: () => { if (elShown(CFG.moon, t)) elDraw(CFG.moon, moon, t, part); } },
-      CFG.clouds && { z: CFG.clouds.z || 3, hidden: CFG.clouds.hidden, fn: () => { if (elShown(CFG.clouds, t)) elDraw(CFG.clouds, clouds, t, part); } },
-      CFG.mountains && { z: CFG.mountains.z || 4, hidden: CFG.mountains.hidden, fn: () => { if (elShown(CFG.mountains, t)) elDraw(CFG.mountains, mountains, t, part); } },
-      CFG.farForest && { z: CFG.farForest.z || 5, hidden: CFG.farForest.hidden, fn: () => { if (elShown(CFG.farForest, t)) elDraw(CFG.farForest, farForest, t, part); } },
-      CFG.poles && { z: CFG.poles.z || 6, hidden: CFG.poles.hidden, fn: () => { if (elShown(CFG.poles, t)) elDraw(CFG.poles, poles, t, part); } },
-      CFG.rail && { z: CFG.rail.z || 7, hidden: CFG.rail.hidden, fn: () => { if (elShown(CFG.rail, t)) elDraw(CFG.rail, rail, t, part); } },
-      CFG.train && { z: CFG.train.z || 8, hidden: CFG.train.hidden, fn: () => { if (elShown(CFG.train, t)) { if (CFG.train.parts && CFG.train.parts.length && CFG.train.partsMode !== 'overlay') { drawParts(CFG.train, t); drawBeam(CFG.train, t); } else train(t, part); } } },
-      CFG.foreground && { z: CFG.foreground.z || 9, hidden: CFG.foreground.hidden, fn: () => { if (elShown(CFG.foreground, t)) elDraw(CFG.foreground, foreground, t, part); } },
-      CFG.fog && { z: CFG.fog.z || 10, hidden: CFG.fog.hidden, fn: () => { if (elShown(CFG.fog, t)) elDraw(CFG.fog, fogBank, t, part); } },
-      CFG.signal && { z: CFG.signal.z || 10, hidden: CFG.signal.hidden, fn: () => { if (elShown(CFG.signal, t)) { if (CFG.signal.parts && CFG.signal.parts.length && CFG.signal.partsMode !== 'overlay') { drawParts(CFG.signal, t); } else signal(t, part); } } },
-      CFG.bridge && { z: CFG.bridge.z || 10, hidden: CFG.bridge.hidden, fn: () => { if (elShown(CFG.bridge, t)) elDraw(CFG.bridge, bridge, t, part); } },
+      CFG.stars && { el: CFG.stars, z: CFG.stars.z || 1, hidden: CFG.stars.hidden, fn: () => { if (elShown(CFG.stars, t)) elDraw(CFG.stars, stars, t, part); } },
+      CFG.moon && { el: CFG.moon, z: CFG.moon.z || 2, hidden: CFG.moon.hidden, fn: () => { if (elShown(CFG.moon, t)) elDraw(CFG.moon, moon, t, part); } },
+      CFG.clouds && { el: CFG.clouds, z: CFG.clouds.z || 3, hidden: CFG.clouds.hidden, fn: () => { if (elShown(CFG.clouds, t)) elDraw(CFG.clouds, clouds, t, part); } },
+      CFG.mountains && { el: CFG.mountains, z: CFG.mountains.z || 4, hidden: CFG.mountains.hidden, fn: () => { if (elShown(CFG.mountains, t)) elDraw(CFG.mountains, mountains, t, part); } },
+      CFG.farForest && { el: CFG.farForest, z: CFG.farForest.z || 5, hidden: CFG.farForest.hidden, fn: () => { if (elShown(CFG.farForest, t)) elDraw(CFG.farForest, farForest, t, part); } },
+      CFG.poles && { el: CFG.poles, z: CFG.poles.z || 6, hidden: CFG.poles.hidden, fn: () => { if (elShown(CFG.poles, t)) elDraw(CFG.poles, poles, t, part); } },
+      CFG.rail && { el: CFG.rail, z: CFG.rail.z || 7, hidden: CFG.rail.hidden, fn: () => { if (elShown(CFG.rail, t)) elDraw(CFG.rail, rail, t, part); } },
+      CFG.train && { el: CFG.train, z: CFG.train.z || 8, hidden: CFG.train.hidden, fn: () => { if (elShown(CFG.train, t)) { if (CFG.train.parts && CFG.train.parts.length && CFG.train.partsMode !== 'overlay') { drawParts(CFG.train, t); drawBeam(CFG.train, t); } else train(t, part); } } },
+      CFG.foreground && { el: CFG.foreground, z: CFG.foreground.z || 9, hidden: CFG.foreground.hidden, fn: () => { if (elShown(CFG.foreground, t)) elDraw(CFG.foreground, foreground, t, part); } },
+      CFG.fog && { el: CFG.fog, z: CFG.fog.z || 10, hidden: CFG.fog.hidden, fn: () => { if (elShown(CFG.fog, t)) elDraw(CFG.fog, fogBank, t, part); } },
+      CFG.signal && { el: CFG.signal, z: CFG.signal.z || 10, hidden: CFG.signal.hidden, fn: () => { if (elShown(CFG.signal, t)) { if (CFG.signal.parts && CFG.signal.parts.length && CFG.signal.partsMode !== 'overlay') { drawParts(CFG.signal, t); } else signal(t, part); } } },
+      CFG.bridge && { el: CFG.bridge, z: CFG.bridge.z || 10, hidden: CFG.bridge.hidden, fn: () => { if (elShown(CFG.bridge, t)) elDraw(CFG.bridge, bridge, t, part); } },
       ...(CFG.images || []).filter(e => !e.hidden).map(e => ({
-        z: e.z != null ? e.z : 99,
+        el: e, z: e.z != null ? e.z : 99,
         fn: () => { drawOneImage(e, t); if (e.parts && e.parts.length && elShown(e, t)) drawParts(e, t); }, // 图片 + 图元叠加
       })),
       // 通用程序元素层：非内置键的顶层对象（有 particle → 粒子系统；否则有 parts → 图元）。
@@ -832,24 +1190,33 @@ const HomeScene = (() => {
       ...(Object.keys(CFG).filter(k => SCENE_KEYS.indexOf(k) < 0 && CFG[k] && typeof CFG[k] === 'object' && !Array.isArray(CFG[k])).map(k => {
         const el = CFG[k];
         return {
-          z: el.z != null ? el.z : 50,
+          el, z: el.z != null ? el.z : 50,
           hidden: el.hidden,
           fn: () => {
             if (!elShown(el, t)) return;
-            if (el.particle && ((el.parts && el.parts.length) || (el.particle.source && el.particle.source.type === 'image'))) drawParticles(el, t, k);
+            if (el.kind === 'builtin' && el.builtin === 'train-beam') drawBeam(el, t);
+            else if (el.particle && ((el.parts && el.parts.length) || (el.particle.source && el.particle.source.type === 'image'))) drawParticles(el, t, k);
             else if (el.parts && el.parts.length) drawParts(el, t);
           },
         };
       })),
     ].filter(Boolean).filter(l => !l.hidden);
-    layers.sort((a, b) => a.z - b.z).forEach(l => l.fn());
+    return layers;
+  }
+  // 渲染「背景 + 图层」（不含 fx/过渡）；sceneOverride 生效时按覆盖场景渲染（过渡活帧用）
+  function renderLayers(t) {
+    const part = scene(t);
+    ctx.clearRect(0, 0, W, H);
+    if (!CFG.transparent) rect(0, 0, W, H, Array.isArray(CFG.bg) ? CFG.bg[Math.min(part, CFG.bg.length - 1)] : CFG.bg);
+    renderableLayers(t).sort((a, b) => a.z - b.z).forEach(l => drawMasked(l.el, t, l.fn));
   }
   // 过渡活帧：把旧场景（transFrom）实时渲染到 altCanvas。
   // 时间映射 tAlt = 旧场景起点 + (t - 新场景起点)：旧场景的窗口判定（elShown/scrollWindowStart/粒子）
   // 落在旧场景时间域内 → show 元素可见；tAlt 随 t 推进 → 仍为活帧（滚动/动画/粒子在动）
   function renderAltLive(t) {
     if (transFrom == null) return;
-    if (!altCanvas) altCanvas = document.createElement('canvas');
+    if (!altCanvas) altCanvas = createSurface(W, H);
+    if (!altCanvas) return;
     if (altCanvas.width !== W || altCanvas.height !== H) { altCanvas.width = W; altCanvas.height = H; }
     const part = scene(t);
     const [s0n, s1n] = sceneBounds(part);
@@ -861,18 +1228,31 @@ const HomeScene = (() => {
     sceneOverride = transFrom;
     try { renderLayers(tAlt); } finally { sceneOverride = null; ctx = savedCtx; canvas = savedCanvas; }
   }
-  function draw(t) {
+  // 纯绘制核心：预览与 Runtime Adapter 都只调用这一条路径。
+  // stateless 模式不依赖上一帧；过渡的旧场景由当前段起点推导，供离线固定时间渲染使用。
+  function renderFrame(t, opts) {
+    opts = opts || {};
     syncCfg(); // 每帧同步外部注入的配置（工具实时调参生效的关键）
     const local = t % LOOPv();
     const part = scene(t);
-    // 场景边界：记录旧场景号（scan/wipe/dissolve 活帧过渡用）
-    if (part !== lastPart) { if (lastPart >= 0) transFrom = lastPart; lastPart = part; }
+    if (opts.stateless) {
+      // 过渡只发生在非循环首段的段起点；不借用预览此前的 lastPart 状态。
+      const bounds = sceneBounds(part);
+      const atStart = local >= bounds[0] && local - bounds[0] < 1;
+      transFrom = atStart && bounds[0] > 0 ? part - 1 : null;
+      lastPart = part;
+    } else if (part !== lastPart) {
+      // 场景边界：记录旧场景号（scan/wipe/dissolve 活帧过渡用）
+      if (lastPart >= 0) transFrom = lastPart;
+      lastPart = part;
+    }
     // 过渡活帧：当前场景过渡为 scan/wipe/dissolve 且处于过渡期时，先渲染旧场景到 alt
     const tr = CFG.fx ? transitionState(t, part) : null;
     if (tr && transFrom != null && (tr.style === 'scan' || tr.style === 'wipe' || tr.style === 'dissolve')) renderAltLive(t);
     renderLayers(t);
     // 后处理 fx（默认无 CFG.fx → 全跳过，零开销）：B 滤镜（¼ 采样）→ A 叠加层 → 场景过渡
     if (CFG.fx) {
+      applyMaskedFxLayers(t);
       applyPixelFilter(t);
       applyOverlays(t);
       applyTransition(t);
@@ -882,6 +1262,68 @@ const HomeScene = (() => {
       const edge = local % (LOOPv() / n);
       if (edge < .25) rect(0, 0, W, H, 'rgba(3,6,15,' + (1 - edge / .25) + ')');
     }
+  }
+
+  // 预览包装层：保留现有 RAF/seek 调用和跨帧转场状态，绘制实现已统一到 renderFrame。
+  function draw(t) { return renderFrame(t, { stateless: false }); }
+
+  function createSurface(w, h) {
+    if (typeof OffscreenCanvas !== 'undefined') return new OffscreenCanvas(w, h);
+    if (typeof document !== 'undefined' && document.createElement) {
+      const c = document.createElement('canvas'); c.width = w; c.height = h; return c;
+    }
+    return null;
+  }
+
+  // Runtime Adapter 基础入口：向任意 CanvasRenderingContext2D / canvas 在固定时间渲染一帧。
+  // 不创建 DOM、不启动 RAF、不改变 window.HOME_SCENE；导出器和视觉回归可直接复用。
+  function renderTo(target, t, options) {
+    options = options || {};
+    const targetCanvas = target && target.getContext ? target : (target && target.canvas);
+    const targetCtx = target && target.getContext ? target.getContext('2d') : target;
+    if (!targetCanvas || !targetCtx) return false;
+    const saved = { cfg: CFG, override: CFG_OVERRIDE, w: W, h: H, canvas, ctx, lastPart, transFrom, altCanvas, sceneOverride };
+    try {
+      CFG_OVERRIDE = options.scene || CFG;
+      syncCfg();
+      const width = Math.max(1, options.width || CFG.w || targetCanvas.width || 320);
+      const height = Math.max(1, options.height || CFG.h || targetCanvas.height || 180);
+      if (options.resize !== false && (targetCanvas.width !== width || targetCanvas.height !== height)) { targetCanvas.width = width; targetCanvas.height = height; }
+      canvas = targetCanvas; ctx = targetCtx; W = width; H = height;
+      ctx.imageSmoothingEnabled = false;
+      altCanvas = null; sceneOverride = null;
+      renderFrame(t, { stateless: true });
+      return true;
+    } finally {
+      CFG = saved.cfg; CFG_OVERRIDE = saved.override; W = saved.w; H = saved.h;
+      canvas = saved.canvas; ctx = saved.ctx; lastPart = saved.lastPart; transFrom = saved.transFrom;
+      altCanvas = saved.altCanvas; sceneOverride = saved.sceneOverride;
+    }
+  }
+
+  function waitForAssets(scene) {
+    const srcs = [...new Set(((scene && scene.images) || []).map(e => e && e.src).filter(Boolean))];
+    if (!srcs.length || typeof Image === 'undefined') return Promise.resolve();
+    return Promise.all(srcs.map(src => new Promise(resolve => {
+      const img = imgCache[src] || (imgCache[src] = new Image());
+      if (!img.src) img.src = src;
+      if (img.complete) { resolve(); return; }
+      img.addEventListener('load', resolve, { once: true });
+      img.addEventListener('error', resolve, { once: true }); // 渲染器以空层容错，调用者可自行报告缺图
+    }))).then(() => undefined);
+  }
+
+  function createRuntime(scene) {
+    let disposed = false;
+    return {
+      ready: () => waitForAssets(scene),
+      render: (target, options) => {
+        if (disposed) return false;
+        options = Object.assign({}, options || {}, { scene: scene || CFG });
+        return renderTo(target, options.t || 0, options);
+      },
+      dispose: () => { disposed = true; },
+    };
   }
 
   function stars(t, part) {
@@ -1112,10 +1554,10 @@ const HomeScene = (() => {
   }
   // —— 通用动画原语（元素级与 parts 级共用）——
   // anim 字段（可叠加多个，像标签一样挂在元素/part 上）：
-  //   字符串简写 'bob' | 'wave' | 'blink' | 'pulse'（= 默认参数，旧配置兼容）
+  //   字符串简写 'bob' | 'spin' | 'wave' | 'blink' | 'pulse'（= 默认参数，旧配置兼容）
   //   单动画对象 { type:'bob', amp:1, period:0.5 }
   //   多动画叠加 { bob:{...}, wave:{...}, blink:{...} }（各原语互不冲突，按顺序叠加）
-  // 作用顺序（文档化）：bob（平移，可带 angle 斜向）→ wave（旋转摆动）→ pulse（缩放）→ blink（透明度）
+  // 作用顺序（文档化）：bob（平移，可带 angle 斜向）→ spin（匀速旋转）→ wave（旋转摆动）→ pulse（缩放）→ blink（透明度）
   function animList(a) {
     if (!a) return [];
     if (typeof a === 'string') return [{ type: a, params: {} }];
@@ -1132,6 +1574,8 @@ const HomeScene = (() => {
         const ang = (pr.angle != null ? pr.angle : 0) * Math.PI / 180; // 角度：0=垂直，90=水平
         xOff += Math.sin(ang) * phase;
         yOff += Math.cos(ang) * phase;
+      } else if (an.type === 'spin') {
+        rot += (pr.speed != null ? pr.speed : 30) * t; // 度/秒；负数为反向
       } else if (an.type === 'wave') {
         const per = pr.period != null ? pr.period : 1; // 秒/周期
         rot += (pr.amp != null ? pr.amp : 10) * Math.sin(t / per * Math.PI * 2); // 度：绕中心来回摆动
@@ -1152,7 +1596,9 @@ const HomeScene = (() => {
   function drawParts(e, t) {
     // 元素级重采样（pixelDiv > 1）：parts 画到「包围盒 ÷ 除数」离屏小画布 → 最近邻放大（锯齿感）
     const div = e.pixelDiv || 1;
-    if (div > 1 && !e.partsBand && !(e.scroll && e.scroll.speed && e.scroll.span)) {
+    const animPose = applyAnims(animList(e.anim), t, { yOff: 0, xOff: 0, rot: 0, scale: 1, alpha: 1 });
+    // wave/pulse 会扩大原包围盒；直接画到主画布，避免小离屏面被旋转角或脉动边缘截断。
+    if (div > 1 && !animPose.rot && Math.abs(animPose.scale - 1) < .001 && !e.partsBand && !(e.scroll && e.scroll.speed && e.scroll.span)) {
       const ox0 = 0, x0 = val(e, 'x', t) || 0, y0 = val(e, 'y', t) || 0;
       const lb = partsLocalBox(e);
       if (!lb) return;
@@ -1244,7 +1690,7 @@ const HomeScene = (() => {
   function drawPartsRaw(e, t, alphaOverride) {
     const so = scrollOffsets(e, t);
     const x0 = val(e, 'x', t) || 0, y0 = val(e, 'y', t) || 0; // 缺失键按 0
-    // 元素级动画（可叠加）：bob（平移，可 angle 斜向）→ wave（旋转摆动）→ pulse 缩放 → blink 透明度
+    // 元素级动画（可叠加）：bob（平移）→ spin（匀速旋转）→ wave（摆旋）→ pulse 缩放 → blink 透明度
     const ea = applyAnims(animList(e.anim), t, { yOff: 0, xOff: 0, rot: 0, scale: 1, alpha: alphaOverride != null ? alphaOverride : (e.alpha != null ? e.alpha : 1) });
     const X0 = x0 + ea.xOff + so.x, Y0 = y0 + ea.yOff + so.y;
     const scale = ea.scale;
@@ -1254,7 +1700,7 @@ const HomeScene = (() => {
       const Y = Y0 + (yAdd || 0);
       for (const p of (e.parts || [])) {
         const q = normPart(p);
-        // 图元级动画（bob/wave/blink；pulse 缩放留元素级）
+        // 图元级动画（bob/spin/wave/blink；pulse 缩放留元素级）
         const pa = applyAnims(animList(q.anim), t, { yOff: 0, xOff: 0, rot: 0, scale: 1, alpha: q.alpha != null ? q.alpha : 1 });
         ctx.globalAlpha = alpha * pa.alpha; // 元素级 × 图元级 × 图元动画
         const PX = Math.round(X + pa.xOff + (q.x || 0)), PY = Math.round(Y + pa.yOff + (q.y || 0));
@@ -1271,7 +1717,7 @@ const HomeScene = (() => {
         }
         const hasStroke = q.stroke && q.strokeWidth > 0;
         if (q.type === 'rect') {
-          const w = Math.round((q.w || 1) * scale), h = Math.round((q.h || 1) * scale);
+          const w = Math.round(q.w || 1), h = Math.round(q.h || 1);
           if (q.fill) rect(PX, PY, w, h, q.fill);
           if (hasStroke) { ctx.strokeStyle = q.stroke; ctx.lineWidth = q.strokeWidth; ctx.strokeRect(PX, PY, w, h); }
         } else if (q.type === 'line') {
@@ -1295,14 +1741,14 @@ const HomeScene = (() => {
       }
     };
     ctx.globalAlpha = alpha;
-    // 元素级旋转（e.rot 静态 + wave 动态）：绕元素包围盒中心（包住全部绘制；平铺元素旋转整个带）
+    // 元素级 wave / pulse：统一绕元素包围盒中心变换，所有 part 类型（线/椭圆/poly 亦同）保持一致。
     let wv = null;
     const totalRot = (e.rot || 0) + (ea.rot || 0);
-    if (totalRot) {
+    if (totalRot || Math.abs(scale - 1) > .001) {
       const lb = partsLocalBox(e);
       if (lb) wv = { cx: X0 + lb.x + lb.w / 2, cy: Y0 + lb.y + lb.h / 2 };
     }
-    if (wv) { ctx.save(); ctx.translate(wv.cx, wv.cy); ctx.rotate(totalRot * Math.PI / 180); ctx.translate(-wv.cx, -wv.cy); }
+    if (wv) { ctx.save(); ctx.translate(wv.cx, wv.cy); if (totalRot) ctx.rotate(totalRot * Math.PI / 180); if (Math.abs(scale - 1) > .001) ctx.scale(scale, scale); ctx.translate(-wv.cx, -wv.cy); }
     // 带元素判定：speed/span 可能在顶层（程序元素，含按场景数组）或 scroll 对象（图片素材）
     const bSpeed = (e.scroll && e.scroll.speed) || val(e, 'speed', t) || 0;
     const bSpan = (e.scroll && e.scroll.span) || e.span || e.w || 1;
@@ -1340,7 +1786,7 @@ const HomeScene = (() => {
     const srcX = fx * sw;
     const so = scrollOffsets(e, t);
     let alpha = e.alpha != null ? e.alpha : 1;
-    // 元素级动画（可叠加）：bob（平移，可 angle 斜向）→ wave（旋转摆动）→ pulse 缩放 → blink 透明度
+    // 元素级动画（可叠加）：bob（平移）→ spin（匀速旋转）→ wave（摆旋）→ pulse 缩放 → blink 透明度
     const ea = applyAnims(animList(e.anim), t, { yOff: 0, xOff: 0, rot: 0, scale: 1, alpha: alpha });
     alpha = ea.alpha;
     let scale = ea.scale;
@@ -1394,9 +1840,9 @@ const HomeScene = (() => {
   // 时间轴跳转：设置动画时钟并立即渲染（工具时间轴点击/拖动用）
   function seek(t) { elapsed = t % LOOPv(); if (ctx) draw(elapsed); }
   // 清空图片缓存（工具重像素化/素材失效时调用；键 = src，按引用重建）
-  function clearImageCache() { Object.keys(imgCache).forEach(k => { delete imgCache[k]; }); }
+  function clearImageCache() { Object.keys(imgCache).forEach(k => { delete imgCache[k]; }); lumaMaskCache = new WeakMap(); }
 
-  return { init, resize, start, stop, draw, seek, clearImageCache, W, H, LOOP };
+  return { init, resize, start, stop, draw, seek, clearImageCache, renderTo, createRuntime, W, H, LOOP };
 })();
 
 window.HomeScene = HomeScene;

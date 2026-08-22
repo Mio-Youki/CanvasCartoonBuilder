@@ -16,11 +16,35 @@
 - **组合元素与 parts 编辑**：修复左上、右上、左下角缩放时父元素原点移动却未换算 parts 局部坐标的问题；图片 + parts 的元素镜像会同时翻转图片并围绕图片框镜像 parts。parts 卡片改为上方即画布前景、支持拖拽调序；未选中时收起为标题与填充/描边行，选中后展开透明度与几何参数。顶部绘制栏统一为填充/描边/线宽组，选中蓝框图元后可直接读取并修改其样式。
 - **图层插入排序与编辑状态修复**：parts 拖拽事件不再冒泡为父元素拖拽；普通元素与 parts 均改为标题拖拽、黄色插入线定位到两卡片之间。普通图层栏按 z 从前到后显示，落点后自动重排 z；parts 仍保存为底→顶数组。选中 part 统一经过父元素激活状态，Canvas 与卡片双向选中都会保持父卡片展开、蓝框同步并滚动定位。
 - **交互回归修复**：标题拖拽直接在可拖拽标题上写入 `dataTransfer` 并禁用文字选择，避免 Edge 将卡片文本拖入浏览器搜索；part 选中不再在 pointer/click 派发中重建图层栏，而是原地切换蓝框卡片展开状态，避免父元素卡片被销毁。
+- **编辑器内核拆分（第一层）**：新增 `editor/geometry.js` 与 `editor/scene-model.js`，将 parts 缩放、父子坐标换算、四角缩放、parts 归一化及局部包围盒规则从 `img2asset.html` 抽出。入口仍是单页 HTML，保存格式和体验不变，为固定时间渲染、导出器与关键帧轨道建立可复用内核。
+- **Agent 合同化与自检增强**：`SCENE_SPEC` 改为生成/改写共用的数据合同，明确 canonical parts 写法、当前可执行子集与未实现字段禁令；新增生成/改写协议和两个可导入 fixture。规范自检增加画布/循环/边界、图片 id 与粒子引用、parts 几何、旧式 parts 写法、未知顶层对象与 `keyframes` 的提示。
+- **首个参考图端到端样例**：新增 `examples/river-valley-two-acts.js`。以纯 parts 近似河谷松林参考图，使用两幕 show、内建 dissolve、循环河面波光带、part 级树冠摆动和夜幕萤火粒子，作为“参考图 → 合规通用场景”的可导入样例。
+- **参考图静态优先流程**：生成协议改为「静态基底 → 同尺寸视觉锁定 → 结构整理（零视觉差异）→ 动画覆盖」；新增 3:2 河谷静态锁定基底样例，避免默认 16:9 与过早加入动效共同拉低还原度。
+- **参考图混合底图样例**：新增 `examples/river-valley-hybrid-two-acts.js` 及日/夜底图素材。高密度像素画构图由两张背景图保真承接，白昼/夜晚只在安全水域叠加波光、星点和少量萤火；生成协议同步加入底图优先判定与无掩膜限制。夜景底图由图像编辑生成并保留原构图。
+- **Runtime Adapter 第一层**：Runtime 抽出固定时间 `renderFrame` 核心；预览保留原播放体验但已复用该核心。新增 `HomeScene.createRuntime(scene)`，可在任意 Canvas 离线渲染指定时间，不启动 RAF、不改预览场景；为 PNG 序列、编码导出和关键帧求值建立共用入口。
+- **诊断与导出解耦**：原「规范自检」更名为仅针对 `GENERIC_SCENE` 的“通用场景可编辑性诊断”；`HOME_SCENE` 兼容脚本由专用 Runtime 执行，不再误报为缺少通用图元。导出新增独立的非阻断资源提示；只要 Runtime 能绘制，锁定元素、兼容脚本与图片背景均可导出。
+- **导出帧面板与时间采样**：替换数字 prompt，提供当前帧 PNG / Sprite PNG / 多帧 PNG / GIF 四种单选输出。多帧格式按帧率与默认全选的场景时段采样，实时显示帧数、自动建议不超限帧率，并阻止超限；多帧 PNG 逐张下载。新增带时间标注的“时间采样拼图”，用于审阅循环画面；它明确不冒充尚未实现的关键帧轨道。
+- **统一裁剪蒙版**：元素级 `mask` 支持 `rect` / `ellipse` / `poly`，Runtime 在该图层绘制期间执行一次 Canvas `clip()`；图片、parts、粒子、已注册 builtin 与兼容项目元素共享此路径，预览和离线导出一致。粒子旧有 x/y/w/h 保持“发射范围”语义，和裁剪蒙版共用画布框选但不再混淆。
+- **局部 FX 合成层**：新增 `CFG.fx.layers` 有序声明式效果层。每层以 rect / ellipse / poly `mask` 限定效果作用区（不裁掉原图层），支持正常/滤色/正片叠底/变亮混合、颜色叠加、确定性颗粒、扫描线与闪烁；编辑器复用绿色蒙版框选，预览与 PNG/GIF 离线导出共用 Runtime。
+- **局部 FX 图层化**：右侧栏新增“图层元素 / 局部效果”切换。局部效果卡片支持拖拽插入排序（排序 = 合成顺序）、隐藏、删除、`[S]` 显示时间和蒙版编辑；顶部提供 `+ 粒子` / `+ 局部效果`，导出与保存移至列表底部。
+- **Alpha 素材蒙版**：`mask` 新增 `alpha` 类型，引用 `images[]` 内透明 PNG 的稳定 `imageId`（支持定位、缩放、帧与反相）；它可裁剪实体图层，也可只限制局部 FX 的作用区。编辑器将 Alpha 素材作为蒙版下拉选择，范围继续使用绿色框编辑；Runtime 仅在实际使用时复用一张临时离屏画布。
+- **Alpha 蒙版工作流修复与明度模式**：框选改为移动超过阈值才重绘，单击不会清空已选素材；先选图后框选、先框选后选图均保留 `imageId/mode/invert`。下拉可直接选择左侧素材库图片（自动冻结为隐藏 `role:'mask'` 场景素材），排除纯矢量元素；新增 Alpha / 明度模式（黑透明、白不透明）与反相，明度帧缓存后复用；编辑态半透明显示实际蒙版素材以便对齐。
+- **蒙版素材去重与清理**：`role:'mask'` 隐藏素材不再作为新的 Alpha 候选项，当前引用仅以只读“当前蒙版”显示；构建图层栏时扫描实体图层与 `fx.layers` 的 `mask.imageId`，自动删除无引用的隐藏蒙版素材。保存保留 data URL + `imageId`，不保留会话 `srcId`。
+- **局部 FX 固定阶段**：新增 `fx.layers[].phase`：`scene` 在全局调色/色板之前合成，`screen` 在其后、全局 CRT/噪点/暗角之前叠加；同阶段内保持卡片排序。旧文件未写 phase 时默认 screen，确保已有作品的画面不变。
+- **轻量局部覆盖效果**：局部 FX 增加可关闭的颜色铺底、硬边同心椭圆像素光晕、蒙版内局部暗角、密度与尺寸可调的确定性噪点；原 `grain` 继续兼容读取为噪点。所有新增效果随 phase、蒙版、预览与导出共用 Runtime，不使用高斯模糊或整帧像素读取。
+- **局部 CRT / 故障**：局部 FX 新增 `crt/crtSpacing`（扫描黑线 + RGB 荧光格）与 `glitch`（当前帧确定性水平条带错位）。CRT 不模拟曲面屏；glitch 只在启用时复用一张当前帧离屏采样层，且始终被几何/Alpha 蒙版限制。
+- **像素雾与局部像素处理**：局部 FX 新增确定性雾带/雾块漂移（`fog/fogColor/fogBands/fogScale/fogDrift`），以及 `pixelDiv/palette/hue/brightness/contrast/saturation`。后者复用全局最近邻采样、调色矩阵与色板 LUT，仅在蒙版包围盒复用一张离屏 Canvas，并以本层蒙版和 alpha 回贴；不会引入全局模糊或额外运行时依赖。
+- **FX 绑定元素与素材重复修复**：局部 FX 可用 `bind:{targetId,mode:'anchor'|'clip',at}` 绑定顶层元素；anchor 让 FX 蒙版随目标位移，clip 将 FX 蒙版与目标实际 Alpha、目标自身蒙版相交。clip 仅在启用时复用两张临时画布；目标删除后自动解除绑定并保留效果层。场景模式的新增/复制/粘贴/绘制元素统一只写入 `HOME_SCENE.images` 一次，修复图片素材卡片重复且删除时同时消失的问题。
+- **统一局部 FX 阶段与稳定元素 ID**：局部 FX 统一固定在全局像素采样、调色、色板、CRT 和转场之前；编辑器移除“屏幕叠加”选择，历史 `phase` 安全忽略并在编辑时清理。`home-scene.js` 的所有可编辑顶层程序元素补齐稳定 ID，通用程序元素规范也将 `id` 设为必填，使 FX 绑定可覆盖既有场景元素。clip 复用目标同一绘制路径，按实际 Alpha 支持 wave / pulse / 旋转 / 镜像 / blink。
+- **完整变换绑定与测试页**：修正 parts 元素的 pulse，使 rect、line、ellipse、poly 全部作为一个元素组统一缩放；绑定 FX 的几何/Alpha 蒙版在 anchor 与 clip 下都同步目标的 scroll、bob、wave、pulse、旋转和缩放。新增“测试场景”按钮，下载嵌入当前 Runtime、配置和 data URL 素材的自包含 HTML，用于脱离编辑器的实际运行验证。
+- **组合粒子与 `spin` 动画**：图片/矢量卡片统一仅保留“复制为粒子”；纯图片生成图片粒子，图片 + parts 生成同一缓存精灵内“先图片、后 parts”的组合粒子，矢量保持 parts 粒子。`particle.source.compose:'image+parts'` 为显式可编辑模式。动画原语新增 `spin:{speed}`（度/秒，负数反向），与静态 `rot` 和 wave 累加，可用于元素或 part；粒子单体自旋仍使用既有 `particle.spinSpeed`。
+- **蒙版画布编辑**：蒙版卡片收敛为类型下拉 + 动态“框选 / 编辑 / 完成”按钮；绿色编辑态在画布内显示实际椭圆/矩形轮廓、角控点、内部可见与外部暗化。矩形/椭圆支持移动、缩放和空白处重新框选；多边形支持点选新建、双击/Enter 完成、拖顶点、点边线插点、Esc 取消与 Delete 删除顶点。
 - **parts 编辑崩溃修复**：`partForm` 的 `add()` 补 `return w`——链式 `add('填充'/'描边', …).classList.add('part-legacy-style')` 此前抛 `undefined.classList`，任何渲染 parts 面板的路径（展开元素卡片 / Canvas 双击进入编辑 / 选中 part / 单击 parts 卡片）都会清空整栏卡片，直至退出编辑模式才恢复；`activatePart` 在无 `.cf-box` 重建后重新查询并补执行蓝框高亮 + 滚动定位；移除 `box.draggable=false` 下的死代码 dragstart（拖拽源统一为标题手柄）。
 - **Edge 拖拽搜索彻底修复**：表单控件（input/select/textarea/button）不继承父级 `user-select:none`（UA 默认保持可选）——卡片内数字/颜色输入框仍是可选中文本，从输入框拖起即触发 Edge「拖拽搜索」（纯 CSS 的父级 user-select 无法覆盖）。改为**对 `.layer-card`/`.cf-box` 内表单控件直接设 `user-select:none`**（输入仍可点击聚焦/键入，鼠标框选受限、可用键盘 Shift+方向键）；`.layer-card` 整体 `user-select:none` 不变；元素/parts/背景三种卡片拖拽源统一为标题手柄（`head.draggable=true`，卡片本体 `draggable=false`），标题已禁用选择（selectstart preventDefault + user-select:none），HTML5 拖拽正常（dataTransfer 冒烟 B1/B2 PASS）。
 - **持久化范围调整**：浏览器版本保持单 js 的自包含图片快照，不再提供项目目录/素材库持久化；原图、处理配方、`scene.js + assets/` 与个人素材库已明确排入桌面应用封装之后。
 - **兼容性**：保留 `SCENE` 旧装配器格式，以及 `HOME_SCENE` / `DEFAULT_HOME_SCENE` 项目脚本导入；后者继续保留专用绘制代码，工具只编辑其配置。
 - **文档同步**：README 改为用户侧的默认通用工作流；SCENE_SPEC 明确 `GENERIC_SCENE` 是新作品与 Agent 的标准格式；PLAN 同步至 v3.0。
+- **文档归档与双仓库同步协议**：新增 `DOCUMENTATION_PROTOCOL.md`；稳定入口与数据合同继续置于工具根目录，Agent 协议/试验归档至 `docs/agent/`，Runtime 与专题架构说明归档至 `docs/architecture/`。协议明确用户能力、schema、Agent、路线图改动的文档同步矩阵，以及工具仓库与站点 Runtime 镜像必须分别提交的边界。
 
 ## v2.9 补一 —— 修复过渡活帧下 show 元素消失 + FX 轨单击切分 + 转场移入 scene 行（含无过渡）
 - **① 修复「过渡时旧场景 scroll/粒子消失」根因**：活帧渲染旧场景用的是**真实时间 t**（已进入新场景区间）→ `elShown`/`scrollWindowStart`/粒子的窗口判定 `lt = t - 旧场景起点` 超出旧场景时长 → **带 show 窗口的元素全部判为隐藏**。改为**时间映射 tAlt = 旧场景起点 + (t - 新场景起点)**（钳制在旧场景内）——窗口判定回到旧场景时间域（可见），tAlt 随 t 推进（仍活帧）；探针验证：t=12.4 wipe 右半部旧场景 spinner/rain 恢复可见
