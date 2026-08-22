@@ -134,6 +134,11 @@
   .cf-box input, .cf-box textarea, .cf-box select,
   .layer-card button, .cf-box button { user-select: none; -webkit-user-select: none; }
   .layer-card.sel { border-color: var(--yellow); box-shadow: 0 0 0 1px var(--yellow); } /* 选中强调：黄色描线 */
+  .layer-card.multi { border-color: #b985ff; box-shadow: inset 3px 0 0 #b985ff; }
+  .group-card { border-color: #6b479a; background: #171337; }
+  .group-card.sel { border-color: #b985ff; box-shadow: 0 0 0 1px #b985ff; }
+  .group-card .layer-name { color: #d7b8ff; }
+  .group-badge { color: #d7b8ff; font-size: 8px; }
   .layer-card.global { border-color: var(--dim); }
   .layer-card.img { border-color: #2a3a66; }
   .layer-card.drag { opacity: .5; border-color: var(--yellow); }
@@ -387,10 +392,82 @@ const state = {
   clipboard: null,    // Ctrl+C 复制：{kind:'part',data} | {kind:'el',data} | {kind:'els',data:[]}
   selProg: null,      // 选择模式整体选中的程序元素（带包围盒 + 图层栏跳卡片）
   multi: [],          // Ctrl 多选：元素列表（批量移动/删除/复制）
+  selGroup: null,     // 当前父级组 id；组本身不绘制，变换会写回成员
+  openGroup: null,    // 右栏已展开的组；成员单独编辑时仍保持其容器可见
   partMulti: null,    // 编辑状态 part 多选（Ctrl+A 全选）：{el, indexes:[]}
   regionRect: null,   // 统一范围框选进行中的矩形（粒子发射范围 / 任意图层裁剪蒙版，画布坐标）
 };
 function wrapMod(x, m) { return ((x % m) + m) % m; }
+/* 父级组是编辑期的组织数据，而不是新的渲染实体：运行时仍只画成员，因此导出不增加负担。
+   父级移动/旋转/镜像会一次性把变换写入成员坐标与静态旋转，成员仍可随时单独编辑。 */
+function editableElements(cfg) {
+  const images = (cfg && cfg.images || state.elements || []).filter(e => e && e.id && e.role !== 'background' && e.role !== 'mask');
+  const programs = cfg ? Object.keys(cfg).filter(k => PROG_SKIP && PROG_SKIP.indexOf(k) < 0 && cfg[k] && typeof cfg[k] === 'object' && !Array.isArray(cfg[k]) && cfg[k].id && cfg[k].parts).map(k => cfg[k]) : [];
+  return images.concat(programs);
+}
+function sceneGroups(cfg) {
+  if (!cfg || !Array.isArray(cfg.groups)) return [];
+  const ids = new Set(editableElements(cfg).map(e => e.id));
+  cfg.groups.forEach(g => { if (g) g.memberIds = [...new Set((g.memberIds || []).filter(id => ids.has(id)))]; });
+  return cfg.groups.filter(g => g && g.id && g.memberIds && g.memberIds.length >= 2);
+}
+function groupById(id, cfg) { return sceneGroups(cfg || layerCfg()).find(g => g.id === id) || null; }
+function groupMembers(g, cfg) {
+  if (!g) return [];
+  const map = new Map(editableElements(cfg || layerCfg()).map(e => [e.id, e]));
+  return (g.memberIds || []).map(id => map.get(id)).filter(Boolean);
+}
+function groupOfElement(id, cfg) { return sceneGroups(cfg || layerCfg()).find(g => (g.memberIds || []).includes(id)) || null; }
+function cleanupGroups(cfg) {
+  if (!cfg || !Array.isArray(cfg.groups)) return;
+  const valid = sceneGroups(cfg);
+  if (valid.length) cfg.groups = valid; else delete cfg.groups;
+  if (state.selGroup && !groupById(state.selGroup, cfg)) state.selGroup = null;
+}
+function selectGroup(g, cfg) {
+  const members = groupMembers(g, cfg);
+  state.selGroup = g && g.id || null; state.openGroup = state.selGroup;
+  state.multi = members;
+  state.selEl = members.length === 1 ? members[0].id : null;
+  state.selProg = null; state.partSel = null; state.partMulti = null;
+}
+function clearElementSelection(rebuild) {
+  state.multi = []; state.selGroup = null; state.openGroup = null; state.selEl = null; state.selProg = null; state.partSel = null; state.partMulti = null; drag = null;
+  if (rebuild && (window.HOME_SCENE || state.elements.length)) buildLayerList(layerCfg());
+  renderStage();
+}
+function toggleMultiElement(el, cfg) {
+  if (!el) return;
+  // 单选已经存在时，Ctrl 再点另一对象应成为二选，而不是丢掉先前的黄框。
+  const current = selEl();
+  if (!state.multi.length && current && current !== el) state.multi = [current];
+  const i = state.multi.indexOf(el);
+  if (i >= 0) state.multi.splice(i, 1); else state.multi.push(el);
+  state.selGroup = null;
+  state.selEl = state.multi.length === 1 ? state.multi[0].id : null;
+  state.selProg = null; state.partSel = null; state.partMulti = null;
+  if (cfg) buildLayerList(cfg);
+  renderStage();
+}
+function focusMember(el, cfg, program) {
+  const g = el && el.id && groupOfElement(el.id, cfg);
+  state.openGroup = g ? g.id : null; state.selGroup = null;
+  state.multi = []; state.partSel = null; state.partMulti = null;
+  state.selEl = program ? null : el.id; state.selProg = program ? el : null;
+  buildLayerList(cfg);
+  const key = program && Object.keys(cfg || {}).find(k => cfg[k] === el);
+  requestAnimationFrame(() => { const card = $('cfgform').querySelector(program ? '[data-key="' + key + '"]' : '[data-elid="' + el.id + '"]'); if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
+}
+function mirrorSelection(els, axis) {
+  const box = multiBox(els); if (!box) return;
+  const cx = box.x + box.w / 2, cy = box.y + box.h / 2;
+  els.forEach(m => {
+    const so = scrollOffsets(m, state.t);
+    if (axis === 'h') m.x = Math.round(2 * cx - (m.x + so.x + m.w) - so.x);
+    else m.y = Math.round(2 * cy - (m.y + so.y + m.h) - so.y);
+    mirrorElement(m, axis);
+  });
+}
 // 编辑控件使用屏幕像素尺寸，换算回场景坐标后绘制/命中；缩放不会让手柄遮挡素材或难以点击。
 function uiWorld(px) {
   const st = document.getElementById('stage');
@@ -629,6 +706,7 @@ function removeEditableElements(ids) {
     const imgs = cfg.images = cfg.images || [];
     for (let i = imgs.length - 1; i >= 0; i--) if (idSet.has(imgs[i] && imgs[i].id)) imgs.splice(i, 1);
     state.elements = imgs;
+    cleanupGroups(cfg);
     return unbindFxTargets(cfg, ids);
   }
   state.elements = state.elements.filter(x => !idSet.has(x.id));
@@ -771,14 +849,15 @@ function renderStage() {
   }
   // 多选集合：每个成员清晰黄框（无手柄）+ 联合框（群组手柄：旋转/镜像/缩放）
   if (state.multi.length > 1) {
+    const multiColor = state.selGroup ? '#b985ff' : '#ffd23f';
     state.multi.forEach(m => {
       let bb;
       if (m.parts && m.parts.length) bb = partsBBox(m, state.t);
       else { const so2 = scrollOffsets(m, state.t); bb = { x: m.x + so2.x, y: m.y + so2.y, w: m.w, h: m.h }; }
-      drawSelBox(ctx, bb, '#ffd23f', { dash: [3, 2], noHandles: true });
+      drawSelBox(ctx, bb, multiColor, { dash: [3, 2], noHandles: true });
     });
     const mb = multiBox();
-    if (mb) drawSelBox(ctx, mb, '#ffd23f', { dash: [3, 2] });
+    if (mb) drawSelBox(ctx, mb, multiColor, { dash: [3, 2] });
   }
   // 编辑状态 part 多选（Ctrl+A 全选）：每个选中 part 青框
   if (state.partMulti && state.partMulti.el && state.partMulti.indexes && state.partMulti.indexes.length) {
@@ -974,14 +1053,13 @@ function drawPartsToolRaw(ctx, e, t, alphaOverride) {
 /* 统一选中框绘制：虚线包围盒 + 四角手柄 + 旋转 ● + 镜像按钮 [|]/[一]（opts.noHandles 整体关闭）
    —— 图片元素/矢量元素/子图元共用同一套框与手柄（子图元仅颜色不同，青色 #4dc3ff） */
 /* 多选群组联合包围盒（含 scroll 偏移） */
-function multiBox() {
-  const ms = state.multi;
+function multiBox(els) {
+  const ms = els || state.multi;
   if (ms.length < 2) return null;
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   ms.forEach(m => {
-    const so = scrollOffsets(m, state.t);
-    minX = Math.min(minX, m.x + so.x); minY = Math.min(minY, m.y + so.y);
-    maxX = Math.max(maxX, m.x + so.x + m.w); maxY = Math.max(maxY, m.y + so.y + m.h);
+    const b = m.parts && m.parts.length ? partsBBox(m, state.t) : (() => { const so = scrollOffsets(m, state.t); return { x: m.x + so.x, y: m.y + so.y, w: m.w, h: m.h }; })();
+    minX = Math.min(minX, b.x); minY = Math.min(minY, b.y); maxX = Math.max(maxX, b.x + b.w); maxY = Math.max(maxY, b.y + b.h);
   });
   return { x: Math.round(minX), y: Math.round(minY), w: Math.round(maxX - minX), h: Math.round(maxY - minY) };
 }
@@ -1296,9 +1374,8 @@ stage.addEventListener('pointerdown', ev => {
       const mv = (!pe.partsBand && mirrorBtnHit(p, bb, 'v')) ? 1 : 0;
       const corner = (!pe.partsBand) ? hitCorner(p, bb) : null;
       if (mh || mv || rotD || corner || (p.x >= bb.x - 0.5 && p.x <= bb.x + bb.w + 0.5 && p.y >= bb.y - 0.5 && p.y <= bb.y + bb.h + 0.5)) {
-        state.selEl = null;
-        state.selProg = pe;
-        state.partSel = null;
+        if (!mh && !mv && !rotD && !corner && (ev.ctrlKey || ev.metaKey) && pe.id) { toggleMultiElement(pe, layerCfg()); return; }
+        focusMember(pe, layerCfg(), true);
         if (mh || mv) {
           // 元素级镜像：图元坐标绕包围盒中心镜像 + rot 取反（图片元素 → flipH/flipV + rot 取反）
           pushHistory();
@@ -1344,7 +1421,8 @@ stage.addEventListener('pointerdown', ev => {
       const corner = hitCorner(p, mb);
       if (mh || mv) {
         pushHistory();
-        state.multi.forEach(m => mirrorElement(m, mh ? 'h' : 'v'));
+        // 父级组/多选镜像：成员既要自身翻转，也要绕联合中心换位。
+        mirrorSelection(state.multi, mh ? 'h' : 'v');
         refreshStage();
         return;
       }
@@ -1413,13 +1491,8 @@ stage.addEventListener('pointerdown', ev => {
     const mv = (!e.partsBand && mirrorBtnHit(p, box, 'v')) ? 1 : 0;
     if (rotD || mh || mv || (p.x >= x0 - 0.5 && p.x <= x0 + e.w + 0.5 && p.y >= y0 - 0.5 && p.y <= y0 + e.h + 0.5)) {
       // Ctrl 多选：点击切换；多选中的元素非 ctrl 拖动 = 整体移动多选集
-      if (!rotD && !mh && !mv && ev.ctrlKey) {
-        const idx = state.multi.indexOf(e);
-        if (idx >= 0) state.multi.splice(idx, 1); else state.multi.push(e);
-        state.selEl = state.multi.length === 1 ? e.id : null;
-        state.selProg = null; state.partSel = null;
-        buildLayerList(layerCfg());
-        renderStage();
+      if (!rotD && !mh && !mv && (ev.ctrlKey || ev.metaKey)) {
+        toggleMultiElement(e, layerCfg());
         return;
       }
       if (!rotD && !mh && !mv && state.multi.length > 1 && state.multi.indexOf(e) >= 0) {
@@ -1427,10 +1500,7 @@ stage.addEventListener('pointerdown', ev => {
         renderStage();
         return;
       }
-      state.multi = [];
-      state.selEl = e.id;
-      state.selProg = null;
-      state.partSel = null;
+      focusMember(e, layerCfg(), false);
       if (e.srcId) { // ⑤ 画布选中 → 左侧素材同步选中（样式化控件显示该素材参数）
         if (state.selSrc !== e.srcId) { state.selSrc = e.srcId; renderLib(); renderStyleCtl(); }
       }
@@ -1463,15 +1533,12 @@ stage.addEventListener('pointerdown', ev => {
       return;
     }
   }
-  state.selEl = null;
-  state.selProg = null;
-  state.partSel = null;
-  if (window.HOME_SCENE || state.elements.length) buildLayerList(layerCfg());
+  // 单击画布空白处等同 Escape：退出多选/父级组或当前元素选择。
+  clearElementSelection(true);
   if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel();
-  renderStage();
 });
 stage.addEventListener('pointermove', ev => {
-  if (maskEdit && maskEdit.drag) { moveMaskEdit(stagePos(ev)); return; }
+  if (maskEdit && maskEdit.drag) { moveMaskEdit(stagePos(ev), ev.shiftKey); return; }
   if (state.drawShape && state.drawDrag) {
     const p = stagePos(ev);
     if (state.drawShape.type === 'line') { state.drawShape.x2 = p.x; state.drawShape.y2 = p.y; }
@@ -1519,8 +1586,9 @@ stage.addEventListener('pointermove', ev => {
       const cxp = o.x + o.w / 2 - drag.cx, cyp = o.y + o.h / 2 - drag.cy;
       m.x = Math.round(drag.cx + cxp * Math.cos(rad) - cyp * Math.sin(rad) - o.w / 2);
       m.y = Math.round(drag.cy + cxp * Math.sin(rad) + cyp * Math.cos(rad) - o.h / 2);
-      if (m.parts && m.parts.length) { m.parts.forEach(pp => { pp.rot = Math.round(((pp.rot || 0) + deg) % 360); }); }
-      else m.rot = Math.round(((m.rot || 0) + deg) % 360);
+      // 父级旋转必须写到元素级 rot：这样图片与其 parts、纯矢量 parts 都围绕各自整体中心转动，
+      // 不会把多 part 图形拆成“每一块各自在原地自转”。
+      m.rot = Math.round(((o.rot || 0) + deg) % 360);
     });
     renderStage();
     return;
@@ -1732,6 +1800,7 @@ window.addEventListener('keydown', ev => {
   }
   if (ev.key === 'Escape') {
     if (state.drawShape || state.drawPts.length) { state.drawShape = null; state.drawPts = []; renderStage(); }
+    else if (state.multi && state.multi.length) { clearElementSelection(true); }                 // Ctrl+A / 父级组也可 Esc 退出
     else if (state.partMulti) { state.partMulti = null; drag = null; renderStage(); }          // 退出 part 多选（保留黄框）
     else if (state.partSel) { state.partSel = null; drag = null; renderStage(); }            // 退出子图元编辑（保留黄框）
     else if (state.selEl || state.selProg) {                                                  // 退出元素选择（黄框）
@@ -2100,7 +2169,7 @@ const ANIM_PRIMS = [
 function renderAnimPanel() {
   const ed = $('anim-editor');
   const mt = $('m-anim-target');
-  const t = animTarget();
+  const t = state.selGroup ? { obj: groupById(state.selGroup, layerCfg()) && (groupById(state.selGroup, layerCfg()).transform = groupById(state.selGroup, layerCfg()).transform || {}), label: '父级组「' + ((groupById(state.selGroup, layerCfg()) || {}).name || '') + '」' } : animTarget();
   if (!t) {
     mt.textContent = '未选中目标——画布/图层栏选中元素或图元（[编辑] 内青色框）后切换本面板';
     ed.innerHTML = '';
@@ -2345,6 +2414,67 @@ function nudgeSceneNumber(obj, key, delta) {
   } else obj[key] = (Number(obj[key]) || 0) + delta;
   return true;
 }
+function makeGroupFromSelection() {
+  const cfg = layerCfg();
+  const members = [...new Set(state.multi.filter(e => e && e.id && e.role !== 'background' && e.role !== 'mask'))];
+  if (members.length < 2 || !state.sceneParamsMode || !window.HOME_SCENE) return false;
+  // 一名成员只能在一个父级组内，避免不同父级变换的歧义。
+  const used = new Set(sceneGroups(cfg).flatMap(g => g.memberIds));
+  if (members.some(e => used.has(e.id))) { $('m-props').textContent = '已有成员属于其他组；请先解除原组。'; return false; }
+  pushHistory();
+  cfg.groups = cfg.groups || [];
+  const n = cfg.groups.length + 1;
+  const g = { id: 'group' + Math.random().toString(36).slice(2, 8), name: '编组 ' + n, memberIds: members.map(e => e.id), transform: {} };
+  cfg.groups.push(g);
+  selectGroup(g, cfg);
+  buildLayerList(cfg); refreshStage();
+  $('m-props').textContent = '已建立父级组：紫框可整体移动、旋转、缩放、镜像；双击成员可单独编辑。';
+  return true;
+}
+function ungroupSelected() {
+  const cfg = layerCfg(), g = groupById(state.selGroup, cfg);
+  if (!g) return false;
+  pushHistory();
+  const members = groupMembers(g, cfg);
+  cfg.groups = (cfg.groups || []).filter(x => x !== g);
+  cleanupGroups(cfg);
+  state.selGroup = null; state.multi = members; state.selEl = members.length === 1 ? members[0].id : null;
+  buildLayerList(cfg); refreshStage();
+  $('m-props').textContent = '已解除编组；成员保持当前画面与各自参数。';
+  return true;
+}
+function copyGroup(g, cfg) {
+  const members = groupMembers(g, cfg); if (members.length < 2) return;
+  pushHistory();
+  const idMap = new Map(), added = members.map(e => {
+    const n = JSON.parse(JSON.stringify(e)); n.id = 'e' + Math.random().toString(36).slice(2, 7); n.x = (n.x || 0) + 8; n.y = (n.y || 0) + 8; n._img = null;
+    idMap.set(e.id, n.id); appendEditableElement(n); ensureImage(n); return n;
+  });
+  const copy = { id: 'group' + Math.random().toString(36).slice(2, 8), name: (g.name || '编组') + ' 副本', memberIds: g.memberIds.map(id => idMap.get(id)).filter(Boolean) };
+  cfg.groups = cfg.groups || []; cfg.groups.push(copy); selectGroup(copy, cfg);
+  buildLayerList(cfg); refreshStage();
+}
+function syncGroupProperty(g, cfg, key) {
+  const members = groupMembers(g, cfg); if (members.length < 2) return;
+  pushHistory();
+  const nonEmpty = members.map((e, i) => ({ e, i, v: e[key] })).filter(x => x.v != null);
+  const unique = [...new Set(nonEmpty.map(x => JSON.stringify(x.v)))];
+  // 组内只有一个非空值时，它就是有效继承源；混合才使用卡片顶部（第一个）成员。
+  const sourceIndex = unique.length === 1 && nonEmpty.length ? nonEmpty[0].i : 0;
+  const value = members[sourceIndex][key];
+  members.forEach((e, i) => { if (i === sourceIndex) return;
+    if (value == null) delete e[key];
+    else e[key] = JSON.parse(JSON.stringify(value));
+  });
+  buildLayerList(cfg); refreshStage();
+  $('m-props').textContent = '已将「' + (key === 'anim' ? '动画' : '滚动') + '」同步到全组；唯一值优先，否则取组内最上方成员。';
+}
+function groupPropertyState(g, cfg, key) {
+  const members = groupMembers(g, cfg), vals = members.map(e => e[key]).filter(v => v != null);
+  if (!vals.length) return { kind: 'none', text: '未设置' };
+  const keys = [...new Set(vals.map(v => JSON.stringify(v)))];
+  return keys.length === 1 ? { kind: 'single', text: '全员一致' } : { kind: 'mixed', text: '混合（以首成员同步）' };
+}
 function nudgePart(part, dx, dy) {
   if (!part) return false;
   if (part.type === 'line') { part.x = (part.x || 0) + dx; part.y = (part.y || 0) + dy; part.x2 = (part.x2 || 0) + dx; part.y2 = (part.y2 || 0) + dy; }
@@ -2404,9 +2534,8 @@ window.addEventListener('keydown', ev => {
       // 多选批量删除
       pushHistory();
       const ids = state.multi.map(m => m.id);
-      state.elements = state.elements.filter(x => ids.indexOf(x.id) < 0);
-      if (state.sceneParamsMode && window.HOME_SCENE) window.HOME_SCENE.images = (window.HOME_SCENE.images || []).filter(x => ids.indexOf(x.id) < 0);
-      state.multi = []; state.selEl = null;
+      removeEditableElements(ids);
+      state.multi = []; state.selEl = null; state.selGroup = null;
       buildLayerList(layerCfg()); refreshStage();
       return;
     }
@@ -2423,6 +2552,11 @@ window.addEventListener('keydown', ev => {
   }
   if (ev.ctrlKey || ev.metaKey) {
     const k = ev.key.toLowerCase();
+    if (k === 'g') {
+      ev.preventDefault();
+      if (ev.shiftKey) ungroupSelected(); else makeGroupFromSelection();
+      return;
+    }
     if (k === 'a') {
       // Ctrl+A：编辑状态（partsOpenEl）全选其 parts；否则全选元素
       ev.preventDefault();
@@ -2430,8 +2564,9 @@ window.addEventListener('keydown', ev => {
         state.partMulti = { el: partsOpenEl, indexes: partsOpenEl.parts.map((_, i) => i) };
         state.partSel = null;
       } else if (state.elements.length) {
-        state.multi = state.elements.slice();
+        state.multi = editableElements(layerCfg());
         state.selEl = state.multi.length === 1 ? state.multi[0].id : null;
+        state.selGroup = null;
         state.partMulti = null;
       }
       buildLayerList(layerCfg());
@@ -2804,7 +2939,20 @@ function checkGenericEditability(cfg, isGeneric) {
     if (!vectorOnly && (!img.id || !img.src || !Number.isFinite(img.x) || !Number.isFinite(img.y) || !Number.isFinite(img.w) || !Number.isFinite(img.h))) warn(at + ' 图片元素需要 id、src、x、y、w、h；纯 parts 元素除外');
     if (img.src && typeof img.src === 'string' && !img.src.startsWith('data:')) warn(at + '.src 不是 data: 快照；浏览器版保存后可能无法独立携带该素材');
   });
-  const reserved = new Set(['format', 'formatVersion', 'kind', 'name', 'meta', 'w', 'h', 'loop', 'bg', 'transparent', 'scenes', 'sceneBorders', 'images', 'fx']);
+  if (cfg.groups != null) {
+    if (!Array.isArray(cfg.groups)) warn('groups 必须是父级组数组');
+    else {
+      const known = new Set((cfg.images || []).filter(e => e && e.id && e.role !== 'background' && e.role !== 'mask').map(e => e.id));
+      const seen = new Set();
+      cfg.groups.forEach((g, i) => {
+        const at = 'groups[' + i + ']';
+        if (!g || typeof g !== 'object' || !g.id || !Array.isArray(g.memberIds) || g.memberIds.length < 2) { warn(at + ' 需要 id 与至少两个 memberIds'); return; }
+        if (seen.has(g.id)) warn('groups.id 重复：「' + g.id + '」'); seen.add(g.id);
+        g.memberIds.forEach(id => { if (!known.has(id)) warn(at + '.memberIds 包含不可编辑或不存在的元素：「' + id + '」'); });
+      });
+    }
+  }
+  const reserved = new Set(['format', 'formatVersion', 'kind', 'name', 'meta', 'w', 'h', 'loop', 'bg', 'transparent', 'scenes', 'sceneBorders', 'images', 'fx', 'groups']);
   const validateParts = (key, parts) => (Array.isArray(parts) ? parts : []).forEach((p, i) => {
     const at = key + '.parts[' + i + ']';
     if (!p || !['rect', 'line', 'ellipse', 'poly'].includes(p.type)) return warn(at + '.type 必须为 rect/line/ellipse/poly');
@@ -2896,7 +3044,7 @@ function syncGlobals() {
 }));
 
 /* ---------------- PS 式图层列表（元素卡片栏：收起/展开/拖拽排序写 z） ---------------- */
-const PROG_SKIP = ['format', 'formatVersion', 'kind', 'name', 'meta', 'w', 'h', 'loop', 'bg', 'transparent', 'scenes', 'sceneBorders', 'images', 'fx']; // 场景元数据/结构字段不渲染成图层卡片
+const PROG_SKIP = ['format', 'formatVersion', 'kind', 'name', 'meta', 'w', 'h', 'loop', 'bg', 'transparent', 'scenes', 'sceneBorders', 'images', 'fx', 'groups']; // 场景元数据/结构字段不渲染成图层卡片
 let layerOpen = {};
 let fxLayerOpen = {};
 let rightPane = 'layers'; // layers | fx：右栏只切换编辑对象，不改变 Runtime 合成顺序
@@ -3428,6 +3576,18 @@ function cleanupOrphanMaskAssets(cfg) {
   for (let i = cfg.images.length - 1; i >= 0; i--) if (cfg.images[i] && cfg.images[i].role === 'mask' && !refs.has(cfg.images[i].id)) cfg.images.splice(i, 1);
   if (state.sceneParamsMode && window.HOME_SCENE === cfg) state.elements = cfg.images;
 }
+function styleForm(el, box) {
+  if (!state.sceneParamsMode || !el || el.role === 'background' || el.role === 'mask') return;
+  const make = (key, label, fields) => {
+    const row = document.createElement('div'); row.className = 'cf-row'; const st = el.style || {};
+    const on = document.createElement('input'); on.type = 'checkbox'; on.checked = !!st[key]; row.appendChild(on);
+    const lab = document.createElement('label'); lab.textContent = label; row.appendChild(lab);
+    fields.forEach(([k, def, min, max]) => { const i = document.createElement('input'); i.type = k === 'color' ? 'color' : 'number'; i.min = min; i.max = max; i.value = st[key] && st[key][k] != null ? st[key][k] : def; i.style.width = k === 'color' ? '32px' : '42px'; const apply = history => { if (history) pushHistory(); el.style = el.style || {}; el.style[key] = el.style[key] || {}; el.style[key][k] = k === 'color' ? i.value : +i.value; refreshStage(); }; i.addEventListener('input', () => apply(false)); i.addEventListener('change', () => apply(true)); row.appendChild(i); });
+    on.addEventListener('change', () => { pushHistory(); el.style = el.style || {}; if (on.checked) el.style[key] = Object.fromEntries(fields.map(([k, d]) => [k, d])); else delete el.style[key]; if (!Object.keys(el.style).length) delete el.style; buildLayerList(layerCfg()); refreshStage(); }); box.appendChild(row);
+  };
+  make('shadow', '阴影', [['color', '#17213a'], ['distance', 3, 0, 16], ['angle', 135, 0, 360]]);
+  make('outline', '外描边', [['color', '#08111d'], ['width', 1, 1, 4]]);
+}
 /* 裁剪蒙版：保存为元素级 mask；与粒子发射范围共用画布框选，但语义不同——
    发射范围决定出生位置，蒙版决定最终可见区域。坐标均为画布绝对坐标。 */
 function maskForm(el, box) {
@@ -3635,7 +3795,19 @@ function beginMaskDrag(p) {
   // 空白单击只记录候选起点；与绘制工具一样，超过阈值的拖动才真正重新框选。
   edit.drag = { type: 'new-pending', sx: p.x, sy: p.y, original: Object.assign({}, mask) }; return true;
 }
-function moveMaskEdit(p) {
+function alphaNaturalAspect(mask) {
+  if (!mask || mask.type !== 'alpha' || !mask.imageId) return null;
+  const asset = (layerCfg().images || []).find(e => e && e.id === mask.imageId);
+  const w = asset && Number(asset.w), h = asset && Number(asset.h);
+  return w > 0 && h > 0 ? w / h : null;
+}
+function ratioDragRect(sx, sy, px, py, ratio) {
+  let dx = px - sx, dy = py - sy;
+  if (Math.abs(dx) >= Math.abs(dy) * ratio) dy = (dy < 0 ? -1 : 1) * Math.abs(dx) / ratio;
+  else dx = (dx < 0 ? -1 : 1) * Math.abs(dy) * ratio;
+  return { x: Math.min(sx, sx + dx), y: Math.min(sy, sy + dy), w: Math.max(1, Math.abs(dx)), h: Math.max(1, Math.abs(dy)) };
+}
+function moveMaskEdit(p, free) {
   const edit = maskEdit, d = edit && edit.drag; let mask = edit && edit.el.mask; if (!d || !mask) return;
   if (d.type === 'vertex') { d.changed = true; mask.points[edit.vertex] = [Math.round(d.orig[0] + p.x - d.sx), Math.round(d.orig[1] + p.y - d.sy)]; }
   else if (d.type === 'move') {
@@ -3645,17 +3817,26 @@ function moveMaskEdit(p) {
     else { mask.x = d.orig.x + dx; mask.y = d.orig.y + dy; }
   } else if (d.type === 'resize') {
     d.changed = true;
-    const r = cornerResize({ x: d.orig.x, y: d.orig.y, w: d.orig.w, h: d.orig.h }, d.corner, p.x - d.sx, p.y - d.sy);
+    let r = cornerResize({ x: d.orig.x, y: d.orig.y, w: d.orig.w, h: d.orig.h }, d.corner, p.x - d.sx, p.y - d.sy);
+    // Alpha 图片默认锁定当前比例；第一次框选取素材原始比例。Shift 临时解除锁比。
+    const ratio = !free && mask.type === 'alpha' && d.orig.w > 0 && d.orig.h > 0 ? d.orig.w / d.orig.h : null;
+    if (ratio) {
+      const side = Math.abs(r.nw - d.orig.w) >= Math.abs(r.nh - d.orig.h) ? r.nw : r.nh * ratio;
+      const nw = Math.max(1, side), nh = Math.max(1, nw / ratio);
+      r = { nx: (d.corner === 'bl' || d.corner === 'tl') ? d.orig.x + d.orig.w - nw : d.orig.x, ny: (d.corner === 'tr' || d.corner === 'tl') ? d.orig.y + d.orig.h - nh : d.orig.y, nw, nh };
+    }
     mask.x = Math.round(r.nx); mask.y = Math.round(r.ny); mask.w = Math.max(1, Math.round(r.nw)); mask.h = Math.max(1, Math.round(r.nh));
   } else if (d.type === 'new-pending') {
     if (Math.hypot(p.x - d.sx, p.y - d.sy) < uiWorld(3)) return;
     // 保留 imageId / mode / invert 等非几何字段，避免“选图后编辑范围”丢失选择。
     edit.el.mask = Object.assign({}, d.original, { x: Math.round(d.sx), y: Math.round(d.sy), w: 1, h: 1 });
     mask = edit.el.mask; d.type = 'new'; d.changed = true;
-    mask.x = Math.round(Math.min(d.sx, p.x)); mask.y = Math.round(Math.min(d.sy, p.y)); mask.w = Math.max(1, Math.round(Math.abs(p.x - d.sx))); mask.h = Math.max(1, Math.round(Math.abs(p.y - d.sy)));
+    const r = !free && mask.type === 'alpha' && alphaNaturalAspect(mask) ? ratioDragRect(d.sx, d.sy, p.x, p.y, alphaNaturalAspect(mask)) : { x: Math.min(d.sx, p.x), y: Math.min(d.sy, p.y), w: Math.abs(p.x - d.sx), h: Math.abs(p.y - d.sy) };
+    mask.x = Math.round(r.x); mask.y = Math.round(r.y); mask.w = Math.max(1, Math.round(r.w)); mask.h = Math.max(1, Math.round(r.h));
   } else if (d.type === 'new') {
     d.changed = true;
-    mask.x = Math.round(Math.min(d.sx, p.x)); mask.y = Math.round(Math.min(d.sy, p.y)); mask.w = Math.max(1, Math.round(Math.abs(p.x - d.sx))); mask.h = Math.max(1, Math.round(Math.abs(p.y - d.sy)));
+    const r = !free && mask.type === 'alpha' && alphaNaturalAspect(mask) ? ratioDragRect(d.sx, d.sy, p.x, p.y, alphaNaturalAspect(mask)) : { x: Math.min(d.sx, p.x), y: Math.min(d.sy, p.y), w: Math.abs(p.x - d.sx), h: Math.abs(p.y - d.sy) };
+    mask.x = Math.round(r.x); mask.y = Math.round(r.y); mask.w = Math.max(1, Math.round(r.w)); mask.h = Math.max(1, Math.round(r.h));
   }
   renderStage();
 }
@@ -4511,6 +4692,45 @@ function buildLayerList(cfg) {
     renderLocalFxLayers(cfg, box);
     return;
   }
+  // 父级组不是 z 图层：单独列在图层前方，选择后以紫色联合框呈现。
+  const groups = sceneGroups(cfg), groupSlots = new Map();
+  if (groups.length) {
+    const title = document.createElement('div'); title.className = 'subhead'; title.textContent = '父级组（紫框 = 整体变换）'; box.appendChild(title);
+    groups.forEach(g => {
+      const members = groupMembers(g, cfg), selected = state.selGroup === g.id, expanded = state.openGroup === g.id;
+      const card = document.createElement('div'); card.className = 'layer-card group-card' + (selected ? ' sel' : '');
+      const head = document.createElement('div'); head.className = 'layer-head';
+      head.innerHTML = '<span class="group-badge">组</span><span class="layer-name">' + escapeHtml(g.name || '编组') + '</span><span class="group-badge">' + members.length + ' 项</span><button class="hb" data-group-act="ungroup">解组</button>';
+      head.addEventListener('click', ev => {
+        ev.stopPropagation();
+        if (ev.target.closest && ev.target.closest('[data-group-act="ungroup"]')) { state.selGroup = g.id; ungroupSelected(); return; }
+        selectGroup(g, cfg); buildLayerList(cfg); renderStage(); if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel();
+      });
+      card.appendChild(head);
+      const body = document.createElement('div'); body.className = 'layer-body';
+      body.style.display = expanded ? '' : 'none';
+      {
+        const name = document.createElement('input'); name.type = 'text'; name.value = g.name || '';
+        name.title = '组名只用于编辑器识别，不影响画面渲染';
+        name.addEventListener('change', () => { pushHistory(); g.name = name.value || '编组'; buildLayerList(cfg); });
+        body.appendChild(name);
+        const note = document.createElement('div'); note.className = 'hint-inline'; note.textContent = '拖紫框可整体移动；手柄可旋转/缩放/镜像。成员收纳在下方；双击成员进入 parts 编辑。'; body.appendChild(note);
+        const effective = document.createElement('div'); effective.className = 'hint-inline';
+        const aState = groupPropertyState(g, cfg, 'anim'), sState = groupPropertyState(g, cfg, 'scroll');
+        effective.textContent = '动画：' + aState.text + ' · 滚动：' + sState.text;
+        body.appendChild(effective);
+        const ops = document.createElement('div'); ops.className = 'cf-row';
+        const cp = document.createElement('button'); cp.className = 'small'; cp.textContent = '复制编组'; cp.addEventListener('click', () => copyGroup(g, cfg)); ops.appendChild(cp);
+        const anim = document.createElement('button'); anim.className = 'small'; anim.textContent = '同步动画'; anim.title = '以组内第一个成员的动画设置覆盖其他成员；位置不变'; anim.addEventListener('click', () => syncGroupProperty(g, cfg, 'anim')); ops.appendChild(anim);
+        const scroll = document.createElement('button'); scroll.className = 'small'; scroll.textContent = '同步滚动'; scroll.title = '以组内第一个成员的滚动设置覆盖其他成员；位置与尺寸不变'; scroll.addEventListener('click', () => syncGroupProperty(g, cfg, 'scroll')); ops.appendChild(scroll);
+        body.appendChild(ops);
+        const membersTitle = document.createElement('div'); membersTitle.className = 'subhead'; membersTitle.textContent = '组内成员（保持全局 z）'; body.appendChild(membersTitle);
+        const slot = document.createElement('div'); slot.className = 'group-members'; body.appendChild(slot); groupSlots.set(g.id, slot);
+      }
+      card.appendChild(body);
+      box.appendChild(card);
+    });
+  }
   const order = layerOrderOf(cfg);
   const imgs = cfg.images || [];
   for (const item of order) {
@@ -4524,7 +4744,8 @@ function buildLayerList(cfg) {
     const isHid = !!el.hidden;
     const cardKey = item.kind === 'prog' ? 'p:' + item.key : 'i:' + el.id;
     const card = document.createElement('div');
-    card.className = 'layer-card' + (item.kind === 'img' ? ' img' : '') + (isSel ? ' sel' : '') + (isHid ? ' hid' : '');
+    const isMulti = state.multi.includes(el);
+    card.className = 'layer-card' + (item.kind === 'img' ? ' img' : '') + (isSel ? ' sel' : '') + (isMulti ? ' multi' : '') + (isHid ? ' hid' : '');
     card.draggable = false;
     if (item.kind === 'img') card.dataset.elid = el.id;
     else card.dataset.key = item.key;
@@ -4554,6 +4775,7 @@ function buildLayerList(cfg) {
       if (item.kind === 'img') imgForm(el, body, cardKey); // 素材卡片：中文说明表单（滚动/动画/多帧）
       else walkForm(el, '', body, cardKey);                // 程序元素：通用参数表单
       if (el.particle) particleForm(el, body, cardKey);    // 粒子系统：运动参数专表（实体=自身 parts）
+      styleForm(el, body);
       maskForm(el, body);                                  // 所有 Runtime 图层统一的裁剪蒙版
       if (partsOpenEl === el) partsEditor(el, body, cardKey); // [编辑]：图元 parts 子面板
       if (item.kind === 'img') {
@@ -4592,6 +4814,7 @@ function buildLayerList(cfg) {
         return;
       }
       if (item.kind === 'prog') {
+        if ((ev.ctrlKey || ev.metaKey) && el.id && el.parts) { toggleMultiElement(el, cfg); return; }
         layerOpen[nm] = !layerOpen[nm];
         state.selProg = state.selProg === el ? null : el; // ① 点击程序元素卡片 = 选中（黄线 + 动画面板跟随）
         state.selEl = null; state.partSel = null;
@@ -4599,6 +4822,8 @@ function buildLayerList(cfg) {
         renderStage();
         if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel();
       } else {
+        if (ev.ctrlKey || ev.metaKey) { toggleMultiElement(el, cfg); return; }
+        state.selGroup = null; state.openGroup = groupOfElement(el.id, cfg) && groupOfElement(el.id, cfg).id || null; state.multi = [];
         state.selEl = isSel ? null : el.id; // 点击卡片 = 选中/取消（展开参数）
         state.selProg = null; state.partSel = null;
         if (!isSel && el.srcId && state.selSrc !== el.srcId) { // ⑤ 图层栏选中 → 左侧素材同步选中
@@ -4629,7 +4854,9 @@ function buildLayerList(cfg) {
       reorderLayers(cfg, kind, key, item, card.dataset.insert !== 'after');
     });
     card.addEventListener('dragend', () => { listDragKind = null; card.classList.remove('drag', 'insert-before', 'insert-after'); });
-    box.appendChild(card);
+    const g = el.id ? groupOfElement(el.id, cfg) : null;
+    const slot = g && groupSlots.get(g.id);
+    (slot || box).appendChild(card);
   }
   renderBackgroundLayers(cfg, box);
   if (!order.length && !(cfg.images || []).some(e => e.role === 'background')) {

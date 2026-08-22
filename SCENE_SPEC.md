@@ -34,6 +34,8 @@ const GENERIC_SCENE = {
   // …… 任意具名程序元素 ……
 
   images: [ /* 素材层（工具导入的图片元素，同一 schema） */ ],
+  // 可选：仅编辑器组织数据，不是 Runtime 渲染层；父级变换会写回成员。
+  groups: [{ id: 'group-trees', name: '前景树', memberIds: ['tree-a', 'tree-b'] }],
 };
 ```
 
@@ -69,6 +71,8 @@ const GENERIC_SCENE = {
 - 复杂且无法拆分的视觉内容应由用户导入为图片/sprite；当前浏览器版不允许 Agent 伪造尚不存在的 `data:` 图像内容。
 - 每个 Runtime 图层可带 `mask` 裁剪蒙版；它限制最终可见区域，适用于 parts、图片、粒子、builtin 与兼容项目元素。支持 `rect`、`ellipse`、`poly`，坐标为画布绝对坐标；也支持 `alpha`：`{ type:'alpha', imageId, x,y,w,h, frame?, mode?:'alpha'|'luma', invert? }`，以 `images[]` 内图片的透明度或明度在该画布范围内裁剪。`mode:'luma'` 为黑透明、白不透明，且继续乘原图 alpha；`invert` 在映射后反相。`imageId` 是稳定素材引用，不能内嵌副本。当前仍不支持羽化。
 - 当前禁止输出 `keyframes`、`project`、`assetRef`、自定义 `fx` 函数等规划字段；工具会保留未知字段，但不会把它们作为可编辑动画执行。Agent 不得输出任意函数、`eval` 或未注册 builtin。
+- `groups` 是可选的父级组：`{id, name?, memberIds:[...至少两个稳定图片/矢量元素 id], transform?:{anim}}`。它不产生新的 Runtime 图层、不参与 z 排序，也不支持嵌套；一个成员最多属于一个组。静态组操作（移动、旋转、缩放、镜像）直接写入成员；`transform.anim` 则由 Runtime 在逐成员绘制前叠加同一父级矩阵，可用于刚体式 bob/spin/wave/pulse/blink，且不改变成员的全局 z 或其单独编辑能力。
+- 元素可选样式为 `style:{shadow?:{color,distance,angle}, outline?:{color,width}}`；阴影无模糊，`angle` 0° 向右、90° 向下，`distance` 0–16，外描边 `width` 1–4。效果基于图片与 parts 合成后的 Alpha 轮廓，在元素自身蒙版内合成；它与 `parts[].stroke`（几何描边）及局部 FX 光晕不同。
 
 ### 粒子图片实体
 

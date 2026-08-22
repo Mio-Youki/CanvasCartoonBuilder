@@ -238,7 +238,7 @@ function syncCfg() {
 }
 // 内置键（结构性 + 硬编码元素名）：其余顶层对象视为「通用程序元素」（有 parts → 图元渲染；
 // 有 particle → 粒子系统渲染）——工具/Agent 生成的新元素无需改渲染器即可生效
-const SCENE_KEYS = ['format', 'formatVersion', 'kind', 'name', 'meta', 'w', 'h', 'loop', 'bg', 'transparent', 'scenes', 'sceneBorders', 'images', 'fx',
+const SCENE_KEYS = ['format', 'formatVersion', 'kind', 'name', 'meta', 'w', 'h', 'loop', 'bg', 'transparent', 'scenes', 'sceneBorders', 'images', 'fx', 'groups',
   'stars', 'moon', 'clouds', 'mountains', 'farForest', 'poles', 'rail', 'train', 'foreground', 'fog', 'signal', 'bridge'];
 
 const HomeScene = (() => {
@@ -247,6 +247,7 @@ const HomeScene = (() => {
   let sceneOverride = null; // 过渡活帧：渲染旧场景时临时覆盖 scene(t) 返回值
   let altCanvas = null;     // 过渡活帧：旧场景离屏（scan/wipe/dissolve 合成用）
   let alphaMaskCanvas = null; // Alpha 蒙版临时内容层：仅存在 alpha mask 时创建/复用
+  let elementStyleCanvas = null, elementSilhouetteCanvas = null; // 元素级硬边阴影/外描边：仅启用时创建
   let localGlitchCanvas = null; // 局部故障采样：只在启用 glitch 的帧复制当前画面
   let localGradeCanvas = null;  // 局部采样/调色：尺寸仅为蒙版包围盒 ÷ pixelDiv
   let fxTargetMaskCanvas = null; // 绑定元素的实际可见轮廓（仅 clip 模式创建/复用）
@@ -914,12 +915,53 @@ const HomeScene = (() => {
     main.drawImage(alphaMaskCanvas, 0, 0);
   }
   function drawMasked(el, t, fn) {
-    if (!el || !el.mask) { fn(); return; }
-    if (el.mask.type === 'alpha') { drawAlphaMasked(el.mask, t, fn); return; }
+    // 父级组并非新的渲染容器：每个成员仍按原 z 单独绘制，只在绘制调用外叠加同一组矩阵。
+    const grouped = () => drawWithGroupTransform(el, t, fn);
+    const styled = () => drawElementStyle(el, grouped);
+    if (!el || !el.mask) { styled(); return; }
+    if (el.mask.type === 'alpha') { drawAlphaMasked(el.mask, t, styled); return; }
     ctx.save();
-    if (maskPath(el.mask, t)) { ctx.clip(); fn(); }
-    else fn();
+    if (maskPath(el.mask, t)) { ctx.clip(); styled(); }
+    else styled();
     ctx.restore();
+  }
+
+  function drawElementStyle(el, paint) {
+    const st = el && el.style, sh = st && st.shadow, ol = st && st.outline;
+    if (!sh && !ol) { paint(); return; }
+    if (!elementStyleCanvas) elementStyleCanvas = createSurface(W, H);
+    if (!elementSilhouetteCanvas) elementSilhouetteCanvas = createSurface(W, H);
+    if (!elementStyleCanvas || !elementSilhouetteCanvas) { paint(); return; }
+    if (elementStyleCanvas.width !== W || elementStyleCanvas.height !== H) { elementStyleCanvas.width = W; elementStyleCanvas.height = H; elementSilhouetteCanvas.width = W; elementSilhouetteCanvas.height = H; }
+    const main = ctx, off = elementStyleCanvas.getContext('2d'), sil = elementSilhouetteCanvas.getContext('2d');
+    off.clearRect(0, 0, W, H); ctx = off; try { paint(); } finally { ctx = main; }
+    const colorSilhouette = color => { sil.clearRect(0, 0, W, H); sil.globalCompositeOperation = 'source-over'; sil.drawImage(elementStyleCanvas, 0, 0); sil.globalCompositeOperation = 'source-in'; sil.fillStyle = color; sil.fillRect(0, 0, W, H); sil.globalCompositeOperation = 'source-over'; };
+    if (sh && sh.color && +sh.distance > 0) { colorSilhouette(sh.color); const a = (+sh.angle || 0) * Math.PI / 180, d = +sh.distance || 0; main.drawImage(elementSilhouetteCanvas, Math.round(Math.cos(a) * d), Math.round(Math.sin(a) * d)); }
+    if (ol && ol.color && +ol.width > 0) { colorSilhouette(ol.color); const w = Math.min(4, Math.max(1, Math.round(+ol.width))); for (let y = -w; y <= w; y++) for (let x = -w; x <= w; x++) if (x || y) main.drawImage(elementSilhouetteCanvas, x, y); }
+    main.drawImage(elementStyleCanvas, 0, 0);
+  }
+
+  function groupForElement(el) {
+    if (!el || !el.id || !Array.isArray(CFG.groups)) return null;
+    return CFG.groups.find(g => g && Array.isArray(g.memberIds) && g.memberIds.indexOf(el.id) >= 0) || null;
+  }
+  function groupBounds(g) {
+    const members = (CFG.images || []).filter(e => e && g.memberIds.indexOf(e.id) >= 0 && e.role !== 'background' && e.role !== 'mask');
+    if (members.length < 2) return null;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    members.forEach(e => { x0 = Math.min(x0, +e.x || 0); y0 = Math.min(y0, +e.y || 0); x1 = Math.max(x1, (+e.x || 0) + (+e.w || 0)); y1 = Math.max(y1, (+e.y || 0) + (+e.h || 0)); });
+    return isFinite(x0) ? { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2 } : null;
+  }
+  function drawWithGroupTransform(el, t, fn) {
+    const g = groupForElement(el), tr = g && g.transform;
+    if (!tr || !tr.anim) { fn(); return; }
+    const b = groupBounds(g); if (!b) { fn(); return; }
+    const p = applyAnims(animList(tr.anim), t, { xOff: 0, yOff: 0, rot: 0, scale: 1, alpha: 1 });
+    ctx.save(); ctx.globalAlpha *= p.alpha;
+    ctx.translate(b.cx + p.xOff, b.cy + p.yOff);
+    if (p.rot) ctx.rotate(p.rot * Math.PI / 180);
+    if (Math.abs(p.scale - 1) > .001) ctx.scale(p.scale, p.scale);
+    ctx.translate(-b.cx, -b.cy); fn(); ctx.restore();
   }
 
   // 局部 FX：独立于全局后处理的有序合成层。每层先按自身 mask 裁剪，再以 Canvas
