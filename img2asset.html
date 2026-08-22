@@ -755,15 +755,15 @@ function renderStage() {
       else drawElement(ctx, e, state.t, imgMap);
     }
   }
-  // 矢量绘制预览（进行中的形状）
-  if (state.drawShape) drawShapePreview(ctx, state.drawShape);
+  // 矢量绘制预览、选中框与蒙版控件统一走独立高 DPI Overlay，避免低分辨率场景 Canvas 放大后发虚。
+  if (state.drawShape) drawShapePreview(state.drawShape);
   // 粒子发射范围与裁剪蒙版都使用统一的框选交互：发射范围=黄色，蒙版=青色。
   if (state.selProg && state.selProg.particle && state.selProg.x != null && state.selProg.w != null) {
     drawSelBox(ctx, { x: Math.round(state.selProg.x), y: Math.round(state.selProg.y), w: Math.round(state.selProg.w), h: Math.round(state.selProg.h) }, '#ffd23f', { dash: [4, 3], noHandles: true });
   }
   const maskGuideEl = state.selProg || selEl();
   if (maskEdit) drawMaskEdit(ctx, maskEdit.el.mask);
-  else if (maskGuideEl && maskGuideEl.mask) drawMaskGuide(ctx, maskGuideEl.mask);
+  else if (maskGuideEl && maskGuideEl.mask) drawMaskGuide(maskGuideEl.mask);
   if (regionSelectEl || state.regionRect) {
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.fillRect(0, 0, state.cw, state.ch);
@@ -1050,24 +1050,27 @@ function drawRotationHandle(ctx, box, color) {
   ctx.beginPath(); ctx.moveTo(hx, box.y); ctx.lineTo(hx, hy + radius); ctx.stroke();
   ctx.beginPath(); ctx.arc(hx, hy, radius, 0, Math.PI * 2); ctx.stroke();
 }
-/* 绘制中形状预览（虚线黄框） */
-function drawShapePreview(ctx, s) {
+/* 绘制中形状预览：和选中框一样画在高 DPI Overlay（屏幕像素线宽/控制点）。 */
+function drawShapePreview(s) {
+  const ctx = editorOverlayCtx;
+  if (!ctx || !s) return;
+  const sc = editorOverlayScale;
   ctx.strokeStyle = '#ffd23f';
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1.25;
   ctx.setLineDash([4, 3]);
   if (s.type === 'rect' || s.type === 'ellipse') {
-    const x = Math.min(s.x0, s.x0 + s.w), y = Math.min(s.y0, s.y0 + s.h);
-    const w = Math.abs(s.w), h = Math.abs(s.h);
-    if (s.type === 'rect') ctx.strokeRect(Math.round(x), Math.round(y), w, h);
+    const x = Math.min(s.x0, s.x0 + s.w) * sc, y = Math.min(s.y0, s.y0 + s.h) * sc;
+    const w = Math.abs(s.w) * sc, h = Math.abs(s.h) * sc;
+    if (s.type === 'rect') ctx.strokeRect(Math.round(x) - .5, Math.round(y) - .5, w, h);
     else { ctx.beginPath(); ctx.ellipse(Math.round(x + w / 2), Math.round(y + h / 2), w / 2, h / 2, 0, 0, Math.PI * 2); ctx.stroke(); }
   } else if (s.type === 'line') {
-    ctx.beginPath(); ctx.moveTo(Math.round(s.x0), Math.round(s.y0)); ctx.lineTo(Math.round(s.x2), Math.round(s.y2)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(Math.round(s.x0 * sc), Math.round(s.y0 * sc)); ctx.lineTo(Math.round(s.x2 * sc), Math.round(s.y2 * sc)); ctx.stroke();
   } else if (s.type === 'poly' && (s.points || []).length) {
     ctx.beginPath();
-    ctx.moveTo(s.points[0][0], s.points[0][1]);
-    for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i][0], s.points[i][1]);
+    ctx.moveTo(s.points[0][0] * sc, s.points[0][1] * sc);
+    for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i][0] * sc, s.points[i][1] * sc);
     ctx.stroke();
-    s.points.forEach(pt => { ctx.fillStyle = '#ffd23f'; ctx.fillRect(pt[0] - 1, pt[1] - 1, 3, 3); });
+    s.points.forEach(pt => { ctx.fillStyle = '#ffd23f'; ctx.fillRect(pt[0] * sc - 3, pt[1] * sc - 3, 6, 6); });
   }
   ctx.setLineDash([]);
 }
@@ -1472,7 +1475,16 @@ stage.addEventListener('pointermove', ev => {
   if (state.drawShape && state.drawDrag) {
     const p = stagePos(ev);
     if (state.drawShape.type === 'line') { state.drawShape.x2 = p.x; state.drawShape.y2 = p.y; }
-    else { state.drawShape.w = p.x - state.drawShape.x0; state.drawShape.h = p.y - state.drawShape.y0; }
+    else {
+      let dx = p.x - state.drawShape.x0, dy = p.y - state.drawShape.y0;
+      // 矩形/椭圆：Shift 约束为正方形/正圆，起点保持为拖拽锚点。
+      if (ev.shiftKey && (state.drawShape.type === 'rect' || state.drawShape.type === 'ellipse')) {
+        const side = Math.max(Math.abs(dx), Math.abs(dy));
+        dx = (dx < 0 ? -1 : 1) * side;
+        dy = (dy < 0 ? -1 : 1) * side;
+      }
+      state.drawShape.w = dx; state.drawShape.h = dy;
+    }
     renderStage();
     return;
   }
@@ -2325,9 +2337,66 @@ function pasteClip() {
     buildLayerList(layerCfg()); ensureImage(n); refreshStage();
   }
 }
+function nudgeSceneNumber(obj, key, delta) {
+  if (!obj) return false;
+  if (Array.isArray(obj[key])) {
+    const i = Math.max(0, Math.min(obj[key].length - 1, tlScene() < 0 ? 0 : tlScene()));
+    obj[key][i] = (Number(obj[key][i]) || 0) + delta;
+  } else obj[key] = (Number(obj[key]) || 0) + delta;
+  return true;
+}
+function nudgePart(part, dx, dy) {
+  if (!part) return false;
+  if (part.type === 'line') { part.x = (part.x || 0) + dx; part.y = (part.y || 0) + dy; part.x2 = (part.x2 || 0) + dx; part.y2 = (part.y2 || 0) + dy; }
+  else if (part.type === 'poly') part.points = (part.points || []).map(p => [p[0] + dx, p[1] + dy]);
+  else { part.x = (part.x || 0) + dx; part.y = (part.y || 0) + dy; }
+  return true;
+}
+function nudgeMask(mask, dx, dy) {
+  if (!mask) return false;
+  if (mask.type === 'poly') mask.points = (mask.points || []).map(p => [p[0] + dx, p[1] + dy]);
+  else if (maskBox(mask)) { mask.x += dx; mask.y += dy; }
+  else return false;
+  return true;
+}
+function canNudgeActiveSelection() {
+  if (maskEdit && maskBox(maskEdit.el.mask)) return true;
+  if (state.partMulti && state.partMulti.el && state.partMulti.indexes && state.partMulti.indexes.length) return true;
+  if (state.partSel && state.partSel.el && state.partSel.el.parts[state.partSel.index]) return true;
+  if (state.multi && state.multi.length > 1) return true;
+  return !!(state.selProg || selEl());
+}
+function nudgeActiveSelection(dx, dy) {
+  // 绿色框优先：蒙版编辑期间方向键只移动蒙版。
+  if (maskEdit && nudgeMask(maskEdit.el.mask, dx, dy)) return true;
+  if (state.partMulti && state.partMulti.el && state.partMulti.indexes && state.partMulti.indexes.length) {
+    state.partMulti.indexes.forEach(i => nudgePart(state.partMulti.el.parts[i], dx, dy));
+    return true;
+  }
+  if (state.partSel && state.partSel.el && state.partSel.el.parts[state.partSel.index]) return nudgePart(state.partSel.el.parts[state.partSel.index], dx, dy);
+  if (state.multi && state.multi.length > 1) {
+    state.multi.forEach(el => { nudgeSceneNumber(el, 'x', dx); nudgeSceneNumber(el, 'y', dy); });
+    return true;
+  }
+  const el = state.selProg || selEl();
+  if (!el) return false;
+  nudgeSceneNumber(el, 'x', dx); nudgeSceneNumber(el, 'y', dy);
+  return true;
+}
 window.addEventListener('keydown', ev => {
   const tag = ev.target && ev.target.tagName;
   if (tag && /INPUT|SELECT|TEXTAREA/.test(tag)) return; // 输入框内不拦截热键
+  const arrow = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[ev.key];
+  if (arrow) {
+    const step = ev.shiftKey ? 10 : 1; // 默认 1 个画布像素；Shift = 10 个像素
+    if (canNudgeActiveSelection()) {
+      ev.preventDefault();
+      // 按住方向键的 repeat 合并到首个历史快照，避免每像素占一个撤销步骤。
+      if (!ev.repeat) pushHistory();
+      if (nudgeActiveSelection(arrow[0] * step, arrow[1] * step)) refreshStage();
+    }
+    return;
+  }
   if (ev.code === 'Space') { ev.preventDefault(); togglePlay(); return; }
   if (ev.key === 'Delete' || ev.key === 'Backspace') {
     ev.preventDefault();
@@ -3376,12 +3445,11 @@ function maskForm(el, box) {
     else {
       const prior = el.mask || {};
       // 新建蒙版先保持零尺寸，点击“框选”后由画布拖拽创建；切换已有矩形/椭圆时保留原范围。
-      const cfg = layerCfg();
       el.mask = { type: type.value, x: Number.isFinite(prior.x) ? prior.x : 0, y: Number.isFinite(prior.y) ? prior.y : 0, w: Number.isFinite(prior.w) ? prior.w : 0, h: Number.isFinite(prior.h) ? prior.h : 0 };
       if (type.value === 'alpha') {
-        // 先选图、后框选时默认覆盖全画布；框选操作会保留这一对象的所有非几何字段。
-        el.mask.w = Number.isFinite(prior.w) && prior.w > 0 ? prior.w : (cfg.w || state.cw);
-        el.mask.h = Number.isFinite(prior.h) && prior.h > 0 ? prior.h : (cfg.h || state.ch);
+        // Alpha 首次建立也从零范围开始：进入编辑后由用户在画布任意位置拉框，预览图随框自然拉伸。
+        el.mask.w = Number.isFinite(prior.w) && prior.w > 0 ? prior.w : 0;
+        el.mask.h = Number.isFinite(prior.h) && prior.h > 0 ? prior.h : 0;
         el.mask.imageId = prior.imageId || '';
         el.mask.mode = prior.mode === 'luma' ? 'luma' : 'alpha';
         el.mask.invert = !!prior.invert;
@@ -3417,7 +3485,20 @@ function maskForm(el, box) {
         const src = state.sources.find(s => s.id === source.value.slice(4));
         const asset = ensureMaskAssetFromSource(src, cfg);
         el.mask.imageId = asset ? asset.id : '';
-      } else el.mask.imageId = source.value.startsWith('img:') ? source.value.slice(4) : '';
+      } else {
+        const imageId = source.value.startsWith('img:') ? source.value.slice(4) : '';
+        el.mask.imageId = imageId;
+        // 场景图片已经有用户调整过的位置和尺寸：作为 Alpha 源时直接继承当前画布位置。
+        // 隐藏 role:'mask' 素材仅是已冻结蒙版，不覆盖用户正在建立的范围。
+        const sceneImage = images.find(img => img.id === imageId && img.role !== 'mask');
+        if (sceneImage && Number.isFinite(elVal(sceneImage, 'x')) && Number.isFinite(elVal(sceneImage, 'y')) && Number.isFinite(elVal(sceneImage, 'w')) && Number.isFinite(elVal(sceneImage, 'h'))) {
+          const so = scrollOffsets(sceneImage, state.t);
+          el.mask.x = Math.round(elVal(sceneImage, 'x') + so.x);
+          el.mask.y = Math.round(elVal(sceneImage, 'y') + so.y);
+          el.mask.w = Math.max(1, Math.round(elVal(sceneImage, 'w')));
+          el.mask.h = Math.max(1, Math.round(elVal(sceneImage, 'h')));
+        }
+      }
       buildLayerList(cfg); refreshStage();
     }); sourceRow.appendChild(source);
     const mode = document.createElement('select');
@@ -5051,7 +5132,7 @@ function partsEditor(el, body, cardKey) {
   mk('旋转复位', () => {
     const ps = state.partSel;
     if (ps && ps.el === el && el.parts[ps.index]) { pushHistory(); el.parts[ps.index].rot = 0; }
-    else { pushHistory(); (el.parts || []).forEach(pp => { pp.rot = 0; }); }
+    else { pushHistory(); el.rot = 0; } // 黄框元素复位自身静态 rot；不影响 wave / spin 动画
     buildLayerList(layerCfg()); refreshStage();
   });
   body.appendChild(ops);
@@ -5157,23 +5238,17 @@ function exportSceneRanges(cfg, picked) {
   const bounds = [0].concat(currentBorders(cfg), [loop]);
   return names.map((_, i) => [bounds[i], bounds[i + 1]]).filter((_, i) => picked[i]);
 }
-function drawMaskGuide(ctx, mask) {
+function drawMaskGuide(mask) {
   if (!mask || !mask.type || mask.type === 'none') return;
-  ctx.save();
-  ctx.strokeStyle = '#4dc3ff'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]); ctx.beginPath();
-  if ((mask.type === 'rect' || mask.type === 'ellipse' || mask.type === 'alpha') && [mask.x, mask.y, mask.w, mask.h].every(Number.isFinite) && mask.w > 0 && mask.h > 0) {
-    if (mask.type === 'ellipse') ctx.ellipse(mask.x + mask.w / 2, mask.y + mask.h / 2, mask.w / 2, mask.h / 2, 0, 0, Math.PI * 2);
-    else ctx.rect(mask.x, mask.y, mask.w, mask.h);
-    ctx.stroke();
-  } else if (mask.type === 'poly' && Array.isArray(mask.points) && mask.points.length >= 3) {
-    const pts = mask.points.filter(p => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]));
-    if (pts.length >= 3) { ctx.moveTo(pts[0][0], pts[0][1]); pts.slice(1).forEach(p => ctx.lineTo(p[0], p[1])); ctx.closePath(); ctx.stroke(); }
-  }
+  const ctx = editorOverlayCtx;
+  if (!ctx) return;
+  ctx.save(); ctx.strokeStyle = '#4dc3ff'; ctx.lineWidth = 1.25; ctx.setLineDash([4, 3]); ctx.beginPath();
+  if (traceMask(ctx, mask, editorOverlayScale) && (mask.type !== 'poly' || (mask.points || []).length >= 3)) ctx.stroke();
   ctx.restore();
 }
 function maskBox(mask) {
   if (!mask) return null;
-  if ((mask.type === 'rect' || mask.type === 'ellipse' || mask.type === 'alpha') && [mask.x, mask.y, mask.w, mask.h].every(Number.isFinite)) return { x: mask.x, y: mask.y, w: mask.w, h: mask.h };
+  if ((mask.type === 'rect' || mask.type === 'ellipse' || mask.type === 'alpha') && [mask.x, mask.y, mask.w, mask.h].every(Number.isFinite) && mask.w > 0 && mask.h > 0) return { x: mask.x, y: mask.y, w: mask.w, h: mask.h };
   if (mask.type === 'poly' && Array.isArray(mask.points) && mask.points.length) {
     const xs = mask.points.map(p => p[0]), ys = mask.points.map(p => p[1]);
     return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
@@ -5205,7 +5280,7 @@ function drawMaskEdit(ctx, mask) {
   if (traceMask(ctx, mask, 1) && (mask.type !== 'poly' || (mask.points || []).length >= 3)) ctx.fill();
   ctx.restore();
   // Alpha 蒙版编辑时把实际素材半透明叠到作用范围，便于对齐树冠/水面等细节；退出编辑即消失。
-  if (mask.type === 'alpha' && mask.imageId) {
+  if (mask.type === 'alpha' && mask.imageId && maskBox(mask)) {
     const asset = (layerCfg().images || []).find(e => e && e.id === mask.imageId);
     const img = asset && (asset._asset || asset._img);
     if (asset && img && img.width && img.height) {
