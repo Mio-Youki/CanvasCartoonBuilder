@@ -13,6 +13,7 @@ const GENERIC_SCENE = {
   images: [],
   fx: { segs: [[{ f: [0, 1] }]], transition: 'none', transitionDur: 0.25, transitionColor: '#03060f' },
   lantern: {
+    id: 'lantern-main',
     z: 10, x: 136, y: 58,
     parts: [
       { type: 'rect', x: 0, y: 8, w: 48, h: 68, fill: '#26385a', stroke: '#0b1026', strokeWidth: 2 },

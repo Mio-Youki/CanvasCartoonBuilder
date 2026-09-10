@@ -7,9 +7,11 @@
 | 位置 | 角色 | 文件 |
 |---|---|---|
 | 工具根目录 | 用户入口、格式合同、路线与版本记录；链接稳定，不随专题归档移动 | `README.md`、`SCENE_SPEC.md`、`PLAN.md`、`CHANGELOG.md`、本文件 |
-| `docs/agent/` | Agent 生成、改写与试验结论 | `AGENT_GENERATE_SPEC.md`、`AGENT_REWRITE_SPEC.md`、`AGENT_WORKFLOW_STATUS.md` |
-| `docs/architecture/` | 已收口的 Runtime/编辑器架构说明与设计计划 | `MASK_AND_FX_STATUS.md`、`RUNTIME_ADAPTER_PLAN.md` |
+| `docs/agent/` | Agent 生成、改写、工具协议、提示词与试验结论 | `AGENT_GENERATE_SPEC.md`、`AGENT_REWRITE_SPEC.md`、`AGENT_TOOL_PROTOCOL.md`、`AGENT_PROMPT_PLAYBOOK.md`、`AGENT_WORKFLOW_STATUS.md` |
+| `docs/architecture/` | 已收口的 Runtime/编辑器架构说明与设计计划 | `ARCHITECTURE_OVERVIEW.md`、`VERSION_BASELINE_V3_1_REVIEW.md`、`MASK_AND_FX_STATUS.md`、`RUNTIME_ADAPTER_PLAN.md` |
 | `docs/design/` | 产品视觉语言、信息架构、组件和交互动效规范 | `DESIGN_SYSTEM.md`、`UI_INFORMATION_ARCHITECTURE.md`、`COMPONENT_REGISTRY.md`、`INTERACTION_AND_MOTION.md`、`assets/` |
+| `docs/product/` | 产品定位、发布叙事、案例与可验证承诺 | `PRODUCT_NARRATIVE.md` |
+| `scripts/` | 只读验证、迁移和开发辅助脚本；不是 Scene 合同本身 | `verify-editor.mjs`、`validate-scene.mjs` |
 | `editor/` | 可执行的编辑器内核模块；不是文档 | 几何、Scene model、导出器 |
 | `examples/` | 可导入场景、素材与验收样例；不是格式合同 | `*.js`、`assets/`、导出对照图 |
 
@@ -21,7 +23,9 @@
 |---|---|---|
 | 用户可见工作流、入口或限制 | `README.md`、`CHANGELOG.md` | `PLAN.md` |
 | Scene 字段、默认语义、Runtime 兼容行为 | `SCENE_SPEC.md`、相关 Agent 协议、`CHANGELOG.md` | `README.md`、样例、冒烟测试 |
+| Scene 合同校验规则或 Agent 样例夹具 | `scripts/validate-scene.mjs`、`SCENE_SPEC.md`、`docs/agent/` | `scripts/verify-editor.mjs`、`examples/`、`PLAN.md` |
 | Agent 输入/输出策略、验收或已知缺口 | `docs/agent/` 对应文件、`PLAN.md` | `SCENE_SPEC.md`、`README.md` |
+| 产品定位、公开承诺、案例验证口径 | `docs/product/`、`README.md`、`PLAN.md` | `CHANGELOG.md`、设计文档 |
 | 已完成的架构域（如蒙版/导出） | 对应 `docs/architecture/` 状态文档、`PLAN.md` | `README.md`、`CHANGELOG.md` |
 | UI 视觉、布局、组件或交互动效 | `docs/design/` 对应规范 | `README.md`、`PLAN.md`、`CHANGELOG.md` |
 | 未实现方向或优先级变化 | `PLAN.md` | 架构计划、README 限制说明 |
@@ -38,4 +42,4 @@
 
 一次 Runtime 行为变更需先确认 `tools/home-scene.js` 与 `../public/home-scene.js` 的 SHA256 相同；随后分别提交两个仓库。工具提交信息描述能力/文档，外层提交信息描述站点 Runtime 同步。除非明确要求，不因本地提交自动 push。
 
-提交前最低检查：运行时语法检查、编辑器脚本解析、`node test/client-smoke.js`、`npm run typecheck`、`npm test`（变更影响运行时或站点时）、两仓库 `git diff --check`。如检查受环境限制，必须在 CHANGELOG 或提交说明中标明。
+提交前最低检查：`node scripts/verify-editor.mjs`、`node test/client-smoke.js`、`npm run typecheck`、`npm test`（变更影响运行时或站点时）、两仓库 `git diff --check`。如检查受环境限制，必须在 CHANGELOG 或提交说明中标明。

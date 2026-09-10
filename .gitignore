@@ -1,0 +1,3 @@
+# 本地案例图片可能包含用户提供或受限制素材，不随仓库发布。
+examples/assets/*
+!examples/assets/README.md

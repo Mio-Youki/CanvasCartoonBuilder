@@ -10,6 +10,8 @@
 > [AGENT_GENERATE_SPEC.md](docs/agent/AGENT_GENERATE_SPEC.md)。生成应先交付不带动画的合法静态基底，
 > 在同尺寸预览中完成视觉锁定和结构整理后，再增量写入 `anim`、`scroll`、particle、FX、转场及
 > 多场景 `show`。静态基底优先采用参考图的原始宽高比，不能因套用默认画布而裁切构图。
+> 外部 Agent 的读取、结构化 Patch 与验证动作见
+> [AGENT_TOOL_PROTOCOL.md](docs/agent/AGENT_TOOL_PROTOCOL.md)；该协议不扩张本格式的字段集合。
 
 ## 一、顶层结构
 
@@ -26,6 +28,7 @@ const GENERIC_SCENE = {
   transparent: false, // true=Canvas 保留透明背景（PNG/APNG/WebP；GIF 仅二值透明）
   scenes: ["夜原", "雾", "山口", "桥"],   // 场景段名（可选；声明后时间轴显示段划分、工具可增删/拖边界）
   // sceneBorders: [12, 24, 36],          // 可选：场景边界秒数（长度 = scenes 数 - 1）；缺省=等分
+  // timeline: { sceneOverrides: { "stable-element-id": { 1: { x: 56, alpha: .65 } } }, tracks: { "stable-element-id": { 1: { segments:[{f:[0,.4],values:{x:20}},{f:[.4,.7],type:'linear'},{f:[.7,1],values:{x:80}}] } } } }, // 可选：属性时段与 Linear
 
   // —— 程序化元素：扁平键，每元素一个对象 ——
   sparkles: { z: 1, parts: [/* 图元 */] },
@@ -50,7 +53,7 @@ const GENERIC_SCENE = {
   //       单窗口可简写 [f0,f1]（工具/渲染端自动归一为 [[f0,f1]]）
   // —— 矢量图元（可选；有 parts 时按 parts 绘制，否则走程序化绘制）——
   parts: [
-    { type: 'rect',    x: -7, y: -7, w: 15, h: 15, fill: '#d5d8bb' },
+    { type: 'rect',    x: -7, y: -7, w: 15, h: 15, radius: 3, fill: '#d5d8bb' },
     { type: 'line',    x: 0, y: 0, x2: 10, y2: 10, stroke: '#ffffff', strokeWidth: 1 },
     { type: 'ellipse', x: 20, y: 0, w: 12, h: 8, fill: null, stroke: '#ffd23f', strokeWidth: 1 },
     { type: 'poly',    points: [[0,0],[10,0],[5,8]], fill: '#7dff5f' },
@@ -69,10 +72,24 @@ const GENERIC_SCENE = {
 - 顶层元素分三类：**通用元素**必须带稳定唯一 `id`，以及 `parts` 或 `particle`；**不透明素材**放入 `images[]`（仅编辑位置、尺寸、透明度等外层参数）；**内建锁定元素**可写 `kind:'builtin'` + 已注册的 `builtin` 名称。当前注册表仅有 `train-beam`，可编辑其 `x/y/beam/beamLen/beamOrigin/beamSpread/show`，但不可编辑其绘制算法。未知 builtin 不执行并会被自检提示。稳定 `id` 用于 FX 绑定、素材引用和后续 Agent 定位，禁止依赖对象键名或数组下标。
 - `images[]` 的图片元素必须有稳定 `id`、`src`、`x/y/w/h`；纯矢量元素可放在 `images[]`，但必须带 `parts`。
 - 复杂且无法拆分的视觉内容应由用户导入为图片/sprite；当前浏览器版不允许 Agent 伪造尚不存在的 `data:` 图像内容。
-- 每个 Runtime 图层可带 `mask` 裁剪蒙版；它限制最终可见区域，适用于 parts、图片、粒子、builtin 与兼容项目元素。支持 `rect`、`ellipse`、`poly`，坐标为画布绝对坐标；也支持 `alpha`：`{ type:'alpha', imageId, x,y,w,h, frame?, mode?:'alpha'|'luma', invert? }`，以 `images[]` 内图片的透明度或明度在该画布范围内裁剪。`mode:'luma'` 为黑透明、白不透明，且继续乘原图 alpha；`invert` 在映射后反相。`imageId` 是稳定素材引用，不能内嵌副本。当前仍不支持羽化。
+- 每个 Runtime 图层可带 `mask` 裁剪蒙版；它限制最终可见区域，适用于 parts、图片、粒子、builtin 与兼容项目元素。支持 `rect`、`ellipse`、`poly`，坐标为画布绝对坐标；也支持 `alpha`：`{ type:'alpha', imageId, x,y,w,h, frame?, mode?:'alpha'|'luma', invert? }`，以 `images[]` 内图片的透明度或明度在该画布范围内裁剪。`mode:'luma'` 为黑透明、白不透明，且继续乘原图 alpha；`invert` 在映射后反相。`imageId` 是稳定素材引用，不能内嵌副本。`element`：`{type:'element',targetId,invert?}` 引用场景内具有稳定 `id` 的元素或组；其实际 Runtime Alpha（含自身动画、时序、Linear、组变换与自身蒙版）每帧作为蒙版，来源在正常场景合成中自动隐藏。禁止循环引用。当前仍不支持羽化。
+- `parts[].type:'rect'` 可选 `radius`（整数像素，0 为直角；Runtime 自动钳制到短边的一半）。
+- `timeline.sceneOverrides` 是可选的稀疏 Scene 参数覆盖：键为稳定元素 `id`，第二层键为 Scene 索引，最内层只保存该 Scene 实际修改过的基础字段，如 `{ "tree": { 1:{x:56,alpha:.65} } }`。Runtime 取值顺序为“该 Scene 覆盖 → 元素自身常量/按场景数组”；缺失字段始终继承基础值。它暂只用于非结构性元素字段，`show` 仍沿用自身窗口格式。
+- `timeline.tracks` 是可选的**属性时段附着数据**：`tracks[elementId][scene] = {segments:[{f:[0..1,0..1], values?:{任意可编辑字段}}, ...]}`。元素下轴 `show` 是唯一的时段来源：Inspector 写值绝不隐式切段；用户通过时间轴切分、拖动或删除 show 段时，属性段同步跟随其边界，删除 show 段会同时清除对应 `values` / Linear，避免幽灵覆层。普通段的 `values` 表示该段持续状态；新建 `type:'linear'` 段不冻结端点，而是在 `x/y/w/h/rot/rotation/alpha/scaleX/scaleY` 上实时读取左右最近的普通段（会跳过连续 Linear）并插值，因此两侧参数更新会立刻反映到过渡。历史 `from/to` 快照会安全忽略；未来若加入“锁定端点”才另行启用。编辑器仅在左右相邻显示段至少一侧有实质覆层时允许创建 Linear。取值优先级为“当前属性时段 → Scene 覆盖 → 元素基础值”。
+- 每个可见元素都可选 `scaleX` / `scaleY`（默认均为 `1`）：编辑器以 `100%` 显示并保存数值比例。图片最终尺寸为 `w/h × scaleX/scaleY`；`parts` 则绕整体包围盒中心非破坏式缩放，局部几何不被改写。两者均可写入 `timeline.tracks[].segments[].values`，并与 pulse 动画相乘。
+- 面形图元（`rect` / `ellipse` / `poly`）可选 `fillPattern`，在**画布坐标**中生成纹理后按图元路径裁剪：`{type:'lines'|'dots'|'checker', mode?:'replace'|'overlay', color?:'inherit'|颜色, baseColor?:颜色, opacity?:0..1}`。`replace` 仅显示纹理、`overlay` 在 `baseColor`（缺省回退 `fill`）实底上叠加；纹理颜色缺省继承 `fill`。`lines.layers` 最多 3 项，每项为 `{angle,width,gap}`。`dots` 使用 `{sides:3|4|5,roundness:0..1,size,gap,phase:0..1,angle,layout:'regular'|'stagger'}`；`checker` 是方点交替预设，复用 `size/gap/phase/angle`，不是独立渲染算法。
+- 可编辑文字是 `images[]` 的一种图片元素：`text:{value,font:{id,name,family},size,tracking,lineHeight,fill,stroke,strokeOn,strokeWidth}` 保存工程编辑信息，`value` 可含 `\n` 换行；`lineHeight` 是行距倍率，缺省为 `1.25`。`src` 同时保存由该文字栅格化得到的内嵌 PNG。通用 Runtime 只读取 `src`，所以独立网页不依赖字体环境且文件体积接近普通图片。导入字体仅作为当前编辑会话缓存；保存时绝不写入完整字体二进制。重新打开工程时，编辑器会尝试按 `font.family/name` 使用已安装字体；缺失时保持现有 PNG，用户再次修改文字会以默认无衬线字体重新栅格化。
+- 顶层元素与图元都可使用 `alpha` 与 `blend:'normal'|'screen'|'multiply'|'lighter'`。元素 alpha 会与元素 blink 相乘；图元 alpha 再与元素 alpha 相乘，图元声明的 blend 优先于元素 blend。`groups` 仅是编辑器成员关系，不是 Runtime 合成容器，因此不支持 alpha 或 blend。
 - 当前禁止输出 `keyframes`、`project`、`assetRef`、自定义 `fx` 函数等规划字段；工具会保留未知字段，但不会把它们作为可编辑动画执行。Agent 不得输出任意函数、`eval` 或未注册 builtin。
-- `groups` 是可选的父级组：`{id, name?, memberIds:[...至少两个稳定图片/矢量元素 id], transform?:{anim}}`。它不产生新的 Runtime 图层、不参与 z 排序，也不支持嵌套；一个成员最多属于一个组。静态组操作（移动、旋转、缩放、镜像）直接写入成员；`transform.anim` 则由 Runtime 在逐成员绘制前叠加同一父级矩阵，可用于刚体式 bob/spin/wave/pulse/blink，且不改变成员的全局 z 或其单独编辑能力。
-- 元素可选样式为 `style:{shadow?:{color,distance,angle}, outline?:{color,width}}`；阴影无模糊，`angle` 0° 向右、90° 向下，`distance` 0–16，外描边 `width` 1–4。效果基于图片与 parts 合成后的 Alpha 轮廓，在元素自身蒙版内合成；它与 `parts[].stroke`（几何描边）及局部 FX 光晕不同。
+- `groups` 是可选的父级组：`{id, name?, memberIds:[...至少两个稳定图片/矢量元素 id], transform?:{rot?,alpha?,pivot?:{mode:'custom',x,y},anim}}`。它不产生新的 Runtime 图层、不支持嵌套；结构树将成员视为连续图层块并保持成员的相对 z。静态组操作（移动、缩放、镜像）直接写入成员；组 `rot/alpha/pivot/anim` 则由 Runtime 在逐成员绘制前叠加同一父级矩阵，可用于刚体式 bob/spin/wave/pulse/blink，且不改变成员的单独编辑能力。
+- 元素可选样式为 `style:{shadow?:{color,distance,angle}, outline?:{color,width}, imageFx?:{mode:'threshold'|'halftone',threshold?:0..255,dark?:颜色,light?:颜色,cell?:2..32}, bandWave?:{amp?:0..48,period?:秒,band?:2..96,cycles?:数}, sampleJitter?:{rate?:每秒变化次数,amount?:采样格内源像素偏置,mode?:'step'|'drift',seed?:整数}}`；阴影无模糊，`angle` 0° 向右、90° 向下，`distance` 0–16，外描边 `width` 1–4。`imageFx` 只作用于图片帧，参数变化时缓存生成双色阈值或半调点阵，不能替代语义分层；`bandWave` 仅对未旋转、未镜像的图片做水平带状位移，适合被蒙版限制的云/水/热浪区域，不是通用液化。`sampleJitter` 只作用于图片（含图片背景）的再像素化采样格，要求 `pixelDiv>1`，`amount` 限制为 `0..pixelDiv-1`；`step` 逐格跳变、`drift` 在确定性采样位置间平滑移动，相同 `t/seed` 必须得到相同帧。效果基于图片与 parts 合成后的 Alpha 轮廓，在元素自身蒙版内合成；它与 `parts[].stroke`（几何描边）及局部 FX 光晕不同。粒子层同样支持阴影/外描边字段：样式先作用于粒子实体精灵，再按粒子运动绘制。图片与 parts 都可设置层级 `pixelDiv`（≥1，无 UI 人工上限；Runtime 以画布短边作为自然上限）和 `alphaMode:'keep'|'remove'|'boost'`；Runtime 会在绘制该层时执行最近邻降采样及边缘 Alpha 处理，素材库不承担这些风格参数。
+
+### 程序元素（黑盒内部、白盒外壳）
+
+- 顶层非保留键可声明为程序元素：`{id,name?,z?,x,y,w,h,show?,alpha?,blend?,mask?,anim?,params?,editor?,program:{code}}`。`program.code` 是本地可信 Scene 的自包含 Canvas 代码字符串；Runtime 用 `render(ctx,t,el,scene,helpers)` 语境执行，`helpers` 只提供 `clamp / lerp / rgba / noise`。它必须确定性地依据 `t` 绘制，不能依赖编辑器 DOM、网络或外部资源。
+- 程序元素内部不要求拆成 parts；`id + x/y/w/h` 是编辑器选择、时间轴、组、蒙版、局部 FX 与外部补丁的最低外壳。`params` 保存可调参数；`editor.controls:[{path,label,min?,max?,step?,type?}]` 决定 Inspector 暴露哪些字段，未声明的内部细节保持黑盒。
+- 普通图片/矢量/粒子层可以按 z 叠在程序元素上作为“创可贴”覆盖。自动跟随内部锚点仍属后续能力；当前可通过共享组、整体变换或手动定位实现外壳级覆盖。
+- 程序元素不是安全沙箱：只应加载用户信任或经审阅的本地 Scene。导入前校验器检查其代码语法、稳定 id 与边界，运行时单元素错误会被隔离，不能中断其它图层；它不保证阻止恶意 JS 的副作用。
 
 ### 粒子图片实体
 
@@ -223,7 +240,8 @@ anim: { bob: { amp: 1, period: 1/6 }, blink: { period: 2333, duty: 6/7, phase: 1
 - **A 档叠加层（段内字段）**：`crt`（CRT 扫描线，`crtOpacity`/`crtSpacing` 可调）、`vignette`（径向暗角，`vignetteStrength` 可调）、`noise`（**N 帧噪点轮换**，`noiseAlpha`/`noiseFrames` 可调）——纹理预生成缓存；`glitch`（确定性随机水平位移条）；
 - **B 档像素滤镜（段内字段，管线：降采样 → 调色 → 色板 → 放大）**：`palette: 'pico8'|'nes'|'vga'|'gb'`（与素材减色**共用色板定义** + 通用 LUT 查表）、`hue`（色相偏移度）、`brightness`（-100~100）/`contrast`（0~3）/`saturation`（0~2）——**调色与色相级联合并单 3×3 矩阵**（每像素 9 次乘加，零额外开销）；`pixelDiv`（整数 ≥1，整帧降采样颗粒感，调色开销 ÷ div²）；
 - **场景过渡（场景级，按场景独立，同一场景的分段共享）**：`transition`（**none 无过渡** / fade 暗场 / scan 扫描 / wipe 擦除 / **dissolve 溶解——旧场景帧直接溶解为新场景，不经过暗场**）+ `transitionColor`（覆盖色 hex，fade/scan/wipe 用，默认 #03060f 深蓝；白场填 #ffffff）+ `transitionDur`（秒，默认 0.25，范围 0.05~1）支持常量或**按场景数组**——替换原硬编码"每场景段开头 0.25s 暗场"；Agent 生成配置即可选用；scan/wipe/dissolve 过渡期间**旧场景活帧渲染**（时间映射 tAlt：旧场景窗口/显隐判定回到旧场景时间域，条带前旧场景仍在运动且 show 元素可见，条带后新场景）；fade 保持暗场；
-- **局部合成层（`fx.layers`，按数组顺序）**：每项为 `{id?, name?, hidden?, show?, mask, bind?:{targetId,mode?:'anchor'|'clip',at?}, color?, colorOn?, alpha, blend, pixelDiv?, palette?, hue?, brightness?, contrast?, saturation?, fog?, fogColor?, fogBands?, fogScale?, fogDrift?, glow?, glowColor?, glowBands?, glowRadius?, vignette?, vignetteColor?, noise?, noiseSize?, scan?, scanSpacing?, crt?, crtSpacing?, glitch?, flicker?}`。局部 FX **固定在全局处理之前**合成；历史 `phase` 字段会被忽略。`mask` 使用与元素相同的 rect / ellipse / poly / alpha；它只限制**效果**的作用区，不裁掉任何场景图层；`blend` 仅可为 `normal | screen | multiply | lighter`；强度均为 0~1（`pixelDiv` 1~4、`fogBands` 2~18、`fogScale` 4~96、`fogDrift` -80~80、`glowBands` 2~8、`glowRadius` 0.1~1.5、`noiseSize` 1~4、`scanSpacing` / `crtSpacing` 2~16）。`colorOn:false` 时不铺底色，仅保留其他效果。`bind.targetId` 可引用具有稳定 `id` 的顶层图片或通用元素：无论 `anchor`（默认）还是 `clip`，FX 自身蒙版都相对 `at` 时刻跟随目标的 scroll、bob、spin、wave、pulse、静态旋转与缩放变换；Alpha 蒙版也适用。`clip` 进一步将最终作用范围限制为 **跟随后的 FX 蒙版 ∩ 目标实际 Alpha ∩ 目标自身 mask**，目标的镜像和 blink 同样由同一元素渲染器重绘取得。clip 只在实际绑定时复用两张画布大小的临时 Canvas，目标隐藏、不在显示时段或缺失时 FX 不绘制；编辑器删除目标会解除绑定但保留 FX。局部 `pixelDiv`、`palette`、`hue`、`brightness`、`contrast`、`saturation` 复用全局 B 档的最近邻采样、调色矩阵和色板 LUT，但只读取/写回蒙版包围盒的一张复用离屏 Canvas，最终仍受本层 `alpha` 与蒙版限制。`fog` 是低不透明度、确定性缓慢漂移的像素雾带与雾块，不使用高斯模糊；`glow` 是少量硬边同心椭圆的像素光晕，不是高斯模糊；`vignette` 为蒙版内部的局部暗角；`noise` 为确定性像素噪点（旧 `grain` 兼容读取）；`crt` 是局部扫描黑线加稀疏 RGB 荧光栅格；`glitch` 复制当前帧并以确定性水平条带错位回贴，启用时会使用一张画布大小的临时采样层。所有局部效果随后统一经过全局降采样、调色矩阵、LUT 色板、CRT / glitch / noise / vignette 与转场；数组顺序直接决定覆盖关系。Alpha 蒙版按效果层复用一张画布大小的临时 Canvas；当前仍不支持羽化、通用模糊、嵌套合成组或任意自定义 fx 函数。
+- **局部合成层（`fx.layers`，按数组顺序）**：每项为 `{id?, name?, hidden?, show?, mask, bind?:{targetId,mode?:'anchor'|'clip',at?}, color?, colorOn?, alpha, blend, pixelDiv?, palette?, hue?, brightness?, contrast?, saturation?, fog?, fogColor?, fogBands?, fogScale?, fogDrift?, glow?, glowColor?, glowBands?, glowRadius?, vignette?, vignetteColor?, noise?, noiseSize?, scan?, scanSpacing?, crt?, crtSpacing?, glitch?, flicker?}`。局部 FX **固定在全局处理之前**合成；历史 `phase` 字段会被忽略。`mask` 使用与元素相同的 rect / ellipse / poly / alpha / element；它只限制**效果**的作用区，不裁掉任何场景图层；`blend` 仅可为 `normal | screen | multiply | lighter`；强度均为 0~1（`pixelDiv` ≥1、自然上限为画布短边；`fogBands` 2~18、`fogScale` 4~96、`fogDrift` -80~80、`glowBands` 2~8、`glowRadius` 0.1~1.5、`noiseSize` 1~4、`scanSpacing` / `crtSpacing` 2~16）。`colorOn:false` 时不铺底色，仅保留其他效果。`bind.targetId` 可引用具有稳定 `id` 的顶层图片或通用元素：无论 `anchor`（默认）还是 `clip`，FX 自身蒙版都相对 `at` 时刻跟随目标的 scroll、bob、spin、wave、pulse、静态旋转与缩放变换；Alpha 蒙版也适用。`clip` 进一步将最终作用范围限制为 **跟随后的 FX 蒙版 ∩ 目标实际 Alpha ∩ 目标自身 mask**，目标的镜像和 blink 同样由同一元素渲染器重绘取得。clip 只在实际绑定时复用两张画布大小的临时 Canvas，目标隐藏、不在显示时段或缺失时 FX 不绘制；**删除绑定目标时，编辑器会连带删除其绑定的局部 FX 层**。局部 `pixelDiv`、`palette`、`hue`、`brightness`、`contrast`、`saturation` 复用全局 B 档的最近邻采样、调色矩阵和色板 LUT，但只读取/写回蒙版包围盒的一张复用离屏 Canvas，最终仍受本层 `alpha` 与蒙版限制。`fog` 是低不透明度、确定性缓慢漂移的像素雾带与雾块，不使用高斯模糊；`glow` 是少量硬边同心椭圆的像素光晕，不是高斯模糊；`vignette` 为蒙版内部的局部暗角；`noise` 为确定性像素噪点（旧 `grain` 兼容读取）；`crt` 是局部扫描黑线加稀疏 RGB 荧光栅格；`glitch` 复制当前帧并以确定性水平条带错位回贴，启用时会使用一张画布大小的临时采样层。所有局部效果随后统一经过全局降采样、调色矩阵、LUT 色板、CRT / glitch / noise / vignette 与转场；数组顺序直接决定覆盖关系。Alpha 与元素蒙版都只在实际使用时复用一张画布大小的临时 Canvas；当前仍不支持羽化、通用模糊、嵌套合成组或任意自定义 fx 函数。
+- **局部 FX 参数时段**：`layer.show` 仅决定效果是否可见；可选 `layer.segs[scene]=[{f:[0..1,0..1], ...效果字段覆盖}]` 决定该 Scene 内哪一段采用哪些局部 FX 参数。Runtime 取“当前 seg 覆盖 → layer 基础字段”，最终有效范围为宿主元素 `show ∩ layer.show ∩ 当前 seg`。`id/name/hidden/show/mask/bind` 属于结构字段，不进入 seg 覆盖。
 - **Alpha 素材生命周期**：从素材库选中图片作为蒙版时，编辑器写入一个 `images[]` 的 `{ role:'mask', hidden:true, src:dataUrl }` 素材，并把其 `id` 写到目标 `mask.imageId`；保存时 `srcId` 被冻结/去除，只保留 data URL 与引用。该素材不会作为普通图层或新的候选蒙版显示。把 `mask.type` 改为无/其他类型、删除引用元素或删除 FX 后，若没有其他 `mask.imageId` 引用它，编辑器自动删除该 `role:'mask'` 素材。
 - **固定渲染阶段**：实体图层 / 粒子 → 全部局部 FX 合成 → 全局降采样、调色矩阵、LUT 色板 → 全局 CRT / glitch / noise / vignette → 场景过渡；装配模式不渲染 fx。
 
@@ -262,8 +280,7 @@ rain: {                          // 名字任意（①-track：元素名无意�
 
 - **确定性**：粒子运动为种子随机（每粒 `rnd(i, salt)`）——同 (元素, 种子, t) 渲染稳定，支持暂停/恢复一致与像素回归测试。
 - **渲染成本**：粒子走**精灵缓存**——每帧每元素把 parts 渲染一次到离屏（应用 `pixelDiv`/`alphaMode`，part 级 anim 生效），粒子只 blit；精灵尺寸下限 1px（纯竖线/水平线实体不会不可见）；元素级 `anim`/`scroll` **不参与粒子**（粒子运动归粒子参数；单粒闪烁把 blink 挂在实体 part 上即可）。
-- **工具内建**：右侧图层栏粒子卡片含中文参数专表（预设下拉 + [同时载入元素] 勾选 / 发射区 [框选]+[全画布] / 像素化除数 / 颜色抖动+维度下拉 / 粒子数~随机种子）；
-  「复制为粒子」一键以现有元素生成粒子：程序元素取 parts；纯图片取图片引用；图片 + parts 取组合实体（先图片、后 parts，**继承 pixelDiv/alphaMode**）。`particle.source` 仍为 `{type:'image',imageId,...}`；组合模式额外声明 `compose:'image+parts'`，parts 坐标与源图片同属局部坐标，精灵包围盒自动容纳越界图元；
+- **工具内建**：粒子以独立顶层图层存在，Inspector 按实体 / 发射 / 运动 / 外观组织；运动页保留与普通元素完全相同的 `mask` 工作流。结构树“粒子化”一键从现有元素新建粒子层，原元素不改变；程序元素取 parts，纯图片取图片引用，图片 + parts 取组合实体（先图片、后 parts，**继承 pixelDiv/alphaMode/style/mask/show**）。`particle.source` 仍为 `{type:'image',imageId,...}`；组合模式额外声明 `compose:'image+parts'`，parts 坐标与源图片同属局部坐标，精灵包围盒自动容纳越界图元；
   发射区 = 元素 x/y/w/h（卡片发射区组或画布框选，缺省全画布）。
 - **预设（三层解耦：运动/实体/发射区）**：内置 雨 / 雪 / 火星 / 光尘 四类——默认**仅载入运动方式（particle）**，实体 parts 与发射区保持不变；勾选 [同时载入元素] 才覆盖 parts；`window.PARTICLE_PRESETS` 可注入
   `{name, parts, particle}` 数组扩展；应用含 burst 的预设自动跳播放头到当前窗口起点（立即可见）。

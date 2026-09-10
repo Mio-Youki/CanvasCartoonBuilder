@@ -9,6 +9,8 @@ function scalePartAround(p, ax, ay, rw, rh) {
     const [x2, y2] = tr((q.x || 0) + (q.w || 1), (q.y || 0) + (q.h || 1));
     q.x = Math.round(Math.min(x1, x2)); q.y = Math.round(Math.min(y1, y2));
     q.w = Math.max(1, Math.round(Math.abs(x2 - x1))); q.h = Math.max(1, Math.round(Math.abs(y2 - y1)));
+    // rect 圆角跟随几何缩放；非等比缩放时取较小比例，避免越过短边。
+    if (q.type === 'rect' && q.radius != null) q.radius = Math.max(0, Math.min(Math.floor(Math.min(q.w, q.h) / 2), Math.round(q.radius * Math.min(Math.abs(rw), Math.abs(rh)))));
   } else if (q.type === 'line') {
     const [x1, y1] = tr(q.x || 0, q.y || 0);
     const [x2, y2] = tr(q.x2 || 0, q.y2 || 0);

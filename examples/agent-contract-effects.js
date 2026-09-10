@@ -14,6 +14,7 @@ const GENERIC_SCENE = {
   images: [],
   fx: { segs: [[{ f: [0, 1] }], [{ f: [0, 1], vignette: true, vignetteStrength: 0.4 }]], transition: ['none', 'dissolve'], transitionDur: [0.25, 0.35], transitionColor: '#03060f' },
   rain: {
+    id: 'rain-main',
     z: 20,
     show: [null, [[0, 1]]],
     parts: [{ type: 'line', x: 0, y: 0, x2: -2, y2: 8, stroke: '#9bbbe8', strokeWidth: 1 }],
