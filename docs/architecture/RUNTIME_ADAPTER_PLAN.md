@@ -12,14 +12,17 @@
 - Agent 合同已分为数据格式、生成协议、改写协议；混合参考图路径允许以背景底图承接高密度静态像素画，
   程序层只承担有编辑价值的局部动态。
 - `editor/geometry.js` 与 `editor/scene-model.js` 已从页面脚本抽出，是内核拆分第一层。
+- `editor/timeline-model.js` 已集中 Scene 边界、相对时间和时段命中；元素属性、局部 FX、全局 FX 不再各自解释边界。
+- `editor/scene-serializer.js` 已统一撤销快照与自包含保存的字段过滤规则，宿主只负责写入字节，不再决定 Scene 中应保留什么。
+- `editor/host-adapter.js` 已隔离浏览器打开、保存与素材选择；Tauri 已通过注入同一合同接管原生文件能力。
 - ✅ **固定时间渲染基础**：`HomeScene` 已抽出 `renderFrame` 纯绘制核心；现有预览仍经原有 RAF/seek
   包装调用它，`HomeScene.createRuntime(scene)` 则可在不启动 RAF、不改 `window.HOME_SCENE` 的条件下，
   向任意 Canvas 按指定 `t` 渲染一帧。通用 Scene 的独立 Canvas 冒烟测试已覆盖该入口。
 - ✅ **局部 FX 轻量管线**：`fx.layers` 已在 Runtime 中按固定的全局前阶段、蒙版与合成顺序渲染；
   像素雾、光晕、CRT、故障及局部采样/色板/调色共享相同固定时间路径。局部像素处理只复用蒙版包围盒
   离屏 Canvas 与全局色板 LUT，不成为常驻视频滤镜。
-- ✅ **像素采样作用域**：图片/背景对象级再像素化、图片采样闪变、局部 FX 采样/色板与全局采样/色板
-  均由固定时间 Runtime 求值。`sampleJitter` 仅改变图片降采样格并由 `t + seed` 确定，因此实时预览、
+- ✅ **像素采样作用域**：图片/背景对象级再像素化、Sampling Motion（像素沸腾 / 颗粒潮汐 / 网点游移 / 阈值呼吸）、局部 FX 采样/色板与全局采样/色板
+  均由固定时间 Runtime 求值。采样运动只改变图片采样格、半调网点相位或阈值，并由 `t + seed/period` 确定；它们拥有独立 `show` 作用窗口，因此实时预览、
   测试页和离线帧不会各自随机；采样除数没有 4 倍硬限制，仅受画布短边自然约束。
 - ✅ **元素绑定 FX**：FX 仍作为独立合成层，仅以 `bind.targetId` 引用元素；`anchor` 跟随目标位移，
   `clip` 复用目标 Alpha 和 FX 内容两张临时画布实现“FX 蒙版 ∩ 元素轮廓 ∩ 元素 mask”。因此预览、
@@ -33,7 +36,7 @@
 
 ### 渲染与导出
 
-1. `renderFrame` / `createRuntime(scene)` 已可固定时间渲染，但 Runtime、浏览器时钟与编辑器脚本仍在同一文件；下一步是模块边界，而非复制一套绘制器。
+1. `renderFrame` / `createRuntime(scene)` 已可固定时间渲染，预览已使用单一编辑器时钟驱动 Runtime；页面控制器仍较大，下一步继续抽离命令与选择/时间轴控制器，而非复制一套绘制器。
 2. PNG 序列与 GIF 已交付；APNG / WebP / WebM / MP4 尚无按需编码策略、体积预设或降级提示。
 3. 缺少导出后的自动视觉回归：应比较预览、测试 HTML 与固定时间帧，而不是只验证文件可下载。
 
@@ -58,7 +61,7 @@
    沿不规则河岸的特效仍需要预留安全区域或额外 Alpha 素材。
 3. 缺少参考图叠加、差异预览和固定时间视觉回归，Agent 迭代仍难量化画面偏差。
 
-## 下一层：Runtime Adapter
+## 已落地：Runtime Adapter 合同
 
 ### 责任边界
 
@@ -84,11 +87,11 @@ runtime.dispose();
 - 不把 Scene 改成项目工程格式，也不在此阶段引入关键帧 schema。
 - 不要求 OffscreenCanvas：普通 Canvas2D 是基线，OffscreenCanvas 仅在浏览器支持时作为加速路径。
 
-## 轻量化实施顺序
+## 轻量化实施状态与后续顺序
 
 1. ✅ **固定时间渲染探针**：已抽出 `renderFrame`，建立 `createRuntime(scene).render(canvas,{t})` 冒烟测试；
    预览行为保持原样。
-2. **Adapter 接入预览**：已由 `renderFrame` 共用绘制路径；下一步只需把文件内职责拆为 Runtime、时钟和编辑器控制器，不改变 Scene 合同。
+2. **Adapter 接入预览**：✅ 预览已停用第二套 Runtime RAF，以单一编辑器时钟调用固定时间绘制；Auto / Full / Draft 只改变预览预算。下一步继续拆分编辑器命令与控制器，不改变 Scene 合同。
 3. **PNG 序列导出**：✅ 已支持按选定场景时段与 fps 输出逐张 PNG、Sprite PNG 与时间采样拼图，验证透明、场景过渡、图片资源与帧确定性；它不需要引入视频编码器，是最低风险的验收层。时间采样拼图只是视觉审阅产物，不是关键帧数据。
 4. **编码器按需加载**：GIF 已交付；WebM 优先走浏览器原生 WebCodecs/MediaRecorder，APNG/WebP 使用按需加载的小型编码器，不进入 Runtime、不开机加载。每种格式独立降级提示。
 5. **关键帧数据模型与求值器**：定义小型 `{t, v, ease}` 轨道并由 Adapter 在 `t` 求值；确认求值正确后，

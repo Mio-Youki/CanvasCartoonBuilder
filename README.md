@@ -1,172 +1,113 @@
 # Patcharium / 拼好景
 
-> 技术仓库名暂保留：CanvasCartoonBuilder / Pixel Scene Builder
+> Lightweight Canvas loop-scene editor · 当前为 **Alpha 源码版本**
 
-> 游戏生产工具 · 独立产品，不随游戏发布（`tools/` 已被 `.dockerignore` 排除）
-> 独立提交：本目录改动单独 commit（`tools: ...`），与游戏本体提交分离
+Patcharium 把图片、矢量图元、粒子、蒙版、效果和时间组织成可持续运行的小场景。作品可以保存为自包含 JavaScript，也可以导出 PNG、精灵图、PNG 序列和 GIF。
 
-## 是什么
+它不是视频剪辑器，也不要求把高细节图片完全重绘成代码。图片负责细节，Scene 结构负责值得编辑的运动、层级、调色和局部变化。
 
-一个浏览器端（零依赖、file:// 直接打开）的**轻量、可编辑、可由 AI 协作完成的混合 Canvas 场景工作台**。
+## 当前能力
 
-Patcharium / 拼好景把图片、图元、粒子和时间拼成能持续运行的微缩小景。高细节可以由底图或语义图片层承载；真正需要移动、替换、调色或复用的部分才进入可编辑结构。它不是重型视频剪辑器，也不承诺把每个像素重绘为代码，而是让作品能以自包含 JavaScript 场景的方式被带走、运行和继续修改。
+- 结构树、Canvas 舞台、Inspector 与上下文时间轴；
+- 图片、矢量图元、文字、组、粒子和程序元素；
+- Scene/时段可见性、基础 Linear 变换与循环动画预设；
+- 几何、Alpha、明度与实时元素蒙版；
+- 局部/全局 FX、调色、色板与 Sampling Motion；
+- 浏览器与 Tauri 共用同一 Scene、Runtime 和编辑器；
+- 自包含 Scene JS、测试 HTML、PNG、Sprite PNG、PNG 序列和 GIF。
 
-当前对外目标是先证明三件事：微缩景观可以稳定持续运行；静图可以被组织成可控的氛围场景；粗糙拼贴也能快速变成循环作品。Agent 协作是下一阶段的验证重点：Agent 交付可编辑的结构化初稿，人再在同一编辑器中修正并导出；它不是当前版本对“完美识图重绘”的承诺。完整定位见 [PRODUCT_NARRATIVE.md](docs/product/PRODUCT_NARRATIVE.md)。
+预览、测试页和逐帧导出共用同一确定时间 Canvas Runtime。桌面壳只负责文件权限和交付，不改变画面求值；Scene JS 可以脱离 Patcharium 放入普通网页。
 
-它把静态灵感压缩成可以继续调整、运行与导出的像素动态世界：图片能被处理成素材，素材、图元、粒子、蒙版与局部效果能在同一画布上装配，最终保存为可自包含运行的 JS 场景。像素风在这里不是低清滤镜，而是一种可控的信息压缩——用更少的色块、层次与运动，保留想象空间，也保留编辑空间。
+## 快速开始
 
-当前定位是“安静、灵巧、有一点游戏感的数字手作工作台”，而不是重度视频软件或复古街机皮肤。适用于动态表情包、网页氛围背景、游戏 UI 场景与轻量像素叙事。
+### 浏览器
 
-启动即进入一个完整的**通用场景**，把任意图片（非 8bit 亦可）转换为像素风素材，在画布上**所见即所得地装配**
-（位置/大小/透明度/层级/滚动/闪烁/脉动/多帧/**粒子系统**/**后处理 FX**/**场景过渡**），调整结果通过**打开/保存 js** 直接
-写回场景文件（页面内改写，无需复制粘贴），目标网页刷新即生效。
+直接打开 `img2asset-layout-v1.html`，或通过静态服务器访问。浏览器版无需安装依赖；受浏览器文件权限限制，相对图片在生成自包含产物时可能需要人工重连。
 
-适用于：为网页/首页/游戏 UI 制作轻量像素氛围动画，而无需手写代码。
+### Windows 桌面源码构建
 
-## 使用
+需要 Node.js、Rust 1.77.2+ 和 Tauri 所需的 Windows 构建工具：
 
-1. 双击打开 `tools/img2asset-layout-v1.html`（或通过任意静态服务器打开）。
-2. 用顶部工具栏**新建场景 / 打开场景**；右侧可保存场景、下载自包含测试 HTML 或导出帧产物。
-3. 在左侧**素材**区点击 `+` 导入图片，在独立预处理面板完成像素化、减色、去背景与尺寸调整；成品进入素材库，可拖到舞台或添加为背景。
-4. 中间**舞台**负责直接创作：选择、移动、缩放、旋转、镜像、绘制矩形/直线/椭圆/多边形/文字；`Ctrl/Cmd + 点击`多选，`Ctrl/Cmd + G`编组，`Esc` 或点击空白处退出选择。
-5. 左侧**场景结构**负责对象、组、图元与绑定效果的选择和排序。拖到条目前后调整层级，拖到元素中央创建或加入组；背景不在结构树中。
-6. 右侧 **Inspector** 是唯一参数入口：未选中时编辑画布与全局效果；选中元素、组、图元或粒子时在“属性 / 动态 / 局部效果”中调整；局部 FX 在结构树中是元素子项，但数据仍是独立 `fx.layers[]`。
-7. 底部**编排器**常驻显示播放头和 Scene 段。它会随 Inspector 上下文显示元素显示窗口、局部 FX 作用时段或全局 FX 分段；“时序”开启后，修改写入当前时段而非基础值。
-9. **通用场景**（默认入口）：初始即为可编辑的 320×180 场景，包含场景段、图层、粒子、FX 与转场的完整能力；「新建场景 → 由图片建立」和时间轴下方背景卡片的「图片」都会直接打开系统文件选择框，并在独立弹窗完成采样、减色、去背景、输出尺寸及实时预览，再进入放置面板。采样分辨率与输出尺寸已解耦：修改采样数会改变像素颗粒，修改输出尺寸只改变成品尺寸。左侧素材库保留常驻的「作为背景添加到场景」按钮，用于已经导入的素材。图片背景在右侧作为固定底部的**背景层**独立编辑，不能在画布直接选中，只显示布局、透明度、多帧速度/循环、显示时间、隐藏/显示、替换与删除；背景层之间可拖拽排序，卡片从上到下与画布从上到下的叠放顺序一致，且独立于普通图层。保持原状（居中）/拉伸图片/重复纹理三种规则会存入背景层，后续改画布尺寸仍按规则重排。选中框、缩放手柄、旋转柄和镜像按钮绘制在高 DPI 透明覆盖层上，按屏幕像素恒定显示；**Alt+滚轮缩放画布内容**（0.2~8×），点击右上角缩放徽标或 **Alt+双击** 可复位，普通双击元素只进入编辑。时间轴的场景名称移至轨道上方、刻度数字移至轨道下方，轨道内仅保留色块、边界与播放头。背景卡片的「透明」开关保留 Canvas alpha，适合透明贴纸；GIF 导出时仅保留二值透明，APNG/WebP 更适合半透明边缘。改高宽/载入/窗口 resize 时显示框自动重算
-
-10. **导出帧面板**：提供当前帧 PNG、精灵图 Sprite PNG、多帧 PNG 与 GIF 四种单选输出。多帧格式以**帧率 + 时段**决定帧数：有场景段时默认全选各段，切换格式会自动给出不超过上限的建议帧率；用户手动调整会实时显示帧数并阻止超限。多帧 PNG 逐张下载（浏览器可能要求允许多文件下载）。可附带输出“时间采样拼图”（带时间标注的审阅图）；它是 GIF 帧的可视化拆分，不等同于尚未实现的关键帧轨道。
-
-11. **统一裁剪蒙版**：任意 Runtime 图层（图片、图元、粒子、builtin、兼容项目元素）可使用矩形、椭圆、多边形、Alpha / 明度图片或**元素实时 Alpha** `mask`。预览、独立 Runtime、PNG 与 GIF 共用同一渲染路径。几何和 Alpha 图片可在绿色编辑态对齐；元素蒙版由结构树选择元素或组来源，来源会自动隐藏但仍继承自身动画、时序和组变换。粒子“发射范围”只决定出生位置，裁剪蒙版决定最终可见范围，两者不混用。
-
-    绘制预览、蒙版提示与选择框统一使用高 DPI Overlay，低像素画布放大后仍保持清晰。Alpha 图片蒙版首次建立从零范围开始：在画布任意位置拖出矩形，素材预览随范围拉伸；从素材库建立时默认保持素材比例，按住 Shift 才自由拉伸；若直接选择场景内已有图片，会继承其当前画布位置与尺寸。矩形/椭圆绘制按住 Shift 可约束为正方形/正圆；黄/蓝/绿选中框分别可用方向键移动元素、图元或蒙版（1 画布像素，Shift 为 10）。
-    多选联合框可批量移动、旋转、缩放、镜像、复制或删除；图片、矢量与带稳定 id 的程序 parts 元素共用选择/编组路径。建立父级组后联合框显示为紫色，组卡片收纳成员；Canvas 点成员会展开并定位其卡片。组同步优先采用唯一非空动画/滚动值，否则取组内最上方成员。父级组不增加渲染层，组的旋转、透明度、中心点与动画以逐成员共享矩阵实现；单击空白处或 Esc 退出选择，双击成员进入其 parts 编辑。元素卡片还可对最终 Alpha 轮廓添加硬边阴影与 1–4px 外描边。
-
-### 页面内修改（打开 / 保存 js）
-
-- **新建场景**：生成 `GENERIC_SCENE` 工程；可从空白开始，或直接选择外部图片、处理后建立背景，并直接使用图片、图元、粒子、FX、转场与时间轴，不依赖项目脚本。
-- **打开场景**：自动识别：
-  - `GENERIC_SCENE`（通用场景工程）→ 完整载入并可继续编辑；
-  - `SCENE`（旧装配器导出格式）→ 以兼容模式载入画布与元素；
-  - `HOME_SCENE` / `DEFAULT_HOME_SCENE`（参数化项目脚本，如 home-scene.js）→ 保留项目专用绘制代码，同时开放其配置编辑。
-- **保存场景**（顶部工具栏右侧）：通用场景和脚本场景均写回原文件（File System Access API；环境不支持则下载替换）；保存前自动自检（写回文本可重新解析）。保存与“测试场景”都会冻结图片 data URL，因此得到的 JS / HTML 不依赖当前素材会话。
-
-当前保存会把处理后的图片快照硬编码进 js，场景可以独立运行；刷新或重新打开后，不能继续改变当时的采样、减色、去背景等素材处理。可重连的项目目录、个人素材库将在桌面应用封装后提供。
-
-> `HOME_SCENE` 只是夜行列车等项目脚本的兼容运行时名称，不是工具格式；新建作品保存为 `GENERIC_SCENE`。
-
-多选图片会按选择顺序组成多帧素材：第 1 张图片的尺寸定义单帧尺寸，其他帧以最近邻缩放统一尺寸（不裁切、不补边）。横向 sprite sheet 仅是内部保存形式；素材库、处理弹窗和背景放置预览均按实际单帧播放，并显示单帧宽高与帧数。
-
-## 粒子系统（v2.8，程序元素变体）
-
-任何顶层元素带 `particle` 字段即成为**粒子系统**：实体可为元素自身 parts（小图元）或 `images` 中的图片（稳定 `imageId` 引用）。图片实体可使用静态帧，或让每个粒子按自身寿命独立播放整张 sprite sheet（可选循环），
-`x/y/w/h` 兼任**发射区**（空 = 全画布 → 全局雨/雪）；运动参数全参数化
-（粒子数/补给速率/一次性爆发/寿命/速度/方向/扩散/重力/风/自旋/尺寸抖动/透明度/淡出/随机种子），
-**确定性渲染**（种子随机，同时间逐像素一致，可回归测试）。卡片操作：
-
-- **预设**：内置 雨 / 雪 / 火星 / 光尘 + `window.PARTICLE_PRESETS` 扩展钩子；默认**仅载入运动方式**，
-  勾选 `[同时载入元素]` 才覆盖实体；应用含 burst 的预设自动跳播放头到窗口起点（立即看到爆发）
-- **发射区**：x/y/w/h 输入 + `[框选]`（画布拖矩形返回坐标）+ `[全画布]`；选中粒子元素常驻黄色虚线发射区框
-- **复制为粒子**：以现有元素（程序元素/带图元的素材）的 parts 为实体一键生成粒子元素（继承像素化除数）
-- 渲染走**精灵缓存**（每帧每元素一次离屏，粒子只 blit）——像素化除数/颜色抖动等"每粒属性"成本 ≈ 0
-- **颜色抖动**：`colorJitter`（0~1）+ 维度下拉（色相/亮度/饱和度/对比度其一），8 档分桶确定性
-
-## 后处理 FX 与场景过渡（v2.7 ~ v2.9）
-
-- **FX 面板**（画布下方，时间轴 FX 轨之下）：`CFG.fx.segs[场景] = [时段段]`，每段独立存全套参数；
-  A 档叠加层（CRT/故障/暗角/噪点，强度与**暗角色**可配）+ B 档像素滤镜（色板 PICO-8/NES/VGA/GB、
-  色相/亮度/对比度/饱和度单矩阵、降采样 pixelDiv）；**场景 chip 行右侧**：转场样式 + 时长 + 覆盖色
-- **局部合成 FX**：在同一面板新增有序局部层；每层以绿色可编辑蒙版限定效果区，可叠加颜色（正常 / 滤色 / 正片叠底 / 变亮）、颗粒、扫描线和闪烁。局部 FX 固定先于全局采样、调色、色板、CRT 与转场合成，右栏拖拽顺序直接决定覆盖顺序，并与 PNG/GIF 导出走同一 Runtime。
-- **轻量局部覆盖效果**：局部 FX 可独立启用/关闭底色，并加入像素雾（确定性雾带与雾块漂移，不使用模糊）、像素光晕（硬边分圈）、局部暗角、可感知的确定性噪点及扫描线；所有效果都受矩形、椭圆、多边形或 Alpha 蒙版限定。
-- **局部像素处理**：每个局部效果可单独设置采样数、色板、色相、亮度、对比度和饱和度。它复用全局调色矩阵、色板 LUT 与最近邻采样，但只处理蒙版包围盒的一张临时画布，因此不会把局部效果升级为整帧视频滤镜。
-- **四层像素风格作用域**：图片/背景的“再像素化”只改变该对象；图片动态页的“采样闪变”以可复现的采样偏置制造细微色点跳动；局部 FX 的“局部采样/局部色板”只处理蒙版范围；场景“全局采样/全局色板”最后处理整帧。采样不设 4 倍硬上限，Runtime 只以画布短边作自然保护上限。
-- **FX 绑定元素**：局部效果可绑定有稳定 ID 的顶层图片或元素。无论“跟随元素”还是“裁入元素”，FX 自己的蒙版都会跟随目标的 scroll、bob、spin、wave、pulse、旋转与缩放；裁入还会限制为“FX 蒙版 ∩ 元素像素轮廓 ∩ 元素自身蒙版”，并按实际轮廓兼容镜像和 blink。目标被隐藏或不在当前时段时效果不会绘制；删除目标只解除绑定，不删除 FX。
-- **统一复制为粒子**：图片与矢量元素均使用同一个“复制为粒子”入口：矢量取 parts，纯图片取图片引用，图片带 parts 时自动形成“图片 + parts”组合精灵；粒子仍只 blit 缓存精灵。动画面板新增 `spin` 角速度（度/秒，负数反向），可与 wave 同时叠加。
-- **测试场景**：保存场景旁的“测试场景”会下载一个自包含 HTML。通用场景会内嵌当前场景、Canvas Runtime 与所有已显示图片素材（包括开发期相对路径图片）；这条路径不再依赖浏览器对 `file://` 的二次读取权限。兼容 `home-scene.js` 和装配模式也可生成对应测试页。`runtime-inline.js` 是由 `scripts/build-runtime-inline.mjs` 从 Runtime 机械生成的只读镜像；修改 Runtime 后运行校验脚本即可发现未同步的镜像。
-- **局部 CRT / 故障**：CRT 在蒙版内叠加扫描黑线与稀疏 RGB 荧光格；故障会缓存当前画面后，以确定性水平条带错位回贴。两者同样先进入全局处理，建议只在需要的局部启用。
-- **Alpha 图片蒙版**：图层或局部效果的蒙版可直接从左侧素材库选择，工具会把处理后快照自动冻结为隐藏场景素材；可用图片 Alpha，或“黑透明、白不透明”的明度模式，并支持反相。编辑时素材会半透明显示在绿色范围中，适合对齐树冠 / 树干 / 水面等高细节语义区域，避免用难维护的像素级多边形模拟轮廓。
-- **元素蒙版**：图层或局部效果也可引用场景内一个元素或父级组的实时 Alpha。来源会自动从正常画面隐藏，并保持自身动画、时序、Linear、变换与透明度，适合让一个可编辑的动态形状充当另一个对象或局部效果的遮罩。
-  该隐藏素材不会进入普通图层或新蒙版候选项；清除/替换蒙版、删除对应图层或 FX 后，未被引用的蒙版素材会自动随场景清理。保存后的 JS 只保留自包含 data URL 与 `imageId` 引用。
-- **蒙版与局部合成边界**：已交付能力、固定渲染阶段、绑定规则、导出一致性与暂不支持的羽化/通用模糊/嵌套合成组，统一见 [MASK_AND_FX_STATUS.md](docs/architecture/MASK_AND_FX_STATUS.md)。
-- **右侧对象栏**：右栏可在“图层元素 / 局部效果”之间切换；前者按 `z` 排序，后者按合成数组顺序排序。局部效果卡片同样支持隐藏、删除、`[S]` 显示时间、拖拽插入排序与绿色蒙版编辑；`+ 粒子`、`+ 局部效果`在右栏顶部，导出与保存固定在列表底部。
-- **场景过渡**：fade 暗场 / scan 扫描 / wipe 擦除 / dissolve 溶解 / **无过渡**（`transition='none'`），
-  按场景独立（数组）+ `transitionDur` + `transitionColor`（暗场→白场填 `#ffffff`）；
-  scan/wipe/dissolve 为**旧场景活帧过渡**（时间映射：条带前旧场景仍在运动且 show 元素可见，条带后新场景）
-- **FX 轨交互**（与 [S] 卡片一致）：单击段上 = **切分**（新段继承参数并选中）；单击空白 = **创建新段**；
-  双击段 = 删除整段并入左；Alt+点击段内 = 切分；拖端点缩放、拖段体移动
-
-## 显示时间 [S]（v2.9）
-
-弹窗宽度与**水平位置均对齐图层栏**；**连续窗口**：相邻场景窗口首尾相接（`f1_prev==1 && f0_cur==0`）
-视为同一连续窗口——滚动相位跨场景不重置、一次性爆发只在连续链起点触发一次（不跨循环回绕）。
-
-## SCENE 格式（装配器保存/导出）
-
-```js
-{ w, h, bg, fps, scenes, elements: [{
-  name, src: 'data:image/png;base64,...', x, y, w, h,
-  alpha, z, hidden,
-  scroll: { speed, span, dir },   // speed 像素/秒（0=静态）；span 平铺周期（=宽）；dir left|right
-  anim: 'static'|'blink'|'pulse', // blink=透明度闪烁；pulse=大小脉动
-  animMs,
-  frames, fps,                    // 多帧 sprite sheet（帧表横向裁切）
-  show                             // 显示条件：{scenes:[..]} 场景段 或 [t0,t1] 秒区间
-}] }
+```powershell
+npm install
+npm run verify
+npm run desktop:test
+npm run desktop:dev
 ```
 
-`scenes: ["段名", ...]` 为可选字段：声明后时间轴显示场景段划分（段数 = 数组长度）、工具内可增删/改名/拖边界（写 `sceneBorders`）；段内取值用**按场景数组** `key: [v0,v1,…]`（长度=场景数，渲染端 `val()` 自动按场景取数）。`hidden: true` 表示图层栏隐藏该元素（装配与场景层均不绘制）。
+生成便携 release EXE：
 
-## 参数化场景 js 生成规范（SCENE_SPEC）
+```powershell
+npm run desktop:build
+```
 
-供「识图/生成类 Agent」在结构参数化时遵循的书面规范：顶层结构、元素 schema、参数类型表、
-七条约定（消灭按场景散键 / 声明 scenes / 动态效果显式声明 / 颜色统一 hex 等）与反例正例。
-工具打开 `GENERIC_SCENE` 时按该规范做「通用场景可编辑性诊断」并提示。该诊断只衡量编辑器能否完整继续编辑，不限制 `HOME_SCENE` 兼容脚本的 Runtime 渲染或 PNG/GIF 导出；后两者只要求 Runtime 能在固定时间画出画面。详见 **[SCENE_SPEC.md](SCENE_SPEC.md)**。
+当前尚未提供签名安装包或 GitHub Release 下载；桌面端属于已通过核心文件闭环验收的源码发行形态。
 
-## 局限（当前版本）
+## 基本工作流
 
-- GIF 序列帧导入、APNG / WebP / WebM / MP4 编码见 PLAN.md（现支持 GIF 导出与多图合成帧表）
-- 场景层仅为预览：装配模式导出为纯色背景（不内嵌场景层动画）
-- 关键帧插值（`{t,v}` 形态）预留，尚未在工具中编辑（见 PLAN P1）
-- 过渡样式为内置 + 配置驱动选择（fade/scan/wipe/dissolve/无过渡）；程序元素可自绘其内部画面，但 Agent 自定义过渡函数、擦除类新样式仍列为二期
-- 图片素材的可重连项目库暂缓至桌面应用封装；当前 js 保存为可携带快照
+1. 新建空白场景、由图片建立场景，或打开现有 `GENERIC_SCENE` / 兼容脚本。
+2. 从左侧素材区导入并预处理图片，或用舞台工具绘制图元和文字。
+3. 在结构树调整选择、分组和顺序；在 Inspector 编辑属性、动态、局部效果与 Sampling Motion。
+4. 在底部编排器设置 Scene、显示窗口、属性时段和 FX 时段。
+5. 保存 Scene，生成自包含测试 HTML，或导出帧产物。
 
-## 内部结构
+详细操作与格式差异见 [用户指南](docs/USER_GUIDE.md)。
 
-页面入口仍为 `img2asset.html`，可直接双击运行；编辑器正逐步拆分为可复用内核。当前 `editor/geometry.js` 保存纯几何变换，`editor/scene-model.js` 保存 Scene 的 parts 基础规则。此拆分不改变用户操作、场景 js 格式或运行时兼容性。
+## Scene 与 Agent
 
-## Agent 工作流
+`SCENE_SPEC.md` 是 Scene 字段的唯一合同。高细节静态内容可以使用图片或受控 `program.code`；需要调整的部分应暴露稳定 id、边界、少量参数与编辑器 controls。可编辑不等于每个像素都必须拆成 `rect/poly`。
 
-`SCENE_SPEC.md` 是唯一格式合同；参考图生成使用 [AGENT_GENERATE_SPEC.md](docs/agent/AGENT_GENERATE_SPEC.md)，既有 JS 的参数化迁移使用 [AGENT_REWRITE_SPEC.md](docs/agent/AGENT_REWRITE_SPEC.md)。参考图工作流固定为「静态基底 → 同尺寸对比锁定 → 结构整理 → 动画覆盖」；每一步都输出可打开的 `GENERIC_SCENE`，不先生成不可解析的任意 Canvas 草稿。高密度静态像素画不必强拆为图元：可用图片底图承接构图与笔触，也可用 `program.code` 程序元素承接自生成的精细静态/动态细节；前者保真，后者保留程序化创造力。程序元素内部是黑盒，但必须公开稳定 id、边界、少量 `params` 与 `editor.controls`，让用户仍可调整颜色、密度、速度或强度，并在其上叠加普通图元/图片作为创可贴。`examples/river-valley-hybrid-two-acts.js` 与同目录 `assets/` 是混合素材路径样例；`examples/karsten-cloud-drift.js` 是单图参考→远景底板、透明云层与透明前景的语义分层样例。`examples/agent-contract-minimal.js` 与 `examples/agent-contract-effects.js` 是打开→保存→再打开的基础验收样例；`examples/river-valley-static-lock.js` 保留为纯图元静态重绘的对照样例。
+外部 Agent 工作流分为生成、兼容改写和审稿，不要求把全部编辑器能力一次写进提示词：
 
-## 独立仓库（CanvasCartoonBuilder）
+- [生成协议](docs/agent/AGENT_GENERATE_SPEC.md)
+- [改写协议](docs/agent/AGENT_REWRITE_SPEC.md)
+- [Agent Tool Protocol](docs/agent/AGENT_TOOL_PROTOCOL.md)
+- [典型案例提示词](docs/agent/AGENT_PROMPT_PLAYBOOK.md)
 
-本目录自 v1.6 起可**脱离游戏仓库独立运行**（独立 git 仓库，游戏仓库已 `.gitignore` 排除）：
+Agent 协作仍是验证方向，不是“一次提示即可完美重绘”的发布承诺。
 
-- `tools/home-scene.js` 为**内置兜底副本**（与游戏仓库 `public/home-scene.js` 保持同步——改动游戏侧后需手动复制过来）
-- `img2asset.html` 优先加载 `../public/home-scene.js`（游戏仓库布局下跟随实时版本），**缺失时自动回退本地副本**并手动初始化（`HomeScene.init`，init 幂等）——独立仓库/双击打开均可用
-- 已验证：无 `../public` 环境下兜底副本正常渲染默认场景
+## 安全提示
 
-## 文档索引
+当前 Scene 可以包含 `program.code`，兼容脚本配置也允许 JavaScript 表达式。只打开你自己创建、可信 Agent 生成或已经审查过的 Scene；不要把未知来源的 `.js` 当作无害图片文档。正式面向普通用户发布前，程序元素需要进入受限执行环境，兼容配置解析也需要从动态求值迁移为纯数据解析。
 
-| 文档 | 内容 |
-|---|---|
-| [README.md](README.md) | 本页 |
-| [SCENE_SPEC.md](SCENE_SPEC.md) | 参数化场景 js 生成规范（Agent 参数化遵循） |
-| [DOCUMENTATION_PROTOCOL.md](DOCUMENTATION_PROTOCOL.md) | 文档分类、同步规则与双仓库提交边界 |
-| [PRODUCT_NARRATIVE.md](docs/product/PRODUCT_NARRATIVE.md) | Patcharium / 拼好景的定位、公开承诺与三案例验证口径 |
-| [AGENT_GENERATE_SPEC.md](docs/agent/AGENT_GENERATE_SPEC.md) | 参考图 → 通用场景工作协议 |
-| [AGENT_REWRITE_SPEC.md](docs/agent/AGENT_REWRITE_SPEC.md) | 既有 JS → 可编辑场景工作协议 |
-| [AGENT_TOOL_PROTOCOL.md](docs/agent/AGENT_TOOL_PROTOCOL.md) | 外部 Agent 的读取、Patch、验证与三案例协作协议 |
-| [AGENT_PROMPT_PLAYBOOK.md](docs/agent/AGENT_PROMPT_PLAYBOOK.md) | 三类典型案例的规划、生成、修正与审稿提示词 |
-| [AGENT_WORKFLOW_STATUS.md](docs/agent/AGENT_WORKFLOW_STATUS.md) | Agent 场景生成的试验过程、共识与待解决问题 |
-| [MASK_AND_FX_STATUS.md](docs/architecture/MASK_AND_FX_STATUS.md) | 蒙版与局部 FX 的已交付边界、导出规则与后续限制 |
-| [ARCHITECTURE_OVERVIEW.md](docs/architecture/ARCHITECTURE_OVERVIEW.md) | Scene、Runtime、编辑器、交付与桌面项目层的边界总览（Review 起点） |
-| [VERSION_BASELINE_V3_1_REVIEW.md](docs/architecture/VERSION_BASELINE_V3_1_REVIEW.md) | v3.1-review 的当前源文件、原型、恢复快照与调试产物清单 |
-| [CHANGELOG.md](CHANGELOG.md) | 工具版本历史 |
-| [PLAN.md](PLAN.md) | 路线图（第二版） |
-| [RUNTIME_ADAPTER_PLAN.md](docs/architecture/RUNTIME_ADAPTER_PLAN.md) | 导出与关键帧前的轻量渲染内核计划、当前问题清单 |
-| [scripts/verify-editor.mjs](scripts/verify-editor.mjs) | 提交前只读校验：Runtime 镜像、编辑器脚本与自包含图片导出保护 |
-| [DESIGN_SYSTEM.md](docs/design/DESIGN_SYSTEM.md) | 视觉语言与设计 token（待定稿） |
-| [UI_INFORMATION_ARCHITECTURE.md](docs/design/UI_INFORMATION_ARCHITECTURE.md) | 工作区、信息层级与渐进披露（待定稿） |
-| [COMPONENT_REGISTRY.md](docs/design/COMPONENT_REGISTRY.md) | 可复用组件的状态、变体和实现入口（待定稿） |
-| [INTERACTION_AND_MOTION.md](docs/design/INTERACTION_AND_MOTION.md) | 交互反馈与动效规范（待定稿） |
-| [UI_RECONSTRUCTION_V1.md](docs/design/UI_RECONSTRUCTION_V1.md) | “结构树—舞台—Inspector—编排器”工作台蓝图；骨架已落地，Inspector、图标与交互层级仍在细化 |
+## 项目状态与边界
+
+当前版本可作为开发者和早期测试者使用的完整源码产品：编辑、保存、独立运行和主要帧导出链路已经成立。但它还不是面向普通用户的正式发行版，发布前仍缺少：
+
+- 正式图标、截图/GIF、签名安装包和 Release 流程；
+- CONTRIBUTING 与安全报告流程；
+- Project manifest、可重连 `assets/`、处理配方和个人素材库；
+- UI 图标及 Inspector 信息层级的最终收口；
+- APNG/WebP/WebM/MP4、通用关键帧曲线和 redo；
+- 第三个粗糙拼贴案例及更完整的 L4 视觉回归。
+
+当前优先级见 [PLAN](PLAN.md)，可验证边界见 [验收矩阵](docs/architecture/ACCEPTANCE_TEST_MATRIX.md)。
+
+## 仓库地图
+
+```text
+img2asset-layout-v1.html   当前唯一编辑器入口
+home-scene.js              Canvas Runtime 规范源
+runtime-inline.js          由 Runtime 机械生成的测试页镜像
+editor/                    编辑器内核模块
+src-tauri/                 Tauri Host
+examples/                  可导入 Scene；图片资产默认不提交
+scripts/                   构建与只读校验
+tests/                     浏览器、Runtime 与 Host 验收
+docs/                      用户、产品、Agent、架构和设计文档
+```
+
+`img2asset.html` 是冻结的历史入口，不再同步新功能。
+
+## 验证
+
+```powershell
+npm run verify
+npm run desktop:test
+```
+
+自动检查覆盖 Runtime/内嵌镜像、Scene 合同、Sampling Motion、Host command、序列化与主要架构接线。自动测试不能替代主观视觉审稿；测试口径必须标明 L0–L5 / H0–H3 层级。
+
+完整文档入口见 [docs/README.md](docs/README.md)。
+
+代码与文档采用 [MIT License](LICENSE)。仓库未跟踪的本地参考图、用户素材和实验资产不因该许可证获得授权。

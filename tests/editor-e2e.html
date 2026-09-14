@@ -1,0 +1,177 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Patcharium Editor E2E</title>
+<style>body{font:14px system-ui;background:#111827;color:#e5e7eb}iframe{position:fixed;left:-10000px;width:1280px;height:800px}.pass{color:#6ee7b7}.fail{color:#fca5a5}pre{white-space:pre-wrap}</style>
+<h1>Editor E2E</h1><pre id="out">RUNNING</pre><iframe id="editor" src="../img2asset-layout-v1.html?e2e=1"></iframe>
+<script>
+const out=document.getElementById('out'),frame=document.getElementById('editor');
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+function assert(value,message){if(!value)throw new Error(message);}
+function imageDataUrl(){const c=document.createElement('canvas');c.width=24;c.height=16;const g=c.getContext('2d');g.fillStyle='#12233f';g.fillRect(0,0,24,16);g.fillStyle='#ef4444';g.fillRect(1,1,10,6);g.fillStyle='#facc15';g.fillRect(13,2,8,11);g.fillStyle='#22c55e';g.fillRect(4,9,8,5);return c.toDataURL();}
+function hash(canvas){const d=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;let h=2166136261;for(let i=0;i<d.length;i+=4){h^=d[i];h=Math.imul(h,16777619);h^=d[i+1];h=Math.imul(h,16777619);h^=d[i+2];h=Math.imul(h,16777619);h^=d[i+3];h=Math.imul(h,16777619);}return h>>>0;}
+function section(doc,name){return [...doc.querySelectorAll('.global-section')].find(s=>s.querySelector('.global-section-title')?.textContent.trim()===name);}
+function field(doc,sectionName,label){return [...(section(doc,sectionName)?.querySelectorAll('.global-field')||[])].find(row=>row.querySelector(':scope > span')?.textContent.trim()===label);}
+function stagePointer(win,type,x,y,pointerId=1){const stage=win.document.getElementById('stage'),r=stage.getBoundingClientRect(),scale=Math.min(r.width/96,r.height/64);stage.dispatchEvent(new win.PointerEvent(type,{bubbles:true,pointerId,buttons:type==='pointerup'?0:1,clientX:r.left+x*scale,clientY:r.top+y*scale}));}
+function timelinePointer(win,type,frac,pointerId=2){const canvas=win.document.getElementById('tl-context'),r=canvas.getBoundingClientRect();canvas.dispatchEvent(new win.PointerEvent(type,{bubbles:true,pointerId,buttons:type==='pointerup'?0:1,clientX:r.left+frac*r.width,clientY:r.top+r.height/2}));}
+function sceneTimelinePointer(win,type,frac,pointerId=3){const canvas=win.document.getElementById('tl'),r=canvas.getBoundingClientRect(),event=new win.PointerEvent(type,{bubbles:true,pointerId,buttons:type==='pointerup'?0:1,clientX:r.left+frac*r.width,clientY:r.top+r.height/2});(type==='pointerdown'?canvas:win).dispatchEvent(event);}
+async function clickEffect(win,name){const s=section(win.document,name);assert(s,name+' section missing');const on=s.querySelector('input[type=checkbox]');assert(on,name+' checkbox missing');on.click();await wait(40);}
+frame.addEventListener('load',async()=>{try{
+  const win=frame.contentWindow,api=win.__PATCHARIUM_TEST__;assert(api,'test bridge missing');
+  assert(win.EditorHost?.kind==='browser'&&win.EditorHost.openText&&win.EditorHost.saveFile&&win.EditorHost.saveBatch&&win.EditorHost.pickAssets,'browser host adapter missing');
+  const commandIds=win.EditorCommands?.list().map(item=>item.id)||[];
+  assert(['scene.new','scene.open','scene.save','scene.test','export.open'].every(id=>commandIds.includes(id)),'editor workflow commands missing');
+  const commandEvents=[],unsubscribeCommands=win.EditorCommands.subscribe(event=>commandEvents.push(event));
+  await win.EditorCommands.execute('export.open',{}, {source:'e2e'});await wait(20);
+  assert(commandEvents.some(event=>event.id==='export.open'&&event.phase==='success')&&win.document.querySelector('.wizard-mask'),'editor command did not drive export UI');
+  win.document.querySelector('.wizard-mask').remove();unsubscribeCommands();
+  const tauriCalls=[],tauri=win.EditorTauriHost?.create({invoke:async(command,payload)=>{tauriCalls.push([command,payload]);if(command==='patcharium_open_text')return{name:'demo.js',text:'scene',locator:'project/demo.js'};if(command==='patcharium_resolve_asset')return'data:image/png;base64,AA==';if(command==='patcharium_save_artifact')return{mode:'direct',name:'demo.js',locator:'project/demo.js'};if(command==='patcharium_save_artifacts')return[];return null;}});
+  const tauriOpened=await tauri.openText({accept:'.js'});const tauriResolved=await tauri.resolveAsset({ref:'assets/a.png'});await tauri.saveFile({kind:'scene',name:'demo.js',mime:'text/javascript',ext:'.js',data:'code'});
+  assert(tauriOpened.locator==='project/demo.js'&&tauri.currentSceneLocator==='project/demo.js'&&tauriResolved.startsWith('data:image')&&tauriCalls.some(x=>x[0]==='patcharium_save_artifact'),'tauri host contract missing or inconsistent');
+  const artifact=win.EditorArtifactBuilder?.sceneFile({name:'demo.js',sourceText:'A{}Z',start:1,end:3,serializedScene:'{"ok":true}'});
+  const testArtifact=win.EditorArtifactBuilder?.testHtml({name:'demo-test.html',script:'window.demo=true;',mode:'home'});
+  assert(artifact?.data==='A{"ok":true}Z'&&testArtifact?.data.includes('id="home-scene"'),'artifact builder missing or inconsistent');
+  const tm=win.EditorTimelineModel,tmScene={loop:12,scenes:['A','B','C'],sceneBorders:[2,8]};
+  assert(tm&&tm.sceneAt(tmScene,2,true)===1&&tm.segmentIndexAt([{f:[0,.5]},{f:[.5,1]}],.5)===1,'timeline boundary model missing or inconsistent');
+  const relinkSource=imageDataUrl(),relinked=await win.EditorAssetResolver.resolveToDataUrl('examples/assets/missing.png',{relinks:new Map([['name:missing.png',relinkSource]])});
+  assert(relinked===relinkSource,'asset relink did not resolve a missing relative source');
+  const scene={format:'canvas-cartoon-scene',formatVersion:1,kind:'generic',name:'E2E',w:96,h:64,loop:2,bg:'#05070d',transparent:false,scenes:['A'],sceneBorders:[],images:[{id:'img',name:'image',src:imageDataUrl(),x:8,y:8,w:72,h:48,z:1,alpha:1,pixelDiv:3,parts:[{type:'rect',x:3,y:3,w:12,h:9,fill:'#55aaff',fillAlpha:1}],show:[[[0,1]]]}],snow:{id:'snow',name:'snow',z:2,x:0,y:0,w:96,h:64,show:[[[0,1]]],parts:[{type:'rect',x:0,y:0,w:2,h:2,fill:'#ffffff'}],particle:{count:12,rate:8,life:1.5,speed:12,dir:90,seed:4}}};
+  api.loadScene(scene);api.selectImage('img');await wait(100);
+  win.document.querySelector('[data-element-inspector="props"]').click();await wait(40);
+  const xInput=win.document.querySelector('#inspector-context input[data-live-key="x"]');
+  assert(xInput,'basic Inspector X input missing');
+  xInput.value='21';xInput.dispatchEvent(new Event('change',{bubbles:true}));await wait(60);
+  assert(api.scene().images[0].x===21,'Inspector mutation did not update scene data');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(60);
+  assert(api.scene().images[0].x===8,'Inspector mutation did not preserve a pre-change undo snapshot');
+  api.selectImage('img');await wait(40);win.document.querySelector('[data-element-inspector="props"]').click();await wait(40);
+  const shapeSection=section(win.document,'形状 · 矩形'),fillSwatch=shapeSection&&shapeSection.querySelectorAll('.color-swatch')[1];assert(fillSwatch,'vector fill color control missing');fillSwatch.click();await wait(20);
+  const hue=win.document.querySelector('.color-pop:not([hidden]) .color-hue');assert(hue,'color popover missing');hue.value='130';hue.dispatchEvent(new Event('input',{bubbles:true}));hue.value='140';hue.dispatchEvent(new Event('input',{bubbles:true}));hue.dispatchEvent(new Event('change',{bubbles:true}));await wait(50);
+  assert(api.scene().images[0].parts[0].fill!=='#55aaff','live color gesture did not update vector fill');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(50);
+  assert(api.scene().images[0].parts[0].fill==='#55aaff','live color gesture was not restored in one undo step');
+  api.selectImage('img');await wait(30);win.document.querySelector('[data-element-inspector="props"]').click();await wait(30);
+  const shapeBeforeTexture=section(win.document,'形状 · 矩形'),textureToggle=[...shapeBeforeTexture.querySelectorAll('input[type=checkbox]')].at(-1);assert(textureToggle,'texture toggle missing');textureToggle.click();await wait(50);
+  const texturePreview=section(win.document,'形状 · 矩形')?.querySelector('.texture-preview');assert(texturePreview,'texture preview control missing');texturePreview.click();await wait(20);
+  const textureAngle=win.document.querySelector('.texture-pop:not([hidden]) .tx-angle');assert(textureAngle,'texture popover angle missing');textureAngle.value='60';textureAngle.dispatchEvent(new Event('input',{bubbles:true}));textureAngle.value='75';textureAngle.dispatchEvent(new Event('input',{bubbles:true}));textureAngle.dispatchEvent(new Event('change',{bubbles:true}));await wait(50);
+  assert(api.scene().images[0].parts[0].fillPattern.layers[0].angle===75,'live texture gesture did not update pattern');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(50);
+  assert(api.scene().images[0].parts[0].fillPattern.layers[0].angle===45,'live texture gesture was not restored in one undo step');
+  api.selectImage('img');await wait(30);win.document.querySelector('[data-element-inspector="props"]').click();await wait(30);
+  const maskType=section(win.document,'蒙版')?.querySelector('select');assert(maskType,'mask type control missing');maskType.value='rect';maskType.dispatchEvent(new Event('change',{bubbles:true}));await wait(50);
+  assert(api.scene().images[0].mask?.type==='rect','mask mutation did not update scene data');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(50);
+  assert(!api.scene().images[0].mask,'mask mutation was not restored in one undo step');
+  await win.EditorCommands.execute('selection.clear',{mode:'all'},{source:'e2e'});await wait(30);win.document.querySelector('[data-global-inspector="fx"]').click();await wait(30);
+  const globalCrt=field(win.document,'叠加效果 · 仿真叠加','CRT')?.querySelector('input[type=checkbox]');assert(globalCrt,'global CRT disclosure missing');globalCrt.click();await wait(50);
+  assert(field(win.document,'叠加效果 · 仿真叠加','CRT 强度'),'global CRT parameters did not disclose on first enable click');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(50);
+  const brightness=[...section(win.document,'调色滤镜').querySelectorAll('input[type=range]')][1];assert(brightness,'global FX brightness slider missing');brightness.value='18';brightness.dispatchEvent(new Event('input',{bubbles:true}));brightness.value='24';brightness.dispatchEvent(new Event('input',{bubbles:true}));brightness.dispatchEvent(new Event('change',{bubbles:true}));await wait(50);
+  assert(api.scene().fx.segs[0][0].brightness===24,'global FX live gesture did not update scene data');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(50);
+  assert(api.scene().fx.segs[0][0].brightness==null,'global FX live gesture was not restored in one undo step');
+  api.selectImage('img');await wait(40);
+  stagePointer(win,'pointerdown',20,20);stagePointer(win,'pointermove',25,20);stagePointer(win,'pointerup',25,20);await wait(60);
+  assert(api.scene().images[0].x===13,'Canvas gesture did not move the selected element');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(60);
+  assert(api.scene().images[0].x===8,'Canvas gesture was not committed as one pre-change undo step');
+  api.selectImage('img');await wait(40);
+  const contextCanvas=win.document.getElementById('tl-context');contextCanvas.setPointerCapture=()=>{};contextCanvas.hasPointerCapture=()=>false;
+  timelinePointer(win,'pointerdown',.998);timelinePointer(win,'pointermove',.75);timelinePointer(win,'pointerup',.75);await wait(60);
+  assert(Math.abs(api.scene().images[0].show[0][0][1]-.75)<.02,'timeline boundary gesture did not update the selected element show range');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(60);
+  assert(api.scene().images[0].show[0][0][1]===1,'timeline boundary gesture was not restored in one undo step');
+  api.selectImage('img');await wait(40);
+  win.document.querySelector('[data-element-inspector="motion"]').click();await wait(40);
+  const animSection=section(win.document,'动画'),animToggle=animSection&&animSection.querySelector('input[type=checkbox]');
+  assert(animToggle,'animation toggle missing');animToggle.click();await wait(50);
+  assert(api.scene().images[0].anim?.bob,'animation mutation did not update scene data');
+  assert(section(win.document,'动画')?.querySelector('input[type=number]'),'animation parameters did not disclose on first enable click');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(50);
+  assert(!api.scene().images[0].anim,'animation mutation was not restored in one undo step');
+  api.selectImage('img');await wait(40);
+  win.document.querySelector('[data-element-inspector="sampling"]').click();await wait(40);
+  await clickEffect(win,'颗粒潮汐');
+  let motion=api.scene().images[0].style?.samplingMotion;assert(motion?.grainTide,'grain tide was not stored');
+  api.setTime(.12);await wait(60);const tideA=hash(win.document.getElementById('home-scene'));api.setTime(.68);await wait(60);const tideB=hash(win.document.getElementById('home-scene'));assert(tideA!==tideB,'grain tide did not produce spatial sampling motion');
+  const tideStart=win.document.createElement('canvas'),tideLoop=win.document.createElement('canvas');win.HomeScene.renderTo(tideStart,0,{scene:api.scene()});win.HomeScene.renderTo(tideLoop,4,{scene:api.scene()});assert(hash(tideStart)===hash(tideLoop),'grain tide did not close exactly at its period');
+  const stablePreset=[...win.document.querySelectorAll('#inspector-context button')].find(button=>button.textContent.trim()==='轮廓稳定、内部翻涌');assert(stablePreset,'stable contour preset missing');stablePreset.click();await wait(60);
+  motion=api.scene().images[0].style?.samplingMotion;assert(motion?.field?.type==='wave'&&motion?.edge?.mode==='alpha'&&motion?.grainTide,'stable contour preset did not compose field, edge and grain tide');
+  const fieldSection=section(win.document,'采样场'),fieldType=fieldSection&&fieldSection.querySelector('select');assert(fieldType,'sampling field parameters did not disclose on preset click');fieldType.value='radial';fieldType.dispatchEvent(new Event('change',{bubbles:true}));await wait(60);assert(api.scene().images[0].style.samplingMotion.field.type==='radial','sampling field type did not update scene data');assert(section(win.document,'采样场')?.querySelectorAll('input[type=number]').length>=6,'radial field controls did not progressively disclose');
+  for(const name of ['像素沸腾','阈值呼吸','网点游移'])await clickEffect(win,name);
+  motion=api.scene().images[0].style?.samplingMotion;
+  assert(motion?.pixelBoil&&motion?.thresholdPulse&&motion?.ditherDrift&&motion?.grainTide,'four effects were not stored together');
+  const boilRate=section(win.document,'像素沸腾')?.querySelector('input[type=number]');assert(boilRate,'pixel boil rate input missing');
+  boilRate.value='7';boilRate.dispatchEvent(new Event('change',{bubbles:true}));await wait(50);
+  assert(api.scene().images[0].style.samplingMotion.pixelBoil.rate===7,'Sampling Motion parameter mutation did not update scene data');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(50);
+  assert(api.scene().images[0].style.samplingMotion.pixelBoil.rate===4,'Sampling Motion parameter was not restored in one undo step');
+  api.selectImage('img');await wait(40);win.document.querySelector('[data-element-inspector="sampling"]').click();await wait(40);
+  motion=api.scene().images[0].style?.samplingMotion;
+  api.setTime(.12);await wait(80);const a=hash(win.document.getElementById('home-scene'));
+  api.setTime(.68);await wait(80);const b=hash(win.document.getElementById('home-scene'));
+  assert(a!==b,'preview pixels did not change across time');
+  api.setTime(.5);api.setTime(.5);const cached=win.HomeScene.getLastFrameStats();assert(cached.cacheHits>=2,'image/particle frame caches did not survive repeated render');
+  win.HomeScene.invalidateEntity(api.scene().images[0]);api.setTime(.5);assert(win.HomeScene.getLastFrameStats().cacheMisses>=1,'entity cache invalidation did not force rebuild');
+  api.selectImage('img');await wait(40);win.document.querySelector('[data-element-inspector="fx"]').click();await wait(40);
+  const enableLocalFx=[...win.document.querySelectorAll('#inspector-context button')].find(button=>button.textContent.trim()==='启用局部效果');assert(enableLocalFx,'local FX enable action missing');enableLocalFx.click();await wait(50);
+  assert(api.scene().fx?.layers?.some(layer=>layer.bind?.targetId==='img'),'local FX mutation did not create a bound layer');
+  const localFog=field(win.document,'叠加效果 · 图形叠加','像素雾')?.querySelector('input[type=checkbox]');assert(localFog,'local FX disclosure missing');localFog.click();await wait(50);
+  assert(field(win.document,'叠加效果 · 图形叠加','像素雾强度')&&api.scene().fx.layers[0].fog>0,'local FX parameters did not disclose on first enable click');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(50);
+  assert(!(api.scene().fx.layers[0].fog>0),'local FX enable was not restored in one undo step');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(50);
+  assert(!api.scene().fx?.layers?.some(layer=>layer.bind?.targetId==='img'),'local FX mutation was not restored in one undo step');
+  win.document.getElementById('btn-local-fx').click();await wait(60);
+  const orphan=api.scene().fx?.layers?.find(layer=>!layer.bind?.targetId);assert(orphan,'unbound local FX was not created');
+  assert(win.document.querySelector('.struct-node.fx.sel')&&section(win.document,'局部效果'),'unbound local FX did not select its structure node and unified Inspector');
+  assert(win.document.getElementById('tl-context-note').textContent.includes('作用时段'),'unbound local FX did not become the timeline context');
+  const orphanAlpha=field(win.document,'局部效果','不透明度')?.querySelector('input[type=number]');assert(orphanAlpha,'unbound local FX opacity control missing');orphanAlpha.value='.5';orphanAlpha.dispatchEvent(new Event('change',{bubbles:true}));await wait(50);
+  assert(orphan.alpha===.5,'unbound local FX Inspector did not update scene data');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(50);assert(api.scene().fx.layers.find(layer=>layer.id===orphan.id)?.alpha===.22,'unbound local FX Inspector edit was not restored in one undo step');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(50);assert(!api.scene().fx?.layers?.some(layer=>layer.id===orphan.id),'unbound local FX creation was not restored in one undo step');
+  const quality=win.document.getElementById('preview-quality');quality.value='draft';quality.dispatchEvent(new Event('change',{bubbles:true}));await wait(80);
+  assert(win.document.getElementById('preview-perf').textContent.includes('fps'),'preview performance status missing');
+  const saved=api.serialize(),round=JSON.parse(saved);assert(round.images[0].style.samplingMotion.thresholdPulse,'serialized motion missing');
+  assert(saved.includes('data:image/png')&&!saved.includes('_imageFxCache')&&!saved.includes('_editorImageFxCache'),'scene serializer lost portable source or leaked caches');
+  assert(!saved.includes('previewPixelDivMultiplier')&&!saved.includes('previewQuality'),'preview-only quality leaked into scene');
+  api.loadScene(round);assert(api.scene().images[0].style.samplingMotion.ditherDrift,'round-trip motion missing');
+  api.loadScene({format:'canvas-cartoon-scene',formatVersion:1,kind:'generic',name:'Karsten asset freeze',w:64,h:96,loop:1,bg:'#000',scenes:['A'],sceneBorders:[],images:[{id:'karsten-bg',name:'backdrop',src:'examples/assets/karsten-layer-backdrop.png',x:0,y:0,w:64,h:96,z:0,alpha:1,show:[[[0,1]]]}]});
+  const savedArtifact=await win.currentSceneSaveArtifact();
+  assert(savedArtifact?.data.includes('data:image/')&&!savedArtifact.data.includes('examples/assets/karsten-layer-backdrop.png'),'karsten save artifact did not freeze its relative backdrop');
+  const payload=await win.currentTestSceneScript();
+  assert(payload&&payload.script.includes('data:image/')&&!payload.script.includes('examples/assets/karsten-layer-backdrop.png'),'karsten test scene did not freeze its relative backdrop');
+  api.selectImage('karsten-bg');await win.EditorCommands.execute('selection.delete',{}, {source:'e2e'});
+  assert(!api.scene().images.some(item=>item.id==='karsten-bg'),'selection.delete did not remove selected element');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});
+  assert(api.scene().images.some(item=>item.id==='karsten-bg'),'history.undo did not restore deleted element');
+  api.selectImage('karsten-bg');await win.EditorCommands.execute('selection.clear',{mode:'all'}, {source:'e2e'});
+  assert(!api.selection().elementId&&!api.selection().programId&&!api.selection().groupId&&!api.selection().multiCount,'selection.clear did not clear editor contexts');
+  api.loadScene({format:'canvas-cartoon-scene',formatVersion:1,kind:'generic',name:'Scene border E2E',w:64,h:64,loop:2,bg:'#000',scenes:['A','B'],sceneBorders:[1],images:[]});await wait(40);
+  sceneTimelinePointer(win,'pointerdown',.5);sceneTimelinePointer(win,'pointermove',.6);sceneTimelinePointer(win,'pointerup',.6);await wait(50);
+  assert(Math.abs(api.scene().sceneBorders[0]-1.2)<.03,'scene border gesture did not update sceneBorders');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(50);
+  assert(api.scene().sceneBorders[0]===1,'scene border gesture was not restored in one undo step');
+  api.insertSceneBoundary(0);await wait(50);
+  assert(api.scene().scenes.length===3&&api.scene().sceneBorders.length===2,'scene boundary insertion did not update the scene model');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(50);
+  assert(api.scene().scenes.length===2&&api.scene().sceneBorders.length===1,'scene boundary insertion was not restored in one undo step');
+  api.loadScene({format:'canvas-cartoon-scene',formatVersion:1,kind:'generic',name:'Creation E2E',w:96,h:64,loop:1,bg:'#000',scenes:['A'],sceneBorders:[],images:[]});await wait(40);
+  win.document.querySelector('[data-toolbar-mode="rect"]').click();stagePointer(win,'pointerdown',10,10,8);stagePointer(win,'pointermove',30,25,8);stagePointer(win,'pointerup',30,25,8);await wait(60);
+  assert(api.scene().images.length===1&&api.scene().images[0].parts?.[0]?.type==='rect','draw tool did not create a vector element');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(50);assert(api.scene().images.length===0,'draw creation did not restore the pre-create snapshot');
+  win.document.getElementById('toolbar-text').click();stagePointer(win,'pointerdown',18,18,9);await wait(80);
+  const textEditor=win.document.querySelector('.text-edit-overlay');assert(textEditor&&api.scene().images[0]?.text,'text tool did not start an editable text element');textEditor.value='cancelled';textEditor.dispatchEvent(new Event('input',{bubbles:true}));textEditor.dispatchEvent(new win.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));await wait(80);
+  assert(api.scene().images[0]?.text?.value==='text','Escape did not rollback the live text edit');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(50);assert(api.scene().images.length===0,'text creation did not restore the pre-create snapshot');
+  api.loadScene({format:'canvas-cartoon-scene',formatVersion:1,kind:'generic',name:'Structure E2E',w:64,h:64,loop:1,bg:'#000',scenes:['A'],sceneBorders:[],images:[{id:'a',name:'A',src:imageDataUrl(),x:0,y:0,w:16,h:16,z:1},{id:'b',name:'B',src:imageDataUrl(),x:20,y:0,w:16,h:16,z:2}]});await wait(40);
+  const orderBefore=api.structureOrder().join(',');api.structureDrop('a','b','before');await wait(50);
+  assert(api.structureOrder().join(',')!==orderBefore,'structure reorder did not change layer order');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(50);
+  assert(api.structureOrder().join(',')===orderBefore,'structure reorder was not restored in one undo step');
+  api.structureDrop('a','b','nest');await wait(50);
+  assert(api.scene().groups?.length===1&&api.scene().groups[0].memberIds.includes('a')&&api.scene().groups[0].memberIds.includes('b'),'structure center drop did not create a group');
+  await win.EditorCommands.execute('history.undo',{}, {source:'e2e'});await wait(50);
+  assert(!api.scene().groups?.length,'structure group creation was not restored in one undo step');
+  out.className='pass';out.dataset.status='pass';out.textContent='PASS\neditor workflow + selection/delete/undo commands\nscene mutation + Inspector undo boundary\nlive color + texture gesture transaction undo\nmask + global FX transaction undo\nCanvas gesture transaction + undo\ndraw/text creation + text rollback\ntimeline boundary transaction + undo\nscene-border gesture transaction + undo\nscene insertion transaction + undo\nstructure reorder/group transaction + undo\nanimation + Sampling Motion transaction undo\nlocal FX create transaction + undo\nunbound FX unified Inspector + timeline transaction undo\nbrowser host adapter + batch delivery\ntauri host locator/asset/artifact contract\nartifact builder\nshared timeline boundary model\nshared scene serializer\nasset relink resolver\nkarsten relative asset frozen into saved JS + test scene\nfour effects stack + grain tide independent motion\npreview changes over time\nimage + particle cache reuse/invalidation\nDraft remains editor-only\nserialize/reopen preserves data\nhash '+a+' → '+b;
+}catch(error){out.className='fail';out.dataset.status='fail';out.textContent='FAIL\n'+error.stack;}});
+</script>

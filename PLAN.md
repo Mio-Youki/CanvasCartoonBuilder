@@ -28,6 +28,7 @@
 4. **视觉回归基础**：为固定时间帧建立参考图、差异/人工审稿记录与预算指标；不把截图对比误写为 Runtime 的一部分。
 5. **提示词与样例包**：已建立三类案例提示词骨架；下一步将其与真实输入/输出、失败样本和评审记录绑定。生成协议拆成视觉规划、Scene 生成、兼容改写、视觉审稿四种职责；初始生成只披露必要的 Scene 能力，局部修改再渐进披露时序/蒙版/FX 等高级能力。
 6. **已完成像素化语义收口**：对象再像素化、图片采样闪变、局部采样/色板和全局采样/色板拥有明确且不重叠的作用域；背景不再绕过对象采样，四层均与固定时间离线渲染共用 Runtime。
+7. **已建立 Sampling Motion 公共控制层**：图片 Inspector 提供可叠加的像素沸腾、阈值呼吸、网点游移与颗粒潮汐；`field` 统一承载 uniform/wave/radial 空间运动，`edge` 首版以 Alpha 距离保护轮廓，“轮廓稳定、内部翻涌”作为组合预设复用既有原语。后续可在同一 field 接口增加噪声场与蒙版控制，无需继续增加平级效果类型。普通动态参数的任意关键帧不在本阶段引入。
 
 P0 完成后才评估内置对话、桌面项目层与正式仓库改名；内置对话必须复用同一 Agent Tool Protocol，不得创建另一套编辑语义。
 
@@ -56,6 +57,12 @@ P0 完成后才评估内置对话、桌面项目层与正式仓库改名；内�
 ### 编辑器内核拆分（导出与关键帧的前置工作）
 
 - 设计基线见 [RUNTIME_ADAPTER_PLAN.md](docs/architecture/RUNTIME_ADAPTER_PLAN.md)：先固定时间渲染并让预览/离线帧共用 Adapter，再导出 PNG 序列、按需接入编码器，最后才加入关键帧 schema 与轨道 UI。该顺序保证 Runtime 无重量级依赖。
+- 🚧 **架构合同化第一阶段**：已新增编辑器行为、Runtime/宿主边界与 L0–L5 验收矩阵；Runtime 暴露 `apiVersion/capabilities`，编辑器启动时握手，避免新版 Inspector 被旧 Runtime 静默忽略。Sampling Motion 已有自运行浏览器夹具覆盖实际勾选、预览像素变化与保存重载；下一步扩展测试 HTML 与帧文件的 L4 自动验收，再继续拆分控制器。
+- 🚧 **性能与桌面产品化**：单一编辑器时钟、Runtime P95/工作像素观测及 Auto/Full/Draft 已落地；Draft 会降低高成本像素处理中间分辨率，离线 `renderTo` 强制恢复完整质量。阈值/网点共享像素读取，全局/局部调色共享 CPU 内核；编辑器与 Runtime 缓存槽已隔离。Browser/Tauri Host、Timeline Model、Scene Serializer、Asset Resolver 与 Artifact Builder 已完成第一层接线。下一阶段不是再次封装编辑器，而是建立 S/M/L 性能基线、按热点决定 Worker/OffscreenCanvas，并设计 Project manifest 与持久 `assets/`；桌面壳本身不承担 Canvas 加速。
+- ✅ **Editor Commands / Scene Mutation 主写入收口**：顶部工作流及清选/删除/撤销已由稳定命令 ID 接管；Canvas、编排器上下轴、Scene 操作、结构树、编组/剪贴快捷操作、绘制/文字、粒子创建及主 Inspector 均已接入统一 Scene Mutation。旧元素/粒子卡片、旧局部 FX Controller 和旧 FX 时间轴已删除，业务代码不再直接调用 `pushHistory`。连续颜色/纹理/滑杆和文字输入拥有提交/回滚边界。`redo` 必须等待双栈历史模型，当前不伪装支持。
+- ✅ **Inspector 控件与效果注册收束**：Scene Mutation/Undo/Rollback 驱动会话级 `sceneRevision`；普通动画、采样闪变、Sampling Motion 与新版全局 / 局部 FX 共用渐进披露入口。未绑定局部 FX 已迁入结构树 → Inspector → 下时间轴的唯一链路，Legacy Controller 正式退役。色板、颜色与纹理绑定入口已统一；效果顺序、分组、默认值和控件元数据集中在 `editor/effect-registry.js`。“颗粒潮汐”已作为验证原语加入，没有新增专用撤销、刷新或页签控制器。
+- ✅ **Sampling Motion 渲染内核去重与一级缓存**：`editor/sampling-motion-kernel.js` 统一波场、边缘保护、颗粒、阈值与网点算法；编辑器预览不再维护 `*Tool` 像素副本。构建脚本将内核原样嵌入 `home-scene.js` 与测试页 Runtime 镜像，保持独立 JS 场景无外部依赖。空间基底与 Alpha 距离衰减图按实体、源帧、尺寸和参数缓存，时间步变化只重算场值；下一步记录新基线并评估 Worker / OffscreenCanvas 分界，再进入 Tauri Host 实现。
+- ✅ **Tauri Host 第一层**：`src-tauri/` 已实现打开 Scene、原位/另存 Artifact、批量目录写入、素材选择/读取及 Scene 同目录相对素材解析；只接受用户授权路径并拒绝目录穿越。预览与测试冻结共用 Asset Resolver，宿主读取结果通过临时 `_asset` 注入 Runtime，且兼容旧示例的重复 `examples/` 前缀。`scripts/prepare-tauri-frontend.mjs` 以确定性白名单生成最小前端闭包。2026-09-14 已手动通过 `karsten` 相对图片预览与自包含测试场景 H3 验收；发布前只需补齐安装包、图标/签名策略及原生取消/批量交付检查。
 - ✅ 第一层：`editor/geometry.js` 承担纯几何变换；`editor/scene-model.js` 承担 parts 归一化与局部包围盒规则。页面仍以 classic script 入口加载，保持 `file://` 双击运行与现有体验。
 - ✅ 固定时间离线渲染：`HomeScene` 已提供 `createRuntime(scene)`；它以指定 `t` 向任意 Canvas 渲染而不启动 RAF，也不改预览的 `window.HOME_SCENE`。预览与离线帧已共用 `renderFrame` 绘制核心；通用 Scene 独立 Canvas 冒烟测试已加入。
 - ✅ 诊断职责拆分：`GENERIC_SCENE` 的可编辑性诊断、Runtime 兼容性与导出资源提示独立；兼容项目脚本和已注册锁定 builtin 不会因“不符合通用图元合同”而被阻止导出。
@@ -70,19 +77,20 @@ P0 完成后才评估内置对话、桌面项目层与正式仓库改名；内�
 - ✅ Alpha / 明度 / 元素蒙版：`mask.type:'alpha'` 可按 `imageId` 引用素材库图片，在指定画布范围按原 Alpha 或黑透明白不透明的明度裁剪；`mask.type:'element'` 可引用稳定元素或组 id，每帧复用其实际 Alpha、动画与时序作为蒙版，并将来源派生为隐藏。实体图层与局部 FX 共享 Runtime 路径；未来再评估局部包围盒缓存与羽化。
 - ✅ 组合粒子与角速度动画：删除“复制为图片粒子”，统一为“复制为粒子”；图片元素自动引用图片，带 parts 的图片自动生成图片 + parts 组合精灵，仍通过每帧离屏缓存复用。`anim.spin:{speed}` 作为稳定的持续角速度原语，与静态 `rot`、wave、pulse 等既有动画叠加，不改变场景层级。
 - ✅ 精确画布编辑收口：绘制预览、蒙版提示和选择框统一高 DPI Overlay；Alpha 蒙版首次拖拽放置、场景图片位置继承、Shift 正方/正圆、黄/蓝/绿选择对象的方向键微移（1px / Shift 10px）与元素静态旋转复位已完成。
-- 下一层：让预览显式持有 Runtime Adapter，再从界面层抽出图层/时间轴控制器；关键帧与导出只能依赖 Scene/Runtime，不直接依赖 DOM。
+- 下一层：继续从 7k 行页面控制器抽出选择、结构树、Inspector 与时间轴编排模块，并补测试 HTML、PNG/GIF 内容级 L4 回归；不再复制 Runtime 或改变 Scene 合同。
 - ✅ Agent 合同化：`SCENE_SPEC` 收敛为当前可执行子集；生成与改写分别使用独立协议，复用同一 schema；参考图生成固定为「静态基底 → 视觉锁定 → 结构整理 → 动画覆盖」，并以 3:2 河谷静态基底和两幕样例进行验收。
 - ✅ 混合参考图路径：高密度静态笔触可由同构图的日/夜图片背景承接，程序层只承担安全区域内的局部动效；链接素材样例在正式交付前通过导入保存冻结为 data URL。基础蒙版已交付；嵌套裁剪组仍列为后续能力。
 
 ### 当前推荐顺序（2026-09）
 
-1. **P0 Agent 协作稳定性与三案例验证**：先证明外部 Agent 能交付可修正的结构化初稿，并让预览、保存、自包含运行与导出一致。
-2. **UI 信息架构与视觉系统收口**：继续梳理 Inspector 的渐进披露、图标与交互细节，不改变 Scene / Runtime 合同；它服务于案例验证，不与 P0 竞争。
-3. **桌面应用封装**：在 P0、UI 工作流和文件格式暂时稳定后再接入 Tauri，并以项目目录、可重连素材和个人素材库作为首批桌面专属能力。封装不应承担解决当前信息架构问题的职责。
+1. **发布基线**：MIT 许可证已补齐；提交当前独立工具仓库，继续补充贡献/安全说明、截图/GIF、Windows 构建与安装/便携发行方式，并完成原生取消/批量交付检查。正式面向普通用户前，必须把兼容 Scene 的动态对象求值改为纯数据解析，并将 `program.code` 放入受限 Worker/沙箱或迁移为已注册 builtin，避免未知 Scene 在主 WebView 执行代码。
+2. **P0 Agent 协作稳定性与三案例验证**：证明外部 Agent 能交付可修正的结构化初稿，并让预览、保存、自包含运行与导出一致；第三个粗糙拼贴案例尚未开始。
+3. **UI 信息架构与视觉系统收口**：继续梳理 Inspector 渐进披露、图标与交互细节，不改变 Scene / Runtime 合同。
+4. **桌面项目层**：在 Scene 与 UI 工作流稳定后增加 Project manifest、可重连 `assets/`、处理配方和个人素材库，不采用 IndexedDB 冒充项目系统。
 
-上述 1 与 2 可在设计/验收层并行；真正的产品实现主线先走 1，避免先把复杂度固化进桌面壳。
+Agent 验证与 UI 设计可以并行；项目层必须建立在当前 Host/Asset 合同之上，不能回到页面内散落文件路径。
 
-#### UI 信息架构 v1（已定蓝图，待实施）
+#### UI 信息架构 v1（骨架已实施，细节待收口）
 
 - 以 [UI_RECONSTRUCTION_V1.md](docs/design/UI_RECONSTRUCTION_V1.md) 为实施合同：左侧“场景结构 + 可收起素材库”、中央“工具 + 固定舞台”、右侧“属性 / 动态 / 效果 Inspector”、下方“场景与上下文编排时间轴”。
 - ✅ 时间轴 Dock 第一阶段：固定于 Canvas + Inspector 下方、可调高度；上轴为全局刻度/播放头，Scene 标签段承载定位、改名与删除；下轴按 Inspector 上下文派生元素 `show`、局部 FX `show`（以元素有效范围为底带）或 `fx.segs`，继续复用原有 Runtime 格式。

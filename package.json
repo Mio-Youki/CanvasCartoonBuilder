@@ -1,0 +1,22 @@
+{
+  "name": "patcharium",
+  "version": "3.0.0",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mio-Youki/CanvasCartoonBuilder.git"
+  },
+  "description": "Patcharium / 拼好景 — lightweight procedural loop scene editor",
+  "scripts": {
+    "verify": "node scripts/verify-editor.mjs && node tests/sampling-motion-kernel.mjs && node tests/tauri-host-adapter.mjs && node scripts/verify-tauri-host.mjs",
+    "desktop:prepare": "node scripts/prepare-tauri-frontend.mjs",
+    "desktop:check": "cargo check --manifest-path src-tauri/Cargo.toml",
+    "desktop:test": "cargo test --manifest-path src-tauri/Cargo.toml --lib",
+    "desktop:dev": "tauri dev",
+    "desktop:build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.8.0"
+  }
+}

@@ -1,3 +1,11 @@
 # 本地案例图片可能包含用户提供或受限制素材，不随仓库发布。
 examples/assets/*
 !examples/assets/README.md
+examples/*-test.html
+.local/
+
+# Tauri 前端分发目录由 scripts/prepare-tauri-frontend.mjs 生成。
+.tauri-dist/
+node_modules/
+src-tauri/target/
+src-tauri/gen/

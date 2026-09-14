@@ -13,12 +13,12 @@ const GENERIC_SCENE = {
   images: [
     {
       id: 'karsten-backdrop', name: '远景底板 · 天空与山谷', role: 'background',
-      src: 'examples/assets/karsten-layer-backdrop.png', x: 0, y: 0, w: 640, h: 960,
+      src: 'assets/karsten-layer-backdrop.png', x: 0, y: 0, w: 640, h: 960,
       z: -100, layout: 'stretch', show: [[[0, 1]]],
     },
     {
       id: 'karsten-clouds', name: '透明云层 · 缓慢漂移',
-      src: 'examples/assets/karsten-layer-clouds.png', x: 0, y: 0, w: 640, h: 960,
+      src: 'assets/karsten-layer-clouds.png', x: 0, y: 0, w: 640, h: 960,
       z: -20, alpha: .42, blend: 'screen', show: [[[0, 1]]],
       pixelDiv: 2,
       anim: { bob: { amp: 7, period: 18, angle: 0 } },
@@ -31,7 +31,7 @@ const GENERIC_SCENE = {
     },
     {
       id: 'karsten-foreground', name: '前景 · 山脊与旅人',
-      src: 'examples/assets/karsten-layer-foreground.png', x: 0, y: 0, w: 640, h: 960,
+      src: 'assets/karsten-layer-foreground.png', x: 0, y: 0, w: 640, h: 960,
       z: 20, show: [[[0, 1]]],
     },
   ],

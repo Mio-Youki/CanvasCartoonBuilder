@@ -10,6 +10,189 @@
  * ============================================================ */
 'use strict';
 
+/* <generated:sampling-motion-kernel> */
+(function (global) {
+  'use strict';
+
+  function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+
+  function phaseAt(config, time, defaults) {
+    config = config || {}; defaults = defaults || {};
+    const period = Math.max(.1, +config.period || defaults.period || 2);
+    const steps = clamp(Math.round(+config.steps || defaults.steps || 12), 2, 60);
+    const normalized = (((time % period) + period) % period) / period;
+    const tick = Math.floor(normalized * steps);
+    return { period, steps, tick, phase: tick / steps };
+  }
+
+  function fieldConfig(group) {
+    if (!group) return null;
+    if (group.field) return group.field;
+    const legacy = group.grainTide;
+    if (!legacy) return null;
+    return {
+      type: 'wave', scale: legacy.scale || 48,
+      speed: legacy.speed == null ? 1 : legacy.speed,
+      angle: legacy.angle || 0, period: legacy.period || 4,
+      steps: legacy.steps || 24, seed: legacy.seed || 1,
+      centerX: .5, centerY: .5,
+    };
+  }
+
+  function fieldTick(group, time) {
+    const config = fieldConfig(group);
+    return config ? phaseAt(config, time, { period: 4, steps: 24 }).tick : 0;
+  }
+
+  function protectAlpha(field, imageData, width, height, edge, sampleDiv) {
+    if (!edge || edge.mode !== 'alpha' || !imageData) return field;
+    const strength = clamp(+edge.strength || 0, 0, 1);
+    if (!strength) return field;
+    const count = width * height, distance = new Float32Array(count);
+    const alpha = imageData.data, infinity = width + height + 8;
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      distance[i] = alpha[i * 4 + 3] < 8 || x === 0 || y === 0 || x === width - 1 || y === height - 1 ? 0 : infinity;
+    }
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      if (x) distance[i] = Math.min(distance[i], distance[i - 1] + 1);
+      if (y) distance[i] = Math.min(distance[i], distance[i - width] + 1);
+    }
+    for (let y = height - 1; y >= 0; y--) for (let x = width - 1; x >= 0; x--) {
+      const i = y * width + x;
+      if (x < width - 1) distance[i] = Math.min(distance[i], distance[i + 1] + 1);
+      if (y < height - 1) distance[i] = Math.min(distance[i], distance[i + width] + 1);
+    }
+    const protectedWidth = Math.max(1, (+edge.width || 3) / Math.max(1, sampleDiv || 1));
+    for (let i = 0; i < count; i++) {
+      if (alpha[i * 4 + 3] < 8) { field[i] = 0; continue; }
+      const near = Math.max(0, 1 - distance[i] / protectedWidth);
+      field[i] *= 1 - near * strength;
+    }
+    return field;
+  }
+
+  function buildField(group, time, width, height, sampleDiv, imageData, options) {
+    const config = fieldConfig(group);
+    if (!config) return null;
+    options = options || {};
+    const timing = phaseAt(config, time, { period: 4, steps: 24 });
+    const type = config.type || 'wave', angle = (+config.angle || 0) * Math.PI / 180;
+    const cos = Math.cos(angle), sin = Math.sin(angle);
+    const scale = Math.max(2, (+config.scale || 48) / Math.max(1, sampleDiv || 1));
+    const speed = Number.isFinite(+config.speed) ? +config.speed : 1;
+    const seed = Math.round(+config.seed || 1);
+    const centerX = clamp(config.centerX == null ? .5 : +config.centerX, 0, 1) * width;
+    const centerY = clamp(config.centerY == null ? .5 : +config.centerY, 0, 1) * height;
+    const cache = options.cache || {};
+    const preparedKey = [width,height,sampleDiv,type,scale,speed,angle,seed,centerX,centerY,JSON.stringify(group.edge||{}),options.sourceKey||''].join('|');
+    if (cache.preparedKey !== preparedKey) {
+      cache.preparedKey = preparedKey;
+      cache.spatial = new Float32Array(width * height);
+      cache.attenuation = null;
+      for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+        let q = 0;
+        if (type === 'radial') q = Math.hypot(x - centerX, y - centerY) / scale;
+        else if (type === 'wave') {
+          const along = (x * cos + y * sin) / scale;
+          const across = (-x * sin + y * cos) / scale;
+          q = along + .18 * Math.sin((across * .47 + seed * .137) * Math.PI * 2);
+        }
+        cache.spatial[y * width + x] = q + seed * .031;
+      }
+      if (group.edge && imageData) {
+        cache.attenuation = new Float32Array(width * height);
+        cache.attenuation.fill(1);
+        protectAlpha(cache.attenuation, imageData, width, height, group.edge, sampleDiv);
+      }
+      cache.field = new Float32Array(width * height);
+    }
+    const offset = timing.phase * speed, field = cache.field;
+    for (let i = 0; i < field.length; i++) {
+      field[i] = (.5 + .5 * Math.sin((cache.spatial[i] - offset) * Math.PI * 2)) * (cache.attenuation ? cache.attenuation[i] : 1);
+    }
+    return { tick: timing.tick, field, preparedKey };
+  }
+
+  function grainTide(config, fieldFrame) {
+    if (!config || !fieldFrame) return null;
+    return {
+      tick: fieldFrame.tick, field: fieldFrame.field,
+      amount: clamp(+config.amount || 0, 0, 1),
+      coarseness: clamp(Math.round(+config.coarseness || 5), 2, 12),
+      targets: config.targets || 'combined',
+    };
+  }
+
+  function applyGrain(imageData, width, height, tide) {
+    if (!tide || tide.amount <= 0) return imageData;
+    const data = imageData.data, source = new Uint8ClampedArray(data);
+    const span = Math.max(1, tide.coarseness - 1);
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+      const cell = 1 + Math.floor(tide.field[y * width + x] * tide.amount * span);
+      if (cell <= 1) continue;
+      const sourceX = Math.min(width - 1, Math.floor(x / cell) * cell);
+      const sourceY = Math.min(height - 1, Math.floor(y / cell) * cell);
+      const to = (y * width + x) * 4, from = (sourceY * width + sourceX) * 4;
+      data[to] = source[from]; data[to + 1] = source[from + 1];
+      data[to + 2] = source[from + 2]; data[to + 3] = source[from + 3];
+    }
+    return imageData;
+  }
+
+  function applyThreshold(imageData, options) {
+    const data = imageData.data, fieldFrame = options.fieldFrame, tide = options.tide;
+    const tideThreshold = tide && (tide.targets === 'combined' || tide.targets === 'threshold');
+    for (let i = 0, pixel = 0; i < data.length; i += 4, pixel++) {
+      let threshold = options.threshold;
+      if (options.sharedField) threshold = options.base + (options.threshold - options.base) * (.2 + .8 * fieldFrame.field[pixel]);
+      if (tideThreshold) threshold += (tide.field[pixel] - .5) * 96 * tide.amount;
+      threshold = clamp(threshold, 0, 255);
+      const luminance = data[i] * .299 + data[i + 1] * .587 + data[i + 2] * .114;
+      const color = luminance < threshold ? options.dark : options.light;
+      data[i] = color[0]; data[i + 1] = color[1]; data[i + 2] = color[2];
+    }
+    return imageData;
+  }
+
+  function drawDither(context, imageData, width, height, options) {
+    const data = imageData.data, cell = options.cell, fieldFrame = options.fieldFrame, tide = options.tide;
+    context.clearRect(0, 0, width, height);
+    for (let y = -cell + options.phaseY; y < height; y += cell) for (let x = -cell + options.phaseX; x < width; x += cell) {
+      let sum = 0, count = 0, alpha = 0;
+      const y0 = Math.max(0, Math.floor(y)), y1 = Math.min(height, Math.ceil(y + cell));
+      const x0 = Math.max(0, Math.floor(x)), x1 = Math.min(width, Math.ceil(x + cell));
+      for (let yy = y0; yy < y1; yy++) for (let xx = x0; xx < x1; xx++) {
+        const p = (yy * width + xx) * 4;
+        sum += data[p] * .299 + data[p + 1] * .587 + data[p + 2] * .114;
+        alpha += data[p + 3]; count++;
+      }
+      if (!count) continue;
+      const fieldIndex = clamp(Math.floor(y + cell / 2), 0, height - 1) * width + clamp(Math.floor(x + cell / 2), 0, width - 1);
+      const tideDots = tide && (tide.targets === 'combined' || tide.targets === 'dots');
+      const field = fieldFrame ? fieldFrame.field[fieldIndex] : .5;
+      const fieldScale = tideDots ? .65 + field * tide.amount * .7 : options.sharedField ? .65 + field * .7 : 1;
+      const radius = (1 - sum / count / 255) * cell * .52 * fieldScale, opacity = alpha / count / 255;
+      if (opacity > 0) {
+        context.globalAlpha = opacity; context.fillStyle = options.light;
+        context.fillRect(x, y, cell, cell);
+      }
+      if (radius > .15 && opacity > 0) {
+        context.fillStyle = options.dark; context.beginPath();
+        context.arc(x + cell / 2, y + cell / 2, radius, 0, Math.PI * 2); context.fill();
+      }
+    }
+    context.globalAlpha = 1;
+  }
+
+  global.SamplingMotionKernel = Object.freeze({
+    version: 1, phaseAt, fieldConfig, fieldTick, buildField,
+    grainTide, applyGrain, applyThreshold, drawDither,
+  });
+})(typeof window !== 'undefined' ? window : globalThis);
+/* </generated:sampling-motion-kernel> */
+
 const DEFAULT_HOME_SCENE = {
   "w": 320,
   "h": 118,
@@ -242,6 +425,17 @@ const SCENE_KEYS = ['format', 'formatVersion', 'kind', 'name', 'meta', 'w', 'h',
   'stars', 'moon', 'clouds', 'mountains', 'farForest', 'poles', 'rail', 'train', 'foreground', 'fog', 'signal', 'bridge'];
 
 const HomeScene = (() => {
+  // API 版本描述调用契约；capabilities 描述可选渲染能力。编辑器应以能力握手代替猜测文件版本。
+  const apiVersion = 1;
+  const capabilities = Object.freeze({
+    fixedTimeRender: 1,
+    deterministicFrames: 1,
+    samplingMotion: 2,
+    timelineTracks: 1,
+    elementMask: 1,
+    localFx: 1,
+    previewQuality: 1,
+  });
   let W = CFG.w, H = CFG.h, LOOP = CFG.loop;
   let canvas, ctx, raf = 0, last = 0, elapsed = 0, running = false;
   let sceneOverride = null; // 过渡活帧：渲染旧场景时临时覆盖 scene(t) 返回值
@@ -256,12 +450,30 @@ const HomeScene = (() => {
   let boundFxCanvas = null;      // 先画 FX 再按元素轮廓裁入（仅 clip 模式创建/复用）
   const localLutCache = {};
   let lumaMaskCache = new WeakMap(); // 素材画布/图片对象 → 各帧明度 Alpha 缓存
+  let particleSpriteCache = new WeakMap(); // 静态粒子实体 → 已生成的组合精灵；动态 parts 不进入此缓存
   let transFrom = null;     // 过渡的旧场景号（边界处记录，过渡结束清空）
   let lastPart = -1;        // 上一帧场景号（边界检测）
   let reduceMotion = false;
+  // 仅供宿主编辑器降低实时预览的像素处理成本。它不属于 Scene 数据；
+  // renderTo/离线导出会强制使用 1×，因此不会降低保存、测试页或帧导出的质量。
+  let previewPixelDivMultiplier = 1;
+  let frameStats = { workPixels: 0, pixelPasses: 0, cacheHits: 0, cacheMisses: 0, offscreenPeakPixels: 0 };
   // 编辑器可接管时钟；独立网页仍保持默认的「可见即自动循环」。
   let externalPlayback = false;
   let inited = false;
+
+  function previewDiv(value) {
+    return Math.max(1, Math.round((+value || 1) * previewPixelDivMultiplier));
+  }
+  function setPreviewOptions(options) {
+    const next = options && +options.pixelDivMultiplier;
+    previewPixelDivMultiplier = Number.isFinite(next) ? Math.max(1, Math.min(4, next)) : 1;
+    return { pixelDivMultiplier: previewPixelDivMultiplier };
+  }
+  function beginFrameStats() { frameStats = { workPixels: 0, pixelPasses: 0, cacheHits: 0, cacheMisses: 0, offscreenPeakPixels: 0 }; }
+  function notePixels(w, h, passes) { passes = Math.max(1, passes || 1); frameStats.workPixels += Math.max(1, w * h) * passes; frameStats.pixelPasses += passes; }
+  function noteSurface(surface) { if (surface) frameStats.offscreenPeakPixels = Math.max(frameStats.offscreenPeakPixels, Math.max(1, surface.width || 1) * Math.max(1, surface.height || 1)); }
+  function getLastFrameStats() { return Object.assign({}, frameStats, { pixelDivMultiplier: previewPixelDivMultiplier }); }
 
   function init() {
     if (inited) return; // 幂等：工具兜底副本可能二次加载/手动再 init
@@ -464,6 +676,29 @@ const HomeScene = (() => {
     }
     return { m: base, mo: mo };
   }
+  // 全局/局部调色共享同一 CPU 像素内核。一次读回后依次执行矩阵与色板，最后只写回一次。
+  function processColorSurface(g, w, h, matrix, offset, lut) {
+    const passes = (matrix ? 1 : 0) + (lut ? 1 : 0);
+    if (!passes) return false;
+    notePixels(w, h, passes);
+    const data = g.getImageData(0, 0, w, h), d = data.data;
+    if (matrix) {
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i], gg = d[i + 1], b = d[i + 2];
+        d[i] = Math.min(255, Math.max(0, matrix[0] * r + matrix[1] * gg + matrix[2] * b + offset));
+        d[i + 1] = Math.min(255, Math.max(0, matrix[3] * r + matrix[4] * gg + matrix[5] * b + offset));
+        d[i + 2] = Math.min(255, Math.max(0, matrix[6] * r + matrix[7] * gg + matrix[8] * b + offset));
+      }
+    }
+    if (lut) {
+      for (let i = 0; i < d.length; i += 4) {
+        const ix = ((d[i] >> 3) << 11) | ((d[i + 1] >> 2) << 5) | (d[i + 2] >> 3);
+        d[i] = lut[ix * 3]; d[i + 1] = lut[ix * 3 + 1]; d[i + 2] = lut[ix * 3 + 2];
+      }
+    }
+    g.putImageData(data, 0, 0);
+    return true;
+  }
   // hex 颜色 → {r,g,b}（支持 #rgb/#rrggbb；其他字符串按不透明处理为 255 白）
   function hexToRgb(c) {
     if (typeof c === 'string' && c[0] === '#') {
@@ -559,34 +794,19 @@ const HomeScene = (() => {
       return;
     }
     // 降采样没有人为的 4 倍上限；自然上限由当前画布的短边决定，保证离屏至少 1px。
-    const div = Math.max(1, Math.min(Math.max(1, Math.min(W, H)), Math.round(+fxTex.pixelDiv || 1)));
+    const div = Math.max(1, Math.min(Math.max(1, Math.min(W, H)), previewDiv(fxTex.pixelDiv)));
     const sw = Math.max(2, Math.round(W / div)), sh = Math.max(2, Math.round(H / div));
     const oc = pixelFilterCanvas || (pixelFilterCanvas = createSurface(sw, sh));
     if (!oc) return;
     if (oc.width !== sw || oc.height !== sh) { oc.width = sw; oc.height = sh; }
+    noteSurface(oc);
     const og = oc.getContext('2d');
     og.imageSmoothingEnabled = false;
     og.drawImage(canvas, 0, 0, W, H, 0, 0, sw, sh);
     const needsPixels = needPalette !== 'none' || !!needHue || !!needB || needC !== 1 || needS !== 1;
     if (needsPixels) try {
-      const id = og.getImageData(0, 0, sw, sh);
-      const d = id.data;
-      const m = fxTex.matrix, mo = fxTex.offset || 0;
-      if (m) {
-        for (let i = 0; i < d.length; i += 4) {
-          const r = d[i], g = d[i + 1], b = d[i + 2];
-          d[i] = Math.min(255, Math.max(0, m[0] * r + m[1] * g + m[2] * b + mo));
-          d[i + 1] = Math.min(255, Math.max(0, m[3] * r + m[4] * g + m[5] * b + mo));
-          d[i + 2] = Math.min(255, Math.max(0, m[6] * r + m[7] * g + m[8] * b + mo));
-        }
-      }
-      if (fxTex.lut) {
-        for (let i = 0; i < d.length; i += 4) {
-          const idx = ((d[i] >> 3) << 11) | ((d[i + 1] >> 2) << 5) | (d[i + 2] >> 3);
-          d[i] = fxTex.lut[idx * 3]; d[i + 1] = fxTex.lut[idx * 3 + 1]; d[i + 2] = fxTex.lut[idx * 3 + 2];
-        }
-      }
-      og.putImageData(id, 0, 0);
+      const matrixNeeded = !!needHue || !!needB || needC !== 1 || needS !== 1;
+      processColorSurface(og, sw, sh, matrixNeeded ? fxTex.matrix : null, fxTex.offset || 0, fxTex.lut || null);
     } catch (_) { /* 跨域图片无法读像素时仍保留纯降采样；调色/色板需自包含或同源素材。 */ }
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(oc, 0, 0, sw, sh, 0, 0, W, H);
@@ -665,6 +885,7 @@ const HomeScene = (() => {
     }
     if (style === 'dissolve') {
       // 场景→场景溶解：每像素确定性 hash，hash >= p 保留旧场景（altCanvas 活帧）像素、否则新场景像素
+      notePixels(W, H, 1);
       const id = ctx.getImageData(0, 0, W, H);
       const d = id.data;
       let pd = null;
@@ -722,6 +943,13 @@ const HomeScene = (() => {
   }
   function particleSprites(e, t, cj, cjDim) {
     const imageSource = particleImageSource(e);
+    const cacheable = !(e.parts || []).some(part => part && part.anim);
+    const cacheKey = cacheable ? JSON.stringify({ parts:e.parts||[], pixelDiv:e.pixelDiv||1, alphaMode:e.alphaMode||'', source:e.particle&&e.particle.source||null, imageSrc:imageSource&&imageSource.el&&imageSource.el.src||'', imageW:imageSource&&imageSource.el&&imageSource.el.w||0, imageH:imageSource&&imageSource.el&&imageSource.el.h||0, imageAlpha:imageSource&&imageSource.el?(imageSource.el.alpha==null?1:+imageSource.el.alpha):1, frames:imageSource&&imageSource.el&&imageSource.el.frames||1, cj:+cj||0, cjDim:cjDim||'hue' }) : '';
+    if (cacheable) {
+      const cached = particleSpriteCache.get(e);
+      if (cached && cached.key === cacheKey) { frameStats.cacheHits++; cached.value.frames.forEach(frame => { noteSurface(frame.base); (frame.variants || []).forEach(noteSurface); }); return cached.value; }
+      frameStats.cacheMisses++;
+    }
     let lb = imageSource ? { x: 0, y: 0, w: imageSource.el.w || imageSource.img.width, h: imageSource.el.h || imageSource.img.height }
       : partsLocalBox(e);
     // 组合粒子：图片与 parts 使用原元素相同的局部坐标，精灵包围盒须容纳两者（parts 可越出图片边缘）。
@@ -771,7 +999,10 @@ const HomeScene = (() => {
     };
     const imageFrames = imageSource && imageSource.playback === 'particle-age' ? Math.max(1, imageSource.el.frames || 1) : 1;
     const bases = Array.from({ length: imageFrames }, (_, i) => render(imageSource && imageSource.playback === 'particle-age' ? i : undefined));
-    if (!(cj > 0)) return { frames: bases.map(base => ({ base: base, variants: null })), lb: lb, W: W, H: H, fps: imageSource && imageSource.fps, loopFrames: !!(imageSource && imageSource.loop) };
+    if (!(cj > 0)) {
+      const value = { frames: bases.map(base => ({ base: base, variants: null })), lb: lb, W: W, H: H, fps: imageSource && imageSource.fps, loopFrames: !!(imageSource && imageSource.loop) };
+      bases.forEach(noteSurface); if (cacheable) particleSpriteCache.set(e, { key: cacheKey, value }); return value;
+    }
     // 颜色抖动分桶（8 档确定性幅度）：只抖动所选维度（colorJitterDim：hue/brightness/saturation/contrast）
     const frameSets = [];
     const B = 8;
@@ -800,7 +1031,8 @@ const HomeScene = (() => {
       }
       frameSets.push({ base, variants });
     }
-    return { frames: frameSets, lb: lb, W: W, H: H, fps: imageSource && imageSource.fps, loopFrames: !!(imageSource && imageSource.loop) };
+    const value = { frames: frameSets, lb: lb, W: W, H: H, fps: imageSource && imageSource.fps, loopFrames: !!(imageSource && imageSource.loop) };
+    frameSets.forEach(frame => { noteSurface(frame.base); (frame.variants || []).forEach(noteSurface); }); if (cacheable) particleSpriteCache.set(e, { key: cacheKey, value }); return value;
   }
   function drawParticles(e, t, key) {
     const p = e.particle || {};
@@ -1216,7 +1448,7 @@ const HomeScene = (() => {
   function applyLocalGrade(layer, t, bounds, alpha, target) {
     const palette = layer.palette || 'none', hue = +layer.hue || 0, brightness = +layer.brightness || 0;
     const contrast = layer.contrast != null ? +layer.contrast : 1, saturation = layer.saturation != null ? +layer.saturation : 1;
-    const div = Math.max(1, Math.min(Math.max(1, Math.min(W, H)), Math.round(+layer.pixelDiv || 1)));
+    const div = Math.max(1, Math.min(Math.max(1, Math.min(W, H)), previewDiv(layer.pixelDiv)));
     if (palette === 'none' && !hue && !brightness && contrast === 1 && saturation === 1 && div <= 1) return;
     const bx = Math.max(0, Math.floor(bounds.x)), by = Math.max(0, Math.floor(bounds.y));
     const bw = Math.max(1, Math.min(W - bx, Math.ceil(bounds.w))), bh = Math.max(1, Math.min(H - by, Math.ceil(bounds.h)));
@@ -1224,6 +1456,7 @@ const HomeScene = (() => {
     if (!localGradeCanvas) localGradeCanvas = createSurface(sw, sh);
     if (!localGradeCanvas) return;
     if (localGradeCanvas.width !== sw || localGradeCanvas.height !== sh) { localGradeCanvas.width = sw; localGradeCanvas.height = sh; }
+    noteSurface(localGradeCanvas);
     const g = localGradeCanvas.getContext('2d'); if (!g) return;
     try {
       g.clearRect(0, 0, sw, sh); g.imageSmoothingEnabled = false; g.drawImage(canvas, bx, by, bw, bh, 0, 0, sw, sh);
@@ -1232,13 +1465,12 @@ const HomeScene = (() => {
         drawFxMasked(layer, target, t, () => { ctx.save(); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = alpha; ctx.imageSmoothingEnabled = false; ctx.drawImage(localGradeCanvas, 0, 0, sw, sh, bx, by, bw, bh); ctx.restore(); });
         return;
       }
-      const data = g.getImageData(0, 0, sw, sh), d = data.data, cm = colorMatrixOf(hue, brightness, contrast, saturation), m = cm.m, mo = cm.mo;
-      for (let i = 0; i < d.length; i += 4) { const r = d[i], gg = d[i + 1], b = d[i + 2]; d[i] = Math.min(255, Math.max(0, m[0] * r + m[1] * gg + m[2] * b + mo)); d[i + 1] = Math.min(255, Math.max(0, m[3] * r + m[4] * gg + m[5] * b + mo)); d[i + 2] = Math.min(255, Math.max(0, m[6] * r + m[7] * gg + m[8] * b + mo)); }
+      const matrixNeeded = !!hue || !!brightness || contrast !== 1 || saturation !== 1, cm = matrixNeeded ? colorMatrixOf(hue, brightness, contrast, saturation) : null;
+      let lut = null;
       if (palette !== 'none' && FX_PALETTES[palette]) {
-        const lut = localLutCache[palette] || (localLutCache[palette] = buildLut(FX_PALETTES[palette]));
-        for (let i = 0; i < d.length; i += 4) { const ix = ((d[i] >> 3) << 11) | ((d[i + 1] >> 2) << 5) | (d[i + 2] >> 3); d[i] = lut[ix * 3]; d[i + 1] = lut[ix * 3 + 1]; d[i + 2] = lut[ix * 3 + 2]; }
+        lut = localLutCache[palette] || (localLutCache[palette] = buildLut(FX_PALETTES[palette]));
       }
-      g.putImageData(data, 0, 0);
+      processColorSurface(g, sw, sh, cm && cm.m, cm && cm.mo || 0, lut);
       drawFxMasked(layer, target, t, () => { ctx.save(); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = alpha; ctx.imageSmoothingEnabled = false; ctx.drawImage(localGradeCanvas, 0, 0, sw, sh, bx, by, bw, bh); ctx.restore(); });
     } catch (e) { /* 不可读跨域 Canvas 时安全跳过；自包含 data URL 正常可用 */ }
   }
@@ -1522,6 +1754,7 @@ const HomeScene = (() => {
   // stateless 模式不依赖上一帧；过渡的旧场景由当前段起点推导，供离线固定时间渲染使用。
   function renderFrame(t, opts) {
     opts = opts || {};
+    beginFrameStats();
     syncCfg(); // 每帧同步外部注入的配置（工具实时调参生效的关键）
     const local = t % LOOPv();
     const part = scene(t);
@@ -1565,43 +1798,65 @@ const HomeScene = (() => {
     return null;
   }
 
-  // 图片风格化是“参数变化时重算”的缓存处理，而不是每帧重绘图元。
-  // threshold 把图片收为可调双色块；halftone 把明度采样为规则点阵，适合粗糙拼贴。
-  function styledImageFrame(e, img, srcX, sw, sh, frame) {
-    const fx = e && e.style && e.style.imageFx;
-    if (!fx || !fx.mode || fx.mode === 'none') return null;
-    const key = [e.src || e.id || '', frame, srcX, sw, sh, fx.mode, fx.threshold, fx.dark, fx.light, fx.cell].join('|');
-    if (e._imageFxCache && e._imageFxCache.key === key) return e._imageFxCache.canvas;
-    const out = createSurface(sw, sh); if (!out) return null;
-    const og = out.getContext('2d'); if (!og) return null;
-    try {
-      og.imageSmoothingEnabled = false;
-      og.drawImage(img, srcX, 0, sw, sh, 0, 0, sw, sh);
-      const id = og.getImageData(0, 0, sw, sh), d = id.data;
-      const threshold = Math.max(0, Math.min(255, Math.round(+fx.threshold || 128)));
-      const dark = hexToRgb(fx.dark || '#182033'), light = hexToRgb(fx.light || '#e8dbc3');
-      if (fx.mode === 'threshold') {
-        for (let i = 0; i < d.length; i += 4) {
-          const lum = d[i] * .299 + d[i + 1] * .587 + d[i + 2] * .114;
-          const c = lum < threshold ? dark : light; d[i] = c.r; d[i + 1] = c.g; d[i + 2] = c.b;
-        }
-        og.putImageData(id, 0, 0);
-      } else if (fx.mode === 'halftone') {
-        const cell = Math.max(2, Math.min(32, Math.round(+fx.cell || 6)));
-        og.clearRect(0, 0, sw, sh);
-        for (let y = 0; y < sh; y += cell) for (let x = 0; x < sw; x += cell) {
-          let sum = 0, count = 0, alpha = 0;
-          for (let yy = y; yy < Math.min(sh, y + cell); yy++) for (let xx = x; xx < Math.min(sw, x + cell); xx++) { const p = (yy * sw + xx) * 4; sum += d[p] * .299 + d[p + 1] * .587 + d[p + 2] * .114; alpha += d[p + 3]; count++; }
-          const radius = (1 - sum / Math.max(1, count) / 255) * cell * .52;
-          const a = alpha / Math.max(1, count) / 255;
-          if (a > 0) { og.globalAlpha = a; og.fillStyle = 'rgb(' + light.r + ',' + light.g + ',' + light.b + ')'; og.fillRect(x, y, cell, cell); }
-          if (radius > .15 && a > 0) { og.fillStyle = 'rgb(' + dark.r + ',' + dark.g + ',' + dark.b + ')'; og.beginPath(); og.arc(x + cell / 2, y + cell / 2, radius, 0, Math.PI * 2); og.fill(); }
-        }
-        og.globalAlpha = 1;
+  function samplingMotionAt(e,t) {
+    const group=e&&e.style&&e.style.samplingMotion;
+    return group&&elShown(group,t)?group:null;
+  }
+  const samplingKernel = globalThis.SamplingMotionKernel;
+
+  // 图片风格化是“有限时间步变化时重算”的缓存处理。Sampling Motion 可同时启用阈值与网点：
+  // 固定顺序为颗粒潮汐局部采样 → 阈值呼吸 → 网点游移；旧 imageFx.motion 继续兼容读取。
+  function styledImageFrame(e, img, srcX, sw, sh, frame, t) {
+    const style=e&&e.style||{},fx=style.imageFx||{},group=samplingMotionAt(e,t);
+    const legacyMotion=fx.motion&&elShown(fx.motion,t)?fx.motion:null;
+    const thresholdCfg=(group&&group.thresholdPulse)||(legacyMotion&&legacyMotion.type==='threshold-pulse'?Object.assign({},legacyMotion,{threshold:fx.threshold,dark:fx.dark,light:fx.light}):null);
+    const ditherCfg=(group&&group.ditherDrift)||(legacyMotion&&legacyMotion.type==='dither-drift'?Object.assign({},legacyMotion,{cell:fx.cell,dark:fx.dark,light:fx.light}):null);
+    const grainCfg=group&&group.grainTide;
+    const staticThreshold=!thresholdCfg&&fx.mode==='threshold'?fx:null,staticDither=!ditherCfg&&fx.mode==='halftone'?fx:null;
+    if(!thresholdCfg&&!ditherCfg&&!grainCfg&&!staticThreshold&&!staticDither)return null;
+    const tp=thresholdCfg?samplingKernel.phaseAt(thresholdCfg,t,{period:2,steps:12}):{tick:0,phase:0};
+    const dp=ditherCfg?samplingKernel.phaseAt(ditherCfg,t,{period:2,steps:12}):{tick:0,phase:0};
+    const thresholdBase=thresholdCfg&&thresholdCfg.threshold!=null?+thresholdCfg.threshold:(+fx.threshold||128);
+    const thresholdNow=thresholdCfg?thresholdBase+Math.sin(tp.phase*Math.PI*2)*Math.max(0,+thresholdCfg.amount||28):thresholdBase;
+    const dynamic=!!(thresholdCfg||ditherCfg||grainCfg),sampleDiv=dynamic?previewDiv(e.pixelDiv):1;
+    const boilTick=group&&group.pixelBoil?Math.floor(t*Math.max(.05,+group.pixelBoil.rate||4)):0;
+    const outW=Math.max(1,Math.round(sw/sampleDiv)),outH=Math.max(1,Math.round(sh/sampleDiv));
+    const fieldTick=samplingKernel.fieldTick(group,t);
+    const key=[e.src||e.id||'',frame,srcX,sw,sh,outW,outH,!!thresholdCfg,!!ditherCfg,fx.mode,Math.round(thresholdNow),tp.tick,dp.tick,boilTick,fieldTick,JSON.stringify(thresholdCfg||{}),JSON.stringify(ditherCfg||{}),JSON.stringify(grainCfg||{}),JSON.stringify(group&&group.field||{}),JSON.stringify(group&&group.edge||{})].join('|');
+    if(e._imageFxCache&&e._imageFxCache.key===key){frameStats.cacheHits++;noteSurface(e._imageFxCache.canvas);return e._imageFxCache.canvas;}
+    frameStats.cacheMisses++;
+    const out=createSurface(outW,outH);if(!out)return null;const og=out.getContext('2d');if(!og)return null;
+    noteSurface(out);
+    try{
+      const jitter=group&&group.pixelBoil?sampleJitterAt(e,t,sampleDiv):{x:0,y:0,inset:0};
+      og.imageSmoothingEnabled=false;
+      og.drawImage(img,srcX+jitter.x,jitter.y,Math.max(1,sw-jitter.inset),Math.max(1,sh-jitter.inset),0,0,outW,outH);
+      let pixels=null;
+      const sourcePixels=(grainCfg||(group&&group.field))?og.getImageData(0,0,outW,outH):null;
+      const fieldSourceKey=[e.src||e.id||'',frame,srcX,outW,outH,boilTick].join('|');
+      const fieldFrame=samplingKernel.buildField(group,t,outW,outH,sampleDiv,sourcePixels,{cache:e._samplingFieldCache||(e._samplingFieldCache={}),sourceKey:fieldSourceKey});
+      const tide=samplingKernel.grainTide(grainCfg,fieldFrame);
+      if(tide){notePixels(outW,outH,1);pixels=samplingKernel.applyGrain(sourcePixels,outW,outH,tide);og.putImageData(pixels,0,0);}
+      if(thresholdCfg||staticThreshold){
+        notePixels(outW,outH,1);
+        pixels=og.getImageData(0,0,outW,outH);
+        const threshold=Math.max(0,Math.min(255,Math.round(thresholdNow)));
+        const dark=hexToRgb((thresholdCfg&&thresholdCfg.dark)||fx.dark||'#182033');
+        const light=hexToRgb((thresholdCfg&&thresholdCfg.light)||fx.light||'#e8dbc3');
+        samplingKernel.applyThreshold(pixels,{base:thresholdBase,threshold,dark:[dark.r,dark.g,dark.b],light:[light.r,light.g,light.b],fieldFrame,tide,sharedField:!!(fieldFrame&&group&&group.field)});
+        if(!(ditherCfg||staticDither))og.putImageData(pixels,0,0);
       }
-      e._imageFxCache = { key, canvas: out };
-      return out;
-    } catch (_) { return null; }
+      if(ditherCfg||staticDither){
+        notePixels(outW,outH,1);
+        const imageData=pixels||og.getImageData(0,0,outW,outH),cfg=ditherCfg||fx;
+        const cell=Math.max(2,Math.min(32,Math.round(+cfg.cell||6)));
+        const dark=hexToRgb(cfg.dark||fx.dark||'#182033'),light=hexToRgb(cfg.light||fx.light||'#e8dbc3');
+        let phaseX=0,phaseY=0;
+        if(ditherCfg){const shift=dp.phase*cell,dir=ditherCfg.direction||'horizontal';phaseX=dir==='vertical'?0:shift;phaseY=dir==='horizontal'?0:shift;}
+        samplingKernel.drawDither(og,imageData,outW,outH,{cell,phaseX,phaseY,dark:'rgb('+dark.r+','+dark.g+','+dark.b+')',light:'rgb('+light.r+','+light.g+','+light.b+')',fieldFrame,tide,sharedField:!!(fieldFrame&&group&&group.field)});
+      }
+      e._imageFxCache={key,canvas:out};return out;
+    }catch(_){return null;}
   }
 
   // Runtime Adapter 基础入口：向任意 CanvasRenderingContext2D / canvas 在固定时间渲染一帧。
@@ -1611,7 +1866,7 @@ const HomeScene = (() => {
     const targetCanvas = target && target.getContext ? target : (target && target.canvas);
     const targetCtx = target && target.getContext ? target.getContext('2d') : target;
     if (!targetCanvas || !targetCtx) return false;
-    const saved = { cfg: CFG, override: CFG_OVERRIDE, w: W, h: H, canvas, ctx, lastPart, transFrom, altCanvas, sceneOverride };
+    const saved = { cfg: CFG, override: CFG_OVERRIDE, w: W, h: H, canvas, ctx, lastPart, transFrom, altCanvas, sceneOverride, previewPixelDivMultiplier };
     try {
       CFG_OVERRIDE = options.scene || CFG;
       syncCfg();
@@ -1619,6 +1874,8 @@ const HomeScene = (() => {
       const height = Math.max(1, options.height || CFG.h || targetCanvas.height || 180);
       if (options.resize !== false && (targetCanvas.width !== width || targetCanvas.height !== height)) { targetCanvas.width = width; targetCanvas.height = height; }
       canvas = targetCanvas; ctx = targetCtx; W = width; H = height;
+      // 离线渲染默认永远是完整质量；只有显式测试选项才允许覆盖。
+      previewPixelDivMultiplier = Math.max(1, +(options.previewPixelDivMultiplier || 1));
       ctx.imageSmoothingEnabled = false;
       altCanvas = null; sceneOverride = null;
       renderFrame(t, { stateless: true });
@@ -1627,6 +1884,7 @@ const HomeScene = (() => {
       CFG = saved.cfg; CFG_OVERRIDE = saved.override; W = saved.w; H = saved.h;
       canvas = saved.canvas; ctx = saved.ctx; lastPart = saved.lastPart; transFrom = saved.transFrom;
       altCanvas = saved.altCanvas; sceneOverride = saved.sceneOverride;
+      previewPixelDivMultiplier = saved.previewPixelDivMultiplier;
     }
   }
 
@@ -2170,8 +2428,8 @@ const HomeScene = (() => {
     ctx.globalCompositeOperation = 'source-over';
   }
   function sampleJitterAt(e, t, div) {
-    const j = e && e.style && e.style.sampleJitter;
-    if (!j || div <= 1 || (+j.amount || 0) <= 0) return { x: 0, y: 0, inset: 0 };
+    const group=samplingMotionAt(e,t),j=(group&&group.pixelBoil)||(e&&e.style&&e.style.sampleJitter);
+    if (!j || !elShown(j,t) || div <= 1 || (+j.amount || 0) <= 0) return { x: 0, y: 0, inset: 0 };
     const rate = Math.max(.05, +j.rate || 4), amount = Math.max(0, Math.min(Math.max(0, div - 1), +j.amount || 1));
     const phase = t * rate, tick = Math.floor(phase), f = phase - tick, mix = j.mode === 'drift' ? f * f * (3 - 2 * f) : 0;
     const seed = Math.round(+j.seed || 1);
@@ -2194,7 +2452,7 @@ const HomeScene = (() => {
     const fx = frames > 1 ? (e.frameLoop === false ? Math.min(frames - 1, frameAt) : frameAt % frames) : 0;
     let sw = frames > 1 ? Math.floor(img.width / frames) : img.width;
     let srcX = fx * sw;
-    const styled = styledImageFrame(e, img, srcX, sw, img.height, fx);
+    const styled = styledImageFrame(e, img, srcX, sw, img.height, fx, t);
     if (styled) { img = styled; srcX = 0; sw = styled.width; }
     const so = scrollOffsets(e, t), part = scene(t);
     const ex = val(e, 'x', t), ey = val(e, 'y', t), ew = val(e, 'w', t), eh = val(e, 'h', t), er = rotationVal(e,t);
@@ -2207,7 +2465,8 @@ const HomeScene = (() => {
     const bobX = ea.xOff, bobY = ea.yOff;
     // 图片元素也走图层级采样 / 边缘处理，而不是依赖素材库预处理。
     let renderImg = img, renderX = srcX, renderW = sw, renderH = img.height;
-    const div = Math.max(1, Math.min(Math.max(1, Math.min(W, H)), Math.round(+e.pixelDiv || 1)));
+    const hasSamplingImageMotion=!!(samplingMotionAt(e,t)&&(e.style.samplingMotion.thresholdPulse||e.style.samplingMotion.ditherDrift||e.style.samplingMotion.grainTide))||!!(e.style&&e.style.imageFx&&e.style.imageFx.motion&&elShown(e.style.imageFx.motion,t));
+    const div = hasSamplingImageMotion ? 1 : Math.max(1, Math.min(Math.max(1, Math.min(W, H)), Math.round(+e.pixelDiv || 1)));
     const bgStretch = e.role === 'background' && (e.layout || 'none') === 'stretch';
     const sampleW = bgStretch ? W : w, sampleH = bgStretch ? H : h;
     if (div > 1 || e.alphaMode === 'remove' || e.alphaMode === 'boost') {
@@ -2290,7 +2549,24 @@ const HomeScene = (() => {
   // 时间轴跳转：设置动画时钟并立即渲染（工具时间轴点击/拖动用）
   function seek(t) { elapsed = t % LOOPv(); if (ctx) draw(elapsed); }
   // 清空图片缓存（工具重像素化/素材失效时调用；键 = src，按引用重建）
-  function clearImageCache() { Object.keys(imgCache).forEach(k => { delete imgCache[k]; }); lumaMaskCache = new WeakMap(); }
+  function sceneEntities() {
+    const out = (CFG.images || []).slice();
+    Object.keys(CFG || {}).forEach(key => { const value=CFG[key]; if (value && typeof value==='object' && !Array.isArray(value) && (value.parts || value.particle || value.program)) out.push(value); });
+    return out;
+  }
+  function invalidateCaches(options) {
+    options = options || {};
+    if (options.sources !== false) Object.keys(imgCache).forEach(k => { delete imgCache[k]; });
+    sceneEntities().forEach(entity => { if (entity) { delete entity._imageFxCache; delete entity._samplingFieldCache; } });
+    lumaMaskCache = new WeakMap(); particleSpriteCache = new WeakMap(); fxTex = null; patternFillCache.clear();
+  }
+  function invalidateEntity(entity) {
+    if (!entity) return;
+    delete entity._imageFxCache;
+    delete entity._samplingFieldCache;
+    particleSpriteCache.delete(entity);
+  }
+  function clearImageCache() { invalidateCaches({ sources: true }); }
 
   // 供编辑器覆盖层/烘焙使用的只读视图：蒙版在指定时刻的画布几何（与实际绘制一致）。
   function maskViewFor(el, mask, t) { return applyElementMaskOffset(el, mask, t == null ? elapsed : t); }
@@ -2300,7 +2576,7 @@ const HomeScene = (() => {
     const anchored = anchoredFxLayer(layer, target, tt);
     return (anchored && anchored.mask) || (layer && layer.mask);
   }
-  return { init, resize, start, stop, seek, draw, clearImageCache, renderTo, createRuntime, setExternalPlayback, W, H, LOOP, maskViewFor, fxMaskViewFor };
+  return { apiVersion, capabilities, init, resize, start, stop, seek, draw, clearImageCache, invalidateCaches, invalidateEntity, renderTo, createRuntime, setExternalPlayback, setPreviewOptions, getLastFrameStats, W, H, LOOP, maskViewFor, fxMaskViewFor };
 })();
 
 window.HomeScene = HomeScene;

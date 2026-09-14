@@ -11,7 +11,11 @@ const GENERIC_SCENE = {
   transparent: false,
   scenes: ['静夜', '微雨'],
   sceneBorders: [3],
-  images: [],
+  images: [{
+    id: 'sample-motion-chip', name: '采样运动夹具', z: 2, x: 8, y: 8, w: 16, h: 16, pixelDiv: 2,
+    src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLQ9AAAAABJRU5ErkJggg==',
+    style: { samplingMotion: { show: [[[0, 1]], [[0.2, 0.8]]], field: { type: 'wave', scale: 48, speed: 1, angle: 20, period: 4, steps: 24, seed: 1 }, edge: { mode: 'alpha', width: 3, strength: 1 }, thresholdPulse: { threshold: 128, period: 2, steps: 8, amount: 24, dark: '#182033', light: '#e8dbc3' }, ditherDrift: { cell: 5, period: 3, steps: 8, direction: 'diagonal', dark: '#182033', light: '#e8dbc3' }, grainTide: { amount: .65, coarseness: 5, targets: 'combined' } } },
+  }],
   fx: { segs: [[{ f: [0, 1] }], [{ f: [0, 1], vignette: true, vignetteStrength: 0.4 }]], transition: ['none', 'dissolve'], transitionDur: [0.25, 0.35], transitionColor: '#03060f' },
   rain: {
     id: 'rain-main',

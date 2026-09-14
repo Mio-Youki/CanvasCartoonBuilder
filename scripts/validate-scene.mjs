@@ -108,6 +108,50 @@ export function validateScene(scene) {
         if (sampleJitter.rate !== undefined && (!isFiniteNumber(sampleJitter.rate) || sampleJitter.rate <= 0)) error(`${entity.__key}.style.sampleJitter.rate 必须大于 0`);
         if (sampleJitter.amount !== undefined && (!isFiniteNumber(sampleJitter.amount) || sampleJitter.amount < 0 || sampleJitter.amount > entity.pixelDiv - 1)) error(`${entity.__key}.style.sampleJitter.amount 必须在 0..pixelDiv-1 内`);
         if (sampleJitter.seed !== undefined && (!isFiniteNumber(sampleJitter.seed) || sampleJitter.seed < 0)) error(`${entity.__key}.style.sampleJitter.seed 必须为非负数`);
+        if (sampleJitter.show !== undefined && (!Array.isArray(sampleJitter.show) || sampleJitter.show.length !== sceneCount)) error(`${entity.__key}.style.sampleJitter.show 必须按 scenes 长度保存`);
+      }
+    }
+    const imageMotion = entity.style?.imageFx?.motion;
+    if (imageMotion !== undefined) {
+      if (entity.__source !== 'image' || typeof entity.src !== 'string') error(`${entity.__key}.style.imageFx.motion 只支持图片元素或图片背景`);
+      if (!isObject(imageMotion) || !['dither-drift', 'threshold-pulse'].includes(imageMotion.type)) error(`${entity.__key}.style.imageFx.motion.type 仅支持 dither-drift / threshold-pulse`);
+      else {
+        if (imageMotion.type === 'dither-drift' && entity.style.imageFx.mode !== 'halftone') error(`${entity.__key}.style.imageFx.motion dither-drift 需要 imageFx.mode='halftone'`);
+        if (imageMotion.type === 'threshold-pulse' && entity.style.imageFx.mode !== 'threshold') error(`${entity.__key}.style.imageFx.motion threshold-pulse 需要 imageFx.mode='threshold'`);
+        if (imageMotion.period !== undefined && (!isFiniteNumber(imageMotion.period) || imageMotion.period <= 0)) error(`${entity.__key}.style.imageFx.motion.period 必须大于 0`);
+        if (imageMotion.steps !== undefined && (!isFiniteNumber(imageMotion.steps) || imageMotion.steps < 2 || imageMotion.steps > 60)) error(`${entity.__key}.style.imageFx.motion.steps 必须在 2..60 内`);
+        if (imageMotion.direction !== undefined && !['horizontal','vertical','diagonal'].includes(imageMotion.direction)) error(`${entity.__key}.style.imageFx.motion.direction 不受支持`);
+        if (imageMotion.show !== undefined && (!Array.isArray(imageMotion.show) || imageMotion.show.length !== sceneCount)) error(`${entity.__key}.style.imageFx.motion.show 必须按 scenes 长度保存`);
+      }
+    }
+    const samplingMotion = entity.style?.samplingMotion;
+    if (samplingMotion !== undefined) {
+      if (entity.__source !== 'image' || typeof entity.src !== 'string') error(`${entity.__key}.style.samplingMotion 只支持图片元素或图片背景`);
+      if (!isObject(samplingMotion)) error(`${entity.__key}.style.samplingMotion 必须为对象`);
+      else {
+        if (samplingMotion.show !== undefined && (!Array.isArray(samplingMotion.show) || samplingMotion.show.length !== sceneCount)) error(`${entity.__key}.style.samplingMotion.show 必须按 scenes 长度保存`);
+        const boil=samplingMotion.pixelBoil,drift=samplingMotion.ditherDrift,pulse=samplingMotion.thresholdPulse,tide=samplingMotion.grainTide,field=samplingMotion.field,edge=samplingMotion.edge;
+        if (boil !== undefined && !isObject(boil)) error(`${entity.__key}.style.samplingMotion.pixelBoil 必须为对象`);
+        if (isObject(boil) && boil.mode !== undefined && !['step','drift'].includes(boil.mode)) error(`${entity.__key}.style.samplingMotion.pixelBoil.mode 仅支持 step / drift`);
+        if (drift !== undefined && !isObject(drift)) error(`${entity.__key}.style.samplingMotion.ditherDrift 必须为对象`);
+        if (isObject(drift) && drift.direction !== undefined && !['horizontal','vertical','diagonal'].includes(drift.direction)) error(`${entity.__key}.style.samplingMotion.ditherDrift.direction 不受支持`);
+        if (pulse !== undefined && !isObject(pulse)) error(`${entity.__key}.style.samplingMotion.thresholdPulse 必须为对象`);
+        if (tide !== undefined && !isObject(tide)) error(`${entity.__key}.style.samplingMotion.grainTide 必须为对象`);
+        if (isObject(tide) && tide.targets !== undefined && !['combined','sampling','threshold','dots'].includes(tide.targets)) error(`${entity.__key}.style.samplingMotion.grainTide.targets 不受支持`);
+        if (isObject(tide) && tide.amount !== undefined && (!isFiniteNumber(tide.amount) || tide.amount < 0 || tide.amount > 1)) error(`${entity.__key}.style.samplingMotion.grainTide.amount 必须在 0..1 内`);
+        if (field !== undefined && !isObject(field)) error(`${entity.__key}.style.samplingMotion.field 必须为对象`);
+        if (isObject(field) && field.type !== undefined && !['uniform','wave','radial'].includes(field.type)) error(`${entity.__key}.style.samplingMotion.field.type 仅支持 uniform / wave / radial`);
+        if (isObject(field) && field.period !== undefined && (!isFiniteNumber(field.period) || field.period <= 0)) error(`${entity.__key}.style.samplingMotion.field.period 必须大于 0`);
+        if (isObject(field) && field.steps !== undefined && (!isFiniteNumber(field.steps) || field.steps < 2 || field.steps > 60)) error(`${entity.__key}.style.samplingMotion.field.steps 必须在 2..60 内`);
+        ['centerX','centerY'].forEach(key=>{if(isObject(field)&&field[key]!==undefined&&(!isFiniteNumber(field[key])||field[key]<0||field[key]>1))error(`${entity.__key}.style.samplingMotion.field.${key} 必须在 0..1 内`);});
+        if (edge !== undefined && !isObject(edge)) error(`${entity.__key}.style.samplingMotion.edge 必须为对象`);
+        if (isObject(edge) && edge.mode !== undefined && edge.mode !== 'alpha') error(`${entity.__key}.style.samplingMotion.edge.mode 目前仅支持 alpha`);
+        if (isObject(edge) && edge.width !== undefined && (!isFiniteNumber(edge.width) || edge.width < 1 || edge.width > 8)) error(`${entity.__key}.style.samplingMotion.edge.width 必须在 1..8 内`);
+        if (isObject(edge) && edge.strength !== undefined && (!isFiniteNumber(edge.strength) || edge.strength < 0 || edge.strength > 1)) error(`${entity.__key}.style.samplingMotion.edge.strength 必须在 0..1 内`);
+        [drift,pulse,tide].filter(isObject).forEach((motion) => {
+          if (motion.period !== undefined && (!isFiniteNumber(motion.period) || motion.period <= 0)) error(`${entity.__key}.style.samplingMotion 的 period 必须大于 0`);
+          if (motion.steps !== undefined && (!isFiniteNumber(motion.steps) || motion.steps < 2 || motion.steps > 60)) error(`${entity.__key}.style.samplingMotion 的 steps 必须在 2..60 内`);
+        });
       }
     }
     if (Array.isArray(entity.parts)) entity.parts.forEach((part, index) => {

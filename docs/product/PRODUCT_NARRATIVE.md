@@ -41,4 +41,4 @@ Agent 的职责是视觉拆解、Scene 初稿、结构化局部修改和验证�
 
 ## 下一步
 
-以 [AGENT_TOOL_PROTOCOL.md](../agent/AGENT_TOOL_PROTOCOL.md) 与三案例建立 Agent 生成稳定性；同时继续收口 Inspector 的信息层级、图标与交互。桌面项目格式、可重连素材库与内置 Agent 在这两条基础稳定后再推进。
+Tauri 文件宿主第一层已经落地，并通过相对图片 Scene 的手动交付验收。下一步以 [AGENT_TOOL_PROTOCOL.md](../agent/AGENT_TOOL_PROTOCOL.md) 与三案例建立 Agent 生成稳定性，同时继续收口 Inspector 的信息层级、图标与交互；Project manifest、可重连素材库、安装包与内置 Agent 在这两条基础稳定后推进。

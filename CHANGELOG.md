@@ -2,7 +2,45 @@
 
 > 独立于游戏本体的 CHANGELOG。工具版本独立演进，与游戏版本号无关。
 
+- **许可证与 Alpha 安全边界**：采用 MIT License，并在 README、用户指南和 PLAN 明确本地素材不随代码授权，以及未知 Scene 的 `program.code` / 兼容 JavaScript 配置当前不可视为安全数据。纯数据解析和程序元素受限执行列为正式普通用户发行前 P0。
+
+- **发布文档收口**：公开 README 改为产品定位、快速开始、当前边界和仓库地图；新增 `docs/USER_GUIDE.md` 与 `docs/README.md`，把操作说明和贡献者导航从历史功能长表中分离。PLAN、Host/Artifact/Runtime Adapter 文档同步为 Tauri 第一层与 `karsten` H3 已验收状态；清理测试 HTML 与 Tauri schema 生成物并补充忽略规则。
+
+- **桌面相对图片预览修复**：Tauri Asset Resolver 兼容 Scene 已位于 `examples/` 时旧引用仍带 `examples/` 前缀的案例，同时保持所有候选路径位于 Scene 目录内；打开 Scene 后，宿主解析所得 data URL 会进入 Runtime 的临时 `_asset` 槽，预览不再把相对路径直接交给 WebView。原始 `src` 与自包含保存语义保持不变。
+
+- **Tauri Host 第一层**：新增最小桌面壳与六个 Rust command，支持原生打开 Scene、原位保存、选择素材、按已授权 Scene 路径解析相对图片、单件另存和批量目录写入。路径授权、相对引用越界保护、临时文件写入与不安全文件名拒绝均在 Host 层完成；Scene/Runtime 不接触绝对路径。新增确定性增量前端白名单构建与桌面合同校验，旧 `img2asset.html`、示例资产和文档不会进入桌面包；当前 Windows 开发机已通过 Rust 检查、release EXE 构建和窗口进程烟雾测试。
+
+- **Sampling Motion 像素内核去重与缓存**：新增 `editor/sampling-motion-kernel.js`，统一编辑器预览与 Runtime 的波场、Alpha 边缘保护、颗粒采样、阈值和网点算法；删除 HTML 内的 `*Tool` 算法副本。空间基底和 Alpha 距离衰减图现在按源帧缓存，时间变化不再反复执行轮廓距离扫描。构建脚本会把内核原样嵌入 `home-scene.js`，因此保存场景与测试页仍然自包含；新增纯内核周期/边缘/缓存测试和镜像一致性检查。
+- **唯一入口确认**：`img2asset-layout-v1.html` 是当前产品入口；`img2asset.html` 仅为最早版本备份，不再同步新功能、修复或测试。
+
+- **Sampling Motion 公共采样场与边缘规则**：新增 `samplingMotion.field`（统一呼吸 / 方向波场 / 径向扩散）和 `samplingMotion.edge`（Alpha 轮廓保护），颗粒潮汐、阈值呼吸与网点游移可读取同一空间场；新增“轮廓稳定、内部翻涌”组合预设，预设只组合公共控制器与既有原语，不扩张 Runtime 类型。旧版颗粒潮汐内嵌波场参数继续兼容并在 Inspector 中迁移。
+
+- **Sampling Motion · 颗粒潮汐**：新增 `grainTide` 声明式原语，以可缓存、可循环的低频空间场驱动图片内部局部粗采样；单独开启即可见，并可按固定顺序继续调制已启用的阈值与网点。Inspector 参数、Scene 校验、编辑器预览、通用 Runtime、测试页内嵌 Runtime 与 Agent 生成规范同步；真实 Edge 验收覆盖独立动态与四项叠加。
+- **Inspector / Mutation 收束**：删除隐藏的旧元素/粒子卡片、旧局部 FX Controller 与旧 FX 时间轴；`buildLayerList` 只派生结构树和统一 Inspector。未绑定局部 FX 改用稳定选择 id，同时驱动结构树高亮、Inspector、时序按钮与下时间轴，绑定元素后无损转入目标元素的局部效果页。编辑器业务层的直接 `pushHistory()` 调用归零，仅 Scene Mutation 提交适配器可以生成撤销快照；Edge 真实浏览器夹具补充其创建、编辑、上下文同步与逐步撤销验收。
+
 ## 未发布 —— 多选、父级组与 Alpha 锁比例
+
+- **Scene Mutation 主 Inspector 迁移**：新增无 DOM 的 `editor/scene-mutation.js`，统一修改前快照、空操作过滤、缓存失效与 UI 刷新。Canvas、蒙版编辑、编排器上下轴、Scene 操作及主 Inspector 的画布、元素、组、图元、粒子、实体/FX 蒙版、局部/全局 FX、动画与 Sampling Motion 已接入。复合颜色、纹理、图片风格、波带位移和全局 FX 滑杆按手势只提交一次；同时修复纹理开关后 Inspector 上下文缓存未失效、参数面板不出现。浏览器 E2E 覆盖上述核心修改/撤销闭环。
+- **Scene Mutation 结构与快捷操作迁移**：结构树排序、拖入/拖出组、中央投放成组、锁定、显隐及重命名共用 `applyStructureDrop` 与事务边界；编组/解组/复制、组属性同步、剪切/粘贴和常用图元操作也不再直接写旧历史栈。浏览器 E2E 新增真实结构排序、自动成组和一步撤销闭环。
+- **Scene Mutation 绘制与文字迁移**：修正绘制工具“写入后才记录历史”的快照顺序；图形、文字、粒子及粒子化创建现在均从修改前 Scene 提交。Scene Mutation 新增显式 `rollback`，文字实时栅格预览按 Esc 会恢复编辑前数据，失焦才提交；浏览器 E2E 覆盖绘制撤销与文字取消/撤销的不同语义。
+- **Inspector 刷新与注册式效果第一层**：新增会话级 `sceneRevision`，Scene Mutation、Undo 与 Rollback 会统一使 Inspector 派生视图失效；动画、采样闪变和 Sampling Motion 共用渐进披露控制器，首次勾选即可显示参数。新增 `editor/effect-registry.js`，集中 Sampling Motion 的固定顺序、默认值及控件元数据；色板选项也改为单一来源。正常工作流停止后台构造已隐藏的旧元素/组/背景卡片，Legacy 入口仅保留未绑定局部 FX 兼容。
+- **颜色与背景控件收束**：背景层布局、透明度、多帧和排序改走统一 Scene Mutation。场景底色、过渡色、暗角色、程序元素声明色与局部 FX 色块复用同一纯色取色面板；图元、文字、纹理、阴影和外描边继续使用带独立 Alpha 的复合面板。修正编辑器画布预览遗漏阴影/外描边自身 Alpha 的差异。
+- **FX 渐进披露统一**：新版全局 CRT / 暗角 / 故障 / 噪点和局部像素雾 / 光晕 / 扫描线 / CRT / 暗角 / 故障 / 噪点 / 闪烁改用公共启用控件；首次勾选立即显示参数，关闭与重启沿用稳定默认语义。真实浏览器验收新增全局与局部 FX 首次披露及一步撤销。
+- **效果注册与纹理绑定器**：`editor/effect-registry.js` 扩展为 Sampling Motion、全局 FX、局部 FX 的共同顺序/分组/默认值来源；Inspector 不再重复维护局部效果清单。纹理预览弹层新增通用 `textureControlField` 绑定入口，不再在组件层强依赖图元对象。
+- **Legacy 死代码清理**：删除已无 `#tl-bar` 挂载点的旧背景行和旧全局 FX 面板，避免后续误把它们当成仍需同步的控制器。直接 `pushHistory()` 调用点由 53 降至 40；剩余主要属于未绑定局部 FX 与尚未物理删除的旧卡片函数。
+- **统一 Artifact Builder**：新增 `editor/artifact-builder.js`。保存 Scene JS、自包含测试 HTML、PNG/Sprite/PNG 序列/GIF 统一生成 Artifact，再由 Browser/Tauri Host 负责单件或批量交付；保存 JS 与测试页共用 Asset Resolver 冻结相对图片。
+- **Tauri Host 前置合同**：新增 `editor/tauri-host-adapter.js`，集中检测 Tauri bridge，并固定场景 locator、相对素材解析、单文件与批量 Artifact 的 command 参数；普通浏览器仍自动回退到原 Browser Host，不引入桌面依赖。
+- **Editor Commands 首层**：新增无 DOM 的 `editor/command-registry.js`，顶部新建/打开/保存/测试/导出及 Canvas/结构树/快捷键的清选、删除、撤销改走稳定命令 ID，并暴露注册、可用性与 start/success/error 生命周期。组删除统一为解散但保留成员；多图元选择可一次删除。当前只有单向撤销，未伪装 redo。
+- **架构合同化与 Runtime 握手**：新增编辑器行为合同、Runtime/Tauri 宿主边界和 L0–L5 验收矩阵。`HomeScene` 暴露 `apiVersion/capabilities`，编辑器启动时检查固定时间渲染、确定帧与 Sampling Motion 能力，避免控件可写但旧 Runtime 静默忽略。性能路线以工作像素、缓存和局部离屏为核心，Tauri 只通过后续 Host Adapter 提供文件、项目和编码能力。
+- **真实浏览器验收与单时钟预览**：新增 `tests/editor-e2e.html`，通过实际 Inspector 点击验证 Sampling Motion 三项叠加、预览逐帧变化和保存重载。编辑器不再在自身 RAF 之外再次启动 `HomeScene.start()`；统一由编辑器时钟以约 12fps 预算调用 Runtime `seek(t)`，减少大画布重复调度并保持时间轴同步。
+- **预览性能预算首版**：舞台栏新增 Auto / Full / Draft。独立性能监测器滚动统计 Runtime 绘制 P95；Runtime 同时报告本帧 CPU 工作像素、像素遍数、Sampling Motion 帧缓存命中及最大离屏面积。Auto 在约 12/8/6fps 预算间带迟滞调整，Draft 同时把色板、阈值、网点与局部调色的中间工作分辨率降低 2×。预览设置不进入 Scene，`renderTo`、测试页和帧导出默认强制完整质量。
+- **像素链与缓存收口**：阈值呼吸和网点游移叠加时共享同一份 `ImageData`，不再重复读回；编辑器覆盖层与 Runtime 使用独立缓存槽，避免交替渲染互相驱逐。静态 parts/图片粒子精灵改为按配置复用，并新增 `invalidateCaches()` / `invalidateEntity()` 统一失效入口。
+- **共享调色内核与 Host Adapter**：全局/局部调色和色板量化改用同一 CPU 像素函数；仅启用色板时不再额外执行恒等矩阵。新增浏览器 Host Adapter，场景打开、保存/测试页写入和素材选择不再直接绑定浏览器 API；未来 Tauri 可通过相同合同替换宿主实现。
+- **统一时间边界模型**：新增无 DOM 的 `editor/timeline-model.js`，集中计算 Scene 边界、播放头所属 Scene、相对时间与时段索引。元素属性、局部 FX、全局 FX 共用右开区间规则，并加入边界自动校验，减少跨面板时序语义漂移。
+- **统一 Scene 序列化**：新增 `editor/scene-serializer.js`。撤销历史与自包含保存共享缓存/字体连接过滤规则，同时明确只有历史快照可省略能够通过 `srcId` 重连的 data URL；浏览器下载与未来 Tauri 写入不会各自产生不同 Scene。
+- **测试场景素材解析与重连**：新增 `editor/asset-resolver.js`，按 data URL、本轮重连、已载入图片、宿主解析、同源 URL 的顺序冻结外部素材。`file://` 无法读取相对图片时，“测试场景”会要求定位缺失素材，并可一次选择同目录多图按文件名重连；未来 Tauri 可通过可选 `resolveAsset()` 无感解析项目相对路径。
+- **Sampling Motion 第一层**：图片元素 Inspector 在“局部效果”右侧新增独立页，像素沸腾、阈值呼吸和网点游移改为三个可独立勾选、渐进展开且允许叠加的原语。编辑器图片预览补齐动态风格化路径；网点/阈值只在有限时间步变化时重建缓存，不引入逐帧大图处理。能力组共用 `show` 作用时段，预览、测试页与逐帧导出走同一固定时间语义。编辑器改为优先加载同仓库 `home-scene.js`，避免旧 `../public` Runtime 吞掉新能力。
+- **Runtime 仓库边界**：`tools/home-scene.js` 明确为规范源；默认校验只检查工具 Runtime 与测试页内嵌镜像。游戏/站点 Runtime 改为按版本升级的消费端，仅在显式传入第三个校验参数时比较，不再要求每次工具实验同步外层 main。
 
 - **再像素化与采样动画收口**：图片元素与图片背景统一执行对象级 `pixelDiv`，不再出现背景 Inspector 可写但 Runtime 绕过处理的情况；全局/局部采样移除 4 倍硬上限，以画布短边作为自然上限。新增图片 `style.sampleJitter`（跳变/漂移、频率、偏置、seed），在相同时间点确定性移动采样格，可用于轻微色点闪变，并与预览、测试页和逐帧导出保持一致。Inspector 同步区分“再像素化 / 采样闪变 / 局部采样与色板 / 全局采样与色板”。
 
