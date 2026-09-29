@@ -1,6 +1,8 @@
-# Patcharium 文档导航
+# ToSampool / 图森破：文档导航
 
-README 只承担产品入口与快速开始；本页面向维护者和贡献者，按职责组织稳定文档。
+README 只承担产品入口与快速开始；本页面向维护者和贡献者，按职责组织稳定文档。旧文档中的 Patcharium / 拼好景为历史名称；当前对外名称为 ToSampool / 图森破。
+
+先读 [文档架构与提交边界](DOCUMENTATION_ARCHITECTURE.md)：它说明各类文档的权威范围、代码数据流，以及本轮 v4 基线为何分成四类提交。
 
 ## 使用与产品
 
@@ -17,12 +19,15 @@ README 只承担产品入口与快速开始；本页面向维护者和贡献者�
 - [Agent Tool Protocol](agent/AGENT_TOOL_PROTOCOL.md)：外部 Agent 的操作与验证边界。
 - [提示词手册](agent/AGENT_PROMPT_PLAYBOOK.md)：三类案例提示词。
 - [试验状态](agent/AGENT_WORKFLOW_STATUS.md)：已验证结论、失败方式和待解决问题。
+- [Builtin Manifest](agent/BUILTIN_MANIFEST_V4.json)：Agent 可使用的受控内建构件、参数与时序白名单。
 
 ## 架构
 
 先读 [架构总览](architecture/ARCHITECTURE_OVERVIEW.md)，再按问题进入专题：
 
 - 编辑器：[行为合同](architecture/EDITOR_BEHAVIOR_SPEC.md)、[命令](architecture/EDITOR_COMMANDS.md)、[Scene Mutation](architecture/SCENE_MUTATION.md)、[Inspector 控件](architecture/INSPECTOR_CONTROL_SYSTEM.md)
+- v4 正式迁移：[迁移总规范](architecture/V4_MIGRATION_MASTER_SPEC.md)、[机器迁移矩阵](architecture/V4_MIGRATION_MATRIX.json)、[Legacy 行为基线](architecture/V4_BEHAVIOR_BASELINE.md)、[差异白名单](architecture/V4_DIFFERENCE_ALLOWLIST.md)、[Parity 测试计划](architecture/V4_PARITY_TEST_PLAN.md)
+- v4 支撑资料：[v4 Scene 合同](architecture/VNEXT_SCENE_CONTRACT.md)、[Legacy → v4 转换合同](architecture/LEGACY_V4_CONVERSION.md)、[Parts 迁移合同](architecture/V4_PARTS_MIGRATION_CONTRACT.md)、[效果系统](architecture/EFFECT_SYSTEM_VNEXT.md)、[Classic Shell 桥接说明](architecture/V4_CLASSIC_SHELL_MIGRATION.md)、[预览性能合同](architecture/V4_PREVIEW_PERFORMANCE_CONTRACT.md)、[历史差异盘点](architecture/VNEXT_PARITY_AUDIT.md)
 - 运行：[Runtime 合同](architecture/RUNTIME_CONTRACT.md)、[Runtime Adapter 状态](architecture/RUNTIME_ADAPTER_PLAN.md)、[蒙版与 FX](architecture/MASK_AND_FX_STATUS.md)
 - 文件与交付：[Host Adapter](architecture/HOST_ADAPTER.md)、[Tauri Host](architecture/TAURI_HOST.md)、[Asset Resolver](architecture/ASSET_RESOLVER.md)、[Artifact Builder](architecture/ARTIFACT_BUILDER.md)
 - 质量：[验收测试矩阵](architecture/ACCEPTANCE_TEST_MATRIX.md)

@@ -33,7 +33,7 @@ Scene Revision：让 Inspector / Tree / Timeline 重新派生
 
 ## 4. 效果注册表
 
-`editor/effect-registry.js` 是 Sampling Motion 与新版全局 / 局部 FX 的 UI 元数据真相，当前保存：
+`editor/effect-registry.js` 是 Sampling Motion 与新版全局 / 局部 FX 的 **当前运行版** UI 元数据真相，当前保存：
 
 - 固定处理顺序；
 - 用户可见名称；
@@ -43,6 +43,8 @@ Scene Revision：让 Inspector / Tree / Timeline 重新派生
 局部 FX 额外声明分组、默认强度和旧字段别名；全局 FX 声明分组与固定顺序。Inspector 负责把注册定义绑定到当前 Scene / 时段值，Runtime 仍只读取保存后的 Scene 字段。
 
 Runtime 算法仍由 Runtime 拥有；注册表不能包含绘制代码。新增原语必须同时完成：注册定义、Runtime 实现、Scene 校验、浏览器叠加测试和文档说明。
+
+下一版已另行冻结在 [EFFECT_SYSTEM_VNEXT.md](EFFECT_SYSTEM_VNEXT.md)。它使用 `editor/effect-registry-vnext.js` 作为规划中的单一来源，并派生 Agent manifest 与新的 Inspector / 左侧“效果”容器合同；在 Runtime、序列化器、校验器接线前，不得用它覆盖本节的当前行为说明。
 
 ## 5. 公共参数组件
 
@@ -72,7 +74,19 @@ Runtime 算法仍由 Runtime 拥有；注册表不能包含绘制代码。新增
 
 未绑定局部 FX 的会话选择保存在 `state.selectedOrphanFxId`，但 Scene 真相仍是 `fx.layers[]`。同一选择同时驱动结构树高亮、Inspector 参数和 `timelineContextTarget()`；绑定到元素后，该效果转入目标元素的“局部效果”页，不复制数据。
 
-## 7. 验收
+## 7. 面向 ToSampool 的信息语义
+
+Inspector 后续不再用“实现在哪个字段”作为唯一分组依据，而先回答用户任务：布置、外观、动起来、采样运动与区域处理。参数仍是 Runtime 和 Agent 的精确合同，但人类默认先看到预设、直接操作和少量关键控制。
+
+- **对象处理**只改变目标自身像素，并随目标 `z` 合成：对象蒙版、阴影、外描边、对象采样/调色与 Sampling Motion 属于此类。
+- **区域处理**读取或覆盖已经合成的场景区域：局部 CRT、扫描线、故障、区域雾和区域重采样属于此类。`fx.layers[].bind` 只声明范围跟随/裁入关系，不改变其位于全部实体之后的处理阶段。
+- **Scene Controls / 玩法**是后续声明式插槽。Agent 可为作品提供别名、批注、档位和映射多个已注册字段的复合控件；不得借此绕过 Scene Mutation、效果注册表或向普通 Scene 注入任意 UI 代码。
+
+对象处理与区域处理可以复用颜色、蒙版、纹理、渐进披露和时序组件，但不能因为控件相同而混淆合成语义。
+
+粒子是单一对象类型，不再重复普通元素的“属性 / 动态 / 局部效果”页。其专属 Inspector 按预设、实体、发射、运动、外观与可见范围组织；标题栏“粒子化”对合法单元素建立动态关联实体，未选择时建立默认粒子。关联实体继承对象视觉与动画，但不继承位置、滚动、层级、显示时段或区域 FX。
+
+## 8. 验收
 
 1. 首次勾选后参数立即出现，无需切换页签。
 2. 同一效果可启用、改参、撤销、保存、重开并保持一致。

@@ -1,0 +1,102 @@
+# v4 Classic 时间轴迁移合同
+
+> 状态：Phase 8 的约束文件。交互外观与手势以 `img2asset-layout-v1.html` 为基线，持久数据与固定时间求值由 v4 Core 负责。
+
+## 1. 两条常驻轨道
+
+Classic Shell 保留 Legacy 的上下两轴，不为 v4 重画另一套产品界面：
+
+1. 上轴始终表示全局时间、播放头与 Scene 标签段；
+2. 下轴是上下文编排器，随树 / Canvas / Inspector 选择切换为对象显示时段、对象属性轨或效果轨；
+3. Canvas、树、Inspector 和下轴必须引用同一个稳定对象 id；清除选择后同时回到场景上下文；
+4. 时间轴的展开、悬停和当前选择是 View Model，不写入 Scene。
+
+## 2. 三种数据语义必须分离
+
+### 2.1 Scene 段
+
+Scene 段只负责给循环划分有名称的叙事区间。它不复制对象，也不自动创建参数覆盖。v4 使用 `timeline.scenes[]` 保存稳定 id、名称和归一化区间，不把 Legacy `scenes / sceneBorders` 及按 Scene 参数数组原样塞入 v4 JSON。没有持久记录时，编辑器只读投影一个覆盖全循环的隐式 `场景 1`。
+
+### 2.2 对象显示时段
+
+对象显示时段只决定该对象在固定时间是否进入 Runtime：
+
+```json
+{
+  "timeline": {
+    "visibility": {
+      "entity-id": {
+        "segments": [
+          { "f": [0, 0.4], "visible": true },
+          { "f": [0.4, 1], "visible": false }
+        ]
+      }
+    }
+  }
+}
+```
+
+- `f` 是整个循环内归一化的 `[0,1]` 区间；
+- 没有记录时默认全程可见，读取默认值不得创建空数据；
+- 它不同于永久 `hidden`：`hidden` 是作品结构状态，显示时段是时间求值；
+- 组的不可见状态传递给子对象；
+- 相邻同状态段自动合并，禁止零长度段；
+- 删除对象或解散并移除组时，对应可见性轨和对象参数轨随结构清理。
+
+### 2.3 参数 Step / Linear
+
+参数轨继续使用 `timeline.tracks`。显示时段不得混入参数 `values`：
+
+- 切段必须由用户显式操作；
+- 写参数不会自动切段；
+- `Step` 在整段保持值；
+- `Linear` 只对 Registry 声明可插值的标量求值；
+- 离散枚举、开关、引用、路径与动态模式只能 Step；
+- Linear 的端点应由相邻有效状态动态解析，不能成为需要反复重建的陈旧快照。
+
+## 3. Legacy 手势基线
+
+| 手势 | v4 语义 |
+|---|---|
+| 单击上下轴 | 只定位播放头 |
+| Alt + 单击下轴 | 显式切分当前上下文段 |
+| 双击显示段 | 切换该段显示 / 隐藏 |
+| 拖动共同边界 | 同时调整相邻两段；一次拖动只写一条历史 |
+| 点击播放 | 单时钟驱动播放头与固定时间 Runtime |
+| 选择对象 | 下轴立即切到该对象，不保留陈旧上下文 |
+
+Scene 增删、对象参数轨、效果轨、共享采样控制器轨和 Linear 中央入口均已在 Classic Shell 接入；Phase 9 只扩充效果与蒙版的产品入口，不再建立第二套时间轴语义。
+
+## 4. 写入与性能合同
+
+1. 所有修改经 `Workspace → SceneMutation → v4 Scene`；Controller 不直接维护第二份时序数据。
+2. 拖动允许用 Workspace 做实时预览，但松手只能提交一条撤销记录。
+3. Runtime 固定时间求值必须是纯函数；同一 Scene、时间与 seed 得到相同画面。
+4. UI 渲染和读取默认值不得生成轨道。
+5. Step 段只在跨边界时需要重绘；Linear、动态效果、多帧与播放才是连续重绘来源。Classic Shell 已接入统一 Preview Scheduler：未跨 Step 边界且没有连续时间依赖时跳过 Canvas 重绘，但播放头仍正常推进。
+
+## 5. 当前完成边界
+
+已完成：
+
+- 独立 `timeline.visibility` schema 与纯编辑操作；
+- Runtime 对对象、组后代与粒子发射器的固定时间显示判定；
+- Classic Shell 单 Scene 的对象显示时段投影；
+- Alt 切段、双击显隐、边界拖动、播放头同步、撤销；
+- 删除对象 / 组时清理其显示与属性轨；
+- v4 Scene 标签的两端 / 内部插入、删除、改名、跳转与上轴共同边界拖动；
+- 单对象 Inspector 的“时序”临时激活、当前段 Step 写入与清除；
+- 对象参数轨的 Alt 显式切段、边界拖动、中央入口切换 Linear 与斜纹状态反馈；
+- Linear 每帧从左右最近 Step 状态解析端点，修改任一端会立即改变过渡，不保存易失效的快照；
+- `linear-safe` 颜色使用确定性的 sRGB 整数通道插值；颜色 Alpha 仍是独立数值字段，未列入白名单的字符串、枚举和引用保持左侧 Step 值；
+- 单对象 Canvas 移动、缩放与旋转复用 Inspector 的参数时序写入边界；多选在尚无多对象时序 UI 时仍只修改基础变换；
+- Registry 对象效果卡与场景效果卡的启用、参数写入、下轴联动、Step 覆层、清除与停用轨道清理；
+- 效果 Linear 按 Registry 的 `linear-safe` 字段白名单求值，未标记的开关、枚举与高成本参数保持 Step；
+- 采样格使用独立 `controller:*` 稳定键；不均采样的场、边缘与潮汐随该效果使用同一 `effect:*` 稳定键，对象 / 场景 Inspector、Step 覆层、Runtime 固定时间求值和重置清理形成同一闭环；
+- Workspace 按 Scene 修订复用 Runtime Player，Preview Scheduler 在静态 Step 区间跳过无效画面重绘；
+- 保存 → 清空 → 重开会核对素材、背景、效果、控制器、轨道与固定时间像素；“测试场景”会冻结已解析素材，生成可由 `file://` 直接运行的自包含 v4 HTML；
+- Node 与真实 Edge 回归。
+
+Phase 8 已完成。后续动态预设若新增连续时间依赖，必须在 Preview Scheduler 中显式声明，不能通过恢复无条件逐帧重绘绕过性能合同。
+
+采样格控制器只允许 Step，不显示 Linear。对象键为 `controller:object:<ownerId>:sampling-grid`，场景键为 `controller:scene:sample:sampling-grid`。不均采样及其采样场、边缘保护、潮汐使用效果轨，读取默认值或打开面板不得向 Scene 写入空配置。

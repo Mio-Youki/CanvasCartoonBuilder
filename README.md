@@ -22,7 +22,12 @@ Patcharium 把图片、矢量图元、粒子、蒙版、效果和时间组织成
 
 ### 浏览器
 
-直接打开 `img2asset-layout-v1.html`，或通过静态服务器访问。浏览器版无需安装依赖；受浏览器文件权限限制，相对图片在生成自包含产物时可能需要人工重连。
+当前有两个明确入口：
+
+- `img2asset-v4-classic.html`：V4 正式迁移候选，普通打开即进入 V4；Inspector 使用“成样 / 加样 / 采样”，左侧提供对象/场景效果索引。Phase 10 已接入粒子单页 Inspector、四类预设、实体动态引用、Step 时序与独立粒子压力预算；受控 Builtin Registry 首批提供 `pixel-star / pixel-cloud / train-beam`，以声明参数替代任意代码执行。
+- `img2asset-layout-v1.html`：冻结的 Legacy 产品与行为基线，仅用于现有作品、对照和迁移验收。
+
+浏览器版无需安装依赖；受浏览器文件权限限制，相对图片在生成自包含产物时可能需要人工重连。Tauri 在全部 P0/P1 迁移门禁完成前仍指向 Legacy，不因候选页可直接打开而提前切换。
 
 ### Windows 桌面源码构建
 
@@ -47,7 +52,7 @@ npm run desktop:build
 
 1. 新建空白场景、由图片建立场景，或打开现有 `GENERIC_SCENE` / 兼容脚本。
 2. 从左侧素材区导入并预处理图片，或用舞台工具绘制图元和文字。
-3. 在结构树调整选择、分组和顺序；在 Inspector 编辑属性、动态、局部效果与 Sampling Motion。
+3. 在结构树调整选择、分组和顺序；V4 候选页在 Inspector 的“成样 / 加样 / 采样”中编辑对象，并由左侧效果索引定位已启用效果。Legacy 入口仍保留原“属性 / 动态 / 局部效果 / Sampling Motion”。
 4. 在底部编排器设置 Scene、显示窗口、属性时段和 FX 时段。
 5. 保存 Scene，生成自包含测试 HTML，或导出帧产物。
 
@@ -86,7 +91,8 @@ Agent 协作仍是验证方向，不是“一次提示即可完美重绘”的�
 ## 仓库地图
 
 ```text
-img2asset-layout-v1.html   当前唯一编辑器入口
+img2asset-v4-classic.html  V4 正式迁移候选；普通打开即进入 V4
+img2asset-layout-v1.html   冻结的 Legacy 产品与行为基线
 home-scene.js              Canvas Runtime 规范源
 runtime-inline.js          由 Runtime 机械生成的测试页镜像
 editor/                    编辑器内核模块

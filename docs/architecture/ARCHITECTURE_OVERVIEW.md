@@ -1,12 +1,14 @@
-# Patcharium：架构总览
+# ToSampool / 图森破：架构总览
 
-> 本文是产品 Review 的技术地图。字段的唯一真相以 `../../SCENE_SPEC.md` 为准；路线与优先级以 `../../PLAN.md` 为准；它不替代二者。
+> 本文是产品 Review 的技术地图。字段的唯一真相以 `../../SCENE_SPEC.md` 为准；路线与优先级以 `../../PLAN.md` 为准；它不替代二者。旧名称 Patcharium / 拼好景仅用于历史语境。文档总入口与提交边界见 [文档架构](../DOCUMENTATION_ARCHITECTURE.md)。
 
 ## 1. 产品策略：混合小景，而非全图元重绘
 
 Patcharium / 拼好景以“高细节素材 + 结构化动态层”的混合场景为默认策略。底图、图片或 sprite 可以承载高密度笔触、角色细节与静态纹理；只有需要移动、替换、调色、蒙版、复用或响应时序的区域才需要进入可编辑 Scene 结构。可编辑不等于每一个像素都由 JS 图元表达。
 
 Runtime 是轻量的 Canvas 2D 场景运行层，不是视频编辑器、WebGL 通用渲染器或任意 HTML/Shader 容器。其价值是确定性时间寻址、可移植的自包含场景、声明式局部修改和同一 Scene 在预览/导出中的一致运行。
+
+> 当前产品仍以 Legacy 编辑器为可用入口。`tosampool-scene/v4`、`home-scene-vnext.js` 与 `img2asset-vnext.html` 是隔离的下一代 Core 验证台，不因页面存在而替代 Legacy。正式迁移采用“Legacy 体验壳 + v4 Core”，以 [v4 迁移总规范](V4_MIGRATION_MASTER_SPEC.md) 和 [机器迁移矩阵](V4_MIGRATION_MATRIX.json) 为唯一执行依据；桥接结构与性能细则分别见 [V4_CLASSIC_SHELL_MIGRATION.md](V4_CLASSIC_SHELL_MIGRATION.md) 和 [V4_PREVIEW_PERFORMANCE_CONTRACT.md](V4_PREVIEW_PERFORMANCE_CONTRACT.md)。
 
 ## 2. 五层边界
 
@@ -43,22 +45,27 @@ Scene 的可撤销修改统一经过 `editor/scene-mutation.js`：事务先捕�
 
 Inspector 通过会话级 `sceneRevision` 感知同一对象内部的数据结构变化；动画与 Sampling Motion 的启用/展开共用渐进披露控制器。`editor/effect-registry.js` 集中声明 Sampling Motion（含颗粒潮汐）、共享 `field`、共享 `edge` 与组合预设的 UI 元数据；`editor/sampling-motion-kernel.js` 是波场、Alpha 边缘保护、颗粒采样、阈值和网点像素算法的唯一手写源。编辑器直接加载该模块，`scripts/build-runtime-inline.mjs` 将同一源码机械嵌入 `home-scene.js`，兼顾共享实现与场景 JS 自包含。空间基底与 Alpha 距离衰减图由调用实体持有缓存，参数、尺寸或源帧变化时失效；预设只负责组合声明，不形成新的渲染分支。
 
+v4 的图案相关能力以 [PATTERN_FIELD_SPEC.md](PATTERN_FIELD_SPEC.md) 为边界：路径纹理填充、对象/场景纹理叠加与亮度网点映射共享格、图元、相位和缓存语义，但各自保留路径裁切、Alpha 合成或颜色采样适配器，避免将高成本映射误实现为普通纹理。
+
 ## 3. 当前核心数据关系
 
 - **实体层**：顶层程序元素与 `images[]` 统一按 `z` 绘制；`parts[]` 是元素内部图元。程序元素可选择使用 `program.code` 保留黑盒 Canvas 绘制，编辑器只依赖其稳定 id、边界、标准图层外壳和显式暴露参数，避免把精细静态内容强拆为低层图元。
 - **组**：`groups[]` 仅保存成员关系与共享变换，不建立离屏合成容器；成员保持自身相对顺序和单独编辑能力。
 - **时序**：`show` 负责可见窗口；`timeline.sceneOverrides` / `timeline.tracks` 负责稀疏参数覆层与 Linear 插值；编辑器临时选择状态不写入 Scene。
-- **局部 FX**：保持独立的 `fx.layers[]` 与排序；UI 上作为绑定元素子项呈现，不能迁移为 `element.localFx`。
+- **区域 FX**：当前所谓“局部 FX”保持独立的 `fx.layers[]` 与排序。绑定只让范围跟随目标或裁入目标 Alpha，不赋予目标的 `z`；它仍在全部实体之后执行，因此不能被描述为 `element.localFx` 或对象自身样式。
+- **对象处理**：阴影、外描边、对象调色/采样、Sampling Motion 与对象蒙版只处理目标自身像素，语义上随对象 `z` 合成。后续 Inspector 应将它们与区域后处理明确分开，不因为 UI 上都叫“效果”而合并 Runtime 阶段。
 - **蒙版**：实体与局部 FX 共用 `rect / ellipse / poly / alpha / element`。元素蒙版引用场景元素或组的实时 Alpha，来源派生隐藏但仍参与每帧捕获。
 
 ## 4. 运行顺序
 
 ```text
 背景 → 实体 / 图片 / 图元 / 粒子（含组变换与实体蒙版）
-     → 局部 FX（含范围蒙版与元素绑定）
+     → 区域 FX（旧称局部 FX；含范围蒙版与元素绑定，但不继承目标 z）
      → 全局采样、调色、色板与全局叠加
      → 场景过渡
 ```
+
+若未来让任意效果真正进入目标图层顺序，必须先把目标绘制到独立离屏表面、处理后再按 `z` 回贴，并处理动态包围盒、蒙版、组、粒子和程序元素边界。该能力会显著增加 Alpha 捕获与像素处理成本；当前版本不伪装支持。优先把效果按“对象处理 / 区域处理”分类，再决定哪些效果值得付出这项成本。
 
 预览、固定时间渲染、PNG / Sprite / 多帧 PNG / GIF 与测试场景均应调用同一 Runtime 绘制语义。格式编码是交付层的可选能力，不能反向侵入编辑预览。
 

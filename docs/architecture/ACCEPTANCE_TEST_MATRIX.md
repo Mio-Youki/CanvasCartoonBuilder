@@ -2,6 +2,8 @@
 
 > “通过”必须附带层级。单元测试通过不能替代真实编辑器工作流。
 
+Legacy → v4 的能力级状态、同页对照与性能门槛另由 [V4 Parity 测试计划](V4_PARITY_TEST_PLAN.md) 和 [机器迁移矩阵](V4_MIGRATION_MATRIX.json) 管理；本文件的 L/H 层级不替代迁移完成状态。
+
 ## 1. 测试层级
 
 | 层级 | 证明什么 | 不能证明什么 |
@@ -49,8 +51,8 @@
 | 阈值呼吸独立启用 | 必须 | 必须 | 必须 | 必须 |
 | 网点游移独立启用 | 必须 | 必须 | 必须 | 必须 |
 | 颗粒潮汐独立启用、空间移动与循环闭合 | 必须 | 必须 | 必须 | 必须 |
-| 共享采样场切换 wave / radial 并立即披露对应参数 | 必须 | 必须 | 必须 | 必须 |
-| “轮廓稳定、内部翻涌”一次组合 field / edge / grainTide | 必须 | 必须 | 必须 | 必须 |
+| 不均采样内的采样场切换 wave / radial 并立即披露对应参数 | 必须 | 必须 | 必须 | 必须 |
+| “轮廓稳定、内部翻涌”一次组合 uneven.field / uneven.edge / uneven.motion | 必须 | 必须 | 必须 | 必须 |
 | 任意两项与四项叠加 | 必须 | 必须 | 必须 | 必须 |
 | 共享 `show` 时段 | 必须 | 必须 | 必须 | 必须 |
 | 修改采样格后的静态刷新 | 必须 | 必须 | 必须 | 必须 |
@@ -68,7 +70,11 @@
 
 分别记录平均帧时间、P95 帧时间、主线程长任务、工作像素估算和导出每帧耗时。首次测量用于建立基线，不在无数据时承诺固定 FPS。
 
-当前舞台状态栏已提供 Runtime P95、目标预览帧率与工作像素估算。工作像素采用 `Σ(area / effectivePixelDiv² × passes)`，属于成本提示而非浏览器计时；S/M/L 三档固定设备基线仍待建立。
+当前舞台状态栏已提供 Runtime P95、目标预览帧率与工作像素估算。工作像素采用 `Σ(area / effectivePixelDiv² × passes)`，属于成本提示而非浏览器计时。Phase 9 已由 `tests/browser/v4-preview-performance.mjs` 建立对象胶囊 + 场景滤镜 S/M/L 管线压力基线；上述 8 / 20 / 30 元素的完整产品负载仍保留为粒子与代表作品进入后使用的容量验收，不是 Phase 9 的重复门禁。
+
+v4 编辑预览已先通过 [V4_PREVIEW_PERFORMANCE_CONTRACT.md](V4_PREVIEW_PERFORMANCE_CONTRACT.md) 的 P0 静态 1920×1080 回归：播放头移动不等于主 Canvas 每帧重绘。`tests/vnext-preview-scheduler.mjs` 覆盖静态跳绘、Step 段边界和 Linear / 粒子 / 多帧连续重绘的纯调度合同；真实浏览器夹具同时记录 Player、Canvas backing-size、Surface、每秒重绘、工作像素与 RAF P95，以区分 Runtime 算法成本和编辑器调度回归。
+
+Phase 9 的正式组合入口为 `npm run verify:phase9`。其中动态压力夹具必须证明 Draft 快于 Full、工作像素至少下降 65%、输出 Canvas 尺寸不变、预览状态不进入 Scene，并让 Auto 在真实超预算场景中实际切换；绝对毫秒只用于同机回归。
 
 `tests/runtime-performance.html` 提供可重复的像素压力子基准：M（960×540）与 L（1920×1080）各自运行 Full / Draft，并报告 P95、平均绘制时间、Runtime 实际工作像素、Sampling Motion 帧缓存命中和最大单张离屏面积。它有意使用单张满画布图片隔离像素处理成本，不替代上面的完整 S/M/L 场景夹具。结果必须记录设备/浏览器，不能跨设备直接比较。
 

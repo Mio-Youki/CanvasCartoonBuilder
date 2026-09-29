@@ -105,7 +105,7 @@ petals: {
 }
 ```
 
-`imageId` 必须指向 `images` 内的素材元素。`playback: 'static'`（默认）配合 `frame` 选择固定帧；`playback: 'particle-age'` 让每颗粒子从第 0 帧按 `fps` 独立播放，可加 `loop:true` 循环。不要内嵌图片副本或对象引用。
+`imageId` 必须指向 `images` 内的素材元素。`playback: 'static'`（默认）配合 `frame` 选择固定帧；`playback: 'particle-age'` 让每颗粒子从第 0 帧按 `fps` 独立播放，可加 `loop:true` 循环。新文件也可用 `{type:'element',targetId,mode:'linked',fallback}` 动态引用一个非粒子元素：图片、parts、对象样式、对象采样和 `bob/spin/wave/pulse/blink` 会进入粒子精灵；位置、滚动、层级、显示时段、发射范围及区域 FX 不继承。`fallback` 是源对象断开后的自包含视觉快照，不能省略；编辑器删除源对象前会把它刷新为源的最后状态。
 
 多文件导入时，工具按用户选择顺序生成横向 sprite sheet：第 1 张图定义单帧宽高，其余帧最近邻缩放到同一尺寸（不裁切、不补边）。`images[].w/h` 对多帧图片表示**单帧**显示尺寸，`frames` 表示横向帧数；预览不得把整张 sheet 当作一张静态图片显示。
 
@@ -279,8 +279,8 @@ rain: {                          // 名字任意（①-track：元素名无意�
 ```
 
 - **确定性**：粒子运动为种子随机（每粒 `rnd(i, salt)`）——同 (元素, 种子, t) 渲染稳定，支持暂停/恢复一致与像素回归测试。
-- **渲染成本**：粒子走**精灵缓存**——每帧每元素把 parts 渲染一次到离屏（应用 `pixelDiv`/`alphaMode`，part 级 anim 生效），粒子只 blit；精灵尺寸下限 1px（纯竖线/水平线实体不会不可见）；元素级 `anim`/`scroll` **不参与粒子**（粒子运动归粒子参数；单粒闪烁把 blink 挂在实体 part 上即可）。
-- **工具内建**：粒子以独立顶层图层存在，Inspector 按实体 / 发射 / 运动 / 外观组织；运动页保留与普通元素完全相同的 `mask` 工作流。结构树“粒子化”一键从现有元素新建粒子层，原元素不改变；程序元素取 parts，纯图片取图片引用，图片 + parts 取组合实体（先图片、后 parts，**继承 pixelDiv/alphaMode/style/mask/show**）。`particle.source` 仍为 `{type:'image',imageId,...}`；组合模式额外声明 `compose:'image+parts'`，parts 坐标与源图片同属局部坐标，精灵包围盒自动容纳越界图元；
+- **渲染成本与继承边界**：粒子走**精灵缓存**——每个实体把 parts、program 或图片组合渲染到离屏精灵（应用对象样式、`pixelDiv` / `alphaMode` 与 part 级动画），粒子只 blit；精灵尺寸下限 1px（纯竖线/水平线实体不会不可见）。`source.type:'element'` 时，源元素的 `anim` 会作为每颗粒子的附加姿态实时计算；源对象的 `scroll`、位置、层级、显示时段和区域 FX 不继承，仍由粒子层自己的发射与编排控制。
+- **工具内建**：粒子以独立顶层图层存在，只显示一个按预设 / 实体 / 发射 / 运动 / 外观 / 可见范围组织的 Inspector。结构树标题栏“粒子化”从所选图片、矢量或具有稳定边界的程序元素建立 `{type:'element',mode:'linked'}` 动态关联，原元素不改变；未选中时建立默认粒子。旧 `{type:'image',imageId,...}` 与组合 `compose:'image+parts'` 继续兼容。雨 / 雪 / 火星 / 光尘预设始终载入运动参数，并可按编辑器持久开关决定是否覆盖实体；
   发射区 = 元素 x/y/w/h（卡片发射区组或画布框选，缺省全画布）。
 - **预设（三层解耦：运动/实体/发射区）**：内置 雨 / 雪 / 火星 / 光尘 四类——默认**仅载入运动方式（particle）**，实体 parts 与发射区保持不变；勾选 [同时载入元素] 才覆盖 parts；`window.PARTICLE_PRESETS` 可注入
   `{name, parts, particle}` 数组扩展；应用含 burst 的预设自动跳播放头到当前窗口起点（立即可见）。

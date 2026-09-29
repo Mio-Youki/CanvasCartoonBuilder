@@ -14,6 +14,48 @@
 > Agent 生成试验的过程、共识与待决问题见 [AGENT_WORKFLOW_STATUS.md](docs/agent/AGENT_WORKFLOW_STATUS.md)。
 > 蒙版与局部 FX 的已交付范围、运行顺序与明确非目标见 [MASK_AND_FX_STATUS.md](docs/architecture/MASK_AND_FX_STATUS.md)。
 
+## Phase 9 已完成：处理管线与场景滤镜
+
+- [x] Phase 9.0 合同校准：清理过期迁移状态，冻结 Step / Linear 参数规则，并让 `linear-safe` 颜色获得确定性 sRGB 插值。
+- [x] 统一对象蒙版与场景滤镜范围的状态组件、校验、Runtime 解析和 Inspector；支持矩形 / 椭圆 / 多边形 / Alpha 素材 / 元素或组引用，并以 `sourceVisibility:'keep'|'mask-only'` 显式控制来源显示。元素引用、保存重开及真实 Edge 已验收。
+- [x] 将统一蒙版接入 Legacy 同款绿色 Canvas 框选 / 点选编辑：矩形、椭圆与 Alpha 范围可重绘、移动、缩放，多边形可点选重绘、拖点、点边插点和删除顶点；对象与场景滤镜共用同一控制器。
+- [x] 接入对象 `mask / decorate / sample` 大阶段排序与左侧效果容器；阶段内部继续使用 Registry 固定顺序。容器仅在 v4 会话显示，与素材库互斥展开；启用效果自动入列，卡片可定位 Inspector / 时间轴并统一停用，Pointer 拖动只改变三大阶段。
+- [x] 将 v4 区域后处理的数据与 Runtime 统一为“场景滤镜 + 范围蒙版”，不再创建 `fx.layers[]` 或伪装继承对象 z；范围蒙版已复用对象蒙版组件并通过 Inspector / 保存往返验收。
+- [x] 让效果容器、Inspector、上下文时间轴和 Canvas 预览严格同步，并覆盖撤销、清理、保存重开与自包含测试页。对象效果、共享控制器、对象蒙版与场景效果卡均已覆盖导航、对应轨道、统一清理和重开恢复；阶段调序、撤销及自包含固定时间画面沿用同一 v4 Scene 验收。
+- [x] 完成 Phase 9 性能与真实 Edge parity：除 1920×1080 单静图 300 帧近零重绘门禁外，新增对象胶囊 + 场景滤镜 S/M/L 动态压力夹具；Draft 按工作量使用 2× / 4× / 8× 最近邻工作降采样，真实 Auto 会在持续超预算后切至对应 Draft 倍率，测试/导出仍固定 Full。重像素遍叠加时 Full 是保真压力基线而非实时承诺，其当前边界已写入性能合同；Legacy 局部 FX 保持冻结，旧工程转换留到 Phase 10。
+- [x] 收掉 Phase 9 可见体验缺口：成样参数右侧恢复程序动态入口，支持对象/组/图元的漂浮、滚动、呼吸、旋转、摆动和闪烁；Registry 效果卡恢复自己的运动入口。场景成样页补齐可见底色、图片背景层和按 Scene 段保存的入口过渡，且由真实 Edge 覆盖 UI→Scene→Runtime 路径。
+
+Phase 9 的关闭条件由 `npm run verify:phase9` 固定：快速合同、Legacy / v4 真实 Edge parity、静态 1920×1080 门禁及动态 S/M/L 压力预算必须连续通过。此后对效果管线或预览预算的修改不得只更新 Runtime，必须同步该组合门禁与 [预览性能合同](docs/architecture/V4_PREVIEW_PERFORMANCE_CONTRACT.md)。
+
+## 当前迁移阶段：Phase 10（进行中）
+
+- [x] 完成粒子第一条纵向闭环：结构树标题入口可新建默认粒子或把当前普通对象粒子化；粒子使用单页 Inspector，复用雨 / 雪 / 火星 / 光尘预设并动态引用实体视觉；发射、运动与外观参数使用对象稳定 id 的 Step 轨。Runtime、保存重开、默认预设私有实体级联清理及真实 Edge 已通过。粒子 S/M/L 性能预算与 Legacy 的多帧粒子年龄播放仍待单独迁移，不在本项冒充完成。
+- [x] 为粒子建立独立 S/M/L 动态性能夹具：覆盖 40 个矢量粒子、140 个图片粒子、2×400 个带对象处理的图片粒子，并锁定“每个发射器每帧只构建一次共享视觉胶囊”、私有来源不重复绘制、连续帧不重写 backing、Draft 只降低来源像素处理而不减少粒子数量等不变量。当前 L 档 Full / Draft P95 为约 37.2ms / 22.6ms；粒子数量的 blit 成本不会被工作降采样隐藏。
+- [x] 建立受控 Builtin Registry 第一纵切片：`pixel-star / pixel-cloud / train-beam` 具有稳定 id/version、参数 schema、固定时间确定性绘制、时间依赖声明、Inspector、Step/Linear 白名单、保存重开、真实 Edge 与 Agent manifest；任意 `program.code` 仍不进入 v4 JSON。后续新增构件必须沿用同一注册合同与视觉基准，不能在 Scene 内携带函数。
+- [ ] Legacy → v4 转换器已完成数据核心和无阻塞工具栏闭环：直接转换、builtin、图片冻结 API 与阻止项均进入版本化逐项报告，真实 Edge 验证不会覆盖原 JS；仍需补逐项冻结预览/确认 UI、旧粒子与 `fx.layers` 人工决策，所以本项尚不冒充完成。
+
+## Phase 8 已完成：Scene 与时间轴
+
+- [x] 将对象显示窗口从属性时序中分离为 `timeline.visibility`，默认全程可见且读取不落盘。
+- [x] 固定时间 Runtime 支持对象显示时段，并让组的不可见状态传递到子对象。
+- [x] 在 Classic Shell 复用原上下轴，完成对象显示时段的 Alt 切分、双击显隐、边界拖动、播放头与单历史闭环。
+- [x] 迁移 v4 Scene 标签段及两端 / 内部插入、删除、改名、跳转和边界拖动。
+- [x] 将对象属性 Step / Linear 接入同一上下文轨与 Inspector；Linear 端点由相邻 Step 动态解析。
+- [x] 让单对象 Canvas 直接移动 / 缩放 / 旋转在当前参数时序中使用同一写入边界；多选暂保持基础变换语义。
+- [x] 接入 Registry 对象 / 场景效果卡的独立时间轴、Step 覆层、Linear 字段白名单与停用清理。
+- [x] 接入共享采样控制器的 Inspector / Step 时序、Runtime 固定时间求值与重置清理。
+- [x] 统一保存重开 / 自包含测试页验收，并将 Preview Scheduler 接入 Classic Shell 正式播放路径；静态 Step 区间跳过无效重绘，Workspace 按修订复用 Runtime Player。
+
+## 当前工程主线：v4 Classic Shell 迁移
+
+- 权威计划为 [v4 Classic Shell 迁移总规范](docs/architecture/V4_MIGRATION_MASTER_SPEC.md)，机器状态只记录在 [V4_MIGRATION_MATRIX.json](docs/architecture/V4_MIGRATION_MATRIX.json)。
+- `img2asset-layout-v1.html` 冻结为 Legacy 行为基线；`img2asset-v4-classic.html` 从其逐字节副本开始迁移；`img2asset-vnext.html` 仅保留为 schema / Runtime / 性能实验台。
+- `img2asset-v4-classic.html` 现普通打开即进入 V4，`?legacy=1` 只用于 parity 对照；对象 Inspector 使用“成样 / 加样 / 采样”，场景 Inspector 使用“成样 / 叠加滤镜 / 采样滤镜”，左侧效果索引显示当前对象或场景已启用的 Registry 效果。Tauri 入口仍待全部 P0/P1 门禁通过后再切换。
+- 除差异白名单中的 v4 Scene、`mask / decorate / sample` 管线、区域效果表达、builtin 与无感性能内部实现外，全部操作与视觉反馈必须继承 Legacy，不重新设计。
+- 当前阶段只建立基线、真实浏览器 parity、Facade 与双会话边界；首个纵向闭环完成前冻结新增产品功能。Tauri 默认入口继续使用 Legacy，直到全部 P0/P1、视觉与性能门槛通过。
+- Phase 7 当前已完成 v4 普通矢量实体创建、圆角 Runtime、基础外观 Inspector、可编辑文字 + 透明 PNG 播放回退、有序多帧入库/播放参数，以及对象内 Parts 的 Runtime / 纯状态 / 树 / Inspector / 命中 / 单图元青框变换首闭环；同父图元 Ctrl 多选、Ctrl+A、Esc 分层退出及联合移动/缩放/旋转/镜像已进入 Edge 验收，并通过两层旋转/非等比父组链、组合对象序列化重开像素一致性和多帧图片 + parts 绘制顺序用例。单图形与 part 已共用 Legacy 复合 Paint 面板，覆盖路径描线、纯色、独立 Alpha、1–3 层线纹、点纹、棋盘、纹理预览和画布锚定缓存。外部字体采用“Scene 只存连接、文字始终存透明 PNG 快照”的轻量边界，浏览器导入与 Tauri 字体白名单已验收。`npm run verify:phase7` 已把纯状态、Runtime、桌面合同与真实 Edge 合为一条门禁并通过；下一步只记录新桌面进程中的字体授权/重连边界，然后进入 Phase 8 时间轴。
+- 多 `parts` 不以 group 子实体替代；其父对象局部坐标、稳定 part id、主体后覆盖、整体效果合成与分层编辑门槛已冻结在 [V4_PARTS_MIGRATION_CONTRACT.md](docs/architecture/V4_PARTS_MIGRATION_CONTRACT.md)。Runtime → Parts State → 树/Inspector → Canvas 逐层命中 → Edge Paint 验收已完成；接下来只沿该合同补齐复杂父组与字体资源边界。
+
 ## 当前产品验证主线（Patcharium / 拼好景）
 
 当前工作名称为 **Patcharium / 拼好景**；技术仓库名暂不迁移。发布首先是“作品展示优先、工具公开测试随后”，不把尚未验证的内置 Agent 作为现有卖点。完整叙事见 [PRODUCT_NARRATIVE.md](docs/product/PRODUCT_NARRATIVE.md)。
@@ -54,14 +96,42 @@ P0 完成后才评估内置对话、桌面项目层与正式仓库改名；内�
 
 ## P1 —— 第二版（体验升级）
 
+### ToSampool 效果系统重构（v4 迁移中）
+
+> 语义合同见 [EFFECT_SYSTEM_VNEXT.md](docs/architecture/EFFECT_SYSTEM_VNEXT.md)；Inspector 与左侧容器蓝图见 [INSPECTOR_EFFECTS_VNEXT.md](docs/design/INSPECTOR_EFFECTS_VNEXT.md) / [EFFECTS_PANEL_VNEXT.md](docs/design/EFFECTS_PANEL_VNEXT.md)。`editor/effect-registry-vnext.js` 与派生 [EFFECT_MANIFEST_VNEXT.json](docs/agent/EFFECT_MANIFEST_VNEXT.json) 是 v4 唯一效果元数据源。v4 Runtime、效果卡、时序与统一蒙版已进入 Classic Shell 纵向迁移；Legacy 产品入口和旧 Scene 格式保持冻结，不与 v4 双写。
+
+1. **冻结与验证元数据**：维持 vNext registry → manifest 的确定性派生和 `npm run verify` 过期检查；为 ID 唯一性、参数类型、阶段/作用域、性能等级与配方引用增加静态合同测试。
+2. **统一蒙版 schema**：先重做对象蒙版与场景滤镜范围的共用组件、运行时解析和 `sourceVisibility:'keep'|'mask-only'`，消除旧“引用即隐藏”的隐式规则。
+3. **引入新 Scene 效果声明与序列化器**：为 vNext `effects` / `pipeline` 建立新建场景格式、validator、serializer 和 capability 版本；不长期维护旧 `fx.layers` 的双语义，迁移前冻结样例并提供一次性工具或明确新建入口。
+4. **Runtime 管线适配**：先实现对象离屏胶囊、`mask → decorate → sample` 默认流水线、三个阶段整体调序与场景 `overlay → sample`；把纹理、投影、描边、内外光效收敛为共享原语。
+5. **采样原语重做**：按 `color-map → threshold/noise → offset-sampling → halftone → uneven-sampling` 接入；`offset-sampling.boil` 必须是真正的格子级确定性微偏移，`bands` 是条带坐标重取样，不能退化为对象整体 bob。
+6. **Inspector 与左侧效果容器迁移**：从 registry 生成启用/渐进披露/颜色/纹理/蒙版控件；接入“效果”容器、阶段排序、卡片 → Inspector → 编排器的严格同步，并移除旧属性/局部 FX/采样运动的重复入口。
+7. **时间与运动收口**：效果卡拥有稀疏时段覆层和程序运动开关；Linear 只允许 registry 明示的字段，调色四轴和采样控制器保持 Step。补全撤销、删除效果时的覆层清理与保存往返测试。
+8. **粒子、性能与 Agent 验收**：Phase 9 已完成对象胶囊 + 场景滤镜的 S/M/L 管线压力预算；Phase 10 继续实现共享帧视觉胶囊继承和粒子场景预算。随后让 Agent protocol 读取 manifest、选择 recipe、受预算约束地产出 Scene，再以三案例做视觉与结构验收。
+
+### v4 Classic Shell 迁移基线（先于新增 v4 功能）
+
+> v4 继续作为新的 Scene / Runtime / Effect Core；正式编辑器不再从 `img2asset-vnext.html` 局部缝补，而从 Legacy 体验壳迁移。合同见 [V4_CLASSIC_SHELL_MIGRATION.md](docs/architecture/V4_CLASSIC_SHELL_MIGRATION.md) 与 [V4_PREVIEW_PERFORMANCE_CONTRACT.md](docs/architecture/V4_PREVIEW_PERFORMANCE_CONTRACT.md)。
+
+1. **性能闸门**：已修 v4 静态大图播放时重复 resize、每帧 async Player 与无效 Canvas 重绘；真实 Edge 已覆盖 1920×1080 静态近零重绘、Legacy 对照、对象胶囊 + 场景滤镜 S/M/L 动态压力及 Auto / Draft 实际切换。后续性能工作只由普通作品回归或 Phase 10 粒子预算触发，不再重复建立同一基线。
+2. **Facade 边界**：实现 session / scene / selection / transform / structure / assets / timeline / effects / history / preview 的受控入口；新页面不得双写 Legacy Scene。
+3. **首个体验闭环**：已从 Legacy 复用工具栏、视口、舞台、结构树、Inspector 与上下时间轴外壳，贯通“导入图片 → 放置 → 选择/变换 → Inspector / 时序 → 保存/重开 → 自包含测试页”的 v4 闭环；继续迁移时仍按纵向切片验收，不在实验页补洞。
+4. **新增语义位置**：Step / Linear、v4 Scene 段与新效果只在 v4 实现；Legacy 仅修复既有缺陷，继续作为旧作品入口和体验基线。
+
+实施顺序不可倒置：Inspector 只消费已由 Runtime/serializer 支持的 registry 项；任何新效果必须同时完成 registry、Runtime、Scene 校验、固定帧测试、保存重载和文档同步，不能再只在面板中“看起来启用了”。
+
+- 🚧 **Runtime vNext R0/R29–R42**：隔离实验页只承担 schema / Runtime / 性能试验；正式 Classic 候选只逐项启用通过 parity 的纵向切片。当前 Classic 已贯通图片与多帧预处理、素材库、图片背景、Parts / 绘制 / 文字、Canvas 与结构树同步、多选与组、Scene / 显示时段、对象属性及 Registry 效果 / 共享控制器时序、保存重开和自包含测试页。所有持久写入经 `EditorVNextSceneMutation` 进入 `.tosampool.json`；独显、树展开与 Inspector 焦点仍是临时编辑状态。
+- 🚧 **v4 体验等价回归**：v4 不再以“页面出现同名入口”计作迁移完成，正式以 `docs/architecture/VNEXT_PARITY_AUDIT.md` 的闭环验收。Phase 5–9 已进入真实 Edge 连续回归；下一阶段按迁移矩阵处理粒子、Builtin / 旧 JS 转换和导出，不新增未经 Runtime、保存往返与浏览器测试共同证明的表面功能。
+- 🚧 **Runtime vNext R0/R32**：`img2asset-vnext.html` 已从“同页 v4 会话”变为纯 v4 页面：保留布局外壳，移除旧 Runtime/场景/控制器依赖与进入/退出切换；对象、效果、素材和时序只写 v4 Scene。Legacy 编辑器继续由 `img2asset-layout-v1.html` 独立承担。下一项是制作独立 `home-scene-v4.tosampool.json` 样例，或设计显式旧 JS 转换向导；不能把现有 `home-scene.js` 直接交给 v4 Runtime。
+
 ### 编辑器内核拆分（导出与关键帧的前置工作）
 
 - 设计基线见 [RUNTIME_ADAPTER_PLAN.md](docs/architecture/RUNTIME_ADAPTER_PLAN.md)：先固定时间渲染并让预览/离线帧共用 Adapter，再导出 PNG 序列、按需接入编码器，最后才加入关键帧 schema 与轨道 UI。该顺序保证 Runtime 无重量级依赖。
 - 🚧 **架构合同化第一阶段**：已新增编辑器行为、Runtime/宿主边界与 L0–L5 验收矩阵；Runtime 暴露 `apiVersion/capabilities`，编辑器启动时握手，避免新版 Inspector 被旧 Runtime 静默忽略。Sampling Motion 已有自运行浏览器夹具覆盖实际勾选、预览像素变化与保存重载；下一步扩展测试 HTML 与帧文件的 L4 自动验收，再继续拆分控制器。
-- 🚧 **性能与桌面产品化**：单一编辑器时钟、Runtime P95/工作像素观测及 Auto/Full/Draft 已落地；Draft 会降低高成本像素处理中间分辨率，离线 `renderTo` 强制恢复完整质量。阈值/网点共享像素读取，全局/局部调色共享 CPU 内核；编辑器与 Runtime 缓存槽已隔离。Browser/Tauri Host、Timeline Model、Scene Serializer、Asset Resolver 与 Artifact Builder 已完成第一层接线。下一阶段不是再次封装编辑器，而是建立 S/M/L 性能基线、按热点决定 Worker/OffscreenCanvas，并设计 Project manifest 与持久 `assets/`；桌面壳本身不承担 Canvas 加速。
+- 🚧 **性能与桌面产品化**：单一编辑器时钟、Runtime P95/工作像素观测、Auto/Full/Draft、静态大图门禁及对象胶囊 + 场景滤镜 S/M/L 压力预算已落地；Draft 会按工作量以 2× / 4× / 8× 降低高成本像素处理中间分辨率，离线 `renderTo` 强制恢复完整质量。阈值/网点共享像素读取，全局/局部调色共享 CPU 内核；编辑器与 Runtime 缓存槽已隔离。Browser/Tauri Host、Timeline Model、Scene Serializer、Asset Resolver 与 Artifact Builder 已完成第一层接线。下一阶段先处理粒子、Builtin 与旧场景迁移；Worker / OffscreenCanvas 只在普通作品或粒子夹具越过预算时立项，桌面壳本身不承担 Canvas 加速。
 - ✅ **Editor Commands / Scene Mutation 主写入收口**：顶部工作流及清选/删除/撤销已由稳定命令 ID 接管；Canvas、编排器上下轴、Scene 操作、结构树、编组/剪贴快捷操作、绘制/文字、粒子创建及主 Inspector 均已接入统一 Scene Mutation。旧元素/粒子卡片、旧局部 FX Controller 和旧 FX 时间轴已删除，业务代码不再直接调用 `pushHistory`。连续颜色/纹理/滑杆和文字输入拥有提交/回滚边界。`redo` 必须等待双栈历史模型，当前不伪装支持。
 - ✅ **Inspector 控件与效果注册收束**：Scene Mutation/Undo/Rollback 驱动会话级 `sceneRevision`；普通动画、采样闪变、Sampling Motion 与新版全局 / 局部 FX 共用渐进披露入口。未绑定局部 FX 已迁入结构树 → Inspector → 下时间轴的唯一链路，Legacy Controller 正式退役。色板、颜色与纹理绑定入口已统一；效果顺序、分组、默认值和控件元数据集中在 `editor/effect-registry.js`。“颗粒潮汐”已作为验证原语加入，没有新增专用撤销、刷新或页签控制器。
-- ✅ **Sampling Motion 渲染内核去重与一级缓存**：`editor/sampling-motion-kernel.js` 统一波场、边缘保护、颗粒、阈值与网点算法；编辑器预览不再维护 `*Tool` 像素副本。构建脚本将内核原样嵌入 `home-scene.js` 与测试页 Runtime 镜像，保持独立 JS 场景无外部依赖。空间基底与 Alpha 距离衰减图按实体、源帧、尺寸和参数缓存，时间步变化只重算场值；下一步记录新基线并评估 Worker / OffscreenCanvas 分界，再进入 Tauri Host 实现。
+- ✅ **Sampling Motion 渲染内核去重与一级缓存**：`editor/sampling-motion-kernel.js` 统一波场、边缘保护、颗粒、阈值与网点算法；编辑器预览不再维护 `*Tool` 像素副本。构建脚本将内核原样嵌入 `home-scene.js` 与测试页 Runtime 镜像，保持独立 JS 场景无外部依赖。空间基底与 Alpha 距离衰减图按实体、源帧、尺寸和参数缓存，时间步变化只重算场值；Phase 9 已记录 S/M/L 管线压力基线并验证工作量降采样，Worker / OffscreenCanvas 暂不进入主线。
 - ✅ **Tauri Host 第一层**：`src-tauri/` 已实现打开 Scene、原位/另存 Artifact、批量目录写入、素材选择/读取及 Scene 同目录相对素材解析；只接受用户授权路径并拒绝目录穿越。预览与测试冻结共用 Asset Resolver，宿主读取结果通过临时 `_asset` 注入 Runtime，且兼容旧示例的重复 `examples/` 前缀。`scripts/prepare-tauri-frontend.mjs` 以确定性白名单生成最小前端闭包。2026-09-14 已手动通过 `karsten` 相对图片预览与自包含测试场景 H3 验收；发布前只需补齐安装包、图标/签名策略及原生取消/批量交付检查。
 - ✅ 第一层：`editor/geometry.js` 承担纯几何变换；`editor/scene-model.js` 承担 parts 归一化与局部包围盒规则。页面仍以 classic script 入口加载，保持 `file://` 双击运行与现有体验。
 - ✅ 固定时间离线渲染：`HomeScene` 已提供 `createRuntime(scene)`；它以指定 `t` 向任意 Canvas 渲染而不启动 RAF，也不改预览的 `window.HOME_SCENE`。预览与离线帧已共用 `renderFrame` 绘制核心；通用 Scene 独立 Canvas 冒烟测试已加入。
