@@ -1,0 +1,151 @@
+/* V4 keyboard contract: unified document history and internal scene clipboard. */
+(function (global) {
+  'use strict';
+
+  const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
+  const editableTarget = target => {
+    const tag = target && target.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || !!(target && target.isContentEditable);
+  };
+  function create(options) {
+    options = options || {};
+    const workspace = options.workspace, view = options.view, changes = options.changes;
+    const active = options.active || (() => true), togglePlay = options.togglePlay || (() => {}), root = options.root || document;
+    const structure = global.EditorVNextStructureState, parts = global.EditorVNextPartsState;
+    if (!workspace || !view || !changes || !structure || !parts) throw new Error('Classic v4 Shortcut Controller requires Workspace, View, SceneMutation and structure state');
+    let clipboard = null;
+    const scene = () => workspace.requireDocument();
+    const entities = value => value.entities || [];
+    const byId = (value, id) => entities(value).find(item => item && item.id === id) || null;
+    const unique = (used, base) => { let id = String(base || 'copy'), index = 2; while (used.has(id)) id = `${base || 'copy'}-${index++}`; used.add(id); return id; };
+    const roots = (value, ids) => {
+      const chosen = new Set(ids || []);
+      return entities(value).filter(item => chosen.has(item.id) && !function hasChosenParent(entry) {
+        let parent = entry.parentId && byId(value, entry.parentId), guard = 0;
+        while (parent && guard++ < 100) { if (chosen.has(parent.id)) return true; parent = parent.parentId && byId(value, parent.parentId); }
+        return false;
+      }(item));
+    };
+    const family = (value, rootIds) => {
+      const ids = new Set(rootIds || []), queue = [...ids];
+      while (queue.length) {
+        const parentId = queue.shift();
+        for (const item of entities(value)) if (item.parentId === parentId && !ids.has(item.id)) { ids.add(item.id); queue.push(item.id); }
+      }
+      return entities(value).filter(item => ids.has(item.id));
+    };
+    const move = (item, dx, dy) => {
+      item.x = (+item.x || 0) + dx; item.y = (+item.y || 0) + dy;
+      if (item.type === 'line') { item.x2 = (+item.x2 || 0) + dx; item.y2 = (+item.y2 || 0) + dy; }
+    };
+    function copySelection() {
+      const value = scene(), ownerId = view.selectedId, partIds = view.selectedPartIds || [];
+      if (ownerId && partIds.length) {
+        const owner = byId(value, ownerId), selected = (owner && owner.parts || []).filter(part => partIds.includes(part.id));
+        if (!selected.length) return false;
+        clipboard = { kind:'parts', ownerId, parts:clone(selected) };
+        return true;
+      }
+      const selected = roots(value, view.selectedIds || []);
+      if (!selected.length) return false;
+      clipboard = { kind:'entities', rootIds:selected.map(item => item.id), entities:clone(family(value, selected.map(item => item.id))) };
+      return true;
+    }
+    function remapReferences(value, map, key) {
+      if (!value || typeof value !== 'object') return value;
+      if (Array.isArray(value)) return value.map(item => remapReferences(item, map, key));
+      for (const [name, current] of Object.entries(value)) {
+        if (typeof current === 'string' && /(?:parent|source|target|owner|element|bind).*Id$/i.test(name) && map.has(current)) value[name] = map.get(current);
+        else if (current && typeof current === 'object') remapReferences(current, map, name);
+      }
+      return value;
+    }
+    function pasteSelection() {
+      if (!clipboard) return false;
+      let selected = [];
+      const result = changes.run('粘贴', value => {
+        if (clipboard.kind === 'parts') {
+          const owner = byId(value, clipboard.ownerId);
+          if (!owner) throw new Error('原图元所在对象已不存在，无法粘贴');
+          owner.parts = Array.isArray(owner.parts) ? owner.parts : [];
+          const added = clipboard.parts.map(raw => {
+            const part = clone(raw); move(part, 8, 8); return parts.add(value, { ownerId:owner.id, part, normalize:false });
+          });
+          if (owner.type === 'vector' && owner.parts.length) parts.normalizeBounds(value, owner.id);
+          selected = added.map(part => part.id);
+          return { kind:'parts', ownerId:owner.id };
+        }
+        const originals = clipboard.entities || [], used = new Set(entities(value).map(item => item.id)), map = new Map();
+        for (const item of originals) map.set(item.id, unique(used, item.id));
+        const copied = originals.map(item => {
+          const next = remapReferences(clone(item), map);
+          next.id = map.get(item.id);
+          if (Array.isArray(next.parts)) {
+            const partIds = new Set();
+            next.parts = next.parts.map(part => { const result = clone(part); result.id = unique(partIds, part.id); return result; });
+          }
+          return next;
+        });
+        const rootSet = new Set(clipboard.rootIds || []);
+        for (let index = 0; index < originals.length; index++) if (rootSet.has(originals[index].id)) move(copied[index], 8, 8);
+        value.entities.push(...copied);
+        selected = (clipboard.rootIds || []).map(id => map.get(id)).filter(Boolean);
+        return { kind:'entities' };
+      });
+      if (!result) return false;
+      if (clipboard.kind === 'parts') view.selectPart(result.ownerId, selected[selected.length - 1], false, { keepDrill:true });
+      else view.selectMany(selected);
+      return true;
+    }
+    function cutSelection() {
+      if (!copySelection()) return false;
+      const ownerId = view.selectedId, partIds = (view.selectedPartIds || []).slice();
+      if (ownerId && partIds.length) {
+        changes.run('剪切图元', value => {
+          for (const partId of partIds) parts.remove(value, { ownerId, partId, normalize:false });
+          const owner = byId(value, ownerId); if (owner && owner.type === 'vector' && owner.parts.length) parts.normalizeBounds(value, ownerId);
+        });
+        view.select(ownerId, false, { keepDrill:true });
+        return true;
+      }
+      const ids = (view.selectedIds || []).slice();
+      if (!ids.length) return false;
+      // Delete keeps the established “remove group = ungroup” behavior.  Cut is
+      // different: its clipboard contains the complete group tree, so the source
+      // tree must leave the document as a whole and be restorable by one undo.
+      changes.run('剪切对象', value => structure.remove(value, family(value, roots(value, ids).map(item => item.id)).map(item => item.id))); view.select(null); return true;
+    }
+    function nudge(dx, dy) {
+      const value = scene(), ownerId = view.selectedId, partIds = view.selectedPartIds || [];
+      if (ownerId && partIds.length) {
+        changes.run('微移图元', document => { const owner = byId(document, ownerId); for (const id of partIds) { const part = owner && (owner.parts || []).find(item => item.id === id); if (part) move(part, dx, dy); } if (owner && owner.type === 'vector') parts.normalizeBounds(document, ownerId); });
+        return true;
+      }
+      const selected = roots(value, view.selectedIds || []);
+      if (!selected.length) return false;
+      changes.run('微移对象', document => { for (const source of selected) { const target = byId(document, source.id); if (target) move(target, dx, dy); } });
+      return true;
+    }
+    function applyHistory(redo) {
+      const label = redo ? changes.redo() : changes.undo();
+      if (!label) return false;
+      view.renderTree(); view.scheduleRender(redo ? 'redo' : 'undo');
+      return true;
+    }
+    function keydown(event) {
+      if (!active() || editableTarget(event.target)) return;
+      const command = event.ctrlKey || event.metaKey, key = String(event.key || '').toLowerCase();
+      if (command && key === 'z') { event.preventDefault(); event.stopImmediatePropagation(); applyHistory(event.shiftKey); return; }
+      if (command && key === 'y') { event.preventDefault(); event.stopImmediatePropagation(); applyHistory(true); return; }
+      if (command && key === 'c') { event.preventDefault(); event.stopImmediatePropagation(); copySelection(); return; }
+      if (command && key === 'x') { event.preventDefault(); event.stopImmediatePropagation(); cutSelection(); return; }
+      if (command && key === 'v') { event.preventDefault(); event.stopImmediatePropagation(); pasteSelection(); return; }
+      const arrows = { ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] }, arrow = arrows[event.key];
+      if (arrow) { if (nudge(arrow[0] * (event.shiftKey ? 10 : 1), arrow[1] * (event.shiftKey ? 10 : 1))) { event.preventDefault(); event.stopImmediatePropagation(); } return; }
+      if (event.code === 'Space') { event.preventDefault(); event.stopImmediatePropagation(); togglePlay(); }
+    }
+    global.addEventListener('keydown', keydown, true);
+    return Object.freeze({ copy:copySelection, cut:cutSelection, paste:pasteSelection, undo:() => applyHistory(false), redo:() => applyHistory(true), get hasClipboard(){return !!clipboard;}, stop(){global.removeEventListener('keydown', keydown, true);} });
+  }
+  global.EditorClassicV4ShortcutController = Object.freeze({ version:1, create });
+})(typeof window !== 'undefined' ? window : globalThis);

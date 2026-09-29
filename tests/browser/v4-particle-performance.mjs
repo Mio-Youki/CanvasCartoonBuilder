@@ -1,0 +1,41 @@
+#!/usr/bin/env node
+import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { chromium } from 'playwright-core';
+
+const root=resolve(import.meta.dirname,'../..'),candidate=resolve(root,'img2asset-v4-classic.html');
+const edgeCandidates=[process.env.TOSAMPOOL_EDGE_PATH,'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe','C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'].filter(Boolean),executablePath=edgeCandidates.find(existsSync);
+const browser=await chromium.launch(executablePath?{headless:true,executablePath}:{headless:true,channel:'msedge'}),context=await browser.newContext({viewport:{width:1600,height:1000},deviceScaleFactor:1}),page=await context.newPage(),errors=[];
+page.on('pageerror',error=>errors.push(String(error)));page.on('requestfailed',request=>errors.push(`request failed: ${request.url()} (${request.failure()?.errorText||'unknown'})`));
+await page.goto(`${pathToFileURL(candidate).href}?e2e=1`,{waitUntil:'domcontentloaded',timeout:15000});await page.waitForFunction(()=>window.ToSampoolRuntimeVNext&&window.ToSampoolSession?.activeId==='v4',null,{timeout:15000});
+
+const specs=[
+  {id:'S',width:480,height:270,count:40,emitters:1,source:'vector',effects:false,draft:2},
+  {id:'M',width:960,height:540,count:140,emitters:1,source:'image',effects:false,draft:4},
+  {id:'L',width:1920,height:1080,count:400,emitters:2,source:'image',effects:true,draft:8},
+];
+const results=[];
+for(const spec of specs){
+  const result=await page.evaluate(async spec=>{
+    const percentile=(values,p)=>values.slice().sort((a,b)=>a-b)[Math.max(0,Math.ceil(values.length*p)-1)],makeScene=()=>{
+      const entities=[],runtimeAssets={};
+      for(let index=0;index<spec.emitters;index++){
+        const sourceId=`source-${index}`,emitterId=`emitter-${index}`;
+        if(spec.source==='image'){const sprite=document.createElement('canvas');sprite.width=96;sprite.height=96;const paint=sprite.getContext('2d');paint.fillStyle=index%2?'#68bde8':'#f3d27a';paint.fillRect(12,12,72,72);paint.fillStyle='#182033';paint.fillRect(36,26,24,44);runtimeAssets[`sprite-${index}`]={image:sprite};entities.push({id:sourceId,name:`图片实体 ${index+1}`,type:'image',assetId:`sprite-${index}`,x:0,y:0,w:96,h:96,particleSourceOnly:true,effects:spec.effects?{pipeline:['mask','decorate','sample'],decorate:{outline:{enabled:true,color:'#ffffff',alpha:1,width:4},'tint-overlay':{enabled:true,color:'#ff6b6b',alpha:.18,blend:'screen'}},sample:{controllers:{'sampling-grid':{size:3}},threshold:{enabled:true,threshold:.48,dark:'#182033',light:'#e8dbc3'},'offset-sampling':{enabled:true,mode:'boil',seed:7,boil:{maxOffset:1},motion:{enabled:true,period:1.5,steps:12}}}}:undefined});}
+        else entities.push({id:sourceId,name:`矢量实体 ${index+1}`,type:'vector',x:0,y:0,w:12,h:12,particleSourceOnly:true,parts:[{id:'core',type:'ellipse',x:1,y:1,w:10,h:10,fill:'#eef4ff'},{id:'spark',type:'rect',x:5,y:0,w:2,h:12,fill:'#ffffff',alpha:.7}]});
+        entities.push({id:emitterId,name:`粒子 ${index+1}`,type:'particle-emitter',x:0,y:0,w:spec.width,h:spec.height,particle:{sourceId,count:spec.count,life:3,speed:20+index*5,direction:90,spread:50,gravity:4,wind:3,size:spec.source==='image'?.18:1,sizeVar:.35,alpha:.9,fade:true,seed:11+index}});
+      }
+      return{format:'tosampool-scene/v4',width:spec.width,height:spec.height,loop:4,background:{color:'#182033',alpha:1},entities,timeline:{tracks:{}},sceneEffects:{overlay:{},sample:{},outputGrain:{}},runtimeAssets};
+    },measure=multiplier=>{const scene=makeScene(),player=ToSampoolRuntimeVNext.createRuntime(scene),canvas=document.createElement('canvas'),times=[],frames=[];for(let index=0;index<2;index++)player.renderTo(canvas,index/12,{pixelDivMultiplier:multiplier});for(let index=0;index<12;index++){const started=performance.now(),stats=player.renderTo(canvas,(index+2)/12,{pixelDivMultiplier:multiplier});times.push(performance.now()-started);frames.push(stats);}const last=frames.at(-1);return{avg:times.reduce((sum,value)=>sum+value,0)/times.length,p95:percentile(times,.95),particleEmitters:last.particleEmitters,particlesDrawn:last.particlesDrawn,particleSpriteBuilds:last.particleSpriteBuilds,directObjects:last.directObjects,capsuleObjects:last.capsuleObjects,workPixels:last.workPixels,pixelPasses:last.pixelPasses,offscreenPeakPixels:last.surfaces.peakPixels,backingSizeWrites:last.backingSizeWrites,multiplier:last.previewPixelDivMultiplier,width:canvas.width,height:canvas.height};};
+    return{full:measure(1),draft:measure(spec.draft)};
+  },spec);
+  for(const mode of ['full','draft']){const value=result[mode];assert.equal(value.width,spec.width);assert.equal(value.height,spec.height);assert.equal(value.particleEmitters,spec.emitters,`${spec.id} ${mode} 必须绘制全部发射器`);assert.equal(value.particleSpriteBuilds,spec.emitters,`${spec.id} ${mode} 每个发射器每帧只能构建一次共享视觉胶囊`);assert.equal(value.particlesDrawn,spec.count*spec.emitters,`${spec.id} ${mode} 必须绘制声明的粒子数`);assert.equal(value.directObjects,0,`${spec.id} 私有粒子实体不得进入主场景重复绘制`);assert.ok(value.backingSizeWrites<=2,`${spec.id} 连续粒子帧不得重复写主 Canvas backing size`);}
+  assert.equal(result.full.multiplier,1);assert.equal(result.draft.multiplier,spec.draft);if(spec.effects){assert.ok(result.full.workPixels>0,'带对象处理的粒子来源必须报告视觉胶囊工作像素');assert.ok(result.draft.workPixels<=result.full.workPixels*.35,`粒子来源 Draft 工作像素应至少降低 65%（${result.full.workPixels} → ${result.draft.workPixels}）`);assert.ok(result.draft.p95<result.full.p95,`带处理来源的 Draft P95 必须低于 Full（${result.draft.p95.toFixed(2)}ms vs ${result.full.p95.toFixed(2)}ms）`);}
+  results.push({id:spec.id,width:spec.width,height:spec.height,count:spec.count,emitters:spec.emitters,source:spec.source,effects:spec.effects,full:result.full,draft:result.draft});
+}
+
+const cadence=await page.evaluate(async()=>{const scene={format:'tosampool-scene/v4',width:960,height:540,loop:4,background:{color:'#182033',alpha:1},timeline:{tracks:{}},entities:[{id:'dot',type:'ellipse',x:0,y:0,w:8,h:8,fill:'#ffffff',particleSourceOnly:true},{id:'snow',type:'particle-emitter',x:0,y:0,w:960,h:540,particle:{sourceId:'dot',count:220,life:3,speed:18,direction:90,spread:35,wind:8,size:1,sizeVar:.4,alpha:.9,fade:true,seed:5}}],sceneEffects:{overlay:{},sample:{},outputGrain:{}}};ToSampoolV4Workspace.replace(scene);await new Promise(resolve=>setTimeout(resolve,180));const run=async(mode,duration)=>{const select=document.querySelector('#preview-quality');select.value=mode;select.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(resolve=>setTimeout(resolve,140));const before=classicV4View.performance();document.querySelector('#tl-play').click();await new Promise(resolve=>setTimeout(resolve,duration));document.querySelector('#tl-play').click();await new Promise(resolve=>setTimeout(resolve,80));const after=classicV4View.performance();return{mode:after.quality.mode,targetFps:after.quality.targetFps,renders:after.scheduler.renders-before.scheduler.renders,budgetSkips:after.scheduler.budgetSkips-before.scheduler.budgetSkips,rafP95:after.frameP95,last:after.lastRender};};return{full:await run('full',1500),draft:await run('draft',1500),serialized:EditorVNextScene.serialize(ToSampoolV4Workspace.current())};});
+assert.equal(cadence.full.last.particleSpriteBuilds,1);assert.equal(cadence.draft.last.particleSpriteBuilds,1);assert.equal(cadence.full.last.particlesDrawn,220);assert.equal(cadence.draft.last.particlesDrawn,220);assert.ok(cadence.full.renders>cadence.draft.renders,`粒子 Full 重绘次数应高于 Draft（${cadence.full.renders} vs ${cadence.draft.renders}）`);assert.ok(cadence.draft.budgetSkips>cadence.full.budgetSkips,'粒子 Draft 应通过刷新预算跳过更多动态帧');assert.ok(!cadence.serialized.includes('previewPixelDivMultiplier')&&!cadence.serialized.includes('previewQuality'),'粒子预览质量不得进入 Scene');
+assert.deepEqual(errors,[],'粒子性能夹具不应产生页面异常或失败请求');console.log(JSON.stringify({environment:{browser:'Microsoft Edge',viewport:'1600x1000',deviceScaleFactor:1},fixtures:results,cadence},null,2));await context.close();await browser.close();

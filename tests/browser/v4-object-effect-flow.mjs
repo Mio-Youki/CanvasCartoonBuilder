@@ -1,0 +1,94 @@
+#!/usr/bin/env node
+import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { chromium } from 'playwright-core';
+
+const root=resolve(import.meta.dirname,'../..'),pagePath=resolve(root,'img2asset-v4-classic.html');
+const edge=[process.env.TOSAMPOOL_EDGE_PATH,'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe','C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'].find(path=>path&&existsSync(path));
+if(!edge)throw new Error('找不到 Edge；请设置 TOSAMPOOL_EDGE_PATH。');
+const browser=await chromium.launch({executablePath:edge,headless:true});
+try{
+  const page=await browser.newPage({viewport:{width:1500,height:900}}),errors=[];page.on('pageerror',error=>errors.push(String(error)));
+  await page.goto(pathToFileURL(pagePath).href+'?e2e=1',{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.ToSampoolV4Workspace?.hasDocument);
+  await page.evaluate(()=>{ToSampoolV4Workspace.createBlank({width:160,height:100,loop:4});ToSampoolV4Workspace.mutate(scene=>{scene.timeline.scenes=[{id:'scene-a',name:'场景 A',f:[0,.5],background:{color:'#112233',alpha:1},transition:{type:'scan',duration:.5,color:'#000000'}},{id:'scene-b',name:'场景 B',f:[.5,1],background:{color:'#445566',alpha:1}}];scene.entities.push({id:'effect-flow',name:'效果对象',type:'rect',x:24,y:24,w:40,h:30,fill:'#ffffff',scaleX:1,scaleY:1,rot:0,alpha:1,anim:{bob:{amount:8,period:2,angle:90}},effects:{pipeline:['mask','decorate','sample'],mask:{type:'rect',x:24,y:24,w:40,h:30},decorate:{outline:{enabled:true,color:'#000000',alpha:1,width:1}},sample:{}}});});classicV4View.select(null);});
+  await page.waitForFunction(()=>/场景背景 · 场景分段与参数覆层/.test(document.querySelector('#tl-context-note')?.textContent||''));
+  assert.notEqual(await page.locator('#btn-timing-mode').evaluate(node=>getComputedStyle(node).display),'none','Scene 成样必须提供当前 Scene 内背景时序入口');
+  assert.equal(await page.evaluate(()=>EditorVNextPreviewScheduler.profile(ToSampoolV4Workspace.current(),0).continuous),true,'任一 Scene 过渡必须让编辑器预览持续重绘');
+  const sceneTrackBox=await page.locator('#tl-context').boundingBox();await page.keyboard.down('Alt');await page.mouse.click(sceneTrackBox.x+sceneTrackBox.width*.25,sceneTrackBox.y+sceneTrackBox.height*.5);await page.keyboard.up('Alt');
+  await page.waitForFunction(()=>ToSampoolV4Workspace.current().timeline.tracks?.['scene-background:scene-a']?.segments?.length===2);
+  await page.locator('#btn-timing-mode').click();
+  const sceneColor=page.locator('#inspector-context .global-section').filter({hasText:'背景'}).locator('.color-swatch').first();await sceneColor.click();await page.locator('.color-pop .color-hex').fill('#7A3F99');await page.locator('.color-pop .color-hex').press('Tab');
+  await page.waitForFunction(()=>ToSampoolV4Workspace.current().timeline.tracks?.['scene-background:scene-a']?.segments?.[0]?.values?.color==='#7a3f99');
+  await page.evaluate(()=>classicV4View.select('effect-flow'));
+  await page.waitForFunction(()=>document.querySelector('#effect-pane')?.classList.contains('open'));
+  assert.match(await page.locator('#tl-context-note').textContent(),/效果对象 · 显示时段与参数覆层/,'首次选中普通对象必须直接进入组合轨，而不是残留的单独显示时段轨');
+  await page.click('#element-inspector-tabs [data-element-inspector="fx"]');
+  assert.equal(await page.locator('#inspector-context [data-v4-effect-id="projection"]').count(),1,'对象“加样”页必须显示投影卡片');
+  assert.equal(await page.locator('#inspector-context [data-v4-effect-id="outline"]').count(),1,'对象“加样”页必须显示描边卡片');
+  assert.deepEqual(await page.locator('#effect-list .v4-effect-stage-title > span').allTextContents(),['采样','加样','蒙版','成样'],'对象效果必须按后处理在上、成样在下显示四项');
+  assert.equal(await page.locator('#effect-list .v4-effect-stage[data-stage="mask"] select').count(),0,'蒙版位置不应退化为只能移动蒙版的下拉框');
+  const maskBox=await page.locator('#effect-list .v4-effect-stage[data-stage="mask"] .v4-effect-stage-title').boundingBox(),sampleBox=await page.locator('#effect-list .v4-effect-stage[data-stage="sample"] .v4-effect-stage-title').boundingBox();await page.mouse.move(maskBox.x+20,maskBox.y+maskBox.height/2);await page.mouse.down();await page.mouse.move(sampleBox.x+20,sampleBox.y+2,{steps:6});await page.mouse.up();await page.waitForTimeout(20);
+  assert.deepEqual(await page.evaluate(()=>ToSampoolV4Workspace.current().entities[0].effects.pipeline),['decorate','sample','mask'],'采样、加样、蒙版必须能通过拖动共同调序');
+  await page.waitForFunction(()=>Array.from(document.querySelectorAll('#effect-list .v4-effect-stage-title > span:not(.v4-effect-stage-grip)')).map(node=>node.textContent).join('|')==='蒙版|采样|加样|成样');
+  const glowRings=await page.evaluate(()=>{const canvas=document.createElement('canvas'),player=ToSampoolRuntimeVNext.createRuntime({format:'tosampool-scene/v4',width:40,height:40,entities:[{id:'glow-test',type:'rect',x:15,y:15,w:10,h:10,fill:'#000000',effects:{decorate:{'outer-light':{enabled:true,color:'#ff0000',alpha:.9,size:6,layers:3,blend:'normal'},'inner-light':{enabled:true,color:'#ff0000',alpha:.9,size:6,layers:3,blend:'screen'}}}}]});player.renderTo(canvas,0);const pixel=(x,y)=>canvas.getContext('2d').getImageData(x,y,1,1).data;return{outer:[pixel(13,20)[3],pixel(11,20)[3],pixel(9,20)[3]],inner:[pixel(16,20)[0],pixel(18,20)[0],pixel(20,20)[0]]};});
+  assert.ok(glowRings.outer[0]>glowRings.outer[1]&&glowRings.outer[1]>glowRings.outer[2]&&glowRings.outer[2]>0,'外光效 6px / 3 层必须生成逐层递减且互不叠加过曝的 Alpha 环带');
+  assert.ok(glowRings.inner[0]>glowRings.inner[1]&&glowRings.inner[1]>glowRings.inner[2],'内光效必须向对象内部生成逐层递减的光带');
+  const finalOpacity=await page.evaluate(()=>{const canvas=document.createElement('canvas'),player=ToSampoolRuntimeVNext.createRuntime({format:'tosampool-scene/v4',width:40,height:40,entities:[{id:'opacity-test',type:'rect',x:15,y:15,w:10,h:10,fill:'#0000ff',alpha:.5,effects:{decorate:{projection:{enabled:true,color:'#ff0000',alpha:1,distance:3,angle:0},outline:{enabled:true,color:'#ff0000',alpha:1,width:2}}}}]});player.renderTo(canvas,0);return Array.from(canvas.getContext('2d').getImageData(20,20,1,1).data);});
+  assert.ok(finalOpacity[0]<8&&finalOpacity[2]>245&&finalOpacity[3]>=120&&finalOpacity[3]<=135,'对象透明度必须在投影/描边完成后统一应用，主体内部不得透出装饰颜色');
+  const sourceSampling=await page.evaluate(()=>{
+    const source=document.createElement('canvas');source.width=32;source.height=24;const paint=source.getContext('2d');
+    for(let y=0;y<24;y+=2)for(let x=0;x<32;x+=2){paint.fillStyle=`rgb(${(x*7)%256},${(y*11)%256},${((x+y)*5)%256})`;paint.fillRect(x,y,2,2);}
+    const render=(sample,time)=>{const canvas=document.createElement('canvas'),player=ToSampoolRuntimeVNext.createRuntime({format:'tosampool-scene/v4',width:96,height:64,assets:{photo:{image:source}},entities:[{id:'photo',type:'image',assetId:'photo',x:16,y:12,w:64,h:40,effects:{sample}}]});player.renderTo(canvas,time);return canvas.getContext('2d').getImageData(0,0,96,64).data;};
+    const grid={controllers:{'sampling-grid':{size:4}}},boil={controllers:{'sampling-grid':{size:4}},'offset-sampling':{enabled:true,type:'boil',seed:7,boil:{bias:1,coverage:.3},motion:{enabled:true,type:'sampling-step',frequency:4}}},breath={controllers:{'sampling-grid':{size:4}},'offset-sampling':{enabled:true,type:'breath',seed:7,breath:{bias:.8},motion:{enabled:true,type:'sampling-step',frequency:4}}},unevenOff={controllers:{'sampling-grid':{size:4}},'uneven-sampling':{enabled:true,amount:.7,coarseness:5,field:{enabled:false,type:'noise',contrast:.8,scale:8}}},uneven={controllers:{'sampling-grid':{size:4}},'uneven-sampling':{enabled:true,amount:.7,coarseness:5,field:{enabled:true,type:'noise',contrast:.8,scale:8,seed:3},motion:{enabled:true,type:'uneven-motion',period:1,steps:8,flowSpeed:1,tideAmount:.35}}},a=render(boil,0),b=render(boil,.26),breathA=render(breath,0),breathB=render(breath,.26),gridOnly=render(grid,0),unevenDisabled=render(unevenOff,0),unevenA=render(uneven,0),unevenB=render(uneven,.51),plain=render({},0),bands=render({'offset-sampling':{enabled:true,type:'bands',seed:9,bands:{orientation:'horizontal',count:2,thickness:2,offset:9,channels:'combined'}}},0);
+    let boilChanged=0,breathChanged=0,unevenOffChanged=0,unevenChanged=0,bandChanged=0;for(let i=0;i<a.length;i+=4){if(a[i]!==b[i]||a[i+1]!==b[i+1]||a[i+2]!==b[i+2])boilChanged++;if(breathA[i]!==breathB[i]||breathA[i+1]!==breathB[i+1]||breathA[i+2]!==breathB[i+2])breathChanged++;if(gridOnly[i]!==unevenDisabled[i]||gridOnly[i+1]!==unevenDisabled[i+1]||gridOnly[i+2]!==unevenDisabled[i+2])unevenOffChanged++;if(unevenA[i]!==unevenB[i]||unevenA[i+1]!==unevenB[i+1]||unevenA[i+2]!==unevenB[i+2])unevenChanged++;if(plain[i]!==bands[i]||plain[i+1]!==bands[i+1]||plain[i+2]!==bands[i+2])bandChanged++;}
+    const vectorFrame=time=>{const canvas=document.createElement('canvas'),player=ToSampoolRuntimeVNext.createRuntime({format:'tosampool-scene/v4',width:96,height:64,entities:[{id:'vector',type:'vector',x:16,y:12,w:64,h:40,parts:[{id:'a',type:'rect',x:0,y:0,w:32,h:40,fill:'#e45b4f'},{id:'b',type:'ellipse',x:26,y:4,w:34,h:30,fill:'#48a6d8'},{id:'c',type:'line',x:2,y:36,x2:60,y2:2,stroke:'#fff2a8',strokeWidth:3}],effects:{sample:boil}}]});player.renderTo(canvas,time);return canvas.getContext('2d').getImageData(0,0,96,64).data;},vectorA=vectorFrame(0),vectorB=vectorFrame(.26);let vectorChanged=0;for(let i=0;i<vectorA.length;i+=4)if(vectorA[i]!==vectorB[i]||vectorA[i+1]!==vectorB[i+1]||vectorA[i+2]!==vectorB[i+2])vectorChanged++;
+    return {boilChanged,breathChanged,unevenOffChanged,unevenChanged,vectorChanged,bandChanged,total:a.length/4};
+  });
+  assert.ok(sourceSampling.boilChanged>0,'图片像素沸腾的相邻 tick 必须改变源采样结果');
+  assert.ok(sourceSampling.breathChanged>0,'像素呼吸的相邻 tick 必须改变统一采样窗结果');
+  assert.equal(sourceSampling.unevenOffChanged,0,'关闭采样场的不均采样必须直通，不能退化为第二次全局像素化');
+  assert.ok(sourceSampling.unevenChanged>0,'启用采样运动后，不均采样的相邻固定时间帧必须改变');
+  assert.ok(sourceSampling.vectorChanged>0,'图元集合必须与图片共用像素沸腾采样路径');
+  assert.ok(sourceSampling.bandChanged>0&&sourceSampling.bandChanged<sourceSampling.total*.45,'条带故障只能复制有限区域，不能退化为整幅逐像素破碎');
+  await page.click('#element-inspector-tabs [data-element-inspector="sampling"]');
+  const unevenCard=page.locator('#inspector-context [data-v4-effect-id="uneven-sampling"]');
+  assert.equal(await unevenCard.getAttribute('data-v4-effect-scope'),'object','效果卡片外壳必须由共享模块标注作用域');
+  await unevenCard.locator('.global-field').filter({hasText:'启用'}).locator('input[type="checkbox"]').check();
+  await page.waitForFunction(()=>!!ToSampoolV4Workspace.current().entities.find(item=>item.id==='effect-flow')?.effects?.sample?.['uneven-sampling']);
+  assert.equal(await unevenCard.locator('.v4-motion-title-button').count(),1,'不均采样必须显示标题侧动态入口');
+  await unevenCard.locator('.v4-motion-title-button').click();
+  const unevenMotion=unevenCard.locator('.global-field').filter({hasText:'动态'});
+  await unevenMotion.locator('input[type="checkbox"]').check();
+  await page.waitForFunction(()=>ToSampoolV4Workspace.current().entities.find(item=>item.id==='effect-flow')?.effects?.sample?.['uneven-sampling']?.motion?.enabled===true);
+  assert.equal(await unevenCard.locator('.global-field').filter({hasText:'动态方式'}).locator('select').inputValue(),'uneven-motion','不均采样动态必须使用统一采样运动配置');
+  await page.locator('#effect-list [data-kind="motion"][data-id="bob"]').click();await page.waitForTimeout(20);
+  assert.match(await page.locator('#tl-context-note').textContent(),/动态 · 漂浮 · 显示时段/,'动态卡片必须切到自己的显示时段，而不是参数时序');
+  await page.evaluate(()=>classicV4View.select('effect-flow'));await page.locator('#btn-timing-mode').click();
+  const xInput=page.locator('#inspector-context .global-field').filter({hasText:/^X/}).first().locator('input');await xInput.fill('52');await xInput.press('Enter');await page.waitForTimeout(20);
+  assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().timeline.tracks['effect-flow'].segments[0].values.x),52,'参数修改必须写入当前对象的黄色参数覆层');
+  const timelineBox=await page.locator('#tl-context').boundingBox();await page.mouse.dblclick(timelineBox.x+timelineBox.width*.5,timelineBox.y+timelineBox.height*.5);await page.waitForTimeout(20);
+  assert.equal(await page.evaluate(()=>Object.keys(ToSampoolV4Workspace.current().timeline.tracks['effect-flow'].segments[0].values||{}).length),0,'双击黄色覆层必须只清除参数，不改变对象显示时段');
+  const colorMapProbe=await page.evaluate(()=>{
+    const source=document.createElement('canvas');source.width=32;source.height=16;const sourceCtx=source.getContext('2d');
+    [['#e63946',0],['#2a9d8f',8],['#457b9d',16],['#f4a261',24]].forEach(([fill,x])=>{sourceCtx.fillStyle=fill;sourceCtx.fillRect(x,0,8,16);});
+    const render=(config,time)=>{const canvas=document.createElement('canvas'),player=ToSampoolRuntimeVNext.createRuntime({format:'tosampool-scene/v4',width:32,height:16,assets:{probe:{image:source}},entities:[{id:'probe',type:'image',assetId:'probe',x:0,y:0,w:32,h:16,effects:{sample:{'color-map':config}}}]});player.renderTo(canvas,time);const pixels=canvas.getContext('2d').getImageData(0,0,32,16).data,colors=new Set();let saturated=0;for(let i=0;i<pixels.length;i+=4){if(!pixels[i+3])continue;colors.add(`${pixels[i]},${pixels[i+1]},${pixels[i+2]}`);if(!(pixels[i]===pixels[i+1]&&pixels[i+1]===pixels[i+2]))saturated++;}return{pixels:Array.from(pixels),count:colors.size,saturated};};
+    const autoTwo=render({enabled:true,palette:'auto',colors:2},0),autoFour=render({enabled:true,palette:'auto',colors:4},0),flashA=render({enabled:true,palette:'pico8',motion:{enabled:true,type:'palette-flash',period:1,steps:2,amount:1}},0),flashB=render({enabled:true,palette:'pico8',motion:{enabled:true,type:'palette-flash',period:1,steps:2,amount:1}},.6);
+    const spectrum=document.createElement('canvas');spectrum.width=64;spectrum.height=64;const spectrumCtx=spectrum.getContext('2d'),gradient=spectrumCtx.createLinearGradient(0,0,64,64);gradient.addColorStop(0,'#ff1744');gradient.addColorStop(.22,'#ffea00');gradient.addColorStop(.45,'#00e676');gradient.addColorStop(.7,'#00b0ff');gradient.addColorStop(1,'#d500f9');spectrumCtx.fillStyle=gradient;spectrumCtx.fillRect(0,0,64,64);for(let y=0;y<64;y++){spectrumCtx.globalAlpha=y/128;spectrumCtx.fillStyle='#000000';spectrumCtx.fillRect(0,y,64,1);}spectrumCtx.globalAlpha=1;
+    const mappedCount=colors=>{const canvas=document.createElement('canvas'),player=ToSampoolRuntimeVNext.createRuntime({format:'tosampool-scene/v4',width:64,height:64,assets:{spectrum:{image:spectrum}},entities:[{id:'spectrum',type:'image',assetId:'spectrum',x:0,y:0,w:64,h:64,effects:{sample:{'color-map':{enabled:true,palette:'auto',colors}}}}]});player.renderTo(canvas,0);const pixels=canvas.getContext('2d').getImageData(0,0,64,64).data,values=new Set();for(let i=0;i<pixels.length;i+=4)if(pixels[i+3])values.add(`${pixels[i]},${pixels[i+1]},${pixels[i+2]}`);return values.size;};return{autoTwo,autoFour,high24:mappedCount(24),high200:mappedCount(200),high256:mappedCount(256),flashChanged:flashA.pixels.some((value,index)=>value!==flashB.pixels[index])};
+  });
+  assert.ok(colorMapProbe.autoFour.saturated>0,'自动提取不得退化为灰度；代表色必须保留来源色相');
+  assert.ok(colorMapProbe.autoTwo.count<colorMapProbe.autoFour.count,'最大颜色数必须实际改变自动调色板的输出色数');
+  assert.ok(colorMapProbe.high24<=24&&colorMapProbe.high200<=200&&colorMapProbe.high200>colorMapProbe.high24*3,'连续彩色输入下 24 与 200 必须产生显著不同的最大输出色数');
+  assert.ok(colorMapProbe.high256>colorMapProbe.high200,'自动颜色数 256 必须直通原色，而不能继续收敛为 200 色以下调色板');
+  assert.equal(colorMapProbe.flashChanged,true,'色板闪回必须在相邻节拍交替原色与映射色');
+  await page.evaluate(()=>classicV4View.select(null));
+  const beforeSceneAdds=await page.evaluate(()=>ToSampoolV4Workspace.current().timeline.scenes.length),boundaryAdd=page.locator('#scene-bar .scene-add-boundary').first(),boundaryBox=await boundaryAdd.boundingBox();
+  await page.mouse.click(boundaryBox.x+2,boundaryBox.y+boundaryBox.height/2);
+  await page.waitForFunction(count=>ToSampoolV4Workspace.current().timeline.scenes.length===count+1,beforeSceneAdds);
+  const endAdd=page.locator('#scene-bar .scene-add.edge-end'),endBox=await endAdd.boundingBox();
+  await page.mouse.click(endBox.x+2,endBox.y+endBox.height/2);
+  await page.waitForFunction(count=>ToSampoolV4Workspace.current().timeline.scenes.length===count+2,beforeSceneAdds);
+  assert.deepEqual(errors,[],'对象效果流程不得产生浏览器异常');console.log('✓ v4 对象效果：四项排序、三态蒙版位置与动态显示时段通过');
+}finally{await browser.close();}
