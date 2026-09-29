@@ -61,6 +61,7 @@ const assetResolver = source(resolve(root, 'editor', 'asset-resolver.js'), '编�
 const artifactBuilder = source(resolve(root, 'editor', 'artifact-builder.js'), '编辑器 Artifact Builder');
 const sceneMutation = source(resolve(root, 'editor', 'scene-mutation.js'), '编辑器 Scene Mutation');
 const effectRegistry = source(resolve(root, 'editor', 'effect-registry.js'), '编辑器 Effect Registry');
+const particleRegistry = source(resolve(root, 'editor', 'particle-registry.js'), '编辑器 Particle Registry');
 const samplingKernel = source(resolve(root, 'editor', 'sampling-motion-kernel.js'), 'Sampling Motion Kernel');
 
 if (runtime && compileScript(runtime, toolRuntime)) pass('工具 Runtime 语法通过');
@@ -87,6 +88,15 @@ if (effectRegistry && compileScript(effectRegistry, 'editor/effect-registry.js')
   const globalOk=registry&&registry.globalFx.map(item=>item.key).join(',')==='crt,vignette,glitch,noise'&&registry.globalFx.every(item=>item.group);
   if (samplingOk&&localOk&&globalOk) pass('Sampling Motion 与全局/局部 FX 注册表顺序、默认值和控件合同通过');
   else fail('效果注册表合同不完整');
+}
+if (particleRegistry && compileScript(particleRegistry, 'editor/particle-registry.js')) {
+  const sandbox = {}; new vm.Script(particleRegistry).runInNewContext(sandbox);
+  const registry = sandbox.EditorParticleRegistry;
+  const ids = registry && registry.presets && registry.presets.map(item => item.id).join(',');
+  const complete = registry && registry.version === 1 && ids === 'rain,snow,sparks,dust'
+    && registry.presets.every(item => item.parts?.length && item.particle && typeof item.particle === 'object');
+  if (complete) pass('粒子预设注册表顺序、实体与运动参数合同通过');
+  else fail('粒子预设注册表合同不完整');
 }
 if (tauriHostAdapter && compileScript(tauriHostAdapter, 'editor/tauri-host-adapter.js')) {
   const calls = [], sandbox = { Blob, Uint8Array };
@@ -146,7 +156,8 @@ if (artifactBuilder && compileScript(artifactBuilder, 'editor/artifact-builder.j
   const builder = sandbox.EditorArtifactBuilder;
   const sceneArtifact = builder && builder.sceneFile({ name: 'demo.js', sourceText: 'A{}Z', start: 1, end: 3, serializedScene: '{"ok":true}' });
   const testArtifact = builder && builder.testHtml({ name: 'demo-test.html', script: 'window.x="</script>";', mode: 'home' });
-  if (sceneArtifact && sceneArtifact.data === 'A{"ok":true}Z' && testArtifact && testArtifact.data.includes('id="home-scene"') && testArtifact.data.includes('<\\/script>')) pass('Artifact Builder 的场景替换与测试页封装通过');
+  const v4TestArtifact = builder && builder.v4TestHtml({ name:'v4-test.html', runtimeSource:'window.ToSampoolRuntimeVNext={createRuntime(){return{renderTo(){}}}};', scene:{ format:'tosampool-scene/v4', width:8, height:8, assets:{}, entities:[] } });
+  if (sceneArtifact && sceneArtifact.data === 'A{"ok":true}Z' && testArtifact && testArtifact.data.includes('id="home-scene"') && testArtifact.data.includes('<\\/script>') && v4TestArtifact && v4TestArtifact.data.includes('id="scene-canvas"') && v4TestArtifact.data.includes('tosampool-scene/v4')) pass('Artifact Builder 的场景替换与 Legacy / v4 自包含测试页封装通过');
   else fail('Artifact Builder 的纯构建语义错误');
 }
 if (sceneMutation && compileScript(sceneMutation, 'editor/scene-mutation.js')) {
@@ -241,6 +252,16 @@ if (html) {
     && /background\.layout/.test(html);
   if (inspectorControls) pass('背景、颜色与全局/局部 FX 共用 Inspector 控件和 Scene Mutation');
   else fail('Inspector 控件收束合同不完整');
+  const particleBoundary = /editor\/particle-registry\.js/.test(html)
+    && /id=["']btn-particle["']/.test(html) && /id=["']btn-delete-selection["']/.test(html)
+    && !/id=["']side-anim["']/.test(html) && !/function\s+renderAnimPanel\s*\(/.test(html)
+    && /type:\s*['"]element['"]\s*,\s*targetId:\s*srcEl\.id\s*,\s*mode:\s*['"]linked['"]\s*,\s*fallback/.test(html)
+    && /elementInspectorTab='particle'/.test(html)
+    && runtime && /function\s+particleSourceEntity\s*\(/.test(runtime)
+    && /src\.type!==['"]element['"]/.test(runtime)
+    && /source\.type === ['"]element['"]/.test(runtime);
+  if (particleBoundary) pass('粒子入口、单页 Inspector、动态实体引用与旧侧栏移除合同通过');
+  else fail('粒子入口或动态实体引用合同不完整');
   const directHistoryCalls = html.match(/\bpushHistory\s*\(/g) || [];
   const legacyControllersGone = directHistoryCalls.length === 2
     && !/function\s+(?:walkForm|imgForm|particleForm|renderLocalFxLayers|renderFxTrack)\s*\(/.test(html)

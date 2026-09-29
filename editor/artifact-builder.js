@@ -62,8 +62,29 @@
     return create('test', options.name || 'scene-test.html', html);
   }
 
+  function v4TestHtml(options) {
+    options = options || {};
+    if (!options.scene || options.scene.format !== 'tosampool-scene/v4') throw new Error('v4 测试页需要 tosampool-scene/v4 Scene');
+    if (typeof options.runtimeSource !== 'string' || !options.runtimeSource) throw new Error('v4 测试页缺少 Runtime 源码镜像');
+    const serialized = JSON.stringify(options.scene).replace(/<\/script/gi, '<\\/script'), bootstrap = `
+(async function(){
+  const scene=${serialized}, runtimeAssets={};
+  const load=src=>new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('素材解码失败'));image.src=src;});
+  for(const [id,asset] of Object.entries(scene.assets||{})){
+    const descriptors=Array.isArray(asset.frames)&&asset.frames.length?asset.frames:[asset],frames=[];
+    for(const descriptor of descriptors)frames.push(await load(descriptor.locator||descriptor.src));
+    runtimeAssets[id]={image:frames[0],frames,fps:Math.max(.1,+asset.fps||8),frameLoop:asset.frameLoop!==false};
+  }
+  const hydrated=Object.assign({},scene,{runtimeAssets}),player=ToSampoolRuntimeVNext.createRuntime(hydrated),canvas=document.getElementById('scene-canvas');
+  canvas.width=scene.width;canvas.height=scene.height;let start=performance.now();
+  player.renderTo(canvas,0);document.documentElement.dataset.runtimeReady='1';
+  function frame(now){player.renderTo(canvas,(now-start)/1000);requestAnimationFrame(frame);}requestAnimationFrame(frame);
+})().catch(error=>{document.documentElement.dataset.runtimeError=error&&error.message||String(error);document.querySelector('.tip').textContent='测试场景失败：'+document.documentElement.dataset.runtimeError;});`;
+    return testHtml({ name:options.name || 'scene-test.html', title:options.title || 'ToSampool v4 Scene Test', mode:'v4', script:options.runtimeSource + bootstrap });
+  }
+
   function png(name, blob, meta) { return create('png', name, blob, { meta }); }
   function gif(name, blob, meta) { return create('gif', name, blob, { meta }); }
 
-  global.EditorArtifactBuilder = Object.freeze({ formats, cleanName, create, replaceRange, sceneFile, runtimeScript, testHtml, png, gif });
+  global.EditorArtifactBuilder = Object.freeze({ formats, cleanName, create, replaceRange, sceneFile, runtimeScript, testHtml, v4TestHtml, png, gif });
 })(typeof window !== 'undefined' ? window : globalThis);

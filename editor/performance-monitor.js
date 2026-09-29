@@ -6,30 +6,39 @@
     return sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * p) - 1))];
   }
   function create() {
-    let mode = 'auto', samples = [], autoInterval = 82;
+    let mode = 'auto', samples = [], autoInterval = 82, workloadPixels = 320 * 180, switches = 0;
+    function draftMultiplier(){return workloadPixels>1000000?8:workloadPixels>300000?4:2;}
     function interval() { return mode === 'full' ? 82 : mode === 'draft' ? 166 : autoInterval; }
     function record(ms) {
       if (!Number.isFinite(ms)) return;
       samples.push(ms); if (samples.length > 90) samples.shift();
       if (mode !== 'auto' || samples.length < 8) return;
       const p95 = percentile(samples, .95);
+      // Auto is a pacing policy, not a visual-quality policy.  Multiplying
+      // the Runtime sampling divisor made an unchanged scene look as if its
+      // editable sampling grid had grown.  Only explicit Draft may lower the
+      // preview resolution; Auto merely slows redraw cadence under pressure.
+      const before=autoInterval;
       if (p95 > 70) autoInterval = 166;
       else if (p95 > 38) autoInterval = Math.max(autoInterval, 125);
       else if (p95 < 24) autoInterval = 82;
       else if (p95 < 32 && autoInterval > 125) autoInterval = 125;
+      if(before!==autoInterval)switches+=1;
     }
     function setMode(next) { mode = ['auto', 'full', 'draft'].includes(next) ? next : 'auto'; samples = []; autoInterval = 82; }
+    function setWorkload(pixels){workloadPixels=Math.max(1,+pixels||1);}
     function pixelDivMultiplier() {
-      if (mode === 'draft') return 2;
-      if (mode === 'auto' && autoInterval >= 166) return 2;
+      if (mode === 'draft') return draftMultiplier();
+      if (mode === 'auto') return 1;
       return 1;
     }
     function snapshot() {
       const avg = samples.length ? samples.reduce((a, b) => a + b, 0) / samples.length : 0;
       const p95 = percentile(samples, .95), ms = interval();
-      return { mode, samples: samples.length, avg, p95, interval: ms, targetFps: Math.round(1000 / ms), pixelDivMultiplier: pixelDivMultiplier() };
+      const multiplier=pixelDivMultiplier();
+      return { mode, effectiveMode:mode==='auto'?'full':mode, switches, samples: samples.length, avg, p95, interval: ms, targetFps: Math.round(1000 / ms), pixelDivMultiplier: multiplier };
     }
-    return Object.freeze({ interval, record, setMode, snapshot, pixelDivMultiplier });
+    return Object.freeze({ interval, record, setMode, setWorkload, snapshot, pixelDivMultiplier });
   }
   function maskArea(mask, w, h) {
     if (!mask || mask.type === 'none') return w * h;

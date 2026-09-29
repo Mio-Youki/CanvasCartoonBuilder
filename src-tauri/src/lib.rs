@@ -20,6 +20,8 @@ struct HostState {
 struct OpenOptions {
     #[serde(default)]
     multiple: bool,
+    #[serde(default)]
+    accept: String,
 }
 
 #[derive(Deserialize)]
@@ -287,11 +289,22 @@ fn patcharium_pick_assets(
     scene_locator: Option<String>,
 ) -> Result<Vec<PickedAsset>, String> {
     let _ = scene_locator;
-    let multiple = options.unwrap_or_default().multiple;
-    let dialog = app.dialog().file().add_filter(
-        "Images",
-        &["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"],
-    );
+    let options = options.unwrap_or_default();
+    let multiple = options.multiple;
+    let wants_font = options.accept.contains("font")
+        || options.accept.contains(".ttf")
+        || options.accept.contains(".otf")
+        || options.accept.contains(".woff");
+    let dialog = if wants_font {
+        app.dialog()
+            .file()
+            .add_filter("Fonts", &["ttf", "otf", "woff", "woff2"])
+    } else {
+        app.dialog().file().add_filter(
+            "Images",
+            &["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"],
+        )
+    };
     let picked = if multiple {
         dialog.blocking_pick_files().unwrap_or_default()
     } else {

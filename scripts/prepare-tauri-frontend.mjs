@@ -15,6 +15,7 @@ const files = [
   'editor/geometry.js',
   'editor/host-adapter.js',
   'editor/performance-monitor.js',
+  'editor/particle-registry.js',
   'editor/runtime-bridge.js',
   'editor/sampling-motion-kernel.js',
   'editor/scene-model.js',

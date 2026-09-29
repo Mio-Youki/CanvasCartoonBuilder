@@ -9,6 +9,10 @@
       samplingMotion: 2,
     }),
   });
+  const vNextRequirements = Object.freeze({
+    apiVersion: 1,
+    capabilities: Object.freeze({ fixedTimeRender: 1, deterministicFrames: 1, vnextBase: 1, sceneEffects: 1, imageAssets: 1, groupTransforms: 1, sharedSpriteParticles: 1 }),
+  });
 
   function compatibilityIssue(runtime, expected) {
     expected = expected || requirements;
@@ -26,5 +30,5 @@
     return false;
   }
 
-  global.EditorRuntimeBridge = Object.freeze({ requirements, compatibilityIssue, report });
+  global.EditorRuntimeBridge = Object.freeze({ requirements, vNextRequirements, compatibilityIssue, report });
 })(typeof window !== 'undefined' ? window : globalThis);

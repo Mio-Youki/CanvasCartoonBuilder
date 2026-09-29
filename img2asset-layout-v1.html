@@ -279,6 +279,7 @@
   .structure-pane { padding:0; margin:0; border-bottom:0; flex:0 0 auto; min-height:0; display:flex; flex-direction:column; }
   .structure-head { display:flex; align-items:center; gap:6px; min-height:26px; color:var(--ink); font-size:12px; }
   .structure-head .hint-inline { margin-left:auto; color:var(--dim); }
+  .structure-head-actions { margin-left:auto; display:flex; align-items:center; gap:2px; }
   .structure-head button { padding:2px 5px; min-height:20px; font-size:8px; }
   #structure-tree { height:var(--structure-tree-h,254px); max-height:none; overflow:auto; border:0; background:#1b1d21; padding:2px 0; }
   .asset-splitter { flex:0 0 7px; height:7px; margin:0 -10px; cursor:row-resize; position:relative; }
@@ -372,6 +373,8 @@
   .scene-chip .scene-scope { width:6px; height:6px; border:1px solid #687283; border-radius:50%; }
   .scene-chip .scene-scope.on { background:var(--yellow); border-color:var(--yellow); }
   .scene-add { position:absolute; z-index:4; top:0; width:20px; height:100%; min-height:23px; padding:0; transform:translateX(-50%); border:0; border-radius:0; background:transparent; color:transparent; font-size:15px; line-height:18px; text-align:center; cursor:pointer; touch-action:manipulation; display:flex; align-items:center; justify-content:center; }
+  .scene-add.edge-start { transform:none; }
+  .scene-add.edge-end { transform:translateX(-100%); }
   .scene-add:hover { color:var(--yellow); background:transparent; box-shadow:none; }
   #tl-context { display:block; height:27px; }
   #tl-linear-toggle { position:fixed; z-index:30; display:none; width:24px; min-height:16px; height:16px; padding:0; transform:translate(-50%,-50%); border:0; background:transparent; color:#fff; font-size:11px; line-height:14px; }
@@ -446,7 +449,7 @@
   <!-- 左：场景结构 + 成品素材场-->
   <div class="panel p-import">
     <section class="structure-pane" aria-label="场景结构">
-      <div class="structure-head"><span>场景结构</span></div>
+      <div class="structure-head"><span>场景结构</span><span class="structure-head-actions"><button id="btn-particle" class="struct-action" title="新建默认粒子或将所选元素粒子化">粒</button><button id="btn-delete-selection" class="struct-action" title="删除所选对象" disabled>删</button></span></div>
       <div id="structure-tree"><div class="struct-empty">正在读取场景结构…</div></div>
     </section>
     <div id="asset-splitter" class="asset-splitter" title="拖动调整场景结构与素材库高度"></div>
@@ -495,10 +498,6 @@
         </div>
       </div>
     </section>
-    <div id="side-anim" style="display:none">
-      <div class="meta" id="m-anim-target"></div>
-      <div id="anim-editor"></div>
-    </div>
   </div>
 
   <!-- 中：场景文件 + 全局设置 + 画布 + 时间轴-->
@@ -548,7 +547,6 @@
     <div id="element-inspector-tabs" class="global-inspector-tabs"><button data-element-inspector="props" class="active">属性</button><button data-element-inspector="motion">动态</button><button data-element-inspector="fx">局部效果</button><button data-element-inspector="sampling">采样运动</button><button data-element-inspector="particle" style="display:none">粒子</button><button id="btn-timing-mode" title="当前 Scene 的参数覆层">时序</button></div>
     <div id="inspector-context" class="inspector-context"></div>
     <div class="props-tools">
-      <button id="btn-particle" class="small">+ 粒子</button>
       <button id="btn-local-fx" class="small">+ 局部效果</button>
     </div>
     <div id="cfgform"></div>
@@ -577,16 +575,24 @@
 <script src="editor/host-adapter.js"></script>
 <script src="editor/command-registry.js"></script>
 <script src="editor/runtime-bridge.js"></script>
+<script src="editor/vnext-runtime-adapter.js"></script>
 <script src="editor/performance-monitor.js"></script>
 <script src="editor/timeline-model.js"></script>
 <script src="editor/scene-serializer.js"></script>
 <script src="editor/scene-mutation.js"></script>
 <script src="editor/effect-registry.js"></script>
+<script src="editor/effect-registry-vnext.js"></script>
+<script src="editor/vnext-inspector-model.js"></script>
+<script src="editor/vnext-effect-state.js"></script>
+<script src="editor/particle-registry.js"></script>
 <script src="editor/asset-resolver.js"></script>
+<script src="editor/vnext-asset-loader.js"></script>
 <script src="editor/artifact-builder.js"></script>
 <!-- 内部模块：保按 classic script 共享全局函数，兼实 file:// 双击运行；页面脚本仅负责 UI 编排。-->
 <script src="editor/geometry.js"></script>
 <script src="editor/scene-model.js"></script>
+<script src="editor/vnext-scene.js"></script>
+<script src="editor/vnext-workspace.js"></script>
 <script src="editor/exporter.js"></script>
 <script>
 'use strict';
@@ -1122,9 +1128,20 @@ function unbindFxTargets(cfg, ids) {
   layers.forEach(layer => { if (layer && layer.bind && idSet.has(layer.bind.targetId)) { delete layer.bind; changed++; } });
   return changed;
 }
+function refreshLinkedParticleFallbacks(cfg, ids) {
+  const idSet=new Set(ids||[]);if(!cfg||!idSet.size)return;
+  const sources=new Map(editableElements(cfg).filter(item=>item&&idSet.has(item.id)).map(item=>[item.id,item]));
+  editableElements(cfg).forEach(item=>{
+    const source=item&&item.particle&&item.particle.source;
+    const live=source&&source.type==='element'&&sources.get(source.targetId);
+    if(live)source.fallback=particleSourceFallback(live,cfg);
+  });
+}
 function removeEditableElements(ids) {
   const idSet = new Set(ids || []), cfg = state.sceneParamsMode && window.HOME_SCENE;
   if (cfg) {
+    // 动态引用在源存在时始终读取实时对象；删除前才刷新兜底，断链后保留最后可见版本。
+    refreshLinkedParticleFallbacks(cfg, ids);
     const imgs = cfg.images = cfg.images || [];
     for (let i = imgs.length - 1; i >= 0; i--) if (idSet.has(imgs[i] && imgs[i].id)) imgs.splice(i, 1);
     // 程序元素同样属于可删除实体；只删除真实顶层图层，不碰场景元数据。
@@ -2056,7 +2073,6 @@ stage.addEventListener('pointerdown', ev => {
         state.partSel = null;
         buildLayerList(layerCfg());
         renderStage();
-        if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel();
         return;
       }
       pickPartDrag(partsOpenEl, i);
@@ -2106,7 +2122,6 @@ stage.addEventListener('pointerdown', ev => {
         buildLayerList(layerCfg());
         const cardEl = $('cfgform').querySelector('[data-key="' + k + '"]');
         if (cardEl && cardEl.scrollIntoView) cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel();
         renderStage();
         return;
       }
@@ -2221,7 +2236,6 @@ stage.addEventListener('pointerdown', ev => {
         buildLayerList(layerCfg());
         focusLayerCard(e.id);
       }
-      if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel(); // ②面板随选中实时刷新（不跨对象）
       renderStage();
       return;
     }
@@ -2966,7 +2980,6 @@ function activatePart(el, index, scrollPart) {
     box.classList.toggle('sel', on);
     const extra = box.querySelector('.part-extra'); if (extra) extra.style.display = on ? '' : 'none'; const arrow = box.querySelector('.lcarr'); if (arrow) arrow.textContent = on ? '▾' : '▸';
   });
-  if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel();
   renderStructureTree(layerCfg());
   syncDrawStyleFromPart(); updateToolOptions();
   renderTimeline();
@@ -3110,42 +3123,17 @@ function loadFiles(files) {
     else openAssetProcessModal(src);
   }
 }
-/* —…左侧栏双状态：素材导入 / 动画调整 —…*/
-document.querySelectorAll('.side-tab').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('.side-tab').forEach(x => x.classList.toggle('active', x === b));
-  $('side-import').style.display = b.dataset.panel === 'import' ? '' : 'none'; $('side-anim').style.display = b.dataset.panel === 'anim' ? '' : 'none'; if (b.dataset.panel === 'anim') renderAnimPanel();
-}));
-/* 三端选中同步：图层栏重建（元素黄线 part 青框高亮， 左侧动画面板刷新（若可见）；
-   scrollPart=true 时滚动到选中 part 条目 */
+/* 三端选中同步：结构树、Canvas 与 Inspector 共用同一选择状态；
+   scrollPart=true 时滚动到选中 part 条目。*/
 function syncSelUI(scrollPart) {
   syncDrawStyleFromPart();
   if (window.HOME_SCENE || state.elements.length) buildLayerList(layerCfg());
-  if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel();
   if (scrollPart) {
     requestAnimationFrame(() => {
       const sb = $('cfgform').querySelector('.cf-box.sel');
       if (sb && sb.scrollIntoView) sb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
   }
-}
-/* 动画目标： part 多选（ Ctrl+A）→ 批量；元素多多→批量；否则选中图元/元素 */
-function animTarget() {
-  if (state.partMulti && state.partMulti.el && state.partMulti.indexes && state.partMulti.indexes.length > 1) {
-    const pm = state.partMulti;
-    return { multi: true, els: pm.indexes.map(i => pm.el.parts[i]).filter(Boolean), label: '图元多选 ' + pm.indexes.length + ' · ' + (pm.el.name || pm.el.id) + '，动画应用到全部' };
-  }
-  if (state.multi.length > 1) return { multi: true, els: state.multi, label: '多多' + state.multi.length + ' 个元素（动画应用到全部）' };
-  if (state.partSel && state.partSel.el && state.partSel.el.parts && state.partSel.el.parts[state.partSel.index]) {
-    const el = state.partSel.el;
-    return { obj: el.parts[state.partSel.index], label: '图元 #' + state.partSel.index + ' · ' + (el.name || el.id) };
-  }
-  const sel = selEl();
-  if (sel) return { obj: sel, label: '元素 · ' + (sel.name || sel.id) };
-  if (state.selProg) {
-    const k = Object.keys(window.HOME_SCENE || {}).find(kk => window.HOME_SCENE[kk] === state.selProg);
-    return { obj: state.selProg, label: '程序元素 · ' + (k || state.selProg.name || '') };
-  }
-  return null;
 }
 const ANIM_PRIMS = [
   { type: 'bob', label: 'bob · 轻震', fields: [['amp', '幅度', 0.5], ['period', '周期 / 秒', 0.05], ['angle', '角度°', 15]] },
@@ -3154,47 +3142,6 @@ const ANIM_PRIMS = [
   { type: 'blink', label: 'blink · 闪烁', fields: [['on', '亮度', 0.05], ['off', '暗度', 0.05], ['period', '周期 ms', 10], ['duty', '亮占比', 0.05], ['phase', '起点', 0.05]] },
   { type: 'pulse', label: 'pulse · 脉动', fields: [['amp', '幅度', 0.05], ['period', '周期 / 秒', 0.1]] },
 ];
-function renderAnimPanel() {
-  const ed = $('anim-editor');
-  const mt = $('m-anim-target');
-  const t = state.selGroup ? { obj: groupById(state.selGroup, layerCfg()) && (groupById(state.selGroup, layerCfg()).transform = groupById(state.selGroup, layerCfg()).transform || {}), label: '父级组 · ' + ((groupById(state.selGroup, layerCfg()) || {}).name || '') } : animTarget();
-  if (!t) {
-    mt.textContent = '未选中目标——在画布或图层栏选中元素或图元后切换本面板。';
-    ed.innerHTML = '';
-    return;
-  }
-  mt.textContent = '动画目标：' + t.label + '（多动画可叠加； bob→spin→wave→pulse→blink 顺序应用）';
-  ed.innerHTML = '';
-  const targets = t.multi ? t.els : [t.obj];
-  const cur = {};
-  animList(targets[0].anim).forEach(an => { cur[an.type] = Object.assign({}, an.params); });
-  const save = () => {
-    runSceneMutation('legacy-animation.set',()=>{
-      const keys=Object.keys(cur);
-      targets.forEach(el=>{if(keys.length){el.anim={};keys.forEach(k=>{el.anim[k]=cur[k];});}else delete el.anim;});
-      return true;
-    },{entity:targets[0],layers:true});
-    renderAnimPanel();
-  };
-  ANIM_PRIMS.forEach(pr => {
-    const row = document.createElement('div'); row.className = 'cf-row'; const on = document.createElement('input'); on.type = 'checkbox'; on.checked = !!cur[pr.type];
-    const label = document.createElement('label'); label.textContent = pr.label; label.style.flex = '1';
-    row.appendChild(on); row.appendChild(label);
-    const wrap = document.createElement('div'); wrap.className = 'cf-row-inline'; pr.fields.forEach(([key, nm, step]) => {
-      const def = key === 'on' ? 1 : key === 'off' ? 0.25 : key === 'period' ? (pr.type === 'blink' ? 700 : pr.type === 'bob' ? 1 / 6 : pr.type === 'wave' ? 1 : 0.7) : key === 'speed' ? 30 : key === 'duty' ? 0.5 : key === 'phase' ? 0 : key === 'angle' ? 0 : 1;
-      const inp = document.createElement('input'); inp.type = 'number'; inp.step = step; inp.style.width = '52px'; inp.value = cur[pr.type] && cur[pr.type][key] != null ? cur[pr.type][key] : def;
-      inp.disabled = !on.checked;
-      inp.title = nm;
-      inp.addEventListener('change', () => { const v = parseFloat(inp.value); if (!isNaN(v)) { cur[pr.type] = cur[pr.type] || {}; cur[pr.type][key] = v; save(); } });
-      wrap.appendChild(inp);
-    });
-    on.addEventListener('change', () => { if (on.checked) cur[pr.type] = cur[pr.type] || {}; else delete cur[pr.type]; save(); });
-    row.appendChild(wrap);
-    ed.appendChild(row);
-  });
-  const hint = document.createElement('div'); hint.className = 'cf-ro'; hint.textContent = '参数进配置随保存写回； spin=角速度（负数反向，可与 wave 叠加）； bob=1px 轻震； blink=透明度方波； pulse=缩放脉动';
-  ed.appendChild(hint);
-}
 /* 素材样式化（左侧栏）：参数作用于选中素材（素材级快照），原图保留可还原；
    样式化开关（关= 原样 1:1， 采样除数（采样尺对= 基图 ÷ 除数）——改参数实时生效 */
 function applyStyleToSource(s, rebuildLib) {
@@ -3570,7 +3517,6 @@ window.addEventListener('keydown', ev => {
       }
       buildLayerList(layerCfg());
       renderStage();
-      if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel();
       return;
     }
     if (k === 'z') { ev.preventDefault(); runEditorCommand('history.undo', {}, 'shortcut'); }
@@ -4536,11 +4482,13 @@ function moveMaskEdit(p, free) {
   renderStage();
 }
 function dupAsParticle(srcEl, srcKey) {
-  // 「复制为粒子」：程序元素窗 parts；图片元素取图片，若后 parts 则生成「图卡+ parts」组合实体。
+  // 创建独立粒子层，但实体默认动态引用源元素；fallback 保证源元素删除后仍可绘制。
   const cfg = window.HOME_SCENE; if (!cfg) return;
-  const parts = (srcEl.parts || []).map(p => JSON.parse(JSON.stringify(p)));
   const isImage = !!(srcEl.id && (cfg.images || []).includes(srcEl));
-  if (!parts.length && !isImage) return;
+  const isProgram = !!(srcEl.program && srcEl.program.code && Number.isFinite(+srcEl.w) && Number.isFinite(+srcEl.h));
+  if (!(srcEl.parts && srcEl.parts.length) && !isImage && !isProgram) return;
+  ensureElementStableId(srcEl,cfg);
+  const fallback = particleSourceFallback(srcEl, cfg);
   let np;
   runSceneMutation('particle.from-element',()=>{
    const base = srcKey || srcEl.name || '元素';
@@ -4553,27 +4501,41 @@ function dupAsParticle(srcEl, srcKey) {
     z: (srcEl.z != null ? srcEl.z : 50) + 1,
     particle: { count: 40, rate: 40, life: 1.5, speed: 30, dir: 90, spread: 0, gravity: 0, wind: 0, spin: 0, spinSpeed: 0, sizeVar: 0.3, alpha: 1, fade: true },
   };
-  if (parts.length) np.parts = parts;
-  if (isImage) {
-    np.particle.source = { type: 'image', imageId: srcEl.id, frame: 0, playback: srcEl.frames > 1 ? 'particle-age' : 'static', fps: srcEl.fps || 8, loop: false };
-    if (parts.length) np.particle.source.compose = 'image+parts'; np.particle.count = 30; np.particle.rate = 20; np.particle.speed = 28; np.particle.dir = 270; np.particle.spread = 50; np.particle.sizeVar = 0.25;
-  }
-  if (srcEl.pixelDiv) np.pixelDiv = srcEl.pixelDiv;   // 继承像素化除数
-  if (srcEl.alphaMode) np.alphaMode = srcEl.alphaMode; // 继承边缘透明处理
-  if (srcEl.style) np.style = JSON.parse(JSON.stringify(srcEl.style)); // 精灵最终轮廓也复用硬边阴影/外描边
-  // 默认在源对象原位置出生；时间和蒙版同样复制为独立快照，后续可单独修改。
+  np.particle.source = { type:'element', targetId:srcEl.id, mode:'linked', fallback };
+  if (isImage) { np.particle.count = 30; np.particle.rate = 20; np.particle.speed = 28; np.particle.dir = 270; np.particle.spread = 50; np.particle.sizeVar = 0.25; }
+  // 发射范围和时段属于粒子层自身，只在创建时采用源对象作为初值。
   ['x', 'y', 'w', 'h'].forEach(k => { if (Number.isFinite(srcEl[k])) np[k] = srcEl[k]; });
   if (srcEl.show) np.show = JSON.parse(JSON.stringify(srcEl.show));
-  if (srcEl.mask) np.mask = JSON.parse(JSON.stringify(srcEl.mask));
    cfg[k] = np;
    state.selProg=np;state.selEl=null;state.partSel=null;state.selGroup=null;state.multi=[];elementInspectorTab='particle';
    return true;
   },{entity:srcEl,invalidate:'all',layers:true});
   return np;
 }
+function particleSourceFallback(srcEl, cfg) {
+  const copy = value => value == null ? value : JSON.parse(JSON.stringify(value));
+  const out={name:srcEl.name||elementProgramKey(srcEl,cfg)||'实体',w:+srcEl.w||1,h:+srcEl.h||1};
+  ['parts','program','anim','style','text','pixelDiv','alphaMode','scaleX','scaleY','rot','rotation','alpha','frames','fps','frameLoop'].forEach(k=>{if(srcEl[k]!=null)out[k]=copy(srcEl[k]);});
+  if((cfg.images||[]).includes(srcEl)&&srcEl.src)out.src=srcEl.src;
+  return out;
+}
+function particleizableSelection(cfg) {
+  if(!cfg||!state.sceneParamsMode||state.selGroup||state.partSel||(state.multi&&state.multi.length>1))return null;
+  const el=(state.selEl&&(cfg.images||[]).find(x=>x&&x.id===state.selEl))||state.selProg;
+  if(!el||el.particle||el.role==='background'||el.role==='mask')return null;
+  const image=(cfg.images||[]).includes(el)&&!!el.src,parts=Array.isArray(el.parts)&&el.parts.length>0,program=!!(el.program&&el.program.code&&Number.isFinite(+el.w)&&Number.isFinite(+el.h));
+  return image||parts||program?el:null;
+}
+function hasDeletableSelection() { return !!(state.selGroup||state.partSel||state.selEl||state.selProg||(state.multi&&state.multi.length)); }
+function syncStructureHeaderActions(cfg) {
+  const particle=$('btn-particle'),del=$('btn-delete-selection'),source=particleizableSelection(cfg);
+  if(particle){particle.disabled=!cfg||!state.sceneParamsMode||(hasDeletableSelection()&&!source);particle.title=source?'将所选元素创建为动态关联粒子':'新建默认粒子';}
+  if(del){del.disabled=!hasDeletableSelection();del.title=del.disabled?'请先选择要删除的对象':'删除所选对象';}
+}
 $('btn-particle').addEventListener('click', () => {
   const cfg = window.HOME_SCENE;
   if (!cfg || !state.sceneParamsMode) return;
+  const source=particleizableSelection(cfg);if(hasDeletableSelection()&&!source)return;if(source){dupAsParticle(source,elementProgramKey(source,cfg)||source.name);return;}
   runSceneMutation('particle.create',()=>{
    let key='粒子',n=2;while(cfg[key])key='粒子'+(n++);
    cfg[key] = {
@@ -4586,6 +4548,7 @@ $('btn-particle').addEventListener('click', () => {
    layerOpen[key]=true;state.selProg=cfg[key];state.selEl=null;elementInspectorTab='particle';return true;
   },{invalidate:'all',layers:true});
 });
+$('btn-delete-selection').addEventListener('click',()=>{if(hasDeletableSelection())runEditorCommand('selection.delete',{},'structure-head');});
 // “独立”是编辑器预览态；任何保存、测试或导出都必须恢复真实场景，避免把临时 hidden 写入作品。
 ['btn-save', 'btn-test-scene', 'btn-export'].forEach(id => {
   const btn = $(id);
@@ -4816,11 +4779,12 @@ function renderInspectorContext(cfg, isFxPane) {
     if (title) title.textContent = '编组 Inspector'; renderGroupInspector(host, group, cfg);
   } else if (img || prog) {
     const el = img || prog;
+    if(el.particle) elementInspectorTab='particle';
     // 时序编辑会话只属于一个元素；切换选择对象立即回到该对象自身的属亮信息状态。
     if(state.timingMode&&state.timingElementId!==el.id){state.timingMode=false;state.timingElementId=null;state.timingArmed=false;}
     if (globalTabs) globalTabs.style.display = 'none'; if (elementTabs) {
       if(elementInspectorTab==='sampling'&&(!img||el.particle))elementInspectorTab='props';
-      elementTabs.style.display = 'flex'; elementTabs.querySelectorAll('[data-element-inspector]').forEach(btn => { const tab=btn.dataset.elementInspector; btn.style.display = ((tab === 'particle' && !el.particle)||(tab==='sampling'&&(!img||el.particle))) ? 'none' : ''; btn.classList.toggle('active', tab === elementInspectorTab); });
+      elementTabs.style.display = 'flex'; elementTabs.querySelectorAll('[data-element-inspector]').forEach(btn => { const tab=btn.dataset.elementInspector; btn.style.display = el.particle ? (tab==='particle'?'':'none') : ((tab === 'particle'||(tab==='sampling'&&!img))?'none':''); btn.classList.toggle('active', tab === elementInspectorTab); });
     }
     const bound=elementInspectorTab==='fx'&&boundFxFor(el,cfg)[0];
     timing(elementTabs,!!el.id&&(elementInspectorTab==='props'||elementInspectorTab==='fx'),elementInspectorTab==='fx'?'编辑此局部效果的时段':'编辑当前 Scene 的元素参数覆见',bound?{fxKey:'local-fx:'+bound.id,fxTimed:!!localFxContext(bound,cfg,false).seg._timed}:el);
@@ -5278,18 +5242,32 @@ function syncInspectorLiveValues() {
 }
 function renderParticleInspector(host, el, cfg) {
   const P = el.particle = el.particle || {};
-  const write = (key, value) => mutateInspector('particle.'+key,el,()=>{P[key]=value;});
+  const write = (key, value) => mutateInspector('particle.'+key,el,()=>{P[key]=value;delete P.presetId;});
   const number = (grid, label, key, def, opts) => inspectorNumber(grid, label, P[key] != null ? P[key] : def, v => write(key, opts && opts.clamp ? opts.clamp(v) : v), opts);
   const toggle = (grid, label, key, def) => { const input=document.createElement('input'); input.type='checkbox'; input.checked=P[key] !== undefined ? !!P[key] : !!def; input.addEventListener('change',()=>write(key,input.checked)); inspectorField(grid,label,input); };
 
-  const entity = inspectorSection(host, '实体', '粒子层独立存在；它引用图片或自身图元，不会把原元素转换或删除。');
+  const presetGrid=inspectorSection(host,'预设','预设始终载入运动参数；开启“覆盖实体”时同时改用预设自带图元。');
+  const presetRow=document.createElement('span');presetRow.className='paint-row';
+  const presetEntity=document.createElement('input');presetEntity.type='checkbox';try{presetEntity.checked=localStorage.getItem('patcharium.particlePresetEntity')==='1';}catch(_){presetEntity.checked=false;}
+  presetEntity.title='保持开启：以后选择预设时也覆盖粒子实体';presetEntity.addEventListener('change',()=>{try{localStorage.setItem('patcharium.particlePresetEntity',presetEntity.checked?'1':'0');}catch(_){}});
+  const presetSelect=document.createElement('select');presetSelect.appendChild(new Option('当前自定义',''));
+  const builtins=(window.EditorParticleRegistry&&EditorParticleRegistry.presets)||[];
+  const extensions=(window.PARTICLE_PRESETS||[]).map((p,i)=>Object.assign({id:'external-'+i},p));
+  const presets=[...builtins,...extensions];presets.forEach(p=>presetSelect.appendChild(new Option(p.name,p.id)));presetSelect.value=P.presetId||'';if(presetSelect.selectedIndex<0)presetSelect.value='';
+  presetSelect.addEventListener('change',()=>{const preset=presets.find(p=>p.id===presetSelect.value);if(!preset)return;const oldSource=P.source&&JSON.parse(JSON.stringify(P.source)),oldParts=el.parts&&JSON.parse(JSON.stringify(el.parts));mutateInspector('particle.preset.'+preset.id,el,()=>{el.particle=JSON.parse(JSON.stringify(preset.particle||{}));el.particle.presetId=preset.id;if(presetEntity.checked){el.parts=JSON.parse(JSON.stringify(preset.parts||[]));delete el.particle.source;}else{if(oldSource)el.particle.source=oldSource;if(oldParts)el.parts=oldParts;}},{layers:true});if(el.particle.burst){state.t=Math.floor(state.t/tlLoop())*tlLoop()+showWindowStart(el);if(window.HomeScene&&HomeScene.seek)HomeScene.seek(state.t);renderTimeline();}});
+  presetRow.append(presetEntity,presetSelect);inspectorField(presetGrid,'覆盖实体',presetRow,true);
+
+  const entity = inspectorSection(host, '实体', '关联实体会实时继承源对象的图片、图元、对象样式与动画；发射、时段、滚动和区域效果仍属于粒子层。');
   const source = document.createElement('select');
   source.appendChild(new Option('图元 parts', 'parts'));
+  const linkedSources=editableElements(cfg).filter(item=>item&&item!==el&&!item.particle&&item.id&&item.role!=='background'&&item.role!=='mask'&&(((cfg.images||[]).includes(item)&&item.src)||(item.parts&&item.parts.length)||(item.program&&item.program.code&&Number.isFinite(+item.w)&&Number.isFinite(+item.h))));
+  linkedSources.forEach(item=>source.appendChild(new Option('关联：'+(item.name||elementProgramKey(item,cfg)||item.id),'element:'+item.id)));
   const sources = (cfg.images || []).filter(img => img && img.id && img.role !== 'mask');
   sources.forEach(img => { source.appendChild(new Option('图片：' + (img.name || img.id), 'image:' + img.id)); if (el.parts && el.parts.length) source.appendChild(new Option('图片 + 图元：' + (img.name || img.id), 'composite:' + img.id)); });
   const src = P.source;
-  source.value = src && src.type === 'image' ? (src.compose === 'image+parts' ? 'composite:' : 'image:') + src.imageId : 'parts'; if (source.selectedIndex < 0) source.value = 'parts'; source.addEventListener('change', () => mutateInspector('particle.source',el,()=>{if(source.value==='parts')delete P.source;else{const composite=source.value.indexOf('composite:')===0;P.source={type:'image',imageId:source.value.slice(composite?10:6),frame:0,playback:'static'};if(composite)P.source.compose='image+parts';}},{layers:true}));
+  source.value = src&&src.type==='element'?'element:'+src.targetId:(src && src.type === 'image' ? (src.compose === 'image+parts' ? 'composite:' : 'image:') + src.imageId : 'parts'); if (source.selectedIndex < 0) source.value = 'parts'; source.addEventListener('change', () => mutateInspector('particle.source',el,()=>{delete P.presetId;if(source.value==='parts')delete P.source;else if(source.value.indexOf('element:')===0){const target=linkedSources.find(item=>item.id===source.value.slice(8));if(target)P.source={type:'element',targetId:target.id,mode:'linked',fallback:particleSourceFallback(target,cfg)};}else{const composite=source.value.indexOf('composite:')===0;P.source={type:'image',imageId:source.value.slice(composite?10:6),frame:0,playback:'static'};if(composite)P.source.compose='image+parts';}},{layers:true}));
   inspectorField(entity, '粒子实体', source, true);
+  if (src && src.type === 'element') { const target=linkedSources.find(item=>item.id===src.targetId);const status=document.createElement('span');status.textContent=target?'动态关联 · '+(target.name||target.id):'源已断开 · 使用 fallback';inspectorField(entity,'关联状态',status,true); }
   if (src && src.type === 'image') {
     const playback=document.createElement('select'); [['static','静态帧'],['particle-age','按粒子寿命播缩']].forEach(([v,t])=>playback.appendChild(new Option(t,v))); playback.value=src.playback==='particle-age'?'particle-age':'static'; playback.addEventListener('change',()=>mutateInspector('particle.playback',el,()=>{src.playback=playback.value;},{layers:true})); inspectorField(entity,'播放方式',playback);
     if (playback.value === 'static') inspectorNumber(entity,'帧序窗',src.frame || 0,v=>mutateInspector('particle.frame',el,()=>{src.frame=Math.max(0,Math.round(v));}),{min:0,step:1});
@@ -5462,6 +5440,7 @@ function renderStructureTree(cfg) {
   const tree = $('structure-tree');
   if (!tree) return;
   tree.innerHTML = '';
+  syncStructureHeaderActions(cfg);
   if (!cfg) { tree.innerHTML = '<div class="struct-empty">打开或新建场景后显示结构。</div>'; return; }
   const add = (kind, label, depth, opts) => {
     const node = document.createElement('div');
@@ -5511,15 +5490,11 @@ function renderStructureTree(cfg) {
     { key: 'lock', text: '钮', title: '锁定（ Canvas 不可选中，', enabled: true, active: !!target.obj.locked },
     { key: 'isolate', text: '独', title: '独立显示目标对象', enabled: true, active: !!(state.isolation && state.isolation.key === target.key) },
     { key: 'hide', text: referenced ? '引' : '随', title: referenced ? '作为元素蒙版来源：请在引用者的蒙版中替换或清除' : (targetHidden(target) ? '显示' : '隐藏'), enabled: !referenced, active: referenced || targetHidden(target) },
-    { key: 'delete', text: '制', title: target.type === 'group' ? '解散编组（不删除成员）' : '删除', enabled: true },
   ]; };
   const toggleTargetHidden = target => {
     if (!target || !target.obj) return;
     if (maskReference(target)) return;
     runSceneMutation('structure.visibility',()=>{if(target.type==='group'){const members=groupMembers(target.obj,cfg),reveal=members.every(el=>!!el.hidden);members.forEach(el=>{el.hidden=!reveal;});}else target.obj.hidden=!target.obj.hidden;return true;},{entity:target.obj,layers:true});
-  };
-  const deleteTarget = target => {
-    runEditorCommand('selection.delete', { target }, 'structure-tree');
   };
   /* 结构树不应 HTML5 drag-and-drop： Edge 在原生拖拽会话中会拦截鼠标与键盘。
      一旦目标重绘或未命中 drop，页面看起来像“动画仍跑、其它输入全失效”。
@@ -5561,7 +5536,7 @@ function renderStructureTree(cfg) {
     const elementTarget = { type: 'element', obj: el, key: 'element:' + (el.id || item.key) };
     const elementNode = add('element', el.name || (isProg ? item.key : '图片元素'), depth, {
       icon: hasChildren ? (expanded ? '▾' : '▸') : (el.particle ? '✜' : (isProg ? '●' : '▪')), structureKey:treeKey, meta: (!isTemporarilyIsolatedOut(el) && el.hidden) ? '隐藏' : (el.particle ? '粒子' : ''), selected,
-      actions: (boundFxFor(el, cfg).length ? [{ key: 'fx', text: 'fx', title: '打开局部效果', enabled: true }] : []).concat(!el.particle && ((el.parts && el.parts.length) || (!isProg && el.id)) ? [{ key: 'particle', text: '精', title: '新建粒子图层', enabled: true }] : [], actionsFor(elementTarget)),
+      actions: (boundFxFor(el, cfg).length ? [{ key: 'fx', text: 'fx', title: '打开局部效果', enabled: true }] : []).concat(actionsFor(elementTarget)),
       onClick: ev => {
         if (ev.ctrlKey || ev.metaKey) { toggleMultiElement(el, cfg); return; }
         if (hasChildren) structureExpanded[treeKey] = !expanded;
@@ -5572,7 +5547,7 @@ function renderStructureTree(cfg) {
         if (!name || !name.trim()) return;
         runSceneMutation('structure.rename.element',()=>{el.name=name.trim();return true;},{entity:el,layers:true});
       },
-      onAction: act => { if (act === 'fx') { elementInspectorTab = 'fx'; focusMember(el, cfg, isProg); } else if (act === 'particle') dupAsParticle(el, isProg ? item.key : el.name); else if (act === 'lock') toggleTreeLock(elementTarget, cfg); else if (act === 'isolate') toggleIsolation(elementTarget, cfg); else if (act === 'hide') toggleTargetHidden(elementTarget); else if (act === 'delete') deleteTarget(elementTarget); }
+      onAction: act => { if (act === 'fx') { elementInspectorTab = 'fx'; focusMember(el, cfg, isProg); } else if (act === 'lock') toggleTreeLock(elementTarget, cfg); else if (act === 'isolate') toggleIsolation(elementTarget, cfg); else if (act === 'hide') toggleTargetHidden(elementTarget); }
     });
     bindTreeLayerDrag(elementNode, item);
     if (expanded && el.parts && el.parts.length) (el.parts || []).map((part, index) => ({ part, index })).reverse().forEach(({ part, index }) => {
@@ -5582,7 +5557,7 @@ function renderStructureTree(cfg) {
         actions: actionsFor(partTarget),
         onClick: () => { activatePart(el, index, true); renderStage(); },
         onRename: () => { const name=window.prompt('图元名称，', part.name || part.type || '图元'); if(!name||!name.trim())return;runSceneMutation('structure.rename.part',()=>{part.name=name.trim();return true;},{entity:el,layers:true}); },
-        onAction: act => { if (act === 'lock') toggleTreeLock(partTarget, cfg); else if (act === 'isolate') toggleIsolation(partTarget, cfg); else if (act === 'hide') toggleTargetHidden(partTarget); else if (act === 'delete') deleteTarget(partTarget); }
+        onAction: act => { if (act === 'lock') toggleTreeLock(partTarget, cfg); else if (act === 'isolate') toggleIsolation(partTarget, cfg); else if (act === 'hide') toggleTargetHidden(partTarget); }
       });
       bindTreePartDrag(partNode, el, index);
     });
@@ -5596,7 +5571,7 @@ function renderStructureTree(cfg) {
       icon: expanded ? '▾' : '▸', structureKey:groupKey, meta: members.length + ' 项', selected: state.selGroup === g.id, actions: actionsFor(groupTarget),
       onClick: () => { structureExpanded[groupKey]=!expanded; selectGroup(g, cfg); buildLayerList(cfg); renderStructureTree(cfg); renderStage(); renderTimeline(); },
       onRename: () => { const name=window.prompt('编组名称，',g.name||'编组');if(!name||!name.trim())return;runSceneMutation('structure.rename.group',()=>{g.name=name.trim();return true;},{entity:g,layers:true}); },
-      onAction: act => { if (act === 'lock') toggleTreeLock(groupTarget, cfg); else if (act === 'isolate') toggleIsolation(groupTarget, cfg); else if (act === 'hide') toggleTargetHidden(groupTarget); else if (act === 'delete') deleteTarget(groupTarget); }
+      onAction: act => { if (act === 'lock') toggleTreeLock(groupTarget, cfg); else if (act === 'isolate') toggleIsolation(groupTarget, cfg); else if (act === 'hide') toggleTargetHidden(groupTarget); }
     });
     bindTreeGroupDrag(groupNode,g);
     if (expanded) members.forEach(entry => addElement(entry, 1));
@@ -6106,7 +6081,6 @@ function clearEditorSelection(mode) {
   } else if (partsOpenEl) {
     partsOpenEl = null; buildLayerList(layerCfg()); renderStage(); renderTimeline();
   } else return false;
-  if ($('side-anim') && $('side-anim').style.display !== 'none') renderAnimPanel();
   return true;
 }
 function deleteEditorSelection(target) {

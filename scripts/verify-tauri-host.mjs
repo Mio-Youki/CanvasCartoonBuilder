@@ -22,6 +22,8 @@ for (const command of commands) {
   if (adapter.includes(`'${command}'`) && rust.includes(command)) pass(`${command} 前后端合同存在`);
   else fail(`${command} 前后端合同缺失`);
 }
+if (rust.includes('wants_font') && rust.includes('"Fonts"') && rust.includes('"woff2"')) pass('Tauri 素材选择器按 accept 切换图片 / 字体白名单');
+else fail('Tauri 素材选择器尚未支持字体连接');
 
 const config = JSON.parse(read('src-tauri/tauri.conf.json'));
 const pkg = JSON.parse(read('package.json'));

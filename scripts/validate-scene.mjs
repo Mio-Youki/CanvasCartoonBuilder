@@ -181,6 +181,11 @@ export function validateScene(scene) {
     validateMask(entity.mask, entity.id || entity.__key);
     const source = entity.particle?.source;
     if (source?.type === 'image' && (!byId.has(source.imageId) || byId.get(source.imageId).__source !== 'image')) error(`${entity.id || entity.__key}.particle.source.imageId 不存在或不是图片`);
+    if (source?.type === 'element') {
+      const target=byId.get(source.targetId);
+      if ((!target || target.particle) && !source.fallback) error(`${entity.id || entity.__key}.particle.source.targetId 不存在且没有 fallback`);
+      if (target === entity) error(`${entity.id || entity.__key}.particle.source 不能引用自身`);
+    }
   });
 
   const groupIds = new Set();

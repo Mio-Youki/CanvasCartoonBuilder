@@ -920,41 +920,57 @@ const HomeScene = (() => {
   // life 寿命(秒) / speed dir(度,0=右 90=下 180=左 270=上) spread(扩散锥) gravity wind(水平加速度) /
   // spin(初始自旋度) spinSpeed(度/秒) sizeVar(尺寸抖动 [1-a,1+a]) alpha(初始透明度) fade(淡出) /
   // colorJitter(每粒颜色抖动 0~1，映射色相/亮度/饱和度/对比度各自最大档) pixelDiv(精灵像素化除数)
-  // 精灵缓存：每帧每元素把 parts 或「图片 + parts」渲染一次到离屏（应用 pixelDiv/alphaMode；part 级 anim 生效；元素级 anim/scroll
-  // 不参与——粒子运动归粒子参数），粒子本体只做 blit —— 每粒属性（pixelDiv/颜色抖动）成本 ≈ 0
+  // 精灵缓存：每帧每元素把 parts / program / 图片组合渲染一次到离屏；图元动画在精灵内生效，
+  // 元素动画作为每颗粒子的附加姿态实时继承；scroll 与粒子发射运动相互独立，不继承。
+  function particleSourceEntity(e) {
+    const src=e&&e.particle&&e.particle.source;
+    if(!src||src.type!=='element')return null;
+    const all=(CFG.images||[]).concat(Object.keys(CFG||{}).map(k=>CFG[k]).filter(v=>v&&typeof v==='object'&&!Array.isArray(v)));
+    const live=all.find(item=>item&&item!==e&&!item.particle&&item.id===src.targetId);
+    return live || (src.fallback&&typeof src.fallback==='object'?src.fallback:null);
+  }
   function particleImageSource(e) {
     const src = e.particle && e.particle.source;
-    if (!src || src.type !== 'image' || !src.imageId) return null;
-    const el = (CFG.images || []).find(x => x && x.id === src.imageId);
+    const linked=particleSourceEntity(e);
+    let el=null;
+    if(linked&&linked.src)el=linked;
+    else if(src&&src.type==='image'&&src.imageId)el=(CFG.images || []).find(x => x && x.id === src.imageId);
     if (!el) return null;
     const img = el._asset || (el.src && (imgCache[el.src] || (imgCache[el.src] = (() => { const i = new Image(); i.src = el.src; return i; })())));
     if (!img || !img.width || !img.height) return null;
     return {
       el, img,
-      frame: Math.max(0, src.frame | 0),
-      playback: src.playback === 'particle-age' ? 'particle-age' : 'static',
+      frame: Math.max(0, (src.frame || 0) | 0),
+      playback: src.playback === 'particle-age' || (linked&&el.frames>1) ? 'particle-age' : 'static',
       fps: Math.max(1, src.fps || el.fps || 8),
-      loop: !!src.loop,
+      loop: src.loop!=null?!!src.loop:!!el.frameLoop,
     };
   }
   function particleUsesParts(e) {
     const src = e.particle && e.particle.source;
-    return !!(e.parts && e.parts.length && (!src || src.type !== 'image' || src.compose === 'image+parts'));
+    const visual=particleSourceEntity(e)||e;
+    return !!(visual.parts && visual.parts.length && (!src || src.type !== 'image' || src.compose === 'image+parts'));
+  }
+  function particleUsesProgram(e) {
+    const visual=particleSourceEntity(e);
+    return !!(visual&&visual.program&&typeof visual.program.code==='string'&&visual.program.code);
   }
   function particleSprites(e, t, cj, cjDim) {
+    const visual=particleSourceEntity(e)||e;
     const imageSource = particleImageSource(e);
-    const cacheable = !(e.parts || []).some(part => part && part.anim);
-    const cacheKey = cacheable ? JSON.stringify({ parts:e.parts||[], pixelDiv:e.pixelDiv||1, alphaMode:e.alphaMode||'', source:e.particle&&e.particle.source||null, imageSrc:imageSource&&imageSource.el&&imageSource.el.src||'', imageW:imageSource&&imageSource.el&&imageSource.el.w||0, imageH:imageSource&&imageSource.el&&imageSource.el.h||0, imageAlpha:imageSource&&imageSource.el?(imageSource.el.alpha==null?1:+imageSource.el.alpha):1, frames:imageSource&&imageSource.el&&imageSource.el.frames||1, cj:+cj||0, cjDim:cjDim||'hue' }) : '';
+    const cacheable = !(visual.parts || []).some(part => part && part.anim)&&!particleUsesProgram(e);
+    const divValue=e.pixelDiv!=null?e.pixelDiv:visual.pixelDiv,alphaMode=e.alphaMode||visual.alphaMode||'';
+    const cacheKey = cacheable ? JSON.stringify({ parts:visual.parts||[], style:visual.style||null, pixelDiv:divValue||1, alphaMode, source:e.particle&&e.particle.source||null, imageSrc:imageSource&&imageSource.el&&imageSource.el.src||'', imageW:imageSource&&imageSource.el&&imageSource.el.w||0, imageH:imageSource&&imageSource.el&&imageSource.el.h||0, imageAlpha:imageSource&&imageSource.el?(imageSource.el.alpha==null?1:+imageSource.el.alpha):1, frames:imageSource&&imageSource.el&&imageSource.el.frames||1, cj:+cj||0, cjDim:cjDim||'hue' }) : '';
     if (cacheable) {
       const cached = particleSpriteCache.get(e);
       if (cached && cached.key === cacheKey) { frameStats.cacheHits++; cached.value.frames.forEach(frame => { noteSurface(frame.base); (frame.variants || []).forEach(noteSurface); }); return cached.value; }
       frameStats.cacheMisses++;
     }
     let lb = imageSource ? { x: 0, y: 0, w: imageSource.el.w || imageSource.img.width, h: imageSource.el.h || imageSource.img.height }
-      : partsLocalBox(e);
+      : (particleUsesProgram(e)?{x:0,y:0,w:Math.max(1,+visual.w||1),h:Math.max(1,+visual.h||1)}:partsLocalBox(visual));
     // 组合粒子：图片与 parts 使用原元素相同的局部坐标，精灵包围盒须容纳两者（parts 可越出图片边缘）。
     if (imageSource && particleUsesParts(e)) {
-      const pb = partsLocalBox(e);
+      const pb = partsLocalBox(visual);
       if (pb) {
         const minX = Math.min(lb.x, pb.x), minY = Math.min(lb.y, pb.y);
         const maxX = Math.max(lb.x + lb.w, pb.x + pb.w), maxY = Math.max(lb.y + lb.h, pb.y + pb.h);
@@ -962,7 +978,7 @@ const HomeScene = (() => {
       }
     }
     if (!lb) return null;
-    const div = (e.pixelDiv && e.pixelDiv > 1) ? e.pixelDiv : 1;
+    const div = (divValue && divValue > 1) ? divValue : 1;
     // 尺寸下限 1：纯竖线/水平线 part 包围盒宽/高可为 0 → 精灵至少 1px（否则 blit 宽 0 不可见）
     const W = Math.max(1, Math.round(lb.w / div)), H = Math.max(1, Math.round(lb.h / div));
     const render = (imageFrame) => {
@@ -974,10 +990,19 @@ const HomeScene = (() => {
         const frames = Math.max(1, imageSource.el.frames || 1);
         const frame = Math.min(frames - 1, imageFrame == null ? imageSource.frame : imageFrame);
         const sw = Math.floor(imageSource.img.width / frames) || imageSource.img.width;
+        let sourceImg=imageSource.img,sourceX=frame*sw,sourceY=0,sourceW=sw,sourceH=imageSource.img.height;
+        const styled=styledImageFrame(imageSource.el,imageSource.img,sourceX,sw,imageSource.img.height,frame,t);
+        if(styled){sourceImg=styled;sourceX=0;sourceW=styled.width;sourceH=styled.height;}
+        else {
+          // pixelBoil 可以独立于其它 Sampling Motion 生效；对源采样窗做轻微、可循环的确定性偏移。
+          const jitter=sampleJitterAt(imageSource.el,t,div);
+          sourceX+=jitter.x;sourceY=jitter.y;
+          sourceW=Math.max(1,sourceW-jitter.inset);sourceH=Math.max(1,sourceH-jitter.inset);
+        }
         og.globalAlpha = imageSource.el.alpha != null ? imageSource.el.alpha : 1;
         const iw = (imageSource.el.w || imageSource.img.width) / div;
         const ih = (imageSource.el.h || imageSource.img.height) / div;
-        og.drawImage(imageSource.img, frame * sw, 0, sw, imageSource.img.height, -lb.x / div, -lb.y / div, iw, ih);
+        og.drawImage(sourceImg, sourceX, sourceY, sourceW, sourceH, -lb.x / div, -lb.y / div, iw, ih);
         og.globalAlpha = 1;
       }
       if (particleUsesParts(e)) {
@@ -985,13 +1010,18 @@ const HomeScene = (() => {
         og.translate(-lb.x, -lb.y);
         const savedCtx = ctx;
         ctx = og;
-        drawPartsRaw({ x: 0, y: 0, parts: e.parts, anim: null, scroll: null, rot: 0 }, t, 1); // 局部坐标不透明版（粒子 alpha 在 blit 时应用）
+        drawPartsRaw({ x: 0, y: 0, parts: visual.parts, anim: null, scroll: null, rot: 0 }, t, 1); // 局部坐标不透明版（粒子 alpha 在 blit 时应用）
         ctx = savedCtx;
       }
-      if (e.alphaMode === 'remove' || e.alphaMode === 'boost') {
+      if (particleUsesProgram(e)) {
+        const source=visual.program.code;
+        if(!visual._particleProgramFn||visual._particleProgramSource!==source){try{visual._particleProgramFn=new Function('ctx','t','el','scene','helpers','"use strict";\n'+source);visual._particleProgramSource=source;}catch(_){visual._particleProgramFn=null;}}
+        if(visual._particleProgramFn){og.save();og.scale(1/div,1/div);try{visual._particleProgramFn(og,t,Object.assign({},visual,{x:0,y:0,scaleX:1,scaleY:1,rot:0,rotation:0}),CFG,{clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),lerp:(a,b,p)=>a+(b-a)*p,rgba:(hex,a)=>{const c=hexToRgb(hex);return 'rgba('+c.r+','+c.g+','+c.b+','+Math.max(0,Math.min(1,a==null?1:a))+')';},noise:x=>{const n=Math.sin(x*127.1+311.7)*43758.5453;return n-Math.floor(n);}});}catch(_){}og.restore();}
+      }
+      if (alphaMode === 'remove' || alphaMode === 'boost') {
         const id = og.getImageData(0, 0, oc.width, oc.height);
         const d = id.data;
-        if (e.alphaMode === 'remove') { for (let ai = 3; ai < d.length; ai += 4) { const av = d[ai]; if (av > 0 && av < 128) d[ai] = 0; else if (av >= 128) d[ai] = 255; } }
+        if (alphaMode === 'remove') { for (let ai = 3; ai < d.length; ai += 4) { const av = d[ai]; if (av > 0 && av < 128) d[ai] = 0; else if (av >= 128) d[ai] = 255; } }
         else { for (let ai = 3; ai < d.length; ai += 4) if (d[ai] > 0) d[ai] = 255; }
         og.putImageData(id, 0, 0);
       }
@@ -1037,7 +1067,12 @@ const HomeScene = (() => {
   function drawParticles(e, t, key) {
     const p = e.particle || {};
     const count = Math.max(0, Math.min(600, p.count != null ? p.count : 40));
-    if (!count || (!particleUsesParts(e) && !(p.source && p.source.type === 'image'))) return;
+    if (!count || (!particleUsesParts(e) && !particleImageSource(e) && !particleUsesProgram(e))) return;
+    const visual=particleSourceEntity(e)||e;
+    // 图片 alpha 已烘入精灵；parts / program 则在 blit 阶段乘入源元素静态 alpha。
+    const visualAlpha=particleImageSource(e)?1:(val(visual,'alpha',t)==null?1:val(visual,'alpha',t));
+    const sourcePose=applyAnims(animList(visual.anim),t,{yOff:0,xOff:0,rot:0,scale:1,alpha:visualAlpha});
+    const sourceRot=rotationVal(visual,t)||0,sourceScaleX=val(visual,'scaleX',t)||1,sourceScaleY=val(visual,'scaleY',t)||1;
     const loop = LOOPv();
     const t0 = ((t % loop) + loop) % loop;
     const rate = p.rate != null ? p.rate : 40;
@@ -1093,11 +1128,11 @@ const HomeScene = (() => {
       }
       const frameSet = sprites.frames[frameIndex] || sprites.frames[0];
       const spr = (cj > 0 && frameSet.variants) ? frameSet.variants[(rnd(i, 7) * frameSet.variants.length) | 0] : frameSet.base;
-      const wpx = sprW * size, hpx = sprH * size;
+      const wpx = sprW * size * sourcePose.scale * sourceScaleX, hpx = sprH * size * sourcePose.scale * sourceScaleY;
       ctx.save();
-      ctx.globalAlpha = a;
-      ctx.translate(Math.round(px), Math.round(py));
-      if (rot) ctx.rotate(rot * Math.PI / 180);
+      ctx.globalAlpha = a * sourcePose.alpha;
+      ctx.translate(Math.round(px+sourcePose.xOff), Math.round(py+sourcePose.yOff));
+      if (rot+sourceRot+sourcePose.rot) ctx.rotate((rot+sourceRot+sourcePose.rot) * Math.PI / 180);
       ctx.drawImage(spr, -wpx / 2, -hpx / 2, wpx, hpx);
       ctx.restore();
     }
@@ -1262,7 +1297,8 @@ const HomeScene = (() => {
   }
 
   function drawElementStyle(el, paint) {
-    const st = el && el.style, sh = st && st.shadow, ol = st && st.outline;
+    const styleSource=particleSourceEntity(el)||el;
+    const st = styleSource && styleSource.style, sh = st && st.shadow, ol = st && st.outline;
     if (!sh && !ol) { paint(); return; }
     if (!elementStyleCanvas) elementStyleCanvas = createSurface(W, H);
     if (!elementSilhouetteCanvas) elementSilhouetteCanvas = createSurface(W, H);
@@ -1717,7 +1753,7 @@ const HomeScene = (() => {
             if (!elShown(el, t)) return;
             if (el.kind === 'builtin' && el.builtin === 'train-beam') drawBeam(el, t);
             else if (el.program && el.program.code) drawProgramElement(el, t);
-            else if (el.particle && ((el.parts && el.parts.length) || (el.particle.source && el.particle.source.type === 'image'))) drawParticles(el, t, k);
+            else if (el.particle && ((el.parts && el.parts.length) || (el.particle.source && (el.particle.source.type === 'image' || el.particle.source.type === 'element')))) drawParticles(el, t, k);
             else if (el.parts && el.parts.length) drawParts(el, t);
           },
         };
