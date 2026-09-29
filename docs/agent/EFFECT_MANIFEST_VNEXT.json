@@ -1,0 +1,1917 @@
+{
+  "format": "tosampool-agent-effect-manifest",
+  "version": 1,
+  "lifecycle": "experimental-runtime-partial",
+  "source": "editor/effect-registry-vnext.js",
+  "pipelines": {
+    "object": {
+      "compose": "compose",
+      "defaultOrder": [
+        "mask",
+        "decorate",
+        "sample"
+      ],
+      "movableStages": [
+        "mask",
+        "decorate",
+        "sample"
+      ],
+      "stages": {
+        "compose": "成样",
+        "mask": "蒙版",
+        "decorate": "加样",
+        "sample": "采样"
+      },
+      "summary": "成样固定在首位；蒙版、加样、采样可整体调序，组内效果顺序固定。"
+    },
+    "scene": {
+      "order": [
+        "overlay",
+        "sample"
+      ],
+      "stages": {
+        "overlay": "场景叠加滤镜",
+        "sample": "场景采样滤镜"
+      },
+      "summary": "所有对象合成后依次进行场景叠加与场景采样；噪点属于叠加图案，不再拥有独立输出阶段。"
+    }
+  },
+  "controllers": [
+    {
+      "id": "sampling-grid",
+      "name": "采样格",
+      "aliases": [],
+      "family": "sample-controller",
+      "scopes": [
+        "object",
+        "scene"
+      ],
+      "purpose": "当前对象或场景的独立最近邻再采样；同时为偏移、网点与不均采样提供共同的低分辨率工作面。",
+      "avoidWhen": [],
+      "timing": "step",
+      "particleBake": "shared-frame",
+      "cost": "A",
+      "parameters": [
+        {
+          "key": "size",
+          "label": "采样尺寸",
+          "type": "number",
+          "default": 1,
+          "min": 1,
+          "max": 128
+        }
+      ]
+    }
+  ],
+  "effects": [
+    {
+      "id": "projection",
+      "name": "投影",
+      "aliases": [
+        "硬阴影",
+        "长投影"
+      ],
+      "family": "decorate",
+      "stage": "decorate-back",
+      "scopes": [
+        "object"
+      ],
+      "purpose": "从对象最终 Alpha 生成硬边投影，保持对象 z 内的前后关系。",
+      "avoidWhen": [
+        "需要羽化模糊阴影"
+      ],
+      "timing": "linear-safe",
+      "motion": null,
+      "particleBake": "shared-frame",
+      "mask": "object",
+      "cost": "B",
+      "parameters": [
+        {
+          "key": "color",
+          "label": "颜色",
+          "type": "color",
+          "default": "#000000"
+        },
+        {
+          "key": "alpha",
+          "label": "透明度",
+          "type": "number",
+          "default": 0.5,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "key": "distance",
+          "label": "距离",
+          "type": "number",
+          "default": 3,
+          "min": 0,
+          "max": 96
+        },
+        {
+          "key": "angle",
+          "label": "角度",
+          "type": "number",
+          "default": 45,
+          "min": -180,
+          "max": 180
+        },
+        {
+          "key": "blend",
+          "label": "叠加方式",
+          "type": "select",
+          "default": "normal",
+          "options": [
+            "normal",
+            "screen",
+            "multiply",
+            "lighter"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "outline",
+      "name": "描边",
+      "aliases": [
+        "外描边",
+        "硬边"
+      ],
+      "family": "decorate",
+      "stage": "decorate-edge",
+      "scopes": [
+        "object"
+      ],
+      "purpose": "从对象最终 Alpha 向外扩张得到硬边轮廓；不等同于矢量路径描线。",
+      "avoidWhen": [
+        "只需要单个图元路径描线"
+      ],
+      "timing": "linear-safe",
+      "motion": null,
+      "particleBake": "shared-frame",
+      "mask": "object",
+      "cost": "B",
+      "parameters": [
+        {
+          "key": "color",
+          "label": "颜色",
+          "type": "color",
+          "default": "#000000"
+        },
+        {
+          "key": "alpha",
+          "label": "透明度",
+          "type": "number",
+          "default": 1,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "key": "width",
+          "label": "宽度",
+          "type": "number",
+          "default": 1,
+          "min": 1,
+          "max": 16
+        },
+        {
+          "key": "blend",
+          "label": "叠加方式",
+          "type": "select",
+          "default": "normal",
+          "options": [
+            "normal",
+            "screen",
+            "multiply",
+            "lighter"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tint-overlay",
+      "name": "染色叠加",
+      "aliases": [
+        "色膜",
+        "颜色叠加",
+        "染色"
+      ],
+      "family": "decorate",
+      "stage": "decorate-inside",
+      "scopes": [
+        "object",
+        "scene"
+      ],
+      "purpose": "用统一颜色和混合方式覆盖已有像素；适合淡入、灯光染色和低成本场景气氛变化。",
+      "avoidWhen": [
+        "需要精确的四轴调色"
+      ],
+      "timing": {
+        "color": "linear-safe",
+        "alpha": "linear-safe",
+        "blend": "step"
+      },
+      "motion": [
+        "fade",
+        "blink"
+      ],
+      "particleBake": "shared-frame",
+      "mask": "optional",
+      "cost": {
+        "object": "A",
+        "scene": "B"
+      },
+      "parameters": [
+        {
+          "key": "color",
+          "label": "颜色",
+          "type": "color",
+          "default": "#ffffff"
+        },
+        {
+          "key": "alpha",
+          "label": "透明度",
+          "type": "number",
+          "default": 0,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "key": "blend",
+          "label": "叠加方式",
+          "type": "select",
+          "default": "screen",
+          "options": [
+            "normal",
+            "screen",
+            "multiply",
+            "lighter"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "texture-overlay",
+      "name": "纹理叠加",
+      "aliases": [
+        "扫描线",
+        "CRT 纹理",
+        "纸纹",
+        "网格",
+        "颗粒",
+        "噪点",
+        "雪花"
+      ],
+      "family": "decorate",
+      "stage": "decorate-inside",
+      "scopes": [
+        "object",
+        "scene"
+      ],
+      "purpose": "将图案或稀疏颗粒裁入对象或场景范围；扫描线、显示器感与噪点均由同一叠加语义组合。",
+      "avoidWhen": [
+        "需要真实镜头模糊"
+      ],
+      "timing": {
+        "color": "linear-safe",
+        "alpha": "linear-safe",
+        "texture": "step",
+        "blend": "step",
+        "motion": "step"
+      },
+      "motion": [
+        "pattern-drift",
+        "pattern-step",
+        "pattern-random",
+        "pattern-pulse",
+        "noise-snow",
+        "random-hold"
+      ],
+      "particleBake": "shared-frame",
+      "mask": "optional",
+      "cost": {
+        "object": "B",
+        "scene": "B"
+      },
+      "parameters": [
+        {
+          "key": "texture",
+          "label": "图案",
+          "type": "select",
+          "default": "lines-horizontal",
+          "options": [
+            "lines-horizontal",
+            "grid",
+            "lines-layers",
+            "dots",
+            "noise"
+          ]
+        },
+        {
+          "key": "color",
+          "label": "颜色",
+          "type": "color",
+          "default": "#ffffff"
+        },
+        {
+          "key": "alpha",
+          "label": "透明度",
+          "type": "number",
+          "default": 0.2,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "key": "spacing",
+          "label": "格距",
+          "type": "number",
+          "default": 4,
+          "min": 1,
+          "max": 256,
+          "visibleFor": [
+            "lines-horizontal",
+            "grid",
+            "lines-layers",
+            "dots"
+          ]
+        },
+        {
+          "key": "size",
+          "label": "图样大小 / 线宽",
+          "type": "number",
+          "default": 1,
+          "min": 1,
+          "max": 256,
+          "visibleFor": [
+            "lines-horizontal",
+            "grid",
+            "lines-layers",
+            "dots"
+          ]
+        },
+        {
+          "key": "shape",
+          "label": "点形",
+          "type": "select",
+          "default": "circle",
+          "options": [
+            "circle",
+            "triangle",
+            "square",
+            "pentagon",
+            "hexagon"
+          ],
+          "visibleFor": "dots"
+        },
+        {
+          "key": "layout",
+          "label": "排列",
+          "type": "select",
+          "default": "regular",
+          "options": [
+            "regular",
+            "stagger"
+          ],
+          "visibleFor": "dots"
+        },
+        {
+          "key": "rowPhase",
+          "label": "错列偏移",
+          "type": "number",
+          "default": 0.5,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "key": "phaseX",
+          "label": "起始偏移 X",
+          "type": "number",
+          "default": 0,
+          "min": 0,
+          "max": 1,
+          "visibleFor": [
+            "lines-horizontal",
+            "grid",
+            "lines-layers",
+            "dots"
+          ]
+        },
+        {
+          "key": "phaseY",
+          "label": "起始偏移 Y",
+          "type": "number",
+          "default": 0,
+          "min": 0,
+          "max": 1,
+          "visibleFor": [
+            "lines-horizontal",
+            "grid",
+            "lines-layers",
+            "dots"
+          ]
+        },
+        {
+          "key": "angle",
+          "label": "整体旋转",
+          "type": "number",
+          "default": 0,
+          "min": -180,
+          "max": 180,
+          "visibleFor": [
+            "lines-horizontal",
+            "grid",
+            "lines-layers",
+            "dots"
+          ]
+        },
+        {
+          "key": "layer2Angle",
+          "label": "线 2 角度",
+          "type": "number",
+          "default": 90,
+          "min": -180,
+          "max": 180,
+          "visibleFor": "lines-layers"
+        },
+        {
+          "key": "layer2Width",
+          "label": "线 2 线宽",
+          "type": "number",
+          "default": 1,
+          "min": 1,
+          "max": 256,
+          "visibleFor": "lines-layers"
+        },
+        {
+          "key": "layer2Spacing",
+          "label": "线 2 格距",
+          "type": "number",
+          "default": 4,
+          "min": 1,
+          "max": 256,
+          "visibleFor": "lines-layers"
+        },
+        {
+          "key": "layer3Angle",
+          "label": "线 3 角度",
+          "type": "number",
+          "default": 135,
+          "min": -180,
+          "max": 180,
+          "visibleFor": "lines-layers"
+        },
+        {
+          "key": "layer3Width",
+          "label": "线 3 线宽",
+          "type": "number",
+          "default": 1,
+          "min": 1,
+          "max": 256,
+          "visibleFor": "lines-layers"
+        },
+        {
+          "key": "layer3Spacing",
+          "label": "线 3 格距",
+          "type": "number",
+          "default": 4,
+          "min": 1,
+          "max": 256,
+          "visibleFor": "lines-layers"
+        },
+        {
+          "key": "noiseDensity",
+          "label": "颗粒密度",
+          "type": "number",
+          "default": 0.15,
+          "min": 0,
+          "max": 1,
+          "visibleFor": "noise"
+        },
+        {
+          "key": "noiseSize",
+          "label": "颗粒大小",
+          "type": "number",
+          "default": 1,
+          "min": 1,
+          "max": 16,
+          "visibleFor": "noise"
+        },
+        {
+          "key": "noiseSeed",
+          "label": "颗粒种子",
+          "type": "number",
+          "default": 1,
+          "min": 0,
+          "visibleFor": "noise"
+        },
+        {
+          "key": "blend",
+          "label": "叠加方式",
+          "type": "select",
+          "default": "screen",
+          "options": [
+            "normal",
+            "screen",
+            "multiply",
+            "lighter"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "inner-light",
+      "name": "内光效",
+      "aliases": [
+        "内发光",
+        "内阴影"
+      ],
+      "family": "decorate",
+      "stage": "decorate-inside",
+      "scopes": [
+        "object"
+      ],
+      "purpose": "沿对象 Alpha 内缘向内发光或压暗。",
+      "avoidWhen": [
+        "没有可见 Alpha 轮廓"
+      ],
+      "timing": "linear-safe",
+      "motion": null,
+      "particleBake": "shared-frame",
+      "mask": "object",
+      "cost": "B",
+      "parameters": [
+        {
+          "key": "color",
+          "label": "颜色",
+          "type": "color",
+          "default": "#ffffff"
+        },
+        {
+          "key": "alpha",
+          "label": "透明度",
+          "type": "number",
+          "default": 0.4,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "key": "size",
+          "label": "光效范围",
+          "type": "number",
+          "default": 3,
+          "min": 1,
+          "max": 64
+        },
+        {
+          "key": "layers",
+          "label": "退晕层数",
+          "type": "number",
+          "default": 2,
+          "min": 1,
+          "max": 6
+        },
+        {
+          "key": "blend",
+          "label": "叠加方式",
+          "type": "select",
+          "default": "screen",
+          "options": [
+            "normal",
+            "screen",
+            "multiply",
+            "lighter"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "outer-light",
+      "name": "外光效",
+      "aliases": [
+        "外发光",
+        "光晕"
+      ],
+      "family": "decorate",
+      "stage": "decorate-back",
+      "scopes": [
+        "object"
+      ],
+      "purpose": "从对象 Alpha 向外扩张的硬边光效，替代旧“光晕”独立效果。",
+      "avoidWhen": [
+        "需要真实高斯模糊"
+      ],
+      "timing": "linear-safe",
+      "motion": null,
+      "particleBake": "shared-frame",
+      "mask": "object",
+      "cost": "B",
+      "parameters": [
+        {
+          "key": "color",
+          "label": "颜色",
+          "type": "color",
+          "default": "#ffffff"
+        },
+        {
+          "key": "alpha",
+          "label": "透明度",
+          "type": "number",
+          "default": 0.35,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "key": "size",
+          "label": "光效范围",
+          "type": "number",
+          "default": 3,
+          "min": 1,
+          "max": 64
+        },
+        {
+          "key": "layers",
+          "label": "退晕层数",
+          "type": "number",
+          "default": 2,
+          "min": 1,
+          "max": 6
+        },
+        {
+          "key": "blend",
+          "label": "叠加方式",
+          "type": "select",
+          "default": "screen",
+          "options": [
+            "normal",
+            "screen",
+            "multiply",
+            "lighter"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "color-grade",
+      "name": "调色四轴",
+      "aliases": [
+        "色相",
+        "亮度",
+        "对比度",
+        "饱和度"
+      ],
+      "family": "formation",
+      "stage": "formation-color",
+      "scopes": [
+        "object",
+        "scene"
+      ],
+      "purpose": "对象在成样阶段、场景在叠加阶段进行基础调色。统一以 Step 处理，避免高分辨率连续像素重算。",
+      "avoidWhen": [
+        "需要平滑灯光淡入；优先用染色叠加"
+      ],
+      "timing": "step",
+      "motion": null,
+      "particleBake": "shared-frame",
+      "mask": "optional",
+      "cost": {
+        "object": "B",
+        "scene": "C"
+      },
+      "parameters": [
+        {
+          "key": "hue",
+          "label": "色相",
+          "type": "number",
+          "default": 0,
+          "min": -180,
+          "max": 180
+        },
+        {
+          "key": "brightness",
+          "label": "亮度",
+          "type": "number",
+          "default": 0,
+          "min": -100,
+          "max": 100
+        },
+        {
+          "key": "contrast",
+          "label": "对比度",
+          "type": "number",
+          "default": 0,
+          "min": -100,
+          "max": 100
+        },
+        {
+          "key": "saturation",
+          "label": "饱和度",
+          "type": "number",
+          "default": 0,
+          "min": -100,
+          "max": 100
+        }
+      ]
+    },
+    {
+      "id": "color-map",
+      "name": "颜色映射",
+      "aliases": [
+        "减色",
+        "色板",
+        "取色数",
+        "色板闪回"
+      ],
+      "family": "sample",
+      "stage": "sample-color",
+      "scopes": [
+        "object",
+        "scene"
+      ],
+      "purpose": "将颜色缩减为自动提取的最大颜色数，或选择一套命名调色板；命名调色板优先。",
+      "avoidWhen": [
+        "需要保留连续摄影渐变"
+      ],
+      "timing": "step",
+      "motion": [
+        "palette-flash"
+      ],
+      "particleBake": "shared-frame",
+      "mask": "optional",
+      "cost": {
+        "object": "B",
+        "scene": "C"
+      },
+      "parameters": [
+        {
+          "key": "palette",
+          "label": "调色板",
+          "type": "select",
+          "default": "auto",
+          "options": [
+            "auto",
+            "pico8",
+            "gb",
+            "nes",
+            "vga"
+          ]
+        },
+        {
+          "key": "colors",
+          "label": "最大颜色数",
+          "type": "number",
+          "default": 16,
+          "min": 2,
+          "max": 256
+        }
+      ]
+    },
+    {
+      "id": "threshold",
+      "name": "阈值分色",
+      "aliases": [
+        "双色阈值",
+        "阈值呼吸"
+      ],
+      "family": "sample",
+      "stage": "sample-color",
+      "scopes": [
+        "object",
+        "scene"
+      ],
+      "purpose": "将明暗压成两种颜色；动态模式可让阈值在确定周期内呼吸。",
+      "avoidWhen": [
+        "必须保留细腻照片层次"
+      ],
+      "timing": "step",
+      "motion": [
+        "threshold-pulse"
+      ],
+      "particleBake": "shared-frame",
+      "mask": "optional",
+      "cost": {
+        "object": "B",
+        "scene": "C"
+      },
+      "parameters": [
+        {
+          "key": "threshold",
+          "label": "阈值",
+          "type": "number",
+          "default": 0.5,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "key": "dark",
+          "label": "暗色",
+          "type": "color",
+          "default": "#182033"
+        },
+        {
+          "key": "light",
+          "label": "亮色",
+          "type": "color",
+          "default": "#e8dbc3"
+        }
+      ]
+    },
+    {
+      "id": "offset-sampling",
+      "name": "偏移采样",
+      "aliases": [
+        "像素沸腾",
+        "像素呼吸",
+        "像素抖动",
+        "条带故障",
+        "横向撕裂",
+        "RGB 故障"
+      ],
+      "family": "sample",
+      "stage": "sample-coordinate",
+      "scopes": [
+        "object",
+        "scene"
+      ],
+      "purpose": "沸腾从高分辨率对象胶囊生成候选采样面，只让部分采样格翻涌；像素呼吸让整张对象共用微小取样窗；故障只复制少量完整条带。三者都不是对象平移。",
+      "avoidWhen": [
+        "只需要对象整体移动；请使用 bob 或 scroll"
+      ],
+      "timing": "step",
+      "motion": [
+        "sampling-step",
+        "sampling-drift"
+      ],
+      "particleBake": "shared-frame",
+      "mask": "optional",
+      "cost": {
+        "object": "B",
+        "scene": "C"
+      },
+      "parameters": [
+        {
+          "key": "type",
+          "label": "类型",
+          "type": "select",
+          "default": "boil",
+          "options": [
+            "boil",
+            "breath",
+            "bands"
+          ]
+        },
+        {
+          "key": "seed",
+          "label": "随机种子",
+          "type": "number",
+          "default": 1,
+          "min": 0
+        },
+        {
+          "key": "boil.bias",
+          "label": "偏置",
+          "type": "number",
+          "default": 1,
+          "min": 0,
+          "max": 64,
+          "requires": "sampling-grid.size>=2",
+          "visibleFor": "boil"
+        },
+        {
+          "key": "boil.coverage",
+          "label": "沸腾密度",
+          "type": "number",
+          "default": 0.3,
+          "min": 0,
+          "max": 1,
+          "visibleFor": "boil"
+        },
+        {
+          "key": "edge.mode",
+          "label": "边缘规则",
+          "type": "select",
+          "default": "off",
+          "options": [
+            "off",
+            "contour",
+            "interior"
+          ],
+          "visibleFor": "boil"
+        },
+        {
+          "key": "edge.width",
+          "label": "保护宽度",
+          "type": "number",
+          "default": 1,
+          "min": 1,
+          "max": 8
+        },
+        {
+          "key": "breath.bias",
+          "label": "呼吸幅度",
+          "type": "number",
+          "default": 0.1,
+          "min": 0,
+          "max": 64,
+          "requires": "sampling-grid.size>=2",
+          "visibleFor": "breath"
+        },
+        {
+          "key": "breath.edge.mode",
+          "label": "边缘规则",
+          "type": "select",
+          "default": "off",
+          "options": [
+            "off",
+            "contour"
+          ],
+          "visibleFor": "breath"
+        },
+        {
+          "key": "bands.orientation",
+          "label": "条带方向",
+          "type": "select",
+          "default": "horizontal",
+          "options": [
+            "horizontal",
+            "vertical"
+          ],
+          "visibleFor": "bands"
+        },
+        {
+          "key": "bands.count",
+          "label": "条带数",
+          "type": "number",
+          "default": 6,
+          "min": 1,
+          "max": 64,
+          "visibleFor": "bands"
+        },
+        {
+          "key": "bands.thickness",
+          "label": "条带厚度",
+          "type": "number",
+          "default": 3,
+          "min": 1,
+          "max": 128,
+          "visibleFor": "bands"
+        },
+        {
+          "key": "bands.offset",
+          "label": "最大位移",
+          "type": "number",
+          "default": 12,
+          "min": 0,
+          "max": 256,
+          "visibleFor": "bands"
+        },
+        {
+          "key": "bands.channels",
+          "label": "通道",
+          "type": "select",
+          "default": "combined",
+          "options": [
+            "combined",
+            "rgb"
+          ],
+          "visibleFor": "bands"
+        }
+      ]
+    },
+    {
+      "id": "halftone",
+      "name": "网点映射",
+      "aliases": [
+        "半调",
+        "波点",
+        "印刷网点",
+        "网点震荡",
+        "网点移动"
+      ],
+      "family": "sample",
+      "stage": "sample-pattern",
+      "scopes": [
+        "object",
+        "scene"
+      ],
+      "purpose": "将明暗映射为保留原素材颜色的规则网点，形成波普和印刷质感。",
+      "avoidWhen": [
+        "对象过小而网点不可辨认"
+      ],
+      "timing": "step",
+      "motion": [
+        "dot-drift",
+        "dot-move"
+      ],
+      "particleBake": "shared-frame",
+      "mask": "optional",
+      "cost": {
+        "object": "B",
+        "scene": "C"
+      },
+      "parameters": [
+        {
+          "key": "shape",
+          "label": "点形",
+          "type": "select",
+          "default": "circle",
+          "options": [
+            "circle",
+            "triangle",
+            "square",
+            "pentagon",
+            "hexagon"
+          ]
+        },
+        {
+          "key": "size",
+          "label": "相对尺寸",
+          "type": "number",
+          "default": 4,
+          "min": 1,
+          "max": 32
+        },
+        {
+          "key": "angle",
+          "label": "网格旋转",
+          "type": "number",
+          "default": 0,
+          "min": -180,
+          "max": 180
+        },
+        {
+          "key": "offsetX",
+          "label": "起始偏移 X",
+          "type": "number",
+          "default": 0,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "key": "offsetY",
+          "label": "起始偏移 Y",
+          "type": "number",
+          "default": 0,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "key": "layout",
+          "label": "排列",
+          "type": "select",
+          "default": "regular",
+          "options": [
+            "regular",
+            "stagger"
+          ]
+        },
+        {
+          "key": "rowOffset",
+          "label": "错列偏移",
+          "type": "number",
+          "default": 0.5,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "key": "threshold",
+          "label": "阈值",
+          "type": "number",
+          "default": 0.5,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "key": "contrast",
+          "label": "对比",
+          "type": "number",
+          "default": 1,
+          "min": 0.1,
+          "max": 3
+        },
+        {
+          "key": "duotone",
+          "label": "双色",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "key": "duotoneDark",
+          "label": "暗色",
+          "type": "color",
+          "default": "#111827"
+        },
+        {
+          "key": "duotoneLight",
+          "label": "亮色",
+          "type": "color",
+          "default": "#f2e8cf"
+        }
+      ]
+    },
+    {
+      "id": "uneven-sampling",
+      "name": "不均采样",
+      "aliases": [
+        "采样潮汐",
+        "颗粒潮汐",
+        "轮廓稳定内部翻涌"
+      ],
+      "family": "sample",
+      "stage": "sample-coordinate",
+      "scopes": [
+        "object",
+        "scene"
+      ],
+      "purpose": "在对象或场景内部建立粗细不一的像素块；采样场与边缘保护只服务于这一效果。",
+      "avoidWhen": [
+        "需要可控的单一平面颜色"
+      ],
+      "timing": "step",
+      "motion": [
+        "uneven-motion"
+      ],
+      "particleBake": "shared-frame",
+      "mask": "optional",
+      "cost": {
+        "object": "B",
+        "scene": "C"
+      },
+      "parameters": [
+        {
+          "key": "amount",
+          "label": "粗细幅度",
+          "type": "number",
+          "default": 0.5,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "key": "coarseness",
+          "label": "最大采样",
+          "type": "number",
+          "default": 5,
+          "min": 1,
+          "max": 32
+        },
+        {
+          "key": "field.enabled",
+          "label": "启用采样场",
+          "type": "boolean",
+          "default": true
+        },
+        {
+          "key": "field.type",
+          "label": "场类型",
+          "type": "select",
+          "default": "wave",
+          "options": [
+            "wave",
+            "radial",
+            "noise"
+          ]
+        },
+        {
+          "key": "field.contrast",
+          "label": "空间对比",
+          "type": "number",
+          "default": 0.5,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "key": "field.scale",
+          "label": "图样尺度",
+          "type": "number",
+          "default": 48,
+          "min": 4,
+          "max": 1024
+        },
+        {
+          "key": "field.seed",
+          "label": "随机种子",
+          "type": "number",
+          "default": 1,
+          "min": 0
+        },
+        {
+          "key": "field.direction",
+          "label": "方向",
+          "type": "number",
+          "default": 0,
+          "min": -180,
+          "max": 180
+        },
+        {
+          "key": "field.centerX",
+          "label": "中心 X",
+          "type": "number",
+          "default": 0.5,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "key": "field.centerY",
+          "label": "中心 Y",
+          "type": "number",
+          "default": 0.5,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "key": "edge.mode",
+          "label": "边缘保护",
+          "type": "select",
+          "default": "off",
+          "options": [
+            "off",
+            "contour",
+            "interior"
+          ]
+        },
+        {
+          "key": "edge.width",
+          "label": "保护宽度",
+          "type": "number",
+          "default": 2,
+          "min": 1,
+          "max": 16
+        }
+      ]
+    },
+    {
+      "id": "masked-inner-light",
+      "name": "蒙版暗角",
+      "aliases": [
+        "场景内光",
+        "场景暗角",
+        "边缘压暗",
+        "蒙版内缘光"
+      ],
+      "family": "scene-overlay",
+      "stage": "scene-overlay",
+      "scopes": [
+        "scene"
+      ],
+      "purpose": "沿画面或可选范围的边缘压暗；默认复用 Legacy 暗角的径向渐变。",
+      "avoidWhen": [
+        "不需要明暗引导"
+      ],
+      "timing": "linear-safe",
+      "motion": null,
+      "particleBake": "none",
+      "mask": "optional",
+      "cost": "A",
+      "parameters": [
+        {
+          "key": "color",
+          "label": "颜色",
+          "type": "color",
+          "default": "#000000"
+        },
+        {
+          "key": "strength",
+          "label": "强度",
+          "type": "number",
+          "default": 0.38,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "key": "inner",
+          "label": "中心保留",
+          "type": "number",
+          "default": 0.35,
+          "min": 0,
+          "max": 1
+        },
+        {
+          "key": "outer",
+          "label": "边缘范围",
+          "type": "number",
+          "default": 0.72,
+          "min": 0.05,
+          "max": 1.5
+        },
+        {
+          "key": "blend",
+          "label": "叠加方式",
+          "type": "select",
+          "default": "normal",
+          "options": [
+            "normal",
+            "screen",
+            "multiply",
+            "lighter"
+          ]
+        }
+      ]
+    }
+  ],
+  "motions": [
+    {
+      "id": "fade",
+      "name": "淡入淡出",
+      "parameters": [
+        {
+          "key": "amount",
+          "label": "幅度",
+          "type": "number",
+          "default": 0.5,
+          "min": 0,
+          "max": 1,
+          "step": 0.05
+        },
+        {
+          "key": "period",
+          "label": "周期时间",
+          "type": "number",
+          "default": 2,
+          "min": 0.05,
+          "step": 0.05
+        }
+      ]
+    },
+    {
+      "id": "blink",
+      "name": "闪烁",
+      "parameters": [
+        {
+          "key": "amount",
+          "label": "幅度",
+          "type": "number",
+          "default": 0.7,
+          "min": 0,
+          "max": 1,
+          "step": 0.05
+        },
+        {
+          "key": "period",
+          "label": "周期时间",
+          "type": "number",
+          "default": 1,
+          "min": 0.05,
+          "step": 0.05
+        },
+        {
+          "key": "steps",
+          "label": "周期帧数",
+          "type": "number",
+          "default": 2,
+          "min": 2,
+          "max": 60,
+          "integer": true
+        }
+      ]
+    },
+    {
+      "id": "texture-drift",
+      "name": "纹理运动",
+      "parameters": [
+        {
+          "key": "speedX",
+          "label": "横向速度",
+          "type": "number",
+          "default": 8,
+          "step": 1
+        },
+        {
+          "key": "speedY",
+          "label": "纵向速度",
+          "type": "number",
+          "default": 0,
+          "step": 1
+        }
+      ]
+    },
+    {
+      "id": "random-hold",
+      "name": "随机保持",
+      "parameters": [
+        {
+          "key": "period",
+          "label": "周期时间",
+          "type": "number",
+          "default": 1,
+          "min": 0.05,
+          "step": 0.05
+        },
+        {
+          "key": "steps",
+          "label": "周期帧数",
+          "type": "number",
+          "default": 12,
+          "min": 1,
+          "max": 120,
+          "integer": true
+        }
+      ]
+    },
+    {
+      "id": "sampling-step",
+      "name": "采样跳变",
+      "parameters": [
+        {
+          "key": "frequency",
+          "label": "跳变频率",
+          "type": "number",
+          "default": 4,
+          "min": 0.05,
+          "max": 60,
+          "step": 0.05
+        }
+      ]
+    },
+    {
+      "id": "sampling-drift",
+      "name": "采样漂移",
+      "parameters": [
+        {
+          "key": "frequency",
+          "label": "漂移频率",
+          "type": "number",
+          "default": 4,
+          "min": 0.05,
+          "max": 60,
+          "step": 0.05
+        }
+      ]
+    },
+    {
+      "id": "uneven-motion",
+      "name": "采样运动",
+      "parameters": [
+        {
+          "key": "period",
+          "label": "周期时间",
+          "type": "number",
+          "default": 3,
+          "min": 0.05,
+          "step": 0.05
+        },
+        {
+          "key": "flowSpeed",
+          "label": "流动速度",
+          "type": "number",
+          "default": 1,
+          "min": -4,
+          "max": 4,
+          "step": 0.1
+        },
+        {
+          "key": "steps",
+          "label": "周期帧数",
+          "type": "number",
+          "default": 24,
+          "min": 1,
+          "max": 120,
+          "integer": true
+        },
+        {
+          "key": "tideAmount",
+          "label": "起伏幅度",
+          "type": "number",
+          "default": 0.35,
+          "min": 0,
+          "max": 1,
+          "step": 0.05
+        }
+      ]
+    },
+    {
+      "id": "pattern-drift",
+      "name": "图样漂移",
+      "parameters": [
+        {
+          "key": "period",
+          "label": "周期时间",
+          "type": "number",
+          "default": 2,
+          "min": 0.05,
+          "step": 0.05
+        },
+        {
+          "key": "steps",
+          "label": "周期帧数",
+          "type": "number",
+          "default": 16,
+          "min": 1,
+          "max": 120,
+          "integer": true
+        },
+        {
+          "key": "cyclesX",
+          "label": "横向循环格数",
+          "type": "number",
+          "default": 1,
+          "min": -32,
+          "max": 32,
+          "integer": true
+        },
+        {
+          "key": "cyclesY",
+          "label": "纵向循环格数",
+          "type": "number",
+          "default": 0,
+          "min": -32,
+          "max": 32,
+          "integer": true
+        }
+      ]
+    },
+    {
+      "id": "pattern-step",
+      "name": "像素跳格",
+      "parameters": [
+        {
+          "key": "period",
+          "label": "周期时间",
+          "type": "number",
+          "default": 2,
+          "min": 0.05,
+          "step": 0.05
+        },
+        {
+          "key": "steps",
+          "label": "周期帧数",
+          "type": "number",
+          "default": 8,
+          "min": 1,
+          "max": 120,
+          "integer": true
+        },
+        {
+          "key": "stepX",
+          "label": "横向跳距（像素）",
+          "type": "number",
+          "default": 1,
+          "min": -128,
+          "max": 128,
+          "integer": true
+        },
+        {
+          "key": "stepY",
+          "label": "纵向跳距（像素）",
+          "type": "number",
+          "default": 0,
+          "min": -128,
+          "max": 128,
+          "integer": true
+        }
+      ]
+    },
+    {
+      "id": "pattern-random",
+      "name": "随机印刷",
+      "parameters": [
+        {
+          "key": "period",
+          "label": "周期时间",
+          "type": "number",
+          "default": 2,
+          "min": 0.05,
+          "step": 0.05
+        },
+        {
+          "key": "steps",
+          "label": "周期帧数",
+          "type": "number",
+          "default": 8,
+          "min": 1,
+          "max": 120,
+          "integer": true
+        },
+        {
+          "key": "rangeX",
+          "label": "横向范围（格）",
+          "type": "number",
+          "default": 1,
+          "min": 0,
+          "max": 32,
+          "step": 1
+        },
+        {
+          "key": "rangeY",
+          "label": "纵向范围（格）",
+          "type": "number",
+          "default": 1,
+          "min": 0,
+          "max": 32,
+          "step": 1
+        },
+        {
+          "key": "seed",
+          "label": "随机种子",
+          "type": "number",
+          "default": 1,
+          "min": 0,
+          "integer": true
+        }
+      ]
+    },
+    {
+      "id": "pattern-pulse",
+      "name": "图样呼吸",
+      "parameters": [
+        {
+          "key": "period",
+          "label": "周期时间",
+          "type": "number",
+          "default": 2,
+          "min": 0.05,
+          "step": 0.05
+        },
+        {
+          "key": "steps",
+          "label": "周期帧数",
+          "type": "number",
+          "default": 6,
+          "min": 2,
+          "max": 60,
+          "integer": true
+        },
+        {
+          "key": "amount",
+          "label": "大小幅度",
+          "type": "number",
+          "default": 0.35,
+          "min": 0,
+          "max": 1,
+          "step": 0.05
+        }
+      ]
+    },
+    {
+      "id": "palette-flash",
+      "name": "色板闪回",
+      "parameters": [
+        {
+          "key": "period",
+          "label": "周期时间",
+          "type": "number",
+          "default": 1,
+          "min": 0.05,
+          "step": 0.05
+        }
+      ]
+    },
+    {
+      "id": "threshold-pulse",
+      "name": "阈值呼吸",
+      "parameters": [
+        {
+          "key": "amount",
+          "label": "幅度",
+          "type": "number",
+          "default": 0.08,
+          "min": 0,
+          "max": 0.5,
+          "step": 0.01
+        },
+        {
+          "key": "period",
+          "label": "周期时间",
+          "type": "number",
+          "default": 2,
+          "min": 0.05,
+          "step": 0.05
+        }
+      ]
+    },
+    {
+      "id": "noise-snow",
+      "name": "噪点雪花",
+      "parameters": [
+        {
+          "key": "period",
+          "label": "周期时间",
+          "type": "number",
+          "default": 1,
+          "min": 0.05,
+          "step": 0.05
+        },
+        {
+          "key": "steps",
+          "label": "周期帧数",
+          "type": "number",
+          "default": 12,
+          "min": 1,
+          "max": 120,
+          "integer": true
+        }
+      ]
+    },
+    {
+      "id": "drift",
+      "name": "偏移漂移",
+      "parameters": [
+        {
+          "key": "period",
+          "label": "周期时间",
+          "type": "number",
+          "default": 2,
+          "min": 0.05,
+          "step": 0.05
+        },
+        {
+          "key": "steps",
+          "label": "周期帧数",
+          "type": "number",
+          "default": 24,
+          "min": 1,
+          "max": 120,
+          "integer": true
+        }
+      ]
+    },
+    {
+      "id": "dot-drift",
+      "name": "网点震荡",
+      "parameters": [
+        {
+          "key": "amount",
+          "label": "震荡幅度",
+          "type": "number",
+          "default": 0.35,
+          "min": 0,
+          "max": 1,
+          "step": 0.05
+        },
+        {
+          "key": "period",
+          "label": "周期时间",
+          "type": "number",
+          "default": 2,
+          "min": 0.05,
+          "step": 0.05
+        },
+        {
+          "key": "steps",
+          "label": "周期帧数",
+          "type": "number",
+          "default": 12,
+          "min": 1,
+          "max": 120,
+          "integer": true
+        }
+      ]
+    },
+    {
+      "id": "dot-move",
+      "name": "网点移动",
+      "parameters": [
+        {
+          "key": "speed",
+          "label": "速度",
+          "type": "number",
+          "default": 0.35,
+          "min": -8,
+          "max": 8,
+          "step": 0.05
+        },
+        {
+          "key": "angle",
+          "label": "方向",
+          "type": "number",
+          "default": 0,
+          "min": -180,
+          "max": 180,
+          "step": 5
+        }
+      ]
+    }
+  ],
+  "runtimeSupport": {
+    "projection": {
+      "object": "ready"
+    },
+    "outline": {
+      "object": "ready"
+    },
+    "tint-overlay": {
+      "object": "ready",
+      "scene": "ready"
+    },
+    "texture-overlay": {
+      "object": "ready",
+      "scene": "ready"
+    },
+    "inner-light": {
+      "object": "ready"
+    },
+    "outer-light": {
+      "object": "ready"
+    },
+    "color-grade": {
+      "object": "ready",
+      "scene": "ready"
+    },
+    "color-map": {
+      "object": "ready",
+      "scene": "ready"
+    },
+    "threshold": {
+      "object": "ready",
+      "scene": "ready"
+    },
+    "offset-sampling": {
+      "object": "ready",
+      "scene": "ready"
+    },
+    "halftone": {
+      "object": "ready",
+      "scene": "ready"
+    },
+    "uneven-sampling": {
+      "object": "ready",
+      "scene": "ready"
+    },
+    "masked-inner-light": {
+      "scene": "ready"
+    }
+  },
+  "recipes": [
+    {
+      "id": "scanlines",
+      "name": "扫描线",
+      "uses": [
+        "texture-overlay"
+      ],
+      "note": "使用水平线纹理；不是独立基础效果。"
+    },
+    {
+      "id": "crt-screen",
+      "name": "旧显示器",
+      "uses": [
+        "texture-overlay",
+        "tint-overlay",
+        "masked-inner-light"
+      ],
+      "note": "扫描纹理、轻色偏、压暗边缘的复合配方。"
+    },
+    {
+      "id": "stable-contour",
+      "name": "轮廓稳定、内部翻涌",
+      "uses": [
+        "uneven-sampling",
+        "offset-sampling"
+      ],
+      "note": "采样场 + Alpha 锁轮廓 + 采样潮汐。"
+    },
+    {
+      "id": "rough-xerox",
+      "name": "粗糙复印",
+      "uses": [
+        "threshold",
+        "texture-overlay",
+        "offset-sampling",
+        "outline"
+      ],
+      "note": "阈值、噪点图案、微偏移与硬边组合。"
+    }
+  ],
+  "removed": [
+    {
+      "id": "wave-displacement",
+      "name": "波带位移",
+      "status": "removed",
+      "replacement": "未来作为对象形变重新设计；当前实现不保留。"
+    },
+    {
+      "id": "scan",
+      "name": "扫描线 FX",
+      "status": "folded",
+      "replacement": "texture-overlay / scanlines 配方。"
+    },
+    {
+      "id": "crt",
+      "name": "CRT FX",
+      "status": "folded",
+      "replacement": "texture-overlay / crt-screen 配方。"
+    },
+    {
+      "id": "fog",
+      "name": "像素雾",
+      "status": "removed",
+      "replacement": "不保留；真实粒状运动使用粒子或不均采样。"
+    },
+    {
+      "id": "glow",
+      "name": "光晕 FX",
+      "status": "folded",
+      "replacement": "outer-light / inner-light / masked-inner-light。"
+    },
+    {
+      "id": "local-fx",
+      "name": "局部 FX",
+      "status": "replaced",
+      "replacement": "场景滤镜 + 统一范围蒙版。"
+    }
+  ],
+  "agentRules": [
+    "先从用户目标选择 effect/recipe，再填写参数；不要从字段名猜效果。",
+    "对象效果随对象 z 合成；场景效果只处理已合成画面，范围蒙版不改变对象 z。",
+    "采样格是唯一共享采样控制器；采样场与边缘保护只写入 uneven-sampling，不得暗中调制其它采样效果。",
+    "时序只写被实际修改的稀疏参数；Step 与 Linear 能力以 effect registry 声明为准。",
+    "粒子继承可 particleBake: shared-frame 的对象视觉胶囊，不继承场景效果、z、位置、scroll 或显示时段。"
+  ]
+}

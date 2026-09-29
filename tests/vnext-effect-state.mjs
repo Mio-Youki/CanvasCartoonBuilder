@@ -1,0 +1,33 @@
+#!/usr/bin/env node
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import vm from 'node:vm';
+
+const root = resolve(import.meta.dirname, '..'), context = {}, source = path => readFileSync(resolve(root, path), 'utf8');
+for (const file of ['editor/effect-registry-vnext.js', 'editor/vnext-inspector-model.js', 'editor/vnext-effect-state.js']) new vm.Script(source(file), { filename: file }).runInNewContext(context);
+const scene = { entities: [{ id: 'bird' }], timeline: { tracks: {} }, sceneEffects: { overlay: {}, sample: {} } }, state = context.EditorVNextEffectState;
+const halftoneDefinition = context.EditorEffectRegistryVNext.effectById.halftone;
+assert.equal(halftoneDefinition.params.find(param => param.key === 'angle').default, 0, '网点映射默认网格必须正交；旋转只在用户显式设置后启用');
+assert.equal(halftoneDefinition.params.some(param => param.key === 'dark' || param.key === 'light'), false, '网点映射必须只保留原色网点；双色由颜色阈值承担');
+assert.equal(halftoneDefinition.params.find(param => param.key === 'duotone').default, false, '网点映射双色必须是可选的渐进式模式');
+const outline = state.enable(scene, { scope: 'object', ownerId: 'bird', effectId: 'outline' });
+assert.equal(outline.enabled, true); assert.equal(outline.width, 1); state.setParam(scene, { scope: 'object', ownerId: 'bird', effectId: 'outline', key: 'width', value: 3 }); assert.equal(scene.entities[0].effects.decorate.outline.width, 3);
+state.setParam(scene, { scope: 'object', ownerId: 'bird', effectId: 'outline', key: 'width', value: 99 }); assert.equal(scene.entities[0].effects.decorate.outline.width, 16);
+assert.throws(() => state.setParam(scene, { scope: 'object', ownerId: 'bird', effectId: 'outline', key: 'color', value: 'red' }), /Hex/);
+state.enable(scene, { scope: 'scene', effectId: 'texture-overlay' }); assert.equal(scene.sceneEffects.overlay['texture-overlay'].enabled, true);
+state.setController(scene, { scope: 'object', ownerId: 'bird', controllerId: 'sampling-grid', key: 'size', value: 300 }); assert.equal(scene.entities[0].effects.sample.controllers['sampling-grid'].size, 128);
+assert.equal(state.controllerValues(scene, { scope: 'object', ownerId: 'bird', controllerId: 'sampling-grid' }).size, 128);
+state.enable(scene, { scope: 'object', ownerId: 'bird', effectId: 'uneven-sampling' });
+state.setParam(scene, { scope: 'object', ownerId: 'bird', effectId: 'uneven-sampling', key: 'field.enabled', value: true });
+state.setParam(scene, { scope: 'object', ownerId: 'bird', effectId: 'uneven-sampling', key: 'edge.mode', value: 'contour' });
+scene.entities[0].effects.sample['uneven-sampling'].motion={enabled:true,type:'uneven-motion',period:3,flowSpeed:1,steps:24,tideAmount:.35};
+assert.equal(scene.entities[0].effects.sample['uneven-sampling'].field.enabled, true); assert.equal(scene.entities[0].effects.sample['uneven-sampling'].edge.mode, 'contour'); assert.equal(scene.entities[0].effects.sample['uneven-sampling'].motion.type, 'uneven-motion');
+scene.timeline.tracks['controller:object:bird:sampling-grid'] = { segments: [] }; state.clearController(scene, { scope: 'object', ownerId: 'bird', controllerId: 'sampling-grid' }); assert.equal(scene.entities[0].effects.sample.controllers, undefined); assert.equal(scene.timeline.tracks['controller:object:bird:sampling-grid'], undefined);
+scene.timeline.tracks['effect:object:bird:outline'] = { segments: [] }; state.disable(scene, { scope: 'object', ownerId: 'bird', effectId: 'outline' }); assert.equal(scene.entities[0].effects.decorate.outline, undefined); assert.equal(scene.timeline.tracks['effect:object:bird:outline'], undefined);
+assert.deepEqual(Array.from(state.reorderObjectStages(scene, 'bird', ['sample', 'mask', 'decorate'])), ['sample', 'mask', 'decorate']); assert.throws(() => state.reorderObjectStages(scene, 'bird', ['sample']), /完整排列/);
+assert.equal(state.maskPosition(scene, 'bird'), 'after-source');
+assert.equal(state.setMaskPosition(scene, 'bird', 'after-source'), 'after-source'); assert.deepEqual(Array.from(scene.entities[0].effects.pipeline), ['mask','decorate','sample']);
+assert.equal(state.setMaskPosition(scene, 'bird', 'after-sample'), 'after-sample'); assert.deepEqual(Array.from(scene.entities[0].effects.pipeline), ['decorate','sample','mask']);
+assert.throws(() => state.setMaskPosition(scene, 'bird', 'anywhere'), /蒙版位置/);
+console.log('✓ vNext Effect State：Registry 默认值、统一写入、轨道清理与阶段重排合同通过');

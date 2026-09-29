@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ToSampool · vNext 编辑器迁移副本</title>
+<style>
+  :root { --bg:#0b1026; --panel:#141b3d; --ink:#e8ecff; --dim:#8b93c7; --yellow:#ffd23f; --cyan:#4dc3ff; }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--ink); font-family: monospace; margin: 0; padding: 14px; }
+  h1 { color: var(--yellow); font-size: 13px; letter-spacing: 2px; margin: 0 0 2px; }
+  .sub { color: var(--dim); font-size: 10px; margin-bottom: 12px; }
+  .cols { display: flex; gap: 12px; flex-wrap: wrap; align-items: stretch; min-height: calc(100vh - 96px); }
+  .panel { background: var(--panel); border: 3px solid #0a0e22; padding: 12px; }
+  .p-import { width: 300px; }
+  .p-stage { flex: 1; min-width: 420px; }
+  .p-props { width: 320px; display: flex; flex-direction: column; }
+  label { display: block; font-size: 9px; color: var(--dim); margin: 9px 0 3px; letter-spacing: 1px; }
+  input[type=text], input[type=number], select {
+    width: 100%; background: #0d1330; color: var(--ink); border: 2px solid var(--dim);
+    padding: 6px; font-family: inherit; font-size: 11px; outline: none;
+  }
+  input[type=range] { width: 100%; accent-color: var(--yellow); }
+  .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .row input[type=number] { width: 70px; }
+  .drop {
+    border: 3px dashed var(--dim); padding: 18px; text-align: center; font-size: 10px;
+    color: var(--dim); cursor: pointer; margin-top: 8px;
+  }
+  .drop.over { border-color: var(--yellow); color: var(--yellow); }
+  button {
+    background: #1a2350; color: var(--ink); border: 3px solid #0a0e22; font-family: inherit;
+    font-size: 10px; padding: 8px 10px; cursor: pointer; margin-top: 8px; min-height: 36px;
+  }
+  button.primary { background: var(--yellow); color: #0b1026; border-color: #8a6d00; }
+  button:active { transform: translateY(2px); }
+  .lib { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .lib-item { width: 86px; text-align: center; cursor: pointer; border: 3px solid var(--dim); padding: 4px; background: #0d1330; }
+  .lib-item.active { border-color: var(--yellow); }
+  .lib-item canvas { width: 100%; image-rendering: pixelated; display: block; }
+  .lib-item .nm { font-size: 8px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  canvas.stage { image-rendering: pixelated; background: transparent; display: block; }
+  .stage-wrap { position: relative; margin-top: 8px; border: 3px solid var(--dim); background: #05070f; width: 100%; height: 218px; overflow: hidden; }
+  /* 显示框高度由 JS 按 cfg.w:cfg.h 比例计算（上限= 视口高× 2/3，防高比例 js 吞掉时间轴）。
+     双画布绝对定体+ JS 显式尺寸（ fit × 缩放），像素化缩放；超出部分被容器裁剪*/
+  .stage-wrap canvas { position: absolute; left: 0; top: 0; display: block; image-rendering: pixelated; }
+  .stage-wrap canvas.editor-overlay { image-rendering: auto !important; pointer-events: none; z-index: 3; }
+  .v4-geometry-overlay { position:absolute; z-index:5; pointer-events:none; overflow:visible; }
+  .v4-geometry-box { position:absolute; box-sizing:border-box; border:1px solid #ffd23f; transform-origin:center; pointer-events:auto; cursor:move; }
+  .v4-geometry-handle,.v4-geometry-rotate { position:absolute; width:9px; height:9px; min-height:0; margin:0; padding:0; border:1px solid #0d1016; background:#ffd23f; box-shadow:0 0 0 1px #ffd23f; transform:translate(-50%,-50%); cursor:nwse-resize; }
+  .v4-geometry-handle.nw { left:0; top:0; }.v4-geometry-handle.ne { left:100%; top:0; cursor:nesw-resize; }.v4-geometry-handle.se { left:100%; top:100%; }.v4-geometry-handle.sw { left:0; top:100%; cursor:nesw-resize; }
+  .v4-geometry-rotate { left:50%; top:-17px; width:12px; height:12px; color:#0d1016; font-size:9px; line-height:8px; cursor:crosshair; }
+  #home-scene { display: none; } /* 初始不载入场景：载入实际 js 后才显示 */
+  #vnext-stage { display:none; z-index:2; pointer-events:none; }
+  body.vnext-session #timeline-dock { opacity:1; pointer-events:auto; }
+  body.vnext-session #timeline-dock > :not(#vnext-timeline) { display:none; }
+  #vnext-timeline { display:none; padding:7px 9px; min-height:86px; }
+  body.vnext-session #vnext-timeline { display:block; }
+  .v4-timeline-head { display:flex; align-items:center; gap:6px; color:var(--dim); font-size:9px; }.v4-timeline-head b { color:var(--ink); }.v4-timeline-head span { margin-left:auto; }
+  .v4-timeline-track { position:relative; height:24px; margin:7px 0; border:1px solid var(--line); background-color:#0b1129; background-image:linear-gradient(90deg,rgba(195,201,216,.3) 1px,transparent 1px),linear-gradient(90deg,rgba(195,201,216,.13) 1px,transparent 1px); background-size:12.5% 100%,3.125% 100%; overflow:hidden; cursor:pointer; }.v4-timeline-seg { position:absolute; top:3px; bottom:3px; background:rgba(77,195,255,.35); border:1px solid rgba(238,241,245,.9); }.v4-timeline-seg.linear { background:#c89424; border-style:dashed; }.v4-timeline-playhead { position:absolute; top:0; bottom:0; width:1px; background:var(--red); pointer-events:none; }.v4-timeline-actions { display:flex; flex-wrap:wrap; gap:4px; }.v4-timeline-actions button { min-height:22px; margin:0; padding:3px 6px; font-size:9px; }
+  body.vnext-session #vnext-stage { display:block; pointer-events:auto; cursor:crosshair; }
+  body.vnext-session #home-scene, body.vnext-session #stage, body.vnext-session #editor-overlay, body.vnext-session #btn-vnext-session { display:none !important; }
+  body.vnext-session .tool-slots .future-tool { opacity:.42; cursor:not-allowed; }
+  body.vnext-session .sf-row, body.vnext-session .draw-row, body.vnext-session .hint, body.vnext-session .panel-caption, body.vnext-session .props-tools, body.vnext-session .global-inspector-tabs { display:none; }
+  .v4-tree-row { display:flex; gap:6px; align-items:center; width:100%; border:0; border-left:2px solid transparent; background:transparent; color:var(--ink); font:inherit; font-size:10px; text-align:left; padding:5px 6px; cursor:pointer; }
+  .v4-tree-row:hover { background:#1a2350; }.v4-tree-row.active { border-left-color:var(--yellow); background:#263465; }.v4-tree-row small { color:var(--dim); }.v4-tree-row b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.v4-tree-row small { margin-left:auto; }.v4-tree-glyph { width:10px; color:var(--cyan); flex:0 0 auto; }.v4-tree-row.dragging { opacity:.45; }.v4-tree-row.drop-before { box-shadow:inset 0 2px 0 var(--yellow); }.v4-tree-row.drop-after { box-shadow:inset 0 -2px 0 var(--yellow); }.v4-tree-row.drop-inside { outline:1px solid var(--yellow); outline-offset:-1px; background:#332b16; }
+  .v4-section { border-top:1px solid var(--line); padding:8px 0; }.v4-section:first-child { border-top:0; padding-top:0; }.v4-title { font-size:10px; color:var(--yellow); margin-bottom:6px; }.v4-tabs { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:8px; }.v4-tabs button { min-height:24px; margin:0; padding:3px 6px; font-size:9px; }.v4-tabs button.active { border-color:var(--yellow); color:var(--yellow); }.v4-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }.v4-field { margin:0; font-size:8px; }.v4-field input,.v4-field select { margin-top:3px; width:100%; }.v4-card { border:1px solid var(--line); background:#101736; padding:6px; margin:5px 0; }.v4-card > label { margin:0; color:var(--ink); }.v4-card small { display:block; color:var(--dim); font-size:8px; margin:3px 0; }
+  #stage { position: absolute; }
+  .timeline { width: 100%; height: 20px; display: block; margin-top: 6px; border: 2px solid var(--dim); background: #05070f; cursor: crosshair; }
+  .timeline-labels { position: relative; height: 14px; margin-top: 3px; overflow: hidden; font-size: 8px; line-height: 14px; color: var(--dim); user-select: none; }
+  .timeline-labels.top { margin-top: 6px; color: var(--ink); }
+  .timeline-label { position: absolute; max-width: 28%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transform: translateX(-50%); pointer-events: none; }
+  .timeline-label.tick { transform: translateX(-50%); color: var(--dim); }
+  .timeline-label.tick.edge-left { transform: none; }
+  .timeline-label.tick.edge-right { transform: translateX(-100%); }
+  .tl-bar { margin-top: 6px; padding: 6px 8px; border: 2px solid var(--dim); background: #0b1120; }
+  .scene-bar { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; min-height: 18px; align-items: center; }
+  .scene-chip { margin: 0; padding: 2px 6px; min-height: 18px; font-size: 8px; border-width: 2px; }
+  .scene-chip.active { border-color: var(--yellow); color: var(--yellow); background: #33270f; }
+  .scene-chip.add { border-style: dashed; border-color: var(--dim); color: var(--dim); }
+  .scene-chip .x { color: #ff5f7d; margin-left: 3px; }
+  .hb.sbtn { margin: 0; padding: 1px 5px; min-height: 16px; font-size: 8px; line-height: 1; color: var(--dim); background: #1a2350; }
+  .hb.sbtn.on { background: var(--yellow); color: #0b1026; }
+  .show-pop { z-index: 99; background: #101736; border: 2px solid var(--yellow); padding: 6px; min-width: 170px; box-shadow: 4px 4px 0 #000; }
+  .wizard-mask { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; background: rgba(3,6,18,.78); padding: 16px; }
+  .wizard { width: min(620px, 100%); background: #141b3d; border: 3px solid var(--yellow); box-shadow: 7px 7px 0 #000; padding: 14px; }
+  .wizard h2 { margin: 0 0 8px; color: var(--yellow); font-size: 13px; }
+  .wizard .preview { min-height: 148px; display: grid; place-items: center; margin: 10px 0; border: 2px solid var(--dim); background: #05070f; overflow: hidden; }
+  .wizard .preview canvas { max-width: 100%; max-height: 250px; image-rendering: pixelated; }
+  .wizard .choice { margin: 0; min-height: 28px; padding: 4px 7px; font-size: 9px; }
+  .export-mode { display: block; width: 100%; text-align: left; margin: 4px 0; min-height: 30px; padding: 5px 7px; border: 2px solid #2c3560; background: #101736; color: var(--ink); cursor: pointer; font-size: 9px; }
+  .export-mode:has(input:checked) { border-color: var(--yellow); background: #33270f; }
+  .export-mode small { color: var(--dim); display: block; margin-left: 17px; font-size: 8px; }
+  .export-range { display: flex; align-items: center; gap: 6px; margin: 3px 0; padding: 3px 6px; border: 1px solid #2c3560; background: #101736; font-size: 9px; }
+  .export-range input { margin: 0; }
+  .export-count { color: var(--cyan); font-size: 9px; min-height: 14px; margin-top: 7px; }
+  .show-pop-title { font-size: 8px; color: var(--dim); margin-bottom: 4px; }
+  .show-row-wrap { margin-bottom: 5px; }
+  .show-row { display: flex; align-items: center; gap: 6px; width: 100%; margin: 2px 0; padding: 3px 6px; font-size: 9px; min-height: 20px; border-width: 2px; background: #1a2350; color: var(--dim); text-align: left; }
+  .show-row.on { border-color: #2fbf6a; color: var(--ink); background: #14301f; }
+  .show-row .idx { color: var(--yellow); min-width: 14px; }
+  .show-row .nm { flex: 1; }
+  .show-row .cnt { font-size: 8px; color: var(--dim); }
+  .win-wrap { margin: 2px 0 2px 20px; }
+  .win-bar { position: relative; height: 12px; background: #0a0e22; border: 1px solid var(--dim); cursor: copy; user-select: none; }
+  .win-seg { position: absolute; top: 0; bottom: 0; background: #2fbf6a; opacity: .85; cursor: grab; box-shadow: inset 0 0 0 1px #1a5c36; }
+  .win-seg i { position: absolute; top: 0; bottom: 0; width: 3px; background: #0b1026; cursor: ew-resize; }
+  .win-seg .win-hl { left: 0; }
+  .win-seg .win-hr { right: 0; }
+  .win-info { display: none; }
+  .sf-row { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; }
+  .sf-row .small { padding: 4px 6px; font-size: 9px; margin: 0; min-height: 24px; white-space: nowrap; }
+  .sf-sep { width: 1px; height: 18px; background: var(--dim); opacity: .4; flex: none; }
+  .sf-l { font-size: 7px; color: var(--dim); margin: 0; white-space: nowrap; }
+  .sf-l.nm { color: var(--cyan); }
+  .sf-n { width: 38px; padding: 3px 4px; font-size: 10px; }
+  .sf-c { width: 28px; height: 22px; padding: 0; border: 2px solid var(--dim); }
+  .sf-play { margin-left: auto; flex: none; }
+  .draw-row { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 6px; padding: 4px 0; border-bottom: 1px dashed #1a2350; }
+  .draw-row .small { margin: 0; padding: 3px 7px; min-height: 22px; font-size: 8px; }
+  .draw-row .dbtn.active { background: var(--yellow); color: #0b1026; border-color: #8a6d00; }
+  .draw-row select.sf-n { width: 86px; padding: 2px 4px; font-size: 9px; }
+  .draw-style { display: inline-flex; align-items: center; gap: 3px; padding: 2px 5px; min-height: 28px; border: 1px solid #2c3560; background: #101736; }
+  .draw-style[hidden] { display: none; }
+  .draw-style .sf-l { margin: 0; }
+  .draw-style input[type=checkbox] { margin: 0; }
+  .draw-style .sf-n { width: 42px; height: 22px; }
+  .hint-inline { font-size: 8px; color: var(--dim); }
+  .hint { font-size: 9px; color: var(--dim); line-height: 1.8; margin-top: 8px; }
+  .hint b { color: var(--yellow); }
+  .meta { font-size: 9px; color: var(--cyan); min-height: 12px; margin-top: 6px; }
+  .cf-group { font-size: 9px; color: var(--yellow); letter-spacing: 1px; margin: 10px 0 2px; border-bottom: 1px dashed #2c3560; padding-bottom: 2px; }
+  .props-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px; }
+  .props-head label { margin: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .props-head .small { margin: 0; min-height: 26px; padding: 4px 10px; }
+  .props-tools, .props-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+  .props-tools { margin: 2px 0 5px; }
+  .props-tools .small, .props-actions .small { margin: 0; min-height: 25px; padding: 4px 8px; }
+  .props-actions { padding-top: 2px; }
+  .subhead { color: var(--yellow); font-size: 9px; letter-spacing: 1px; margin: 10px 0 3px; border-top: 1px dashed #2c3560; padding-top: 7px; }
+  #cfgform { flex: 1 1 0; height: 0; min-height: 100px; max-height: calc(100vh - 210px); overflow-y: auto; border: 2px solid #0a0e22; padding: 4px; margin-bottom: 6px; background: #0d1330; scrollbar-width: thin; scrollbar-color: #3a4678 #0a0e22; }
+  #cfgform::-webkit-scrollbar { width: 8px; }
+  #cfgform::-webkit-scrollbar-track { background: #0a0e22; }
+  #cfgform::-webkit-scrollbar-thumb { background: #3a4678; border-radius: 4px; }
+  #cfgform::-webkit-scrollbar-thumb:hover { background: #4a5890; }
+  .layer-card { border: 2px solid #1a2350; background: #101736; margin: 3px 0; user-select: none; -webkit-user-select: none; } /* 整卡禁文本选择：拖拽走 HTML5 drag，不触发浏览器「拖拽搜索。*/
+  /* 表单控件不继承父线 user-select（ UA 默认保持可选）——必须直接设 none：否则从卡片内输入框拖起仍会触发 Edge「拖拽搜索」；输入仍可点击聚焦/键入（鼠标框选文本受限，可用键盘 Shift+方向键） */
+  .layer-card input, .layer-card textarea, .layer-card select,
+  .cf-box input, .cf-box textarea, .cf-box select,
+  .layer-card button, .cf-box button { user-select: none; -webkit-user-select: none; }
+  .layer-card.sel { border-color: var(--yellow); box-shadow: 0 0 0 1px var(--yellow); } /* 选中强调：黄色描线*/
+  .layer-card.multi { border-color: #b985ff; box-shadow: inset 3px 0 0 #b985ff; }
+  .group-card { border-color: #6b479a; background: #171337; }
+  .group-card.sel { border-color: #b985ff; box-shadow: 0 0 0 1px #b985ff; }
+  .group-card .layer-name { color: #d7b8ff; }
+  .group-badge { color: #d7b8ff; font-size: 8px; }
+  .layer-card.global { border-color: var(--dim); }
+  .layer-card.img { border-color: #2a3a66; }
+  .layer-card.drag { opacity: .5; border-color: var(--yellow); }
+  .layer-card.insert-before { box-shadow: 0 -3px 0 var(--yellow); }
+  .layer-card.insert-after { box-shadow: 0 3px 0 var(--yellow); }
+  .layer-card.hid { opacity: .45; }
+  .layer-head { display: flex; align-items: center; gap: 5px; padding: 4px 5px; cursor: pointer; font-size: 9px; user-select: none; -webkit-user-select: none; }
+  .layer-head:hover { background: #16204a; }
+  .lgrip { color: var(--dim); cursor: grab; }
+  .layer-z { font-size: 8px; color: var(--yellow); min-width: 22px; }
+  .layer-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+  .layer-card.img .layer-name { color: var(--cyan); }
+  .lcarr { color: var(--yellow); font-size: 8px; width: 8px; }
+  .layer-head .hb { margin: 0; padding: 1px 5px; min-height: 16px; font-size: 8px; line-height: 1; }
+  .layer-head .hb.hid { background: #33270f; color: var(--dim); }
+  .layer-head .hb.on { background: #33270f; color: var(--yellow); }
+  .cf-box { border: 1px dashed #2c3560; padding: 3px 4px; margin: 3px 0; background: #0b1128; }
+  .cf-box[draggable=true] { cursor: grab; }
+  .cf-box.drag { opacity: .45; border-color: var(--yellow); }
+  .cf-box.insert-before { box-shadow: 0 -3px 0 var(--yellow); }
+  .cf-box.insert-after { box-shadow: 0 3px 0 var(--yellow); }
+  .part-head { display: flex; align-items: center; gap: 5px; min-height: 20px; cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .part-head .part-title { flex: 1; font-size: 8px; color: var(--ink); }
+  .part-head .lgrip { font-size: 10px; }
+  .part-head .hb { margin: 0; padding: 1px 5px; min-height: 16px; font-size: 8px; }
+  .part-style { display: flex; align-items: center; gap: 5px; min-height: 24px; padding-top: 3px; font-size: 8px; color: var(--dim); }
+  .part-style label { margin: 0; font-size: 8px; }
+  .part-style input[type=color] { width: 23px; height: 19px; padding: 0; border: 1px solid var(--dim); }
+  .part-style input[type=number] { width: 38px; padding: 2px 3px; font-size: 9px; }
+  .part-extra { border-top: 1px dashed #2c3560; margin-top: 3px; padding-top: 2px; }
+  .cf-box { user-select: none; -webkit-user-select: none; }
+  .part-extra .part-legacy-style { display: none; }
+  .layer-body { border-top: 1px dashed #2c3560; padding: 4px 6px 6px; }
+  .cf-row { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+  .cf-row-inline { display: flex; align-items: center; gap: 6px; flex: 1; }
+  .side-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+  .side-tab { flex: 1; margin: 0; padding: 4px 0; min-height: 24px; font-size: 10px; border-width: 2px; }
+  .side-tab.active { border-color: var(--yellow); color: var(--yellow); background: #33270f; }
+  .cf-box.sel { border-color: #4dc3ff; }
+  .cf-row label { flex: 1; margin: 0; font-size: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cf-row input[type=number] { width: 76px; }
+  .cf-row input[type=text] { width: 110px; }
+  .cf-row input[type=color] { width: 44px; height: 26px; padding: 0; border: 2px solid var(--dim); }
+  .color-field { display:flex; align-items:center; gap:6px; min-width:0; }
+  .color-swatch { width:28px; height:22px; min-height:22px; padding:0; margin:0; border:1px solid var(--line); box-shadow:inset 0 0 0 1px #000; }
+  .color-alpha { color:var(--dim); font-size:10px; min-width:32px; }
+  .color-pop { position:fixed; z-index:1000; width:228px; padding:10px; border:1px solid #4b5260; background:#20242c; box-shadow:0 10px 28px #000b; color:var(--ink); }
+  .color-pop[hidden] { display:none; }
+  .color-pop-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:11px; }
+  .color-pop-close { margin:0; min-height:20px; padding:1px 6px; border:0; background:transparent; color:var(--dim); }
+  .color-sv { position:relative; height:122px; cursor:crosshair; background:linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,hsl(0,100%,50%)); }
+  .color-sv-dot { position:absolute; width:12px; height:12px; border:1px solid #fff; border-radius:50%; box-shadow:0 0 0 1px #000; transform:translate(-50%,-50%); pointer-events:none; }
+  .color-slider-row { display:grid; grid-template-columns:18px 1fr; align-items:center; gap:6px; margin-top:8px; }
+  .color-slider-row input[type=range] { margin:0; width:100%; height:10px; accent-color:var(--yellow); }
+  .color-eyedropper { width:18px; height:18px; min-height:18px; padding:0; margin:0; border:0; background:transparent; color:var(--dim); font-size:12px; line-height:1; }
+  .color-eyedropper:hover { color:var(--ink); }
+  .color-pop-values { display:grid; grid-template-columns:1fr 72px; gap:6px; margin-top:8px; }
+  .color-pop.no-alpha .color-alpha-row, .color-pop.no-alpha .color-alpha-input { display:none; }
+  .color-pop.no-alpha .color-pop-values { grid-template-columns:1fr; }
+  .color-pop-values input { min-width:0; width:100%; padding:4px 6px; font-size:10px; background:#151820; color:var(--ink); border:1px solid var(--line); }
+  .paint-row { display:flex; align-items:center; gap:5px; min-width:0; justify-content:flex-end; }
+  .paint-row input[type=checkbox] { width:14px; margin:0; accent-color:var(--yellow); }
+  .paint-row input[type=number] { width:42px; height:22px; padding:2px 4px; }
+  .paint-row .color-field { flex:1; justify-content:flex-end; }
+  .texture-preview { width:44px; height:22px; min-height:22px; padding:0; margin:0; border:1px solid var(--line); background:#151820; overflow:hidden; }
+  .texture-preview canvas { width:100%; height:100%; image-rendering:pixelated; display:block; }
+  .texture-pop { position:fixed; z-index:1000; width:250px; padding:10px; border:1px solid #4b5260; background:#20242c; box-shadow:0 10px 28px #000b; }
+  .texture-pop[hidden] { display:none; }
+  .texture-pop-head { display:flex; align-items:center; justify-content:space-between; font-size:11px; margin-bottom:8px; }
+  .texture-pop-preview { width:100%; height:72px; display:block; background:#11151c; border:1px solid var(--line); image-rendering:pixelated; margin-bottom:8px; }
+  .texture-pop-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .texture-pop-grid label { margin:0; font-size:9px; color:var(--dim); }
+  .texture-pop-grid input, .texture-pop-grid select { width:100%; height:23px; margin-top:3px; padding:2px 4px; background:#151820; color:var(--ink); border:1px solid var(--line); font:inherit; }
+  .cf-row input[type=checkbox] { width: auto; }
+  .cf-arr { display: flex; gap: 3px; flex-wrap: wrap; }
+  .cf-arr input[type=color] { width: 22px; height: 22px; padding: 0; border: 2px solid var(--dim); }
+  .cf-ro { font-size: 8px; color: var(--dim); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* ================================================================
+     UI RECONSTRUCTION V1 · 仅布局与视图 Shell
+     设计合同： docs/design/UI_RECONSTRUCTION_V1.md
+     本副本保留原本 id、事件和 Scene 格式；结构树 / Inspector 的数据接线后续完成。
+     ================================================================ */
+  :root {
+    --shell:#111319; --surface:#1a1d24; --surface-hi:#222630; --surface-low:#151820;
+    --line:#303642; --line-soft:#252a34; --ink:#f1f3f6; --dim:#9aa3b2;
+    --yellow:#f4c84b; --cyan:#55c7e9; --green:#5dc58a; --magenta:#bc92ee; --red:#eb6c73;
+  }
+  body { background:var(--shell); padding:0; min-width:1080px; font-family:ui-monospace, "Cascadia Mono", Consolas, monospace; font-size:13px; }
+  * { scrollbar-width:thin; scrollbar-color:#555c68 transparent; }
+  *::-webkit-scrollbar { width:5px; height:5px; }
+  *::-webkit-scrollbar-track { background:transparent; }
+  *::-webkit-scrollbar-thumb { background:#555c68; border-radius:0; }
+  *::-webkit-scrollbar-thumb:hover { background:#7a8493; }
+  h1 { display:none; }
+  .sub { display:none; }
+  .workbench-header { height:42px; display:flex; align-items:center; gap:14px; padding:0 14px; border-bottom:1px solid var(--line); background:#171a21; }
+  .workbench-brand { color:var(--yellow); font-size:13px; letter-spacing:.12em; }
+  .workbench-name { color:var(--ink); font-size:12px; padding:6px 10px; border:1px solid var(--line); background:#20242d; min-width:170px; }
+  .workbench-note { color:var(--dim); font-size:10px; }
+  .workbench-note b { color:var(--cyan); font-weight:400; }
+  .workbench-tools { height:46px; margin-right:324px; display:flex; align-items:center; gap:7px; padding:0 10px; border-bottom:1px solid var(--line); background:#20242b; }
+  .workbench-tools button { min-height:30px; padding:5px 9px; border-color:transparent; background:transparent; font-size:12px; }
+  .workbench-tools button:hover { border-color:var(--line); background:#252a34; }
+  .scene-file-actions { align-self:stretch; width:250px; display:grid; grid-template-columns:repeat(3,1fr); gap:1px; padding:7px 0; border-right:1px solid var(--line); }
+  .scene-file-actions button { min-width:0; padding:4px 3px; font-size:11px; }
+  .tool-slots { display:flex; align-items:center; gap:2px; }
+  .tool-slots button { min-width:30px; font-size:0; }
+  .tool-slots button::first-letter { font-size:12px; }
+  .toolbar-output-actions { margin-left:auto; display:flex; align-items:center; gap:2px; }
+  .toolbar-output-actions button { font-size:11px; }
+  .workbench-tools .tool-sep { width:1px; height:18px; margin:0 4px; background:var(--line); }
+  .tool-slots { display:flex; align-items:center; gap:1px; }
+  .tool-slots button { min-width:30px; padding:4px 7px; font-size:15px; line-height:1; }
+  .tool-slots button.active { background:var(--yellow); color:#17191d; }
+  .tool-menu { position:fixed; z-index:50; min-width:130px; padding:4px; border:1px solid #414956; background:#20242b; box-shadow:0 8px 20px #0008; }
+  .tool-menu button { display:block; width:100%; text-align:left; min-height:27px; font-size:11px; }
+  .round-handle { position:absolute; width:10px; height:10px; transform:translate(-50%,-50%); border:1px solid #16191d; background:#ffd23f; box-shadow:0 0 0 1px #ffd23f; pointer-events:none; z-index:4; }
+  .workbench-tools .tool-note { margin-left:auto; color:var(--dim); font-size:9px; }
+  :root { --timeline-dock-h:132px; }
+  .cols { display:grid; grid-template-columns:270px minmax(500px, 1fr) 324px; gap:0; height:calc(100vh - 88px - var(--timeline-dock-h)); min-height:360px; align-items:stretch; flex-wrap:nowrap; }
+  .panel { border:0; border-radius:0; padding:10px; background:var(--surface); min-width:0; background-image:none; }
+  /* 左栏是独立工作区：底部编排器只占用画布+ Inspector，不再截断素材区。*/
+  .p-import { position:fixed; z-index:21; grid-column:1; top:88px; bottom:0; left:0; width:270px; box-sizing:border-box; border-right:1px solid var(--line); height:auto; align-self:auto; overflow:hidden; display:flex; flex-direction:column; }
+  .p-stage { grid-column:2; min-width:0; border-right:1px solid var(--line); display:flex; flex-direction:column; }
+  /* Inspector 占用工具栏右侧的整列，从工具栏起点到底部编排器均保持齐平。*/
+  .p-props { position:fixed; z-index:19; top:42px; right:0; bottom:var(--timeline-dock-h); width:324px; box-sizing:border-box; background:var(--surface-low); height:auto; overflow:hidden; display:flex; flex-direction:column; }
+  .panel > .panel-caption { color:var(--dim); font-size:10px; letter-spacing:.1em; text-transform:uppercase; margin:0 0 8px; }
+  button { min-height:30px; margin-top:0; padding:5px 8px; border:1px solid var(--line); background:#252a34; color:var(--ink); font-size:10px; }
+  button:hover { background:#303746; border-color:#596474; }
+  button.primary { background:var(--yellow); color:#17191e; border-color:#d7ad36; }
+  button:active { transform:none; background:#11151d; }
+  button:disabled, .future-tool { opacity:.42; cursor:not-allowed; }
+  label { font-size:10px; }
+  input[type=text], input[type=number], select { border:1px solid var(--line); background:#13161d; padding:6px 7px; color:var(--ink); font-size:11px; }
+  .side-tabs { gap:0; margin-bottom:8px; border-bottom:1px solid var(--line); }
+  .side-tab { border:0; border-bottom:2px solid transparent; background:transparent; color:var(--dim); border-radius:0; min-height:27px; }
+  .side-tab.active { color:var(--ink); border-color:var(--yellow); background:transparent; }
+  .drop { border:1px dashed #586273; padding:14px 10px; background:#171b23; }
+  .lib { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:6px; }
+  .lib-item { width:auto; padding:3px; border:1px solid var(--line); background:#141821; }
+  .lib-item.active { border-color:var(--yellow); box-shadow:inset 0 0 0 1px var(--yellow); }
+  .structure-pane { padding:0; margin:0; border-bottom:0; flex:0 0 auto; min-height:0; display:flex; flex-direction:column; }
+  .structure-head { display:flex; align-items:center; gap:6px; min-height:26px; color:var(--ink); font-size:12px; }
+  .structure-head .hint-inline { margin-left:auto; color:var(--dim); }
+  .structure-head-actions { margin-left:auto; display:flex; align-items:center; gap:2px; }
+  .structure-head button { padding:2px 5px; min-height:20px; font-size:8px; }
+  #structure-tree { height:var(--structure-tree-h,254px); max-height:none; overflow:auto; border:0; background:#1b1d21; padding:2px 0; }
+  .asset-splitter { flex:0 0 7px; height:7px; margin:0 -10px; cursor:row-resize; position:relative; }
+  .asset-splitter::after { content:""; position:absolute; left:10px; right:10px; top:3px; height:1px; background:var(--line); }
+  .asset-splitter:hover::after, .asset-splitter.dragging::after { background:var(--yellow); box-shadow:0 0 0 1px #332b16; }
+  .asset-pane { min-height:0; flex:1 1 0; display:flex; flex-direction:column; }
+  .asset-head { min-height:29px; display:flex; align-items:center; gap:4px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); color:var(--ink); font-size:12px; cursor:pointer; }
+  .asset-head .asset-title { flex:1; }
+  .asset-head button { min-width:22px; min-height:22px; padding:0 5px; border:0; background:transparent; color:var(--dim); font-size:15px; line-height:1; }
+  .asset-head button:hover { color:var(--yellow); background:#252a34; }
+  .asset-head button.pulse { color:var(--yellow); animation:asset-plus-breathe 1.6s ease-in-out infinite; }
+  @keyframes asset-plus-breathe { 0%,100% { opacity:.42; text-shadow:none; } 50% { opacity:1; text-shadow:0 0 8px #f4c84b; } }
+  .asset-content { min-height:0; flex:1; overflow:auto; padding-top:7px; }
+  .asset-pane:not(.open) .asset-content { display:none; }
+  .asset-pane:not(.open) { flex:0 0 auto; }
+  .lib { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; padding:0 1px; }
+  .lib-item { position:relative; min-width:0; padding:0; border:0; background:transparent; cursor:pointer; }
+  .lib-item canvas { display:block; width:100%; aspect-ratio:1; object-fit:contain; image-rendering:pixelated; background:#11141a; border:1px solid var(--line-soft); }
+  .lib-item.active canvas { border-color:var(--yellow); box-shadow:inset 0 0 0 1px var(--yellow); }
+  .lib-item .nm { padding:4px 2px 1px; color:var(--dim); font-size:9px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .asset-card-action { position:absolute; z-index:2; width:19px; height:19px; min-height:19px; padding:0; border:1px solid var(--line); background:#1b2029e8; color:var(--ink); font-size:12px; line-height:16px; }
+  .asset-card-action.delete { top:3px; right:3px; color:#d99aa0; }
+  .asset-card-action.add { right:3px; bottom:21px; color:var(--yellow); }
+  .asset-empty { padding:12px 3px; color:var(--dim); font-size:10px; line-height:1.5; }
+  .asset-process-grid { display:grid; grid-template-columns:minmax(220px, .9fr) minmax(240px, 1.1fr); gap:12px; }
+  .asset-process-controls { display:grid; gap:7px; align-content:start; }
+  .asset-process-controls label { display:grid; gap:3px; color:var(--dim); }
+  .asset-process-controls .row { margin:0; }
+  .asset-process-preview { min-height:220px; display:flex; align-items:center; justify-content:center; border:1px solid var(--line); background:#11141a; overflow:hidden; }
+  .asset-process-preview canvas { image-rendering:pixelated; max-width:100%; max-height:300px; }
+  @media (max-width:1280px) { .workbench-tools { margin-right:300px; } .scene-file-actions { width:228px; } }
+  .struct-node { display:flex; align-items:center; gap:5px; min-height:30px; padding:4px 7px; font-size:11px; color:var(--dim); border-left:2px solid transparent; cursor:pointer; user-select:none; }
+  .struct-node:hover { background:#282e39; color:var(--ink); }
+  .struct-node.sel { color:var(--ink); border-left-color:var(--yellow); background:#2c2a1c; }
+  .struct-node.group { color:#d7b8ff; }
+  .struct-node.part { color:var(--cyan); }
+  .struct-node.part.sel { color:var(--ink); border-left-color:var(--cyan); background:#173040; }
+  .struct-node.fx { color:#8ad9a5; }
+  .struct-node.background { color:#b7c1d8; }
+  .struct-node .struct-icon { width:14px; text-align:center; color:inherit; }
+  .struct-node .struct-label { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+  .struct-node .struct-meta { color:var(--dim); font-size:9px; }
+  .struct-actions { display:flex; align-items:center; gap:1px; }
+  .struct-action { min-width:18px; min-height:20px; padding:0 2px; border:0; background:transparent; color:#a7afbb; font-size:9px; line-height:1; }
+  .struct-action:disabled { opacity:.78; }
+  .struct-action.active { color:var(--yellow); background:#332b16; }
+  .struct-node.drag { opacity:.48; }
+  .struct-node.insert-before { box-shadow:inset 0 2px 0 var(--yellow); }
+  .struct-node.insert-after { box-shadow:inset 0 -2px 0 var(--yellow); }
+  .struct-node.group-target { background:#332b16; outline:1px solid var(--yellow); outline-offset:-1px; }
+  .struct-empty { padding:9px 7px; color:var(--dim); font-size:10px; line-height:1.5; }
+  .stage-wrap { flex:1; min-height:260px; height:auto; margin-top:8px; border:1px solid var(--line); background:#0d1016; }
+  .stage-meta-bar { flex:0 0 27px; min-height:27px; display:flex; align-items:center; gap:6px; padding:0 7px; border-bottom:1px solid var(--line); background:#1b2028; color:var(--dim); font-size:10px; }
+  .stage-meta-bar .stage-meta-title { color:var(--ink); }
+  .stage-meta-bar .stage-meta-spacer { flex:1; }
+  .stage-zoom-value { color:var(--ink); min-width:38px; text-align:right; font-variant-numeric:tabular-nums; }
+  .stage-meta-bar .struct-action { font-size:11px; }
+  .stage-wrap::before { content:"STAGE  ·  按 Alt + 滚轮缩放"; position:absolute; top:6px; left:7px; z-index:6; font-size:8px; color:var(--dim); background:#11151cdd; padding:2px 4px; pointer-events:none; }
+  .draw-row { min-height:34px; padding:4px 0 7px; margin-top:0; border-bottom:1px solid var(--line); }
+  .draw-row .small { min-height:24px; padding:3px 6px; border-color:transparent; background:transparent; }
+  .draw-row .dbtn.active { color:#15171d; background:var(--yellow); border-color:var(--yellow); }
+  .sf-row { display:none; }
+  #draw-row { display:flex; align-items:center; gap:8px; min-height:38px; padding:4px 2px; }
+  .tool-config-group { display:flex; align-items:center; gap:5px; }
+  .tool-config-group[hidden] { display:none; }
+  .tool-config-label { min-width:38px; color:var(--dim); font-size:10px; }
+  #text-font { width:130px; }
+  #draw-radius { width:54px; }
+  .text-edit-overlay { position:fixed; z-index:80; min-width:46px; min-height:22px; resize:none; overflow:hidden; padding:1px 3px; border:1px solid #4dc3ff; outline:1px solid #0b1017; background:#151a21d9; color:#fff; font:14px monospace; line-height:1.2; }
+  .sf-row { min-height:30px; padding-bottom:7px; border-bottom:1px solid var(--line); }
+  .sf-row .small { min-height:25px; padding:3px 6px; }
+  .sf-l { color:var(--dim); }
+  .sf-l.nm { color:var(--cyan); }
+  .sf-sep { background:var(--line); }
+  #timeline-dock { position:fixed; z-index:20; left:270px; right:0; bottom:0; height:var(--timeline-dock-h); padding:8px 10px 9px; border-top:1px solid var(--line); background:#171a20; box-shadow:0 -8px 20px #0005; }
+  #timeline-splitter { position:absolute; left:0; right:0; top:-4px; height:8px; cursor:row-resize; }
+  #timeline-splitter::after { content:""; position:absolute; top:3px; left:45%; right:45%; height:1px; background:var(--line); }
+  #timeline-splitter:hover::after { background:var(--yellow); }
+  .timeline-dock-head { height:18px; display:flex; align-items:center; gap:8px; color:var(--dim); font-size:9px; }
+  .timeline-dock-head b { color:var(--ink); font-weight:400; }
+  .timeline-play { min-width:22px; min-height:20px; padding:0; border:0; background:transparent; color:var(--dim); font-size:11px; line-height:1; }
+  .timeline-play.active { color:var(--yellow); background:#332b16; }
+  .timeline { border:1px solid var(--line); background:#0d1016; height:24px; margin-top:2px; }
+  .timeline-labels { margin:0; height:13px; line-height:13px; }
+  #scene-bar { position:relative; height:23px; display:block; margin:0; padding:0; border:1px solid var(--line-soft); background:#12161d; overflow:hidden; }
+  .scene-chip { position:absolute; top:0; height:23px; min-height:23px; margin:0; padding:2px 7px; overflow:hidden; white-space:nowrap; border:0; border-right:1px solid var(--line); border-radius:0; background:#202530; font-size:10px; text-align:center; display:flex; align-items:center; justify-content:center; gap:5px; }
+  .scene-chip.active { box-shadow:inset 0 -2px 0 var(--yellow); color:var(--ink); }
+  .scene-chip .scene-label { overflow:hidden; text-overflow:ellipsis; }
+  .scene-chip .scene-actions { display:flex; flex:0 0 auto; align-items:center; gap:6px; }
+  .scene-chip .x { color:#d99aa0; line-height:1; }
+  .scene-chip .scene-scope { width:6px; height:6px; border:1px solid #687283; border-radius:50%; }
+  .scene-chip .scene-scope.on { background:var(--yellow); border-color:var(--yellow); }
+  .scene-add { position:absolute; z-index:4; top:0; width:20px; height:100%; min-height:23px; padding:0; transform:translateX(-50%); border:0; border-radius:0; background:transparent; color:transparent; font-size:15px; line-height:18px; text-align:center; cursor:pointer; touch-action:manipulation; display:flex; align-items:center; justify-content:center; }
+  .scene-add:hover { color:var(--yellow); background:transparent; box-shadow:none; }
+  #tl-context { display:block; height:27px; }
+  #tl-linear-toggle { position:fixed; z-index:30; display:none; width:24px; min-height:16px; height:16px; padding:0; transform:translate(-50%,-50%); border:0; background:transparent; color:#fff; font-size:11px; line-height:14px; }
+  #tl-linear-toggle:hover { color:var(--yellow); background:transparent; }
+  .tl-context-note { color:var(--dim); font-size:9px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .props-head { border-bottom:1px solid var(--line); padding-bottom:7px; }
+  #props-title { color:var(--ink); font-size:10px; }
+  .inspector-context { flex:1 1 0; min-height:0; overflow:auto; margin:0 0 7px; padding:7px; border:1px solid var(--line-soft); background:#171b22; scrollbar-width:thin; scrollbar-color:#555c68 transparent; }
+  .inspector-context::-webkit-scrollbar { width:5px; }
+  .inspector-context::-webkit-scrollbar-track { background:transparent; }
+  .inspector-context::-webkit-scrollbar-thumb { background:#555c68; border-radius:0; }
+  .inspector-context .inspector-kicker { color:var(--cyan); font-size:9px; letter-spacing:.1em; margin-bottom:3px; }
+  .inspector-context .inspector-name { color:var(--ink); font-size:12px; }
+  .inspector-context .inspector-note { margin-top:4px; color:var(--dim); font-size:9px; line-height:1.45; }
+  .global-inspector-tabs { display:none; gap:0; margin:0 0 7px; border-bottom:1px solid var(--line); }
+  .global-inspector-tabs button { min-height:29px; padding:4px 9px; border:0; border-bottom:2px solid transparent; border-radius:0; background:transparent; color:var(--dim); font-size:10px; }
+  .global-inspector-tabs button.active { color:var(--ink); border-color:var(--yellow); }
+  #btn-timing-mode { margin-left:auto; min-width:42px; font-size:10px; }
+  #btn-timing-mode.active { color:#17191d; background:var(--yellow); border-color:var(--yellow); }
+  #btn-timing-mode.has-data:not(.active) { color:var(--yellow); border-color:#7a6730; }
+  .global-inspector { margin:0 0 7px; border-top:1px solid var(--line); }
+  .global-section { border-bottom:1px solid var(--line); padding:0 0 7px; }
+  .global-section-title { padding:7px 2px 6px; color:#c9ced6; font-size:10px; font-weight:700; letter-spacing:.02em; }
+  .global-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px 8px; padding:0 2px; }
+  .global-grid .wide { grid-column:1 / -1; }
+  .global-field { min-width:0; display:grid; grid-template-columns:minmax(0,1fr) 76px; align-items:center; gap:5px; color:var(--dim); font-size:9px; }
+  .global-field input, .global-field select { min-width:0; width:100%; height:23px; padding:2px 4px; border:1px solid #3b424d; border-radius:2px; background:#252a32; color:var(--ink); font:inherit; }
+  .global-field input[type="color"] { padding:1px; }
+  .global-field input[type="checkbox"] { width:14px; justify-self:end; accent-color:var(--yellow); }
+  .global-slider { display:grid; grid-template-columns:minmax(0,1fr) 30px; align-items:center; gap:5px; }
+  .global-slider input[type="range"] { height:4px; padding:0; accent-color:var(--yellow); }
+  .global-slider output { min-width:30px; color:var(--ink); font-size:9px; text-align:right; }
+  .global-note { padding:0 2px; color:var(--dim); font-size:9px; line-height:1.5; }
+  .props-tools { padding:6px 0; border-bottom:1px solid var(--line-soft); }
+  #cfgform { max-height:none; border:0; background:transparent; padding:0; margin:5px 0; flex:1 1 0; height:0; min-height:80px; }
+  .layer-card { border-color:var(--line-soft); background:#1b2029; }
+  .layer-card.sel { border-color:var(--yellow); box-shadow:inset 2px 0 0 var(--yellow); }
+  .layer-head { padding:5px; }
+  .layer-head:hover { background:#282e39; }
+  .layer-card.img .layer-name { color:var(--ink); }
+  .props-actions { border-top:1px solid var(--line); padding-top:8px; }
+  .hint { display:none; }
+  @media (max-width:1280px) { .cols { grid-template-columns:248px minmax(430px,1fr) 300px; } .draw-style { display:none; } }
+</style>
+</head>
+<body>
+<div class="workbench-header">
+  <span class="workbench-brand">ToSAMPOOL</span>
+  <span class="workbench-name">未命名场景</span>
+  <span class="workbench-note"><b>vNext 迁移副本</b> · 与正式页体验对齐 · 原始编辑器未改动</span><button id="btn-vnext-session" class="small">进入 v4 会话</button>
+</div>
+<div class="workbench-tools" aria-label="场景与绘制工具栏">
+  <div class="scene-file-actions"><button id="btn-new" class="small">新建 v4</button><button id="btn-open" class="small">打开 v4</button><button class="small future-tool" disabled title="仅保留界面，后续接入 Agent">生成场景</button></div>
+  <input id="jsfile" type="file" accept=".js,text/javascript,.json" hidden>
+  <span class="tool-sep"></span>
+  <div class="tool-slots" aria-label="绘制工具">
+    <button class="small toolbar-tool active" data-toolbar-mode="select" title="选择 / 移动 / 旋转 / 缩放">↖</button>
+    <button class="small toolbar-tool" data-toolbar-mode="rect" title="矩形">▬</button>
+    <button class="small toolbar-tool" data-toolbar-mode="line" title="直线">━</button>
+    <button class="small toolbar-tool" data-toolbar-mode="ellipse" title="椭圆">●</button>
+    <button class="small toolbar-tool" data-toolbar-mode="poly" title="多边形">⬇</button>
+    <button class="small future-tool" disabled title="贝塞尔钢笔待路径数据模型确定后接入">✜</button>
+    <button id="toolbar-text" class="small" title="位图文字">T</button>
+    <button id="toolbar-image" class="small" title="图片：打开素材库">▣</button>
+  </div>
+  <div class="toolbar-output-actions"><button id="btn-save" class="small primary">保存场景</button><button id="btn-test-scene" class="small">测试场景</button><button id="btn-export" class="small">导出其他格式</button></div>
+</div>
+<h1>ToSampool · 图森破</h1>
+<div class="sub">vNext 迁移副本：保留现有编辑器功能，逐步切换至隔离 Scene / Runtime 合同。</div>
+
+<div class="cols">
+  <!-- 左：场景结构 + 成品素材场-->
+  <div class="panel p-import">
+    <section class="structure-pane" aria-label="场景结构">
+      <div class="structure-head"><span>场景结构</span><span class="structure-head-actions"><button id="btn-group" class="struct-action" title="编组所选对象" disabled>组</button><button id="btn-ungroup" class="struct-action" title="解组所选 group" disabled>解</button><button id="btn-delete-selection" class="struct-action" title="删除所选对象" disabled>删</button></span></div>
+      <div id="structure-tree"><div class="struct-empty">正在读取场景结构…</div></div>
+    </section>
+    <div id="asset-splitter" class="asset-splitter" title="拖动调整场景结构与素材库高度"></div>
+    <section id="asset-pane" class="asset-pane" aria-label="素材库">
+      <div id="asset-head" class="asset-head"><span class="asset-title">素材</span><button id="btn-import" title="导入素材">+</button></div>
+      <div id="side-import" class="asset-content">
+        <div id="lib" class="lib"></div>
+        <div class="meta" id="m-import"></div>
+        <div id="asset-legacy-controls" hidden>
+      <label>导入素材（任意图片，非8bit 亦可。</label>
+      <div id="drop" class="drop">拖入图片 / 点击选择</div>
+      <input id="file" type="file" accept="image/*" multiple hidden>
+      <label><input type="checkbox" id="style-on" checked> 样式化（关= 原样 1:1 显示。</label>
+      <label>采样数（原图 ÷ N；像素化 = 缩小 N 倍采样，整数。</label>
+      <div class="row">
+        <input id="divisor" type="number" min="1" step="1" value="2" style="flex:1">
+        <select id="alpha-mode" title="边缘透明像素：保留默认软边；消限 alpha&lt;128 变透明 + alpha&gt;=128 拉满（一步到位只剩透明/不透明）；增强=全部半透明拉满">
+          <option value="keep">边缘：保留</option>
+          <option value="remove">边缘：消除</option>
+          <option value="boost">边缘：增强</option>
+        </select>
+      </div>
+      <label>减色色板（映射到有限色板最近色。</label>
+      <select id="palette">
+        <option value="">无（保持原色。</option>
+        <option value="pico8">PICO-8 · 32 色（色彩丰富。</option>
+        <option value="nes">NES · 16 色（红白机）</option>
+        <option value="vga">VGA · 16 色（ DOS 标准。</option>
+        <option value="gb">Game Boy · 4 色（绿灰。</option>
+      </select>
+      <label>均匀量化（每通道色阶，=关）</label>
+      <input id="quant" type="range" min="0" max="8" value="0">
+      <label>去背景容差（0=关；按左上角颜色抠除。</label>
+      <input id="bgtol" type="range" min="0" max="60" value="0">
+      <label>尺寸调整（处理后素材尺寸。</label>
+      <div class="row">
+        <input id="srcw" type="number" min="1" value="160" title="处理后宽度">
+        <span>×</span><input id="srch" type="number" min="1" value="90" title="处理后高度">
+        <label style="margin:0"><input id="src-lock" type="checkbox" checked> 锁比</label>
+      </div>
+      <div class="row">
+        <button id="btn-add" class="primary" style="flex:1">添加到场景→</button>
+        <button id="btn-del-src" style="flex:1">删除选中素材</button>
+      </div>
+      <button id="btn-background" class="primary">作为背景添加到场景→</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 中：场景文件 + 全局设置 + 画布 + 时间轴-->
+  <div class="panel p-stage">
+    <div class="sf-row">
+      <label class="sf-l nm">全局</label>
+      <label class="sf-l nm">宽</label><input id="gw" class="sf-n" type="number" value="320">
+      <label class="sf-l nm">高</label><input id="gh" class="sf-n" type="number" value="118">
+      <label class="sf-l nm">周期</label><input id="gloop" class="sf-n" type="number" value="48">
+      <label class="sf-l"><input type="checkbox" id="showscene"> 场景层</label>
+    </div>
+    <div class="draw-row" id="draw-row" aria-label="工具配置">
+      <span id="tool-config-title" class="tool-config-label">选择</span>
+      <span id="shape-tool-config" class="tool-config-group">
+        <span id="shape-fill-config" class="draw-style"><label class="sf-l nm">填</label><input id="draw-fillon" type="checkbox" checked title="启用填充"><input id="draw-fillc" class="sf-c" type="color" value="#ffd23f"></span>
+        <span id="path-stroke-config" class="draw-style"><label class="sf-l nm">描线</label><input id="draw-strokeon" type="checkbox" title="启用路径描线"><input id="line-color" class="sf-c" type="color" value="#000000"><label class="sf-l">宽</label><input id="line-width" class="sf-n" type="number" value="1" min="0"></span>
+        <span id="rect-radius-config" class="draw-style" hidden><label class="sf-l">圆角</label><input id="draw-radius" class="sf-n" type="number" value="0" min="0" step="1"></span>
+      </span>
+      <span id="text-tool-config" class="tool-config-group" hidden>
+        <span class="draw-style"><label class="sf-l nm">填</label><input id="text-fillon" type="checkbox" checked><input id="text-fillc" class="sf-c" type="color" value="#ffd23f"></span>
+        <label class="sf-l nm">字体</label><select id="text-font" class="sf-n"><option value="system">默认无衬线</option></select><button id="btn-import-font" class="struct-action" title="导入字体">+</button><input id="text-font-file" type="file" accept=".ttf,.otf,.woff,.woff2,font/*" hidden>
+        <label class="sf-l">字号</label><input id="text-size" class="sf-n" type="number" min="6" max="160" value="16"><label class="sf-l">字距</label><input id="text-spacing" class="sf-n" type="number" min="-20" max="80" value="0"><label class="sf-l">行高</label><input id="text-lineheight" class="sf-n" type="number" min="0.5" max="4" step="0.05" value="1.25">
+      </span>
+      <select id="draw-target" hidden><option value="new">新建元素</option><option value="sel">当前选中</option></select>
+      <span class="hint-inline" id="draw-hint"></span>
+    </div>
+    <div id="stage-meta-bar" class="stage-meta-bar" aria-label="舞台状态栏"><span class="stage-meta-title">舞台</span><span class="stage-meta-spacer"></span><label title="只改变编辑器预览预算，不写入场景"><span>预览</span><select id="preview-quality"><option value="auto">Auto</option><option value="full">Full</option><option value="draft">Draft</option></select></label><span id="preview-perf" title="Runtime 绘制 P95 / 目标帧率">等待采样</span><span id="stage-zoom-value" class="stage-zoom-value">100%</span><button id="btn-reset-zoom" class="struct-action" title="重置缩放与平移">🔄</button></div>
+    <div id="stage-wrap" class="stage-wrap">
+      <canvas id="home-scene"></canvas>
+      <canvas id="stage" class="stage"></canvas>
+      <canvas id="vnext-stage" class="stage" aria-label="v4 场景预览"></canvas>
+      <canvas id="editor-overlay" class="editor-overlay"></canvas>
+    </div>
+    <div class="meta" id="m-stage"></div>
+    <div class="hint">
+      画布<b>拖拽</b>移动、<b>拖右下角黄手柄</b>缩放、<b>点击</b>选中（图层栏自动定位展开）；时间轴点击/拖动跳转。
+      顶部工具栏「打开 js」读场景文件，图层栏右上角「保存 js」写回——全程页面内完成。
+    </div>
+  </div>
+
+  <!-- 右：图层栏（元素卡片，-->
+  <div class="panel p-props">
+    <div class="panel-caption">结构中 Inspector（过渡）</div>
+    <div class="props-head">
+      <label id="props-title">图层元素（点击卡片展开调参 · 拖拽排序=z。</label>
+    </div>
+    <div id="global-inspector-tabs" class="global-inspector-tabs"><button data-global-inspector="props" class="active">属态</button><button data-global-inspector="fx">全局效果</button></div>
+    <div id="element-inspector-tabs" class="global-inspector-tabs"><button data-element-inspector="props" class="active">属性</button><button data-element-inspector="motion">动态</button><button data-element-inspector="fx">局部效果</button><button data-element-inspector="sampling">采样运动</button><button data-element-inspector="particle" style="display:none">粒子</button><button id="btn-timing-mode" title="当前 Scene 的参数覆层">时序</button></div>
+    <div id="inspector-context" class="inspector-context"></div>
+    <div class="props-tools">
+      <button id="btn-local-fx" class="small">+ 局部效果</button>
+    </div>
+    <div id="cfgform"></div>
+    <div class="props-actions"></div>
+    <div class="meta" id="m-props"></div>
+  </div>
+</div>
+
+<!-- 固定底部：全局导航轴+ Inspector 上下文编排轴。-->
+<section id="timeline-dock" aria-label="时间轴编排器">
+  <div id="timeline-splitter" title="拖动调整时间轴高度"></div>
+  <div class="timeline-dock-head"><button id="tl-play" class="timeline-play" title="播放">▬</button><b>编排器</b><span id="tl-context-note" class="tl-context-note">全局导航</span></div>
+  <div id="tl-label-top" class="timeline-labels top"></div>
+  <canvas id="tl" class="timeline" width="320" height="24"></canvas>
+  <div id="scene-bar" class="scene-bar"></div>
+  <canvas id="tl-context" class="timeline" width="320" height="27"></canvas>
+  <button id="tl-linear-toggle" title="切换 Linear">---</button>
+  <div id="vnext-timeline" aria-label="v4 时序编排器"></div>
+</section>
+
+<script src="editor/tauri-host-adapter.js"></script>
+<script src="editor/host-adapter.js"></script>
+<script src="home-scene-vnext.js"></script>
+<script src="editor/vnext-runtime-adapter.js"></script>
+<script src="editor/effect-registry-vnext.js"></script>
+<script src="editor/vnext-inspector-model.js"></script>
+<script src="editor/vnext-effect-state.js"></script>
+<script src="editor/vnext-mask-state.js"></script>
+<script src="editor/asset-resolver.js"></script>
+<script src="editor/vnext-asset-recipe.js"></script>
+<script src="editor/vnext-asset-loader.js"></script>
+<script src="editor/vnext-scene.js"></script>
+<script src="editor/vnext-workspace.js"></script>
+<script src="editor/vnext-scene-mutation.js"></script>
+<script src="editor/vnext-entity-state.js"></script>
+<script src="editor/vnext-timeline-state.js"></script>
+<script src="editor/vnext-asset-state.js"></script>
+<script src="editor/vnext-structure-state.js"></script>
+<script src="editor/vnext-canvas-hit.js"></script>
+<script src="editor/vnext-preview-scheduler.js"></script>
+<script src="editor/vnext-editor-page.js"></script>
+<script src="editor/vnext-structure-controller.js"></script>
+<script src="editor/vnext-geometry-controller.js"></script>
+<script src="editor/vnext-editor-ux.js"></script>
+
+</body>
+</html>

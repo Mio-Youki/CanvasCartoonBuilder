@@ -1,0 +1,33 @@
+#!/usr/bin/env node
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import vm from 'node:vm';
+import { validateVNextScene } from '../scripts/validate-scene-vnext.mjs';
+
+const root = resolve(import.meta.dirname, '..'), sandbox = {};
+new vm.Script(readFileSync(resolve(root, 'editor/vnext-scene.js'), 'utf8')).runInNewContext(sandbox);
+const api = sandbox.EditorVNextScene, document = api.blank({ width: 64, height: 32, loop: 2 });
+assert.equal(document.background.alpha,1,'新建 v4 场景的底色必须默认可见，不能让颜色控件落在透明黑底上');
+document.assets.photo = api.assetRef('assets/photo.png', { mime: 'image/png' });
+document.entities.push({ id: 'photo', type: 'image', assetId: 'photo', x: 0, y: 0, w: 64, h: 32 });
+document.entities[0].pivot = { mode:'custom', x:.25, y:.75 };
+document.timeline.visibility = { photo:{ segments:[{ f:[0,.5], visible:true },{ f:[.5,1], visible:false }] } };
+document.timeline.scenes = [{id:'scene-day',name:'白天',f:[0,.5]},{id:'scene-night',name:'夜晚',f:[.5,1],transition:{type:'scan',duration:.4,color:'#102030'}}];
+document.entities.push({ id: 'snow', type: 'particle-emitter', x: 0, y: 0, w: 64, h: 8, particle: { sourceId: 'photo' } });
+document.entities.push({ id:'star', type:'builtin', x:8, y:8, w:12, h:12, builtin:{id:'pixel-star',version:1,params:{rays:4}} });
+assert.equal(validateVNextScene(document).valid, true);
+const serialized = api.serialize(Object.assign({}, document, { runtimeAssets: { photo: { image: {} } } }));
+assert.ok(!serialized.includes('runtimeAssets')); assert.equal(JSON.parse(serialized).assets.photo.locator, 'assets/photo.png');assert.equal(JSON.parse(serialized).timeline.visibility.photo.segments[1].visible,false,'显示时段必须保存并可重开');assert.equal(JSON.parse(serialized).timeline.scenes[1].name,'夜晚','Scene 标签段必须保存并可重开');assert.equal(JSON.parse(serialized).timeline.scenes[1].transition.type,'scan','Scene 入口过渡必须随工程保存');
+const hydrated = api.hydrate(JSON.parse(serialized), { photo: { image: {} } });
+assert.ok(hydrated.runtimeAssets.photo.image);
+assert.equal(validateVNextScene(Object.assign({}, document, { entities: [{ id: 'bad', type: 'image', assetId: 'none' }] })).valid, false);
+assert.equal(validateVNextScene(Object.assign({}, document, { entities: [{ id:'bad-pivot', type:'rect', pivot:{ mode:'custom', x:2, y:.5 } }] })).valid, false);
+assert.equal(validateVNextScene(Object.assign({}, document, { timeline:{tracks:{},visibility:{photo:{segments:[{f:[.2,1],visible:true}]}}} })).valid,false,'显示时段必须完整覆盖归一化循环');
+assert.equal(validateVNextScene(Object.assign({}, document, { timeline:{tracks:{photo:{segments:[{f:[0,1],type:'linear',linearKeys:[1]}]}}} })).valid,false,'Linear 字段白名单必须是字符串数组');
+assert.equal(validateVNextScene(Object.assign({}, document, { timeline:{tracks:{},scenes:[{id:'bad-transition',name:'错误过渡',f:[0,1],transition:{type:'unknown',duration:0,color:'red'}}]} })).valid,false,'Scene 过渡必须限制为声明式类型、正时长与六位 Hex');
+assert.equal(validateVNextScene(Object.assign({},document,{sceneEffects:{overlay:{tint:{enabled:true,mask:{type:'element',targetId:'missing',sourceVisibility:'mask-only'}}},sample:{},outputGrain:{}}})).valid,false,'场景滤镜元素蒙版必须引用现有对象');
+assert.equal(validateVNextScene(Object.assign({},document,{sceneEffects:{overlay:{tint:{enabled:true,mask:{type:'alpha',assetId:'missing',x:0,y:0,w:10,h:10,mode:'alpha'}}},sample:{},outputGrain:{}}})).valid,false,'场景滤镜 Alpha 蒙版必须引用现有素材');
+assert.equal(validateVNextScene(Object.assign({},document,{entities:[{id:'bad-builtin',type:'builtin',builtin:{id:'program-code',version:1}}]})).valid,false,'持久 Scene 不得伪造未注册内建组件');
+assert.equal(validateVNextScene(Object.assign({},document,{entities:[{id:'bad-builtin-param',type:'builtin',builtin:{id:'pixel-star',version:1,params:{execute:'alert(1)'}}}]})).valid,false,'Builtin 只允许 Registry 声明参数');
+console.log('✓ vNext Scene：持久 locator、运行时资产注入与结构校验合同通过');

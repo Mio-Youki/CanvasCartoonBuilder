@@ -1,0 +1,223 @@
+{
+  "format": "tosampool-agent-builtin-manifest",
+  "version": 1,
+  "source": "runtime-src/vnext/15-builtin-registry.js",
+  "rules": [
+    "只能使用清单中的 id 与 version；不得输出 program.code、函数体或未注册组件。",
+    "内建组件负责高密度可重复绘制，位置、尺寸、对象动态、蒙版、加样和采样仍使用通用对象合同。",
+    "参数时序以 timing 声明为准；step 参数不可放入 Linear 段。",
+    "若清单构件不能表达用户目标，优先使用图片、矢量图元或提出新增 Registry 构件，不得伪造 id。"
+  ],
+  "builtins": [
+    {
+      "id": "pixel-star",
+      "version": 1,
+      "name": "像素星",
+      "aliases": [
+        "星星",
+        "闪烁星光",
+        "pixel star"
+      ],
+      "purpose": "无需外部素材的轻量星光，可作天空细节或粒子实体。",
+      "avoidWhen": [
+        "需要写实镜头光斑时"
+      ],
+      "cost": "low",
+      "parameters": [
+        {
+          "key": "color",
+          "label": "星芒颜色",
+          "type": "color",
+          "default": "#fff2a8",
+          "timing": "linear-safe"
+        },
+        {
+          "key": "coreColor",
+          "label": "核心颜色",
+          "type": "color",
+          "default": "#ffffff",
+          "timing": "linear-safe"
+        },
+        {
+          "key": "rays",
+          "label": "星芒数量",
+          "type": "number",
+          "default": 4,
+          "min": 3,
+          "max": 12,
+          "step": 1,
+          "integer": true,
+          "timing": "step"
+        },
+        {
+          "key": "innerRadius",
+          "label": "内径",
+          "type": "number",
+          "default": 0.4,
+          "min": 0.05,
+          "max": 0.95,
+          "step": 0.05,
+          "timing": "linear-safe"
+        },
+        {
+          "key": "coreSize",
+          "label": "核心大小",
+          "type": "number",
+          "default": 0.22,
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "timing": "linear-safe"
+        },
+        {
+          "key": "twinkle",
+          "label": "闪烁幅度",
+          "type": "number",
+          "default": 0.12,
+          "min": 0,
+          "max": 0.8,
+          "step": 0.01,
+          "timing": "step"
+        },
+        {
+          "key": "period",
+          "label": "闪烁周期",
+          "type": "number",
+          "default": 1.8,
+          "min": 0.05,
+          "max": 30,
+          "step": 0.05,
+          "timing": "step"
+        }
+      ]
+    },
+    {
+      "id": "pixel-cloud",
+      "version": 1,
+      "name": "像素云",
+      "aliases": [
+        "云",
+        "块状云",
+        "pixel cloud"
+      ],
+      "purpose": "可调色的低成本块状云，运动应交给对象动态或时序。",
+      "avoidWhen": [
+        "需要写实云层体积时"
+      ],
+      "cost": "low",
+      "parameters": [
+        {
+          "key": "color",
+          "label": "云色",
+          "type": "color",
+          "default": "#f2f4ff",
+          "timing": "linear-safe"
+        },
+        {
+          "key": "shadow",
+          "label": "阴影色",
+          "type": "color",
+          "default": "#b9c2d8",
+          "timing": "linear-safe"
+        },
+        {
+          "key": "lobes",
+          "label": "云团数量",
+          "type": "number",
+          "default": 5,
+          "min": 2,
+          "max": 12,
+          "step": 1,
+          "integer": true,
+          "timing": "step"
+        },
+        {
+          "key": "seed",
+          "label": "形态种子",
+          "type": "number",
+          "default": 1,
+          "min": 0,
+          "max": 9999,
+          "step": 1,
+          "integer": true,
+          "timing": "step"
+        }
+      ]
+    },
+    {
+      "id": "train-beam",
+      "version": 1,
+      "name": "列车光束",
+      "aliases": [
+        "车灯",
+        "前灯",
+        "列车前灯",
+        "train beam"
+      ],
+      "purpose": "轻量像素列车前灯或探照光束；保留 Legacy train-beam 的稳定名称。",
+      "avoidWhen": [
+        "需要真实体积光散射时"
+      ],
+      "cost": "low",
+      "parameters": [
+        {
+          "key": "color",
+          "label": "光束颜色",
+          "type": "color",
+          "default": "#ffe5a3",
+          "timing": "linear-safe"
+        },
+        {
+          "key": "alpha",
+          "label": "透明度",
+          "type": "number",
+          "default": 0.7,
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "timing": "linear-safe"
+        },
+        {
+          "key": "length",
+          "label": "长度比例",
+          "type": "number",
+          "default": 1,
+          "min": 0.05,
+          "max": 1,
+          "step": 0.01,
+          "timing": "linear-safe"
+        },
+        {
+          "key": "spread",
+          "label": "扩散比例",
+          "type": "number",
+          "default": 0.8,
+          "min": 0.02,
+          "max": 1,
+          "step": 0.01,
+          "timing": "linear-safe"
+        },
+        {
+          "key": "flicker",
+          "label": "闪烁幅度",
+          "type": "number",
+          "default": 0.04,
+          "min": 0,
+          "max": 1,
+          "step": 0.01,
+          "timing": "step"
+        },
+        {
+          "key": "period",
+          "label": "闪烁周期",
+          "type": "number",
+          "default": 0.35,
+          "min": 0.05,
+          "max": 30,
+          "step": 0.05,
+          "timing": "step"
+        }
+      ]
+    }
+  ]
+}

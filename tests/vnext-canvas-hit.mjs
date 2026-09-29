@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import vm from 'node:vm';
+
+const root = resolve(import.meta.dirname, '..');
+const values = new Map();
+const context = { ToSampoolRuntimeVNext:{ modules:{ frame:{ create:() => ({ valuesFor:entity => values.get(entity.id) }) } } } };
+new vm.Script(readFileSync(resolve(root, 'editor/vnext-canvas-hit.js'), 'utf8')).runInNewContext(context);
+const hit = context.EditorVNextCanvasHit;
+const scene = { entities:[{ id:'back', type:'rect' }, { id:'front', type:'ellipse' }] };
+values.set('back', { w:20, h:20, alpha:1, parentAlpha:1, worldMatrix:[1,0,0,1,0,0] });
+values.set('front', { w:20, h:20, alpha:1, parentAlpha:1, worldMatrix:[0,1,-1,0,30,0] });
+assert.equal(hit.pick(scene, 5, 5, 0).id, 'back');
+assert.equal(hit.pick(scene, 20, 10, 0).id, 'front', 'rotated entity uses Runtime world matrix rather than an axis-aligned local box');
+assert.equal(hit.pick(scene, 50, 50, 0), null);
+scene.entities.push({id:'group',type:'group',locked:true},{id:'child',type:'rect',parentId:'group'});
+values.set('group',{w:20,h:20,alpha:1,parentAlpha:1,worldMatrix:[1,0,0,1,40,40]});
+values.set('child',{w:10,h:10,alpha:1,parentAlpha:1,worldMatrix:[1,0,0,1,40,40]});
+assert.equal(hit.pick(scene,45,45,0),null,'a locked parent group must suppress Canvas hits for its descendants');
+scene.entities.find(item=>item.id==='group').locked=false;
+assert.equal(hit.pick(scene,45,45,0).id,'child','unlocking the parent restores descendant hit testing');
+const vector={id:'vector',type:'vector',parts:[{id:'base',type:'rect',x:0,y:0,w:20,h:12},{id:'dot',type:'ellipse',x:6,y:2,w:8,h:8}]};scene.entities.push(vector);values.set('vector',{w:20,h:12,alpha:1,parentAlpha:1,worldMatrix:[1,0,0,1,60,10]});
+assert.equal(hit.pickPart(scene,vector,70,16,0).id,'dot','part hit testing must prefer the last rendered internal part');
+vector.parts[1].locked=true;assert.equal(hit.pickPart(scene,vector,70,16,0).id,'base','locked internal parts must be skipped without suppressing their owner');
+console.log('✓ vNext Canvas Hit：按 Runtime 世界矩阵、形状、z 顺序及对象内图元命中');
