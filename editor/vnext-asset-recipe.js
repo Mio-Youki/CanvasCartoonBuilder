@@ -1,17 +1,34 @@
-/* Persistent, deterministic image preprocessing for v4 assets. */
+/* Persistent, deterministic import preprocessing for v4 assets.
+   Deliberately limited to source preparation: resize and alpha extraction.
+   Palette reduction, quantisation and pixel sampling belong to Scene effects. */
 (function (global) {
   'use strict';
-  const palettes = Object.freeze({ pico8:['#000000','#1d2b53','#7e2553','#008751','#ab5236','#5f574f','#c2c3c7','#fff1e8','#ff004d','#ffa300','#ffec27','#00e436','#29adff','#83769c','#ff77a8','#ffccaa'], nes:['#000000','#7c7c7c','#f8f8f8','#fc3c30','#fc9838','#fcfc58','#b8f818','#58d854','#20b898','#0088c4','#483ca8','#a83cd0','#fc3c94','#fc98c0'], gb:['#0f380f','#306230','#8bac0f','#9bbc0f'], vga:['#000000','#800000','#008000','#808000','#000080','#800080','#008080','#c0c0c0','#808080','#ff0000','#00ff00','#ffff00','#0000ff','#ff00ff','#00ffff','#ffffff'] });
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
-  function normalize(input) { input = input || {}; return { width:Math.max(0, Math.round(+input.width || 0)), height:Math.max(0, Math.round(+input.height || 0)), pixelDiv:Math.max(1, Math.round(+input.pixelDiv || 1)), palette:palettes[input.palette] ? input.palette : 'none', quant:Math.max(0, Math.min(8, Math.round(+input.quant || 0))), bgTolerance:Math.max(0, Math.min(255, Math.round(+input.bgTolerance || 0))) }; }
-  function rgb(hex) { const value = hex.slice(1); return [parseInt(value.slice(0,2),16),parseInt(value.slice(2,4),16),parseInt(value.slice(4,6),16)]; }
-  function apply(image, input) { const recipe = normalize(input); if (!recipe.width && !recipe.height && recipe.pixelDiv === 1 && recipe.palette === 'none' && !recipe.quant && !recipe.bgTolerance) return image; const sourceW = image.naturalWidth || image.width, sourceH = image.naturalHeight || image.height, width = recipe.width || Math.max(1, Math.round(sourceW * (recipe.height ? recipe.height / sourceH : 1))), height = recipe.height || Math.max(1, Math.round(sourceH * (recipe.width ? recipe.width / sourceW : 1)));
-    const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d', { willReadFrequently:true }); ctx.imageSmoothingEnabled = false;
-    if (recipe.pixelDiv > 1) { const small = document.createElement('canvas'); small.width = Math.max(1, Math.round(width / recipe.pixelDiv)); small.height = Math.max(1, Math.round(height / recipe.pixelDiv)); const sctx = small.getContext('2d'); sctx.imageSmoothingEnabled = false; sctx.drawImage(image, 0, 0, small.width, small.height); ctx.drawImage(small, 0, 0, width, height); } else ctx.drawImage(image, 0, 0, width, height);
-    if (recipe.palette === 'none' && !recipe.quant && !recipe.bgTolerance) return canvas;
-    const data = ctx.getImageData(0, 0, width, height), pixels = data.data, bg = [pixels[0],pixels[1],pixels[2]], palette = recipe.palette === 'none' ? null : palettes[recipe.palette].map(rgb), levels = recipe.quant ? Math.max(2, recipe.quant) : 0;
-    for (let index = 0; index < pixels.length; index += 4) { let r=pixels[index],g=pixels[index+1],b=pixels[index+2]; if (recipe.bgTolerance && Math.hypot(r-bg[0],g-bg[1],b-bg[2]) <= recipe.bgTolerance) { pixels[index+3]=0; continue; } if (palette) { let best=palette[0], distance=Infinity; for (const color of palette) { const d=(r-color[0])**2+(g-color[1])**2+(b-color[2])**2; if(d<distance){distance=d;best=color;} } [r,g,b]=best; } else if (levels) { const step=255/(levels-1); r=Math.round(r/step)*step; g=Math.round(g/step)*step; b=Math.round(b/step)*step; } pixels[index]=clamp(Math.round(r),0,255); pixels[index+1]=clamp(Math.round(g),0,255); pixels[index+2]=clamp(Math.round(b),0,255); }
-    ctx.putImageData(data,0,0); return canvas;
+  function channel(value, fallback) { return clamp(Math.round(Number.isFinite(+value) ? +value : fallback), 0, 255); }
+  function color(value, fallback) { const source=Array.isArray(value)?value:fallback; return [channel(source&&source[0], 0), channel(source&&source[1], 0), channel(source&&source[2], 0)]; }
+  function normalize(input) {
+    input=input||{};
+    const legacyBackground=input.backgroundRemoval||{},tolerance=input.bgTolerance!=null?input.bgTolerance:legacyBackground.tolerance,enabled=legacyBackground.enabled===true||+tolerance>0;
+    return { width:Math.max(0,Math.round(+input.width||0)),height:Math.max(0,Math.round(+input.height||0)),backgroundRemoval:{enabled,color:color(legacyBackground.color||input.bgColor,[0,0,0]),tolerance:clamp(Math.round(+tolerance||0),0,255),feather:clamp(Math.round(+legacyBackground.feather||0),0,128),connected:legacyBackground.connected!==false} };
   }
-  global.EditorVNextAssetRecipe = Object.freeze({ palettes, normalize, apply });
-})(typeof window !== 'undefined' ? window : globalThis);
+  function sameRecipe(recipe) { return !recipe.width&&!recipe.height&&!recipe.backgroundRemoval.enabled; }
+  function resizedSize(image, recipe) { const sourceW=image.naturalWidth||image.width,sourceH=image.naturalHeight||image.height,width=recipe.width||Math.max(1,Math.round(sourceW*(recipe.height?recipe.height/sourceH:1))),height=recipe.height||Math.max(1,Math.round(sourceH*(recipe.width?recipe.width/sourceW:1))); return { width, height }; }
+  function distance(pixels, index, target) { const dr=pixels[index]-target[0],dg=pixels[index+1]-target[1],db=pixels[index+2]-target[2]; return Math.hypot(dr,dg,db); }
+  function removeBackground(data, width, height, config) {
+    if(!config.enabled||!config.tolerance)return;
+    const pixels=data.data,target=config.color,max=Math.min(441,config.tolerance+config.feather),limit=max*max,match=index=>{const dr=pixels[index]-target[0],dg=pixels[index+1]-target[1],db=pixels[index+2]-target[2];return dr*dr+dg*dg+db*db<=limit;},apply=index=>{const d=distance(pixels,index,target),factor=config.feather?clamp((d-config.tolerance)/Math.max(1,config.feather),0,1):(d<=config.tolerance?0:1);pixels[index+3]=Math.round(pixels[index+3]*factor);};
+    if(!config.connected){for(let index=0;index<pixels.length;index+=4)if(match(index))apply(index);return;}
+    const count=width*height,seen=new Uint8Array(count),queue=new Int32Array(count);let head=0,tail=0;
+    const push=(x,y)=>{const at=y*width+x;if(seen[at])return;seen[at]=1;const index=at*4;if(match(index))queue[tail++]=at;};
+    for(let x=0;x<width;x++){push(x,0);push(x,height-1);}for(let y=1;y<height-1;y++){push(0,y);push(width-1,y);}
+    while(head<tail){const at=queue[head++],x=at%width,y=Math.floor(at/width);apply(at*4);if(x)push(x-1,y);if(x+1<width)push(x+1,y);if(y)push(x,y-1);if(y+1<height)push(x,y+1);}
+  }
+  function apply(image, input) {
+    const recipe=normalize(input);if(sameRecipe(recipe))return image;
+    const size=resizedSize(image,recipe),canvas=document.createElement('canvas');canvas.width=size.width;canvas.height=size.height;
+    const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.imageSmoothingEnabled=false;ctx.drawImage(image,0,0,size.width,size.height);
+    if(recipe.backgroundRemoval.enabled&&recipe.backgroundRemoval.tolerance){const data=ctx.getImageData(0,0,size.width,size.height);removeBackground(data,size.width,size.height,recipe.backgroundRemoval);ctx.putImageData(data,0,0);}
+    return canvas;
+  }
+  global.EditorVNextAssetRecipe=Object.freeze({normalize,apply,resizedSize,removeBackground});
+})(typeof window!=='undefined'?window:globalThis);

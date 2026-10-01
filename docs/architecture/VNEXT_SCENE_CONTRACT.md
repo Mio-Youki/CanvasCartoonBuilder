@@ -55,7 +55,7 @@ assets[id].locator      +    runtimeAssets[id] = CanvasImageSource
 - 任意实体可声明 `hidden` 与 `locked`。`hidden` 同时影响 Runtime 与保存结果；`locked` 是持久的编辑权限，只阻止 Canvas 命中和直接变换，不隐藏或改变导出画面。“独显”不属于 Scene 字段，只能是编辑器临时预览状态。
 - 任意实体可声明 `pivot:{mode:'custom',x,y}`；`x/y` 是对象局部宽高内的 0–1 归一化坐标。缺省中心为 `0.5/0.5`。Runtime 世界矩阵、实际绘制、对象效果包围盒、粒子发射器和 Canvas 命中必须共同解释该字段；它不是仅供编辑器显示的元数据。
 - `particle-emitter.particle.sourceId` 必须指向普通实体；它每帧按固定时间烘焙一次来源视觉胶囊后复用，因此来源的图元动态、对象变换与对象处理会自然进入粒子外观。发射器自身的 `x/y/w/h` 是出生范围，不是来源实体边界。
-- 粒子发射、运动与外观参数位于 `particle`：`count / life / speed / direction / spread / gravity / wind / size / sizeVar / alpha / fade / seed / spin / spinSpeed / spinVar`。它们只接受 Step 时序；轨道仍使用发射器 id，稀疏键写成 `particle.speed` 这类点号路径。
+- 粒子发射、运动与外观参数位于 `particle`：`count / life / speed / direction / spread / gravity / wind / size / sizeVar / alpha / fade / seed / spin / spinSpeed / spinVar`。图片来源可额外声明 `playback:'static'|'particle-age' / frame / frameFps / frameLoop`：后者按每颗粒子的寿命选择其多帧素材，普通对象自身仍按场景时间播放。它们只接受 Step 时序；轨道仍使用发射器 id，稀疏键写成 `particle.speed` 这类点号路径。
 - 编辑器内置预设可创建 `particleSourceOnly:true` 的私有普通实体。它仍是可被 Runtime 烘焙的声明式实体，但不在主场景重复绘制，也不占用结构树；`particle.sourceOwned:true` 表示删除发射器时可在无人共享的前提下级联清理。普通“粒子化”只建立动态 `sourceId` 引用，不复制或冻结源对象。
 
 ### 受控内建组件
@@ -81,7 +81,9 @@ assets[id].locator      +    runtimeAssets[id] = CanvasImageSource
 
 `img2asset-vnext.html` 只保留为 schema / Runtime / 性能实验台，`vnext-workbench.html` 是更小的合同夹具。正式迁移候选是从 Legacy 逐字节副本开始演进的 `img2asset-v4-classic.html`；它默认仍保持 Legacy，只有受控 v4 会话启用已通过迁移矩阵的纵向切片，未迁入能力不得暗中回落或伪装完成。
 
-Classic 迁移副本已具备显式 v4 会话：格式感知的新建 / 打开 / 保存只让 `.tosampool.json` 进入 v4 Workspace，并在原舞台上绘制 v4 Runtime。结构树、素材栏、绘制 / 文字 / 多帧、Canvas 变换、Inspector、上下时间轴与 Registry 效果 / 采样格控制器均已按纵向切片接线，并全部通过 `EditorVNextSceneMutation` 形成可撤销事务；采样场与边缘保护属于不均采样本体。保存重开会比较持久数据与固定时间像素；“测试场景”会生成包含 Runtime 与冻结素材的独立 HTML。尚未列为迁移完成的旧程序元素、旧 JS 转换及完整格式导出仍冻结。
+Classic 迁移副本已具备显式 v4 会话：格式感知的新建 / 打开 / 保存只让 `.tosampool.json` 进入 v4 Workspace，并在原舞台上绘制 v4 Runtime。结构树、素材栏、绘制 / 文字 / 多帧、Canvas 变换、Inspector、上下时间轴与 Registry 效果 / 采样格控制器均已按纵向切片接线，并全部通过 `EditorVNextSceneMutation` 形成可撤销事务；采样场与边缘保护属于不均采样本体。保存重开会比较持久数据与固定时间像素；“测试场景”会生成包含 Runtime 与冻结素材的独立 HTML；当前帧 PNG、Sprite PNG、多帧 PNG 与 GIF 均由 v4 导出器生成。未迁入的旧程序元素、旧 JS 转换与其他交付格式仍冻结。
+
+交付链不再复用 Legacy 的 `SceneExporter`：`editor/vnext-exporter.js` 只接受 `tosampool-scene/v4`，以 `ToSampoolRuntimeVNext.createRuntime()` 在固定时间输出当前帧 PNG、Sprite PNG、多帧 PNG 和 GIF。它接收 Workspace 已解析的临时 `runtimeAssets`，但不会把该临时素材槽、预览质量或 DOM 选择状态写回持久 Scene。
 
 `editor/vnext-scene-mutation.js` 将所有可见编辑包装为带标签的快照事务；它只依赖 Workspace 的 `mutate / replace / requireDocument`，因此撤销与重做不触碰 Host、文件或 Runtime。新建与打开是会话边界，会主动清空历史；普通编辑若没有改变序列化结果，也不会制造空历史项。
 

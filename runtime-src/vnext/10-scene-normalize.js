@@ -9,7 +9,11 @@
   const finite = (value, fallback) => Number.isFinite(+value) ? +value : fallback;
   const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
   const sameStages = (candidate, stages) => Array.isArray(candidate) && candidate.length === stages.length && candidate.every(stage => stages.includes(stage)) && new Set(candidate).size === stages.length;
-  const PART_TYPES = new Set(['rect', 'ellipse', 'line', 'poly']);
+  const PART_TYPES = new Set(['rect', 'ellipse', 'line', 'poly', 'stroke']);
+  // Persistent geometry is authored on the pixel grid.  Runtime animation can
+  // still interpolate these values, but the final frame state snaps them back
+  // to pixels before drawing (see 30-frame-state.js).
+  const pixel = (value, fallback) => Math.round(finite(value, fallback));
 
   // Field distribution and Alpha edge protection became children of uneven
   // sampling in v4.1.  Keep this boundary migration in Runtime too: exported
@@ -55,8 +59,9 @@
       if (seen.has(part.id)) throw new Error(`实体「${entity.id}」存在重复图元 id：${part.id}`);
       seen.add(part.id);
       if (!PART_TYPES.has(part.type)) throw new Error(`实体「${entity.id}」的图元「${part.id}」类型无效：${part.type}`);
-      part.x = finite(part.x, 0); part.y = finite(part.y, 0); part.scaleX = finite(part.scaleX, 1); part.scaleY = finite(part.scaleY, 1); part.rot = finite(part.rot, 0); part.alpha = Math.max(0, Math.min(1, finite(part.alpha, 1)));
-      if (part.type === 'line') { part.x2 = finite(part.x2, part.x + 1); part.y2 = finite(part.y2, part.y + 1); delete part.w; delete part.h; }
+      part.x = pixel(part.x, 0); part.y = pixel(part.y, 0); part.scaleX = finite(part.scaleX, 1); part.scaleY = finite(part.scaleY, 1); part.rot = finite(part.rot, 0); part.alpha = Math.max(0, Math.min(1, finite(part.alpha, 1)));
+      if (part.type === 'line') { part.x2 = pixel(part.x2, part.x + 1); part.y2 = pixel(part.y2, part.y + 1); delete part.w; delete part.h; }
+      else if (part.type === 'stroke') { part.points = Array.isArray(part.points) ? part.points.map(point => [pixel(point && point[0], 0), pixel(point && point[1], 0)]) : [[part.x, part.y], [part.x + 1, part.y + 1]]; part.stroke = part.stroke || '#000000'; part.strokeWidth = Math.max(1, pixel(part.strokeWidth, 1)); delete part.fill; delete part.w; delete part.h; }
       else { part.w = Math.max(1, finite(part.w, 1)); part.h = Math.max(1, finite(part.h, 1)); }
       if (part.type === 'rect') part.radius = Math.max(0, Math.min(finite(part.radius, 0), part.w / 2, part.h / 2));
       if (part.type === 'poly') part.points = Array.isArray(part.points) ? part.points : [[.5,0],[1,1],[0,1]];
@@ -68,13 +73,13 @@
     const entity = Object.assign({
       id: `entity-${index + 1}`,
       type: 'rect', x: 0, y: 0, w: 1, h: 1,
-      scaleX: 1, scaleY: 1, rot: 0, alpha: 1,
+      scaleX: 1, scaleY: 1, skewX: 0, skewY: 0, rot: 0, alpha: 1,
       fill: '#ffffff', hidden: false,
     }, clone(input) || {});
     entity.id = String(entity.id || `entity-${index + 1}`);
-    entity.x = finite(entity.x, 0); entity.y = finite(entity.y, 0);
-    entity.w = Math.max(1, finite(entity.w, 1)); entity.h = Math.max(1, finite(entity.h, 1));
-    entity.scaleX = finite(entity.scaleX, 1); entity.scaleY = finite(entity.scaleY, 1);
+    entity.x = pixel(entity.x, 0); entity.y = pixel(entity.y, 0);
+    entity.w = Math.max(1, pixel(entity.w, 1)); entity.h = Math.max(1, pixel(entity.h, 1));
+    entity.scaleX = finite(entity.scaleX, 1); entity.scaleY = finite(entity.scaleY, 1); entity.skewX = Math.max(-80, Math.min(80, finite(entity.skewX, 0))); entity.skewY = Math.max(-80, Math.min(80, finite(entity.skewY, 0)));
     entity.rot = finite(entity.rot, 0); entity.alpha = Math.max(0, Math.min(1, finite(entity.alpha, 1)));
     if (entity.type === 'builtin') entity.builtin = api.modules.builtins.normalize(entity.builtin);
     normalizeParts(entity);
@@ -143,7 +148,7 @@
     sceneEffects.pipeline = SCENE_PIPELINE.slice();
     return Object.freeze({
       format: FORMAT, width, height, loop,
-      background: Object.assign({ color: '#000000', alpha: 1, layers: [] }, raw.background || {}),
+      background: Object.assign({ color: '#ffffff', alpha: 1, layers: [] }, raw.background || {}),
       entities: Object.freeze(entities),
       timeline: raw.timeline || { tracks: {} },
       sceneEffects,

@@ -9,6 +9,8 @@
     h: Object.freeze({ kind: 'number', default: 1, min: 1, label: '高' }),
     scaleX: Object.freeze({ kind: 'number', default: 1, label: '宽比例' }),
     scaleY: Object.freeze({ kind: 'number', default: 1, label: '高比例' }),
+    skewX: Object.freeze({ kind: 'number', default: 0, min: -80, max: 80, label: '水平斜切' }),
+    skewY: Object.freeze({ kind: 'number', default: 0, min: -80, max: 80, label: '垂直斜切' }),
     rot: Object.freeze({ kind: 'number', default: 0, label: '旋转' }),
     blend: Object.freeze({ kind: 'text', default: 'normal', label: '叠加方式' }),
     alpha: Object.freeze({ kind: 'number', default: 1, min: 0, max: 1, label: '透明度' }),
@@ -57,7 +59,7 @@
     return target[key];
   }
   function fieldsFor(target) {
-    const base = target && target.type === 'group' ? ['x','y','scaleX','scaleY','rot','blend','alpha'] : ['x','y','w','h','scaleX','scaleY','rot','blend','alpha'];
+    const base = target && target.type === 'group' ? ['x','y','scaleX','scaleY','skewX','skewY','rot','blend','alpha'] : ['x','y','w','h','scaleX','scaleY','skewX','skewY','rot','blend','alpha'];
     if (target && !['image','group','line','vector'].includes(target.type)) base.push('fill','fillAlpha');
     if (target && ['rect','ellipse','line','poly'].includes(target.type)) base.push('stroke','strokeAlpha','strokeWidth');
     if (target && target.type === 'rect') base.push('radius');

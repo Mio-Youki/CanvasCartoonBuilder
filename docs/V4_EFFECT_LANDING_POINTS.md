@@ -4,8 +4,8 @@
 
 | 效果 ID | Registry | Inspector | Runtime | 测试 |
 | --- | --- | --- | --- | --- |
-| `projection` | `effect-registry-vnext.js` | 成样 / 加样卡片 | `home-scene-vnext.js` decorate-back | 状态合同、Runtime smoke |
-| `outline` | 同上 | 成样 / 加样卡片 | Runtime decorate-back | 状态合同、Runtime smoke |
+| `projection` | `effect-registry-vnext.js` | 成样 / 加样卡片 | `runtime-src/vnext/65-decorate-effects.js`（构建为 `home-scene-vnext.js`） | 状态合同、Runtime smoke |
+| `outline` | 同上 | 成样 / 加样卡片 | Runtime decorate-back；默认不纳入投影 Alpha，可由 `包含投影` Step 开关恢复合成轮廓 | 状态合同、Runtime smoke |
 | `tint-overlay` | 同上 | 加样 / 场景叠加卡片 | Runtime decorate | 状态合同、Runtime smoke |
 | `texture-overlay` | 同上 | 加样 / 场景叠加 + 图样字段 | Runtime pattern 模块 | 图样 UI 合同、Runtime smoke |
 | `inner-light` | 同上 | 加样卡片 | Runtime decorate-inside | 状态合同、Runtime smoke |

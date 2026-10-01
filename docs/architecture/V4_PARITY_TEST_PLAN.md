@@ -1,12 +1,12 @@
 # v4 Classic Shell Parity 测试计划
 
-> 当前入口口径：`img2asset-v4-classic.html` 普通打开即进入 V4；`?legacy=1` 只用于候选壳与冻结 Legacy 的结构/截图比较。浏览器纵向验收必须直接验证普通 V4 入口，而不是通过隐藏测试开关制造另一套页面状态。
+> 当前入口口径：`img2asset-v4-classic.html` 普通打开即进入单一 V4 会话；它不接受 `?legacy=1`、不加载 `HOME_SCENE`，也不提供页内转换。浏览器纵向验收必须直接验证普通 V4 入口。
 
 ## 1. 目标
 
 自动测试负责证明没有意外退化；人工验收负责批准差异、手感和产品取舍。二者不能互相替代。
 
-浏览器测试使用 `playwright-core` 驱动系统已安装的 Microsoft Edge，不随 Tauri 打包浏览器。快速 `npm run verify` 保留；完整迁移验收使用 `npm run verify:parity`。
+浏览器测试使用 `playwright-core` 驱动系统已安装的 Microsoft Edge，不随 Tauri 打包浏览器。快速 `npm run verify` 保留；v4 产品入口与 Classic Shell 集成使用 `npm run verify:v4-product`、`npm run verify:classic-v4-integration`。
 
 ## 2. 证据层
 
@@ -38,8 +38,8 @@
 
 ## 6. 每个切片的最低浏览器流程
 
-1. 在 Legacy 执行操作并记录初态/终态；
-2. 在 Classic 候选执行同一操作；
+1. 在冻结 Legacy 页面执行操作并记录初态/终态；
+2. 在等价的 v4 JSON 夹具执行同一操作；
 3. 比较 Canvas、DOM、Scene、历史和性能；
 4. 未登记差异立即失败；
 5. 自动通过后进行一次集中人工验收；
@@ -49,4 +49,11 @@
 
 2026-09-21 已使用临时 `playwright-core` 成功启动 `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`。Legacy 与 vNext 均可通过 `file://` 加载、读取 DOM、捕获截图和页面异常。项目级探针进入 `tests/browser/`；输出写入临时目录或被忽略的测试产物目录，不提交运行截图。
 
-当前首个入口为 `npm run verify:parity`。它先剥离已批准的 Session Facade、Scene File Controller、Asset Controller、隔离 v4 Runtime 与素材边界接线并验证其余候选源码与 Legacy 字节一致，再分别打开两个页面、固定播放时间、比较结构/几何/控件状态、Canvas 像素与整页截图。测试还使用仓库内即时生成的 PNG，在两页连续执行导入、预处理确认、素材卡添加、场景放置和背景向导，避免把“控制器函数存在”误当成“用户工作流可用”。随后以仅限 e2e 的 v4 单活动会话复用同一预处理弹窗和背景放置面板，检查 v4 recipe、素材、图片实体与 tile 背景写入、固定时间渲染、浏览器下载保存及重新打开后的像素一致性；该证据不替代尚未迁移的可见 Canvas/树/Inspector 验收。后续切片继续通过受控差异清单扩大允许的内部接线；其余浏览器证据保留并随能力切片扩展。
+当前可执行入口分为两类：
+
+- `npm run verify:v4-product`：证明单一 v4 会话、无 Legacy Runtime/转换入口、工具栏绘制、v4 Scene 写入和 Canvas 选择；
+- `npm run verify:classic-v4-integration`：在真实 Edge 覆盖素材预处理、放置、Canvas/树/Inspector、时间轴、保存重开、测试页、导出、粒子和 builtin 的纵向闭环。
+
+旧的“候选源码剥离接线后与 Legacy 字节一致，再在同一页面切换 Legacy 会话”的方案已退役：它会迫使 v4 页面重新加载 `HOME_SCENE`，直接违反产品边界。
+
+真正的 Legacy ↔ v4 视觉对照仍然保留为后续门禁，但必须改成**双夹具**：同一测试场景分别由冻结 Legacy JS 和预制的等价 `.tosampool.json` 打开，在固定时间、固定 Edge、固定 DPR 下比较 Canvas / DOM / 性能；处理层、Builtin 或文本回退的获批差异使用局部遮罩登记。它不能再通过 v4 页面内部回退 Legacy 来伪造对照。

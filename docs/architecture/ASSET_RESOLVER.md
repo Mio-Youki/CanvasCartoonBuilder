@@ -8,6 +8,8 @@ Asset Resolver 位于 Scene Serializer 与交付物生成之间，把 Scene 中�
 Scene Serializer → Asset Resolver / Freezer → Artifact Builder → Host Adapter
 ```
 
+v4 的素材 descriptor 也可携带 `recipe`。它在素材字节已解析为图片后、注入 Runtime 前逐帧执行，目前仅包含**尺寸**与**去背景**（取样色、容差、边缘柔化、边缘连通性）。色板、均匀量化与再像素化始终属于 Scene 的采样效果；这样它们可参与时间轴、蒙版与对象效果，而不会被不可逆地烘焙进素材。
+
 实现位于 `editor/asset-resolver.js`。保存自包含 JS 与测试场景已经共用该入口；帧导出直接消费 Runtime 已加载的像素，最终 Blob 统一交给 Artifact Builder。
 
 ## 2. 解析顺序

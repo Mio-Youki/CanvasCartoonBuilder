@@ -19,7 +19,7 @@
     const raw = scene.assets && scene.assets[id]; if (!raw) return null;
     const frames = Array.isArray(raw.frames) && raw.frames.length ? raw.frames : null;
     if (!frames) return drawable(raw);
-    const fps = Math.max(.1, +(source && source.fps) || +raw.fps || 8), count = frames.length, index = source && source.frameLoop === false || raw.frameLoop === false ? Math.min(count - 1, Math.floor(Math.max(0, time) * fps)) : Math.floor(Math.max(0, time) * fps) % count;
+    const fps = Math.max(.1, +(source && source.fps) || +raw.fps || 8), count = frames.length, explicit=source&&Number.isFinite(+source._assetFrame), index = explicit ? Math.max(0,Math.min(count-1,Math.round(+source._assetFrame))) : (source && source.frameLoop === false || raw.frameLoop === false ? Math.min(count - 1, Math.floor(Math.max(0, time) * fps)) : Math.floor(Math.max(0, time) * fps) % count);
     return drawable(frames[index]);
   }
   function roundedRect(ctx, x, y, w, h, radius) {
@@ -33,19 +33,19 @@
   function patternTexture(scene,part,time){const pat=part.fillPattern,color=pat.color&&pat.color!=='inherit'?pat.color:(part.fill||'#ffffff');return api.modules.pattern.texture(Math.max(1,scene.width),Math.max(1,scene.height),pat,color,{time:time||0,dynamic:!!(pat.motion&&pat.motion.enabled)});}
   function partMotion(part, time) {
     const out=Object.assign({},part),anim=part.anim||{},phase=time*Math.PI*2,curve=(period,mode)=>api.modules.frame.curve(time/Math.max(.001,+period||1),mode);
-    if(anim.bob&&Number.isFinite(+anim.bob.amount)){const offset=curve(anim.bob.period,anim.bob.curve)*+anim.bob.amount,angle=(Number.isFinite(+anim.bob.angle)?+anim.bob.angle:90)*Math.PI/180,dx=Math.cos(angle)*offset,dy=Math.sin(angle)*offset;out.x=(+out.x||0)+dx;out.y=(+out.y||0)+dy;if(out.type==='line'){out.x2=(+out.x2||0)+dx;out.y2=(+out.y2||0)+dy;}}
-    if(anim.scroll&&Number.isFinite(+anim.scroll.speed)){const angle=(+anim.scroll.angle||0)*Math.PI/180,span=Math.max(0,+anim.scroll.span||0),raw=time*+anim.scroll.speed,distance=anim.scroll.repeat!==false&&span>0?((raw%span)+span)%span:raw,dx=Math.cos(angle)*distance,dy=Math.sin(angle)*distance;out.x=(+out.x||0)+dx;out.y=(+out.y||0)+dy;if(out.type==='line'){out.x2=(+out.x2||0)+dx;out.y2=(+out.y2||0)+dy;}}
+    if(anim.bob&&Number.isFinite(+anim.bob.amount)){const offset=curve(anim.bob.period,anim.bob.curve)*+anim.bob.amount,angle=(Number.isFinite(+anim.bob.angle)?+anim.bob.angle:90)*Math.PI/180,dx=Math.cos(angle)*offset,dy=Math.sin(angle)*offset;out.x=(+out.x||0)+dx;out.y=(+out.y||0)+dy;if(out.type==='line'){out.x2=(+out.x2||0)+dx;out.y2=(+out.y2||0)+dy;}else if(out.type==='stroke')out.points=(out.points||[]).map(point=>[(+point[0]||0)+dx,(+point[1]||0)+dy]);}
+    if(anim.scroll&&Number.isFinite(+anim.scroll.speed)){const angle=(+anim.scroll.angle||0)*Math.PI/180,span=Math.max(0,+anim.scroll.span||0),raw=time*+anim.scroll.speed,distance=anim.scroll.repeat!==false&&span>0?((raw%span)+span)%span:raw,dx=Math.cos(angle)*distance,dy=Math.sin(angle)*distance;out.x=(+out.x||0)+dx;out.y=(+out.y||0)+dy;if(out.type==='line'){out.x2=(+out.x2||0)+dx;out.y2=(+out.y2||0)+dy;}else if(out.type==='stroke')out.points=(out.points||[]).map(point=>[(+point[0]||0)+dx,(+point[1]||0)+dy]);}
     if(anim.spin&&Number.isFinite(+anim.spin.speed))out.rot=(+out.rot||0)+time*+anim.spin.speed;
     if(anim.blink&&Number.isFinite(+anim.blink.amount))out.alpha=(out.alpha==null?1:+out.alpha)*(1-Math.max(0,Math.min(1,+anim.blink.amount))*((curve(anim.blink.period,anim.blink.curve)+1)/2));
     if(anim.pulse&&Number.isFinite(+anim.pulse.amount)){const scale=1+curve(anim.pulse.period,anim.pulse.curve)*+anim.pulse.amount;out.scaleX=(Number.isFinite(+out.scaleX)?+out.scaleX:1)*scale;out.scaleY=(Number.isFinite(+out.scaleY)?+out.scaleY:1)*scale;}
     if(anim.wave&&Number.isFinite(+anim.wave.amount))out.rot=(+out.rot||0)+Math.sin(phase/Math.max(.001,+anim.wave.period||1))*+anim.wave.amount;
     return out;
   }
-  function partBox(part){if(part.type==='line'){const x=Math.min(+part.x||0,+part.x2||0),y=Math.min(+part.y||0,+part.y2||0);return{x,y,w:Math.max(1,Math.abs((+part.x2||0)-(+part.x||0))),h:Math.max(1,Math.abs((+part.y2||0)-(+part.y||0)))};}return{x:+part.x||0,y:+part.y||0,w:Math.max(1,+part.w||1),h:Math.max(1,+part.h||1)};}
+  function partBox(part){if(part.type==='line'){const x=Math.min(+part.x||0,+part.x2||0),y=Math.min(+part.y||0,+part.y2||0);return{x,y,w:Math.max(1,Math.abs((+part.x2||0)-(+part.x||0))),h:Math.max(1,Math.abs((+part.y2||0)-(+part.y||0)))};}if(part.type==='stroke'){const points=Array.isArray(part.points)&&part.points.length?part.points:[[+part.x||0,+part.y||0]],xs=points.map(point=>+point[0]||0),ys=points.map(point=>+point[1]||0),x=Math.min(...xs),y=Math.min(...ys);return{x,y,w:Math.max(1,Math.max(...xs)-x),h:Math.max(1,Math.max(...ys)-y)};}return{x:+part.x||0,y:+part.y||0,w:Math.max(1,+part.w||1),h:Math.max(1,+part.h||1)};}
   function paintPath(ctx, part, scene, origin, time) {
     const pattern=part.fillPattern&&part.fillPattern.type&&part.fillPattern.type!=='none'?part.fillPattern:null,solid=part.fill&&(!pattern||pattern.mode!=='replace');
-    if(solid&&part.type!=='line'){ctx.save();ctx.globalAlpha*=Math.max(0,Math.min(1,part.fillAlpha==null?1:+part.fillAlpha));ctx.fillStyle=pattern&&pattern.mode==='overlay'?(pattern.baseColor||part.fill):part.fill;ctx.fill();ctx.restore();}
-    if(pattern&&part.type!=='line'){const texture=patternTexture(scene,part,time);if(texture){ctx.save();ctx.clip();if(ctx.setTransform)ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha*=Math.max(0,Math.min(1,pattern.opacity==null?1:+pattern.opacity));ctx.drawImage(texture,-(origin&&origin.x||0),-(origin&&origin.y||0));ctx.restore();}}
+    if(solid&&part.type!=='line'&&part.type!=='stroke'){ctx.save();ctx.globalAlpha*=Math.max(0,Math.min(1,part.fillAlpha==null?1:+part.fillAlpha));ctx.fillStyle=pattern&&pattern.mode==='overlay'?(pattern.baseColor||part.fill):part.fill;ctx.fill();ctx.restore();}
+    if(pattern&&part.type!=='line'&&part.type!=='stroke'){const texture=patternTexture(scene,part,time);if(texture){ctx.save();ctx.clip();if(ctx.setTransform)ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha*=Math.max(0,Math.min(1,pattern.opacity==null?1:+pattern.opacity));ctx.drawImage(texture,-(origin&&origin.x||0),-(origin&&origin.y||0));ctx.restore();}}
     if(part.stroke&&Math.max(0,+part.strokeWidth||0)>0){ctx.save();ctx.globalAlpha*=Math.max(0,Math.min(1,part.strokeAlpha==null?1:+part.strokeAlpha));ctx.strokeStyle=part.stroke;ctx.lineWidth=Math.max(0,+part.strokeWidth||0);ctx.stroke();ctx.restore();}
   }
   function drawPart(ctx, raw, ownerW, ownerH, time, scene, origin) {
@@ -53,6 +53,7 @@
     ctx.save();ctx.translate(-ownerW/2,-ownerH/2);ctx.globalAlpha*=Math.max(0,Math.min(1,part.alpha==null?1:+part.alpha));ctx.globalCompositeOperation=part.blend&&part.blend!=='normal'?part.blend:'source-over';ctx.translate(cx,cy);ctx.rotate((+part.rot||0)*Math.PI/180);ctx.scale(Number.isFinite(+part.scaleX)?+part.scaleX:1,Number.isFinite(+part.scaleY)?+part.scaleY:1);ctx.translate(-cx,-cy);ctx.beginPath();
     if(part.type==='ellipse')ctx.ellipse(box.x+box.w/2,box.y+box.h/2,box.w/2,box.h/2,0,0,Math.PI*2);
     else if(part.type==='line'){ctx.moveTo(+part.x||0,+part.y||0);ctx.lineTo(+part.x2||0,+part.y2||0);}
+    else if(part.type==='stroke'&&Array.isArray(part.points)&&part.points.length>=2){part.points.forEach((point,index)=>{const x=+point[0]||0,y=+point[1]||0;if(index)ctx.lineTo(x,y);else ctx.moveTo(x,y);});}
     else if(part.type==='poly'&&Array.isArray(part.points)&&part.points.length>=3){part.points.forEach((point,index)=>{const x=box.x+(+point[0]||0)*box.w,y=box.y+(+point[1]||0)*box.h;if(index)ctx.lineTo(x,y);else ctx.moveTo(x,y);});ctx.closePath();}
     else {roundedRect(ctx,box.x,box.y,box.w,box.h,part.radius);ctx.closePath();}
     paintPath(ctx,part,scene,origin,time);ctx.restore();
@@ -74,6 +75,8 @@
     ctx.translate(values.x + pivot.x, values.y + pivot.y);
     ctx.rotate(values.rot * Math.PI / 180);
     ctx.scale(values.scaleX, values.scaleY);
+    const skewX=Math.tan(Math.max(-80,Math.min(80,+values.skewX||0))*Math.PI/180),skewY=Math.tan(Math.max(-80,Math.min(80,+values.skewY||0))*Math.PI/180);
+    if(skewX||skewY)ctx.transform(1+skewX*skewY,skewY,skewX,1,0,0);
     ctx.translate(w / 2 - pivot.x, h / 2 - pivot.y);
     ctx.fillStyle = values.fill || '#ffffff';
     ctx.strokeStyle = values.stroke || '#000000';

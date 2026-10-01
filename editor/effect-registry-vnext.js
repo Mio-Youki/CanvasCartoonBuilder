@@ -1,8 +1,8 @@
 /*
  * ToSampool 效果系统 vNext 声明。
  *
- * 这是尚未接入编辑器的“目标注册表”。隔离 Runtime 已部分实现它，仍不改变 v3.0 的产品 Runtime 或 Scene 格式。
- * 迁移开始后，它将成为 Inspector、左侧效果容器、Agent manifest 与校验器的单一元数据源。
+ * v4 Classic Shell 已使用本注册表驱动 Inspector、左侧效果容器、Agent manifest 与校验器。
+ * 它只描述声明式 v4 Scene；Legacy 会话仍保留自己的 Runtime 与旧字段，不能反向把本表当成 Legacy 格式说明。
  */
 (function (global) {
   'use strict';
@@ -78,7 +78,7 @@
       id: 'outline', name: '描边', aliases: Object.freeze(['外描边', '硬边']), family: 'decorate', stage: 'decorate-edge', scopes: Object.freeze(['object']), card: true,
       purpose: '从对象最终 Alpha 向外扩张得到硬边轮廓；不等同于矢量路径描线。', avoidWhen: Object.freeze(['只需要单个图元路径描线']),
       timing: linear, motion: null, particleBake: 'shared-frame', mask: 'object', cost: 'B',
-      params: Object.freeze([param('color', '颜色', 'color', '#000000', { timing: linear }), param('alpha', '透明度', 'number', 1, { min: 0, max: 1, step: .05, timing: linear }), param('width', '宽度', 'number', 1, { min: 1, max: 16, step: 1, timing: linear }), param('blend', '叠加方式', 'select', 'normal', { options: Object.freeze(['normal', 'screen', 'multiply', 'lighter']), timing: step })]),
+      params: Object.freeze([param('color', '颜色', 'color', '#000000', { timing: linear }), param('alpha', '透明度', 'number', 1, { min: 0, max: 1, step: .05, timing: linear }), param('width', '宽度', 'number', 1, { min: 1, max: 16, step: 1, timing: linear }), param('blend', '叠加方式', 'select', 'normal', { options: Object.freeze(['normal', 'screen', 'multiply', 'lighter']), timing: step }), param('includeProjection', '包含投影', 'boolean', false, { timing: step })]),
     }),
     Object.freeze({
       id: 'tint-overlay', name: '染色叠加', aliases: Object.freeze(['色膜', '颜色叠加', '染色']), family: 'decorate', stage: 'decorate-inside', scopes: Object.freeze(['object', 'scene']), card: true,
@@ -227,7 +227,7 @@
   });
   global.EditorEffectRegistryVNext = Object.freeze({
     version: 1,
-    lifecycle: 'experimental-runtime-partial',
+    lifecycle: 'classic-shell-connected',
     pipelines,
     controllers,
     effects,

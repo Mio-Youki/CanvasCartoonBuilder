@@ -162,7 +162,11 @@
   const finite = (value, fallback) => Number.isFinite(+value) ? +value : fallback;
   const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
   const sameStages = (candidate, stages) => Array.isArray(candidate) && candidate.length === stages.length && candidate.every(stage => stages.includes(stage)) && new Set(candidate).size === stages.length;
-  const PART_TYPES = new Set(['rect', 'ellipse', 'line', 'poly']);
+  const PART_TYPES = new Set(['rect', 'ellipse', 'line', 'poly', 'stroke']);
+  // Persistent geometry is authored on the pixel grid.  Runtime animation can
+  // still interpolate these values, but the final frame state snaps them back
+  // to pixels before drawing (see 30-frame-state.js).
+  const pixel = (value, fallback) => Math.round(finite(value, fallback));
 
   // Field distribution and Alpha edge protection became children of uneven
   // sampling in v4.1.  Keep this boundary migration in Runtime too: exported
@@ -208,8 +212,9 @@
       if (seen.has(part.id)) throw new Error(`实体「${entity.id}」存在重复图元 id：${part.id}`);
       seen.add(part.id);
       if (!PART_TYPES.has(part.type)) throw new Error(`实体「${entity.id}」的图元「${part.id}」类型无效：${part.type}`);
-      part.x = finite(part.x, 0); part.y = finite(part.y, 0); part.scaleX = finite(part.scaleX, 1); part.scaleY = finite(part.scaleY, 1); part.rot = finite(part.rot, 0); part.alpha = Math.max(0, Math.min(1, finite(part.alpha, 1)));
-      if (part.type === 'line') { part.x2 = finite(part.x2, part.x + 1); part.y2 = finite(part.y2, part.y + 1); delete part.w; delete part.h; }
+      part.x = pixel(part.x, 0); part.y = pixel(part.y, 0); part.scaleX = finite(part.scaleX, 1); part.scaleY = finite(part.scaleY, 1); part.rot = finite(part.rot, 0); part.alpha = Math.max(0, Math.min(1, finite(part.alpha, 1)));
+      if (part.type === 'line') { part.x2 = pixel(part.x2, part.x + 1); part.y2 = pixel(part.y2, part.y + 1); delete part.w; delete part.h; }
+      else if (part.type === 'stroke') { part.points = Array.isArray(part.points) ? part.points.map(point => [pixel(point && point[0], 0), pixel(point && point[1], 0)]) : [[part.x, part.y], [part.x + 1, part.y + 1]]; part.stroke = part.stroke || '#000000'; part.strokeWidth = Math.max(1, pixel(part.strokeWidth, 1)); delete part.fill; delete part.w; delete part.h; }
       else { part.w = Math.max(1, finite(part.w, 1)); part.h = Math.max(1, finite(part.h, 1)); }
       if (part.type === 'rect') part.radius = Math.max(0, Math.min(finite(part.radius, 0), part.w / 2, part.h / 2));
       if (part.type === 'poly') part.points = Array.isArray(part.points) ? part.points : [[.5,0],[1,1],[0,1]];
@@ -221,13 +226,13 @@
     const entity = Object.assign({
       id: `entity-${index + 1}`,
       type: 'rect', x: 0, y: 0, w: 1, h: 1,
-      scaleX: 1, scaleY: 1, rot: 0, alpha: 1,
+      scaleX: 1, scaleY: 1, skewX: 0, skewY: 0, rot: 0, alpha: 1,
       fill: '#ffffff', hidden: false,
     }, clone(input) || {});
     entity.id = String(entity.id || `entity-${index + 1}`);
-    entity.x = finite(entity.x, 0); entity.y = finite(entity.y, 0);
-    entity.w = Math.max(1, finite(entity.w, 1)); entity.h = Math.max(1, finite(entity.h, 1));
-    entity.scaleX = finite(entity.scaleX, 1); entity.scaleY = finite(entity.scaleY, 1);
+    entity.x = pixel(entity.x, 0); entity.y = pixel(entity.y, 0);
+    entity.w = Math.max(1, pixel(entity.w, 1)); entity.h = Math.max(1, pixel(entity.h, 1));
+    entity.scaleX = finite(entity.scaleX, 1); entity.scaleY = finite(entity.scaleY, 1); entity.skewX = Math.max(-80, Math.min(80, finite(entity.skewX, 0))); entity.skewY = Math.max(-80, Math.min(80, finite(entity.skewY, 0)));
     entity.rot = finite(entity.rot, 0); entity.alpha = Math.max(0, Math.min(1, finite(entity.alpha, 1)));
     if (entity.type === 'builtin') entity.builtin = api.modules.builtins.normalize(entity.builtin);
     normalizeParts(entity);
@@ -296,7 +301,7 @@
     sceneEffects.pipeline = SCENE_PIPELINE.slice();
     return Object.freeze({
       format: FORMAT, width, height, loop,
-      background: Object.assign({ color: '#000000', alpha: 1, layers: [] }, raw.background || {}),
+      background: Object.assign({ color: '#ffffff', alpha: 1, layers: [] }, raw.background || {}),
       entities: Object.freeze(entities),
       timeline: raw.timeline || { tracks: {} },
       sceneEffects,
@@ -427,7 +432,7 @@
   function multiply(left, right) { return [left[0] * right[0] + left[2] * right[1], left[1] * right[0] + left[3] * right[1], left[0] * right[2] + left[2] * right[3], left[1] * right[2] + left[3] * right[3], left[0] * right[4] + left[2] * right[5] + left[4], left[1] * right[4] + left[3] * right[5] + left[5]]; }
   function pivotFor(values) { const pivot=values&&values.pivot,custom=pivot&&pivot.mode==='custom';return{x:(+values.w||0)*(custom?Math.max(0,Math.min(1,+pivot.x||0)):.5),y:(+values.h||0)*(custom?Math.max(0,Math.min(1,+pivot.y||0)):.5)}; }
   function matrixFor(values) {
-    const x = +values.x || 0, y = +values.y || 0, sx = Number.isFinite(+values.scaleX) ? +values.scaleX : 1, sy = Number.isFinite(+values.scaleY) ? +values.scaleY : 1, radians = (+values.rot || 0) * Math.PI / 180, cos = Math.cos(radians), sin = Math.sin(radians), a = cos * sx, b = sin * sx, c = -sin * sy, d = cos * sy, pivot=pivotFor(values),px=x+pivot.x,py=y+pivot.y;
+    const x = +values.x || 0, y = +values.y || 0, sx = Number.isFinite(+values.scaleX) ? +values.scaleX : 1, sy = Number.isFinite(+values.scaleY) ? +values.scaleY : 1, skewX=Math.tan(Math.max(-80,Math.min(80,+values.skewX||0))*Math.PI/180),skewY=Math.tan(Math.max(-80,Math.min(80,+values.skewY||0))*Math.PI/180), radians = (+values.rot || 0) * Math.PI / 180, cos = Math.cos(radians), sin = Math.sin(radians), a = cos*sx*(1+skewX*skewY)-sin*sy*skewY, b = sin*sx*(1+skewX*skewY)+cos*sy*skewY, c = cos*sx*skewX-sin*sy, d = sin*sx*skewX+cos*sy, pivot=pivotFor(values),px=x+pivot.x,py=y+pivot.y;
     return [a, b, c, d, px - a * pivot.x - c * pivot.y, py - b * pivot.x - d * pivot.y];
   }
 
@@ -467,6 +472,15 @@
     return out;
   }
 
+  // Linear tracks deliberately retain sub-pixel values while being evaluated.
+  // Only the drawable frame is snapped, so interpolation stays smooth in data
+  // and every raster edge still lands on the pixel grid.
+  function snapGeometry(values) {
+    const out = Object.assign({}, values);
+    for (const key of ['x', 'y', 'w', 'h']) if (Number.isFinite(+out[key])) out[key] = key === 'w' || key === 'h' ? Math.max(1, Math.round(+out[key])) : Math.round(+out[key]);
+    return out;
+  }
+
   function create(scene, t, preview) {
     const time = wrap(t, scene.loop);
     const rel = time / scene.loop;
@@ -474,7 +488,7 @@
     for (const entity of scene.entities) {
       const values = api.modules.timeline.valuesFor(scene, entity.id, entity, rel);
       values.timelineVisible = api.modules.timeline.visibleFor(scene, entity.id, rel);
-      local.set(entity.id, motion(scene, values, entity, time));
+      local.set(entity.id, snapGeometry(motion(scene, values, entity, time)));
     }
     function resolve(entity) {
       if (byId.has(entity.id)) return byId.get(entity.id);
@@ -490,7 +504,7 @@
     return Object.freeze({ time, rel, preview:quality, valuesFor: entity => byId.get(entity.id) || entity, effectValuesFor: (scope, ownerId, effectId, base) => api.modules.timeline.effectValuesFor(scene, scope, ownerId, effectId, base, rel), controllerValuesFor: (scope, ownerId, controllerId, base) => api.modules.timeline.controllerValuesFor(scene, scope, ownerId, controllerId, base, rel) });
   }
 
-  api.modules.frame = Object.freeze({ create, matrixFor, multiply, pivotFor, curve, IDENTITY });
+  api.modules.frame = Object.freeze({ create, matrixFor, multiply, pivotFor, curve, snapGeometry, IDENTITY });
 })(typeof window !== 'undefined' ? window : globalThis);
 /* </vnext:30-frame-state.js> */
 
@@ -788,7 +802,7 @@
     const raw = scene.assets && scene.assets[id]; if (!raw) return null;
     const frames = Array.isArray(raw.frames) && raw.frames.length ? raw.frames : null;
     if (!frames) return drawable(raw);
-    const fps = Math.max(.1, +(source && source.fps) || +raw.fps || 8), count = frames.length, index = source && source.frameLoop === false || raw.frameLoop === false ? Math.min(count - 1, Math.floor(Math.max(0, time) * fps)) : Math.floor(Math.max(0, time) * fps) % count;
+    const fps = Math.max(.1, +(source && source.fps) || +raw.fps || 8), count = frames.length, explicit=source&&Number.isFinite(+source._assetFrame), index = explicit ? Math.max(0,Math.min(count-1,Math.round(+source._assetFrame))) : (source && source.frameLoop === false || raw.frameLoop === false ? Math.min(count - 1, Math.floor(Math.max(0, time) * fps)) : Math.floor(Math.max(0, time) * fps) % count);
     return drawable(frames[index]);
   }
   function roundedRect(ctx, x, y, w, h, radius) {
@@ -802,19 +816,19 @@
   function patternTexture(scene,part,time){const pat=part.fillPattern,color=pat.color&&pat.color!=='inherit'?pat.color:(part.fill||'#ffffff');return api.modules.pattern.texture(Math.max(1,scene.width),Math.max(1,scene.height),pat,color,{time:time||0,dynamic:!!(pat.motion&&pat.motion.enabled)});}
   function partMotion(part, time) {
     const out=Object.assign({},part),anim=part.anim||{},phase=time*Math.PI*2,curve=(period,mode)=>api.modules.frame.curve(time/Math.max(.001,+period||1),mode);
-    if(anim.bob&&Number.isFinite(+anim.bob.amount)){const offset=curve(anim.bob.period,anim.bob.curve)*+anim.bob.amount,angle=(Number.isFinite(+anim.bob.angle)?+anim.bob.angle:90)*Math.PI/180,dx=Math.cos(angle)*offset,dy=Math.sin(angle)*offset;out.x=(+out.x||0)+dx;out.y=(+out.y||0)+dy;if(out.type==='line'){out.x2=(+out.x2||0)+dx;out.y2=(+out.y2||0)+dy;}}
-    if(anim.scroll&&Number.isFinite(+anim.scroll.speed)){const angle=(+anim.scroll.angle||0)*Math.PI/180,span=Math.max(0,+anim.scroll.span||0),raw=time*+anim.scroll.speed,distance=anim.scroll.repeat!==false&&span>0?((raw%span)+span)%span:raw,dx=Math.cos(angle)*distance,dy=Math.sin(angle)*distance;out.x=(+out.x||0)+dx;out.y=(+out.y||0)+dy;if(out.type==='line'){out.x2=(+out.x2||0)+dx;out.y2=(+out.y2||0)+dy;}}
+    if(anim.bob&&Number.isFinite(+anim.bob.amount)){const offset=curve(anim.bob.period,anim.bob.curve)*+anim.bob.amount,angle=(Number.isFinite(+anim.bob.angle)?+anim.bob.angle:90)*Math.PI/180,dx=Math.cos(angle)*offset,dy=Math.sin(angle)*offset;out.x=(+out.x||0)+dx;out.y=(+out.y||0)+dy;if(out.type==='line'){out.x2=(+out.x2||0)+dx;out.y2=(+out.y2||0)+dy;}else if(out.type==='stroke')out.points=(out.points||[]).map(point=>[(+point[0]||0)+dx,(+point[1]||0)+dy]);}
+    if(anim.scroll&&Number.isFinite(+anim.scroll.speed)){const angle=(+anim.scroll.angle||0)*Math.PI/180,span=Math.max(0,+anim.scroll.span||0),raw=time*+anim.scroll.speed,distance=anim.scroll.repeat!==false&&span>0?((raw%span)+span)%span:raw,dx=Math.cos(angle)*distance,dy=Math.sin(angle)*distance;out.x=(+out.x||0)+dx;out.y=(+out.y||0)+dy;if(out.type==='line'){out.x2=(+out.x2||0)+dx;out.y2=(+out.y2||0)+dy;}else if(out.type==='stroke')out.points=(out.points||[]).map(point=>[(+point[0]||0)+dx,(+point[1]||0)+dy]);}
     if(anim.spin&&Number.isFinite(+anim.spin.speed))out.rot=(+out.rot||0)+time*+anim.spin.speed;
     if(anim.blink&&Number.isFinite(+anim.blink.amount))out.alpha=(out.alpha==null?1:+out.alpha)*(1-Math.max(0,Math.min(1,+anim.blink.amount))*((curve(anim.blink.period,anim.blink.curve)+1)/2));
     if(anim.pulse&&Number.isFinite(+anim.pulse.amount)){const scale=1+curve(anim.pulse.period,anim.pulse.curve)*+anim.pulse.amount;out.scaleX=(Number.isFinite(+out.scaleX)?+out.scaleX:1)*scale;out.scaleY=(Number.isFinite(+out.scaleY)?+out.scaleY:1)*scale;}
     if(anim.wave&&Number.isFinite(+anim.wave.amount))out.rot=(+out.rot||0)+Math.sin(phase/Math.max(.001,+anim.wave.period||1))*+anim.wave.amount;
     return out;
   }
-  function partBox(part){if(part.type==='line'){const x=Math.min(+part.x||0,+part.x2||0),y=Math.min(+part.y||0,+part.y2||0);return{x,y,w:Math.max(1,Math.abs((+part.x2||0)-(+part.x||0))),h:Math.max(1,Math.abs((+part.y2||0)-(+part.y||0)))};}return{x:+part.x||0,y:+part.y||0,w:Math.max(1,+part.w||1),h:Math.max(1,+part.h||1)};}
+  function partBox(part){if(part.type==='line'){const x=Math.min(+part.x||0,+part.x2||0),y=Math.min(+part.y||0,+part.y2||0);return{x,y,w:Math.max(1,Math.abs((+part.x2||0)-(+part.x||0))),h:Math.max(1,Math.abs((+part.y2||0)-(+part.y||0)))};}if(part.type==='stroke'){const points=Array.isArray(part.points)&&part.points.length?part.points:[[+part.x||0,+part.y||0]],xs=points.map(point=>+point[0]||0),ys=points.map(point=>+point[1]||0),x=Math.min(...xs),y=Math.min(...ys);return{x,y,w:Math.max(1,Math.max(...xs)-x),h:Math.max(1,Math.max(...ys)-y)};}return{x:+part.x||0,y:+part.y||0,w:Math.max(1,+part.w||1),h:Math.max(1,+part.h||1)};}
   function paintPath(ctx, part, scene, origin, time) {
     const pattern=part.fillPattern&&part.fillPattern.type&&part.fillPattern.type!=='none'?part.fillPattern:null,solid=part.fill&&(!pattern||pattern.mode!=='replace');
-    if(solid&&part.type!=='line'){ctx.save();ctx.globalAlpha*=Math.max(0,Math.min(1,part.fillAlpha==null?1:+part.fillAlpha));ctx.fillStyle=pattern&&pattern.mode==='overlay'?(pattern.baseColor||part.fill):part.fill;ctx.fill();ctx.restore();}
-    if(pattern&&part.type!=='line'){const texture=patternTexture(scene,part,time);if(texture){ctx.save();ctx.clip();if(ctx.setTransform)ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha*=Math.max(0,Math.min(1,pattern.opacity==null?1:+pattern.opacity));ctx.drawImage(texture,-(origin&&origin.x||0),-(origin&&origin.y||0));ctx.restore();}}
+    if(solid&&part.type!=='line'&&part.type!=='stroke'){ctx.save();ctx.globalAlpha*=Math.max(0,Math.min(1,part.fillAlpha==null?1:+part.fillAlpha));ctx.fillStyle=pattern&&pattern.mode==='overlay'?(pattern.baseColor||part.fill):part.fill;ctx.fill();ctx.restore();}
+    if(pattern&&part.type!=='line'&&part.type!=='stroke'){const texture=patternTexture(scene,part,time);if(texture){ctx.save();ctx.clip();if(ctx.setTransform)ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha*=Math.max(0,Math.min(1,pattern.opacity==null?1:+pattern.opacity));ctx.drawImage(texture,-(origin&&origin.x||0),-(origin&&origin.y||0));ctx.restore();}}
     if(part.stroke&&Math.max(0,+part.strokeWidth||0)>0){ctx.save();ctx.globalAlpha*=Math.max(0,Math.min(1,part.strokeAlpha==null?1:+part.strokeAlpha));ctx.strokeStyle=part.stroke;ctx.lineWidth=Math.max(0,+part.strokeWidth||0);ctx.stroke();ctx.restore();}
   }
   function drawPart(ctx, raw, ownerW, ownerH, time, scene, origin) {
@@ -822,6 +836,7 @@
     ctx.save();ctx.translate(-ownerW/2,-ownerH/2);ctx.globalAlpha*=Math.max(0,Math.min(1,part.alpha==null?1:+part.alpha));ctx.globalCompositeOperation=part.blend&&part.blend!=='normal'?part.blend:'source-over';ctx.translate(cx,cy);ctx.rotate((+part.rot||0)*Math.PI/180);ctx.scale(Number.isFinite(+part.scaleX)?+part.scaleX:1,Number.isFinite(+part.scaleY)?+part.scaleY:1);ctx.translate(-cx,-cy);ctx.beginPath();
     if(part.type==='ellipse')ctx.ellipse(box.x+box.w/2,box.y+box.h/2,box.w/2,box.h/2,0,0,Math.PI*2);
     else if(part.type==='line'){ctx.moveTo(+part.x||0,+part.y||0);ctx.lineTo(+part.x2||0,+part.y2||0);}
+    else if(part.type==='stroke'&&Array.isArray(part.points)&&part.points.length>=2){part.points.forEach((point,index)=>{const x=+point[0]||0,y=+point[1]||0;if(index)ctx.lineTo(x,y);else ctx.moveTo(x,y);});}
     else if(part.type==='poly'&&Array.isArray(part.points)&&part.points.length>=3){part.points.forEach((point,index)=>{const x=box.x+(+point[0]||0)*box.w,y=box.y+(+point[1]||0)*box.h;if(index)ctx.lineTo(x,y);else ctx.moveTo(x,y);});ctx.closePath();}
     else {roundedRect(ctx,box.x,box.y,box.w,box.h,part.radius);ctx.closePath();}
     paintPath(ctx,part,scene,origin,time);ctx.restore();
@@ -843,6 +858,8 @@
     ctx.translate(values.x + pivot.x, values.y + pivot.y);
     ctx.rotate(values.rot * Math.PI / 180);
     ctx.scale(values.scaleX, values.scaleY);
+    const skewX=Math.tan(Math.max(-80,Math.min(80,+values.skewX||0))*Math.PI/180),skewY=Math.tan(Math.max(-80,Math.min(80,+values.skewY||0))*Math.PI/180);
+    if(skewX||skewY)ctx.transform(1+skewX*skewY,skewY,skewX,1,0,0);
     ctx.translate(w / 2 - pivot.x, h / 2 - pivot.y);
     ctx.fillStyle = values.fill || '#ffffff';
     ctx.strokeStyle = values.stroke || '#000000';
@@ -990,13 +1007,24 @@
   function innerLight(source,config,surfaces){
     const halo=lightHalo(source,config,surfaces,true),output=surfaces.acquire(source.width,source.height),ctx=output.getContext('2d'),legacyBlend=!config.blend&&config.mode==='shadow'?'multiply':'screen';ctx.clearRect(0,0,output.width,output.height);ctx.drawImage(source,0,0);ctx.globalCompositeOperation=blend(config.blend||legacyBlend);ctx.drawImage(halo,0,0);ctx.globalCompositeOperation='source-over';surfaces.release(halo);return output;
   }
+  function composite(back, front, surfaces) {
+    const output=surfaces.acquire(back.width,back.height),ctx=output.getContext('2d');
+    ctx.clearRect(0,0,output.width,output.height);ctx.drawImage(back,0,0);ctx.drawImage(front,0,0);return output;
+  }
   function apply(source, group, surfaces, frame) {
     let current = source;
     const handlers = { projection, outline, 'tint-overlay': tintOverlay, 'texture-overlay': textureOverlay, 'inner-light': innerLight, 'outer-light': outerLight };
     for (const id of ['projection', 'outline', 'tint-overlay', 'texture-overlay', 'inner-light', 'outer-light']) {
       const config = active(group, id); if (!config) continue;
       const handler = handlers[id]; if (!handler) throw new Error(`Runtime vNext 尚未实现加样效果：${id}`);
-      const next = handler(current, animated(id,config,frame&&frame.time||0), surfaces);
+      const resolved=animated(id,config,frame&&frame.time||0);
+      // By default the edge is derived from the object's own alpha, so a hard
+      // projection remains behind it.  The explicit flag preserves the older
+      // combined-alpha look for artwork that intentionally outlines its shadow.
+      const outlinedSeparately=id==='outline'&&resolved.includeProjection!==true&&current!==source;
+      const outlineLayer=outlinedSeparately?handler(source,resolved,surfaces):null;
+      const next=outlinedSeparately?composite(current,outlineLayer,surfaces):handler(current,resolved,surfaces);
+      if(outlineLayer)surfaces.release(outlineLayer);
       if (current !== source) surfaces.release(current);
       current = next;
     }
@@ -1585,26 +1613,72 @@
   const api = global.ToSampoolRuntimeVNext;
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const hash = (index, salt, seed) => api.modules.sampling.hash(index, salt, seed | 0, 0);
+  const finite = (value, fallback) => Number.isFinite(+value) ? +value : fallback;
+  const positive = (value, fallback) => Math.max(1, finite(value, fallback));
+  function rangeBounds(range, width, height) {
+    if (!range || !['rect','ellipse','poly'].includes(range.type)) return { x:0, y:0, w:width, h:height };
+    if (range.type === 'poly' && Array.isArray(range.points) && range.points.length >= 3) {
+      const xs=range.points.map(point=>finite(point[0],0)),ys=range.points.map(point=>finite(point[1],0));
+      return { x:Math.min(...xs), y:Math.min(...ys), w:positive(Math.max(...xs)-Math.min(...xs),1), h:positive(Math.max(...ys)-Math.min(...ys),1) };
+    }
+    return { x:finite(range.x,0), y:finite(range.y,0), w:positive(range.w,width), h:positive(range.h,height) };
+  }
+  function polygonContains(points, x, y) {
+    let inside=false;
+    for(let index=0,previous=points.length-1;index<points.length;previous=index++){
+      const a=points[index],b=points[previous],cross=(a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/Math.max(.000001,b[1]-a[1])+a[0];
+      if(cross)inside=!inside;
+    }
+    return inside;
+  }
+  function rangeContains(range, x, y, width, height) {
+    if (!range || !['rect','ellipse','poly'].includes(range.type)) return x>=0&&x<=width&&y>=0&&y<=height;
+    let contained=false;
+    if(range.type==='ellipse') { const b=rangeBounds(range,width,height),dx=(x-(b.x+b.w/2))/Math.max(.000001,b.w/2),dy=(y-(b.y+b.h/2))/Math.max(.000001,b.h/2);contained=dx*dx+dy*dy<=1; }
+    else if(range.type==='poly'&&Array.isArray(range.points)&&range.points.length>=3)contained=polygonContains(range.points,x,y);
+    else { const b=rangeBounds(range,width,height);contained=x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h; }
+    return range.invert ? !contained : contained;
+  }
+  function sampleRange(range, index, seed, width, height) {
+    const b=rangeBounds(range,width,height),raw=range||{type:'rect'}, attempts=raw.invert?12:10;
+    for(let attempt=0;attempt<attempts;attempt++){
+      const salt=attempt*17,ux=hash(index,2+salt,seed),uy=hash(index,3+salt,seed);let x,y;
+      if(raw.type==='ellipse'&&!raw.invert){const radius=Math.sqrt(ux),theta=uy*Math.PI*2;x=b.x+b.w/2+Math.cos(theta)*radius*b.w/2;y=b.y+b.h/2+Math.sin(theta)*radius*b.h/2;}
+      else { const base=raw.invert?{x:0,y:0,w:width,h:height}:b;x=base.x+ux*base.w;y=base.y+uy*base.h; }
+      if(rangeContains(raw,x,y,width,height))return {x,y};
+    }
+    return {x:b.x+b.w/2,y:b.y+b.h/2};
+  }
   function sourceFor(scene, emitter) {
     const id = emitter.particle && emitter.particle.sourceId;
     return scene.entities.find(entity => entity.id === id) || null;
   }
+  function sourceFrames(scene, source, particle, frame, stats, surfaces) {
+    const asset=source&&source.type==='image'&&scene.assets&&scene.assets[source.assetId],count=asset&&Array.isArray(asset.frames)&&asset.frames.length||0;
+    if(!(count>1))return { frames:[api.modules.objects.createCapsule(scene,source,frame,stats,surfaces)], playback:'static', fps:0, loop:true };
+    const playback=particle.playback==='particle-age'?'particle-age':'static',fps=Math.max(.1,+particle.frameFps||+source.fps||+asset.fps||8),loop=particle.frameLoop!==false&&source.frameLoop!==false&&asset.frameLoop!==false;
+    if(playback==='static'){const index=Math.max(0,Math.min(count-1,Math.round(+particle.frame||0)));return { frames:[api.modules.objects.createCapsule(scene,Object.assign({},source,{_assetFrame:index}),frame,stats,surfaces)], playback, fps, loop, base:index };}
+    return { frames:Array.from({length:count},(_,index)=>api.modules.objects.createCapsule(scene,Object.assign({},source,{_assetFrame:index}),frame,stats,surfaces)), playback, fps, loop };
+  }
+  function spriteIndex(source, age) { if(source.playback!=='particle-age')return 0;const raw=Math.floor(Math.max(0,age)*source.fps),count=source.frames.length;return source.loop?raw%count:Math.min(count-1,raw); }
   function draw(ctx, scene, emitter, frame, stats, surfaces) {
     if (emitter.hidden || frame.valuesFor(emitter).parentHidden || frame.valuesFor(emitter).timelineVisible === false) return;
     const values = frame.valuesFor(emitter), particle = values.particle || emitter.particle || {}, source = sourceFor(scene, Object.assign({}, emitter, { particle }));
     if (!source) throw new Error(`粒子发射器「${emitter.id}」找不到 sourceId`);
-    const rendered = api.modules.objects.createCapsule(scene, source, frame, stats, surfaces), sprite = rendered.capsule;
-    const count = clamp(Math.round(+particle.count || 0), 0, 600), life = Math.max(.001, +particle.life || 2), speed = Math.max(0, +particle.speed || 0), direction = (+particle.direction || 0) * Math.PI / 180, spread = Math.max(0, +particle.spread || 0) * Math.PI / 180, gravity = +particle.gravity || 0, wind = +particle.wind || 0, seed = +particle.seed || 1, scaleBase = Math.max(.01, +particle.size || 1), sizeVar = clamp(+particle.sizeVar || 0, 0, 1), baseAlpha = clamp(+particle.alpha || 0, 0, 1), time = frame.time;
+    const rendered = sourceFrames(scene, source, particle, frame, stats, surfaces);
+    const count = clamp(Math.round(+particle.count || 0), 0, 600), life = Math.max(.001, +particle.life || 2), speed = Math.max(0, +particle.speed || 0), direction = (+particle.direction || 0) * Math.PI / 180, spread = Math.max(0, +particle.spread || 0) * Math.PI / 180, gravity = +particle.gravity || 0, wind = +particle.wind || 0, seed = +particle.seed || 1, scaleBase = Math.max(.01, +particle.size || 1), sizeVar = clamp(+particle.sizeVar || 0, 0, 1), baseAlpha = clamp(+particle.alpha || 0, 0, 1), emissionRange=particle.emissionRange, motionRange=particle.motionRange, time = frame.time;
     ctx.save();
     if (values.parentMatrix && ctx.transform) ctx.transform(...values.parentMatrix);
     ctx.globalAlpha *= (values.parentAlpha == null ? 1 : values.parentAlpha) * values.alpha;
     const pivot=api.modules.frame.pivotFor(values);ctx.translate(values.x + pivot.x, values.y + pivot.y); ctx.rotate(values.rot * Math.PI / 180); ctx.scale(values.scaleX, values.scaleY);ctx.translate(values.w / 2 - pivot.x, values.h / 2 - pivot.y);
     for (let index = 0; index < count; index++) {
-      const age = (time + index / Math.max(1, count) * life) % life, angle = direction + (hash(index, 1, seed) * 2 - 1) * spread / 2, velocityX = Math.cos(angle) * speed, velocityY = Math.sin(angle) * speed, startX = hash(index, 2, seed) * values.w - values.w / 2, startY = hash(index, 3, seed) * values.h - values.h / 2, x = startX + velocityX * age + wind * age * age / 2, y = startY + velocityY * age + gravity * age * age / 2, scale = scaleBase * (1 + (hash(index, 4, seed) * 2 - 1) * sizeVar), opacity = baseAlpha * (particle.fade === false ? 1 : 1 - age / life), spin = ((+particle.spin || 0) + (+particle.spinSpeed || 0) * age + (hash(index, 5, seed) * 2 - 1) * (+particle.spinVar || 0)) * Math.PI / 180;
+      const age = (time + index / Math.max(1, count) * life) % life, angle = direction + (hash(index, 1, seed) * 2 - 1) * spread / 2, velocityX = Math.cos(angle) * speed, velocityY = Math.sin(angle) * speed, emission=sampleRange(emissionRange,index,seed,values.w,values.h), startX = emission.x-values.w/2, startY = emission.y-values.h/2, x = startX + velocityX * age + wind * age * age / 2, y = startY + velocityY * age + gravity * age * age / 2, scale = scaleBase * (1 + (hash(index, 4, seed) * 2 - 1) * sizeVar), opacity = baseAlpha * (particle.fade === false ? 1 : 1 - age / life), spin = ((+particle.spin || 0) + (+particle.spinSpeed || 0) * age + (hash(index, 5, seed) * 2 - 1) * (+particle.spinVar || 0)) * Math.PI / 180;
       if (opacity <= 0) continue;
-      ctx.save(); ctx.globalAlpha *= opacity; ctx.translate(x, y); ctx.rotate(spin); ctx.scale(scale, scale); ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2); ctx.restore(); stats.particlesDrawn += 1;
+      if (motionRange&&!rangeContains(motionRange,x+values.w/2,y+values.h/2,values.w,values.h)) continue;
+      const sprite=rendered.frames[spriteIndex(rendered,age)]||rendered.frames[0];
+      ctx.save(); ctx.globalAlpha *= opacity; ctx.translate(x, y); ctx.rotate(spin); ctx.scale(scale, scale); ctx.drawImage(sprite.capsule, -sprite.capsule.width / 2, -sprite.capsule.height / 2); ctx.restore(); stats.particlesDrawn += 1;
     }
-    ctx.restore(); surfaces.release(sprite); stats.particleEmitters += 1; stats.particleSpriteBuilds += 1;
+    ctx.restore(); for(const sprite of rendered.frames)surfaces.release(sprite.capsule); stats.particleEmitters += 1; stats.particleSpriteBuilds += 1; stats.particleSpriteFrames=(stats.particleSpriteFrames||0)+rendered.frames.length;
   }
   api.modules.particles = Object.freeze({ draw, sourceFor });
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -1689,7 +1763,7 @@
 
   const api = global.ToSampoolRuntimeVNext;
   api.apiVersion = 1;
-  api.capabilities = Object.freeze({ fixedTimeRender: 1, deterministicFrames: 1, vnextBase: 1, objectEffects: 0, objectDecorateBase: 1, objectSamplingBase: 1, samplingField: 1, halftone: 1, namedPalettes: 1, textureOverlay: 1, lightEffects: 1, imageAssets: 1, backgroundLayers: 1, groupTransforms: 1, programMotion: 1, sceneTransitions: 1, sharedSpriteParticles: 1, registeredBuiltins: 1, staticMasks: 1, alphaMasks: 1, elementMasks: 1, sceneEffects: 1 });
+  api.capabilities = Object.freeze({ fixedTimeRender: 1, deterministicFrames: 1, vnextBase: 1, objectEffects: 1, objectDecorateBase: 1, objectSamplingBase: 1, samplingField: 1, halftone: 1, namedPalettes: 1, textureOverlay: 1, lightEffects: 1, imageAssets: 1, backgroundLayers: 1, groupTransforms: 1, programMotion: 1, sceneTransitions: 1, sharedSpriteParticles: 1, registeredBuiltins: 1, staticMasks: 1, alphaMasks: 1, elementMasks: 1, sceneEffects: 1 });
   api.createRuntime = api.modules.renderer.createRuntime;
   api.renderTo = function renderTo(target, scene, t, options) { return api.createRuntime(scene).renderTo(target, t, options); };
   Object.freeze(api.modules);

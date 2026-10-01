@@ -27,6 +27,7 @@ README 只承担产品入口与快速开始；本页面向维护者和贡献者�
 
 - 编辑器：[行为合同](architecture/EDITOR_BEHAVIOR_SPEC.md)、[命令](architecture/EDITOR_COMMANDS.md)、[Scene Mutation](architecture/SCENE_MUTATION.md)、[Inspector 控件](architecture/INSPECTOR_CONTROL_SYSTEM.md)
 - v4 正式迁移：[迁移总规范](architecture/V4_MIGRATION_MASTER_SPEC.md)、[机器迁移矩阵](architecture/V4_MIGRATION_MATRIX.json)、[Legacy 行为基线](architecture/V4_BEHAVIOR_BASELINE.md)、[差异白名单](architecture/V4_DIFFERENCE_ALLOWLIST.md)、[Parity 测试计划](architecture/V4_PARITY_TEST_PLAN.md)
+- v4 能力收尾：[能力收尾台账](architecture/V4_CAPABILITY_CLOSEOUT.md)，它管理效果、粒子/Builtin 与 v4 交付；不替代纯 v4 产品化迁移。
 - v4 支撑资料：[v4 Scene 合同](architecture/VNEXT_SCENE_CONTRACT.md)、[Legacy → v4 转换合同](architecture/LEGACY_V4_CONVERSION.md)、[Parts 迁移合同](architecture/V4_PARTS_MIGRATION_CONTRACT.md)、[效果系统](architecture/EFFECT_SYSTEM_VNEXT.md)、[Classic Shell 桥接说明](architecture/V4_CLASSIC_SHELL_MIGRATION.md)、[预览性能合同](architecture/V4_PREVIEW_PERFORMANCE_CONTRACT.md)、[历史差异盘点](architecture/VNEXT_PARITY_AUDIT.md)
 - 运行：[Runtime 合同](architecture/RUNTIME_CONTRACT.md)、[Runtime Adapter 状态](architecture/RUNTIME_ADAPTER_PLAN.md)、[蒙版与 FX](architecture/MASK_AND_FX_STATUS.md)
 - 文件与交付：[Host Adapter](architecture/HOST_ADAPTER.md)、[Tauri Host](architecture/TAURI_HOST.md)、[Asset Resolver](architecture/ASSET_RESOLVER.md)、[Artifact Builder](architecture/ARTIFACT_BUILDER.md)

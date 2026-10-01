@@ -12,6 +12,7 @@ assert.equal(linked.type,'particle-emitter');assert.equal(linked.particle.source
 state.set(scene,linked.id,'count',999);assert.equal(linked.particle.count,600);
 state.applyPreset(scene,linked.id,'rain',true);const owned=linked.particle.sourceId;assert.equal(linked.particle.sourceOwned,true);assert.equal(linked.particle.direction,90);assert.ok(scene.entities.find(item=>item.id===owned)?.particleSourceOnly);
 state.setSource(scene,linked.id,'photo');assert.equal(linked.particle.sourceId,'photo');assert.equal(scene.entities.some(item=>item.id===owned),false,'replacing an owned preset source must remove the orphan');
+state.set(scene,linked.id,'playback','particle-age');state.set(scene,linked.id,'frameFps',120);state.set(scene,linked.id,'frameLoop',false);assert.equal(linked.particle.playback,'particle-age');assert.equal(linked.particle.frameFps,60);assert.equal(linked.particle.frameLoop,false,'粒子多帧播放字段必须被声明式归一化');
 const standalone=state.create(scene,{presetId:'dust'});const standaloneSource=standalone.particle.sourceId;assert.ok(scene.entities.find(item=>item.id===standaloneSource)?.particleSourceOnly);
 structure.remove(scene,[standalone.id]);assert.equal(scene.entities.some(item=>item.id===standaloneSource),false,'deleting an emitter must cascade its private preset source');
 console.log('vNext particle state verified');

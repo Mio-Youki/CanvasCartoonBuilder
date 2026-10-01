@@ -101,13 +101,24 @@
   function innerLight(source,config,surfaces){
     const halo=lightHalo(source,config,surfaces,true),output=surfaces.acquire(source.width,source.height),ctx=output.getContext('2d'),legacyBlend=!config.blend&&config.mode==='shadow'?'multiply':'screen';ctx.clearRect(0,0,output.width,output.height);ctx.drawImage(source,0,0);ctx.globalCompositeOperation=blend(config.blend||legacyBlend);ctx.drawImage(halo,0,0);ctx.globalCompositeOperation='source-over';surfaces.release(halo);return output;
   }
+  function composite(back, front, surfaces) {
+    const output=surfaces.acquire(back.width,back.height),ctx=output.getContext('2d');
+    ctx.clearRect(0,0,output.width,output.height);ctx.drawImage(back,0,0);ctx.drawImage(front,0,0);return output;
+  }
   function apply(source, group, surfaces, frame) {
     let current = source;
     const handlers = { projection, outline, 'tint-overlay': tintOverlay, 'texture-overlay': textureOverlay, 'inner-light': innerLight, 'outer-light': outerLight };
     for (const id of ['projection', 'outline', 'tint-overlay', 'texture-overlay', 'inner-light', 'outer-light']) {
       const config = active(group, id); if (!config) continue;
       const handler = handlers[id]; if (!handler) throw new Error(`Runtime vNext 尚未实现加样效果：${id}`);
-      const next = handler(current, animated(id,config,frame&&frame.time||0), surfaces);
+      const resolved=animated(id,config,frame&&frame.time||0);
+      // By default the edge is derived from the object's own alpha, so a hard
+      // projection remains behind it.  The explicit flag preserves the older
+      // combined-alpha look for artwork that intentionally outlines its shadow.
+      const outlinedSeparately=id==='outline'&&resolved.includeProjection!==true&&current!==source;
+      const outlineLayer=outlinedSeparately?handler(source,resolved,surfaces):null;
+      const next=outlinedSeparately?composite(current,outlineLayer,surfaces):handler(current,resolved,surfaces);
+      if(outlineLayer)surfaces.release(outlineLayer);
       if (current !== source) surfaces.release(current);
       current = next;
     }

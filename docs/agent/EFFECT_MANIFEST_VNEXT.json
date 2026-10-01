@@ -1,7 +1,7 @@
 {
   "format": "tosampool-agent-effect-manifest",
   "version": 1,
-  "lifecycle": "experimental-runtime-partial",
+  "lifecycle": "classic-shell-connected",
   "source": "editor/effect-registry-vnext.js",
   "pipelines": {
     "object": {
@@ -185,6 +185,12 @@
             "multiply",
             "lighter"
           ]
+        },
+        {
+          "key": "includeProjection",
+          "label": "包含投影",
+          "type": "boolean",
+          "default": false
         }
       ]
     },

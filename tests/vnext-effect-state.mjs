@@ -12,7 +12,8 @@ assert.equal(halftoneDefinition.params.find(param => param.key === 'angle').defa
 assert.equal(halftoneDefinition.params.some(param => param.key === 'dark' || param.key === 'light'), false, '网点映射必须只保留原色网点；双色由颜色阈值承担');
 assert.equal(halftoneDefinition.params.find(param => param.key === 'duotone').default, false, '网点映射双色必须是可选的渐进式模式');
 const outline = state.enable(scene, { scope: 'object', ownerId: 'bird', effectId: 'outline' });
-assert.equal(outline.enabled, true); assert.equal(outline.width, 1); state.setParam(scene, { scope: 'object', ownerId: 'bird', effectId: 'outline', key: 'width', value: 3 }); assert.equal(scene.entities[0].effects.decorate.outline.width, 3);
+assert.equal(outline.enabled, true); assert.equal(outline.width, 1); assert.equal(outline.includeProjection,false,'描边默认只能取对象本身的 Alpha'); state.setParam(scene, { scope: 'object', ownerId: 'bird', effectId: 'outline', key: 'width', value: 3 }); assert.equal(scene.entities[0].effects.decorate.outline.width, 3);
+state.setParam(scene, { scope: 'object', ownerId: 'bird', effectId: 'outline', key: 'includeProjection', value: true }); assert.equal(scene.entities[0].effects.decorate.outline.includeProjection,true,'描边可显式纳入投影 Alpha');
 state.setParam(scene, { scope: 'object', ownerId: 'bird', effectId: 'outline', key: 'width', value: 99 }); assert.equal(scene.entities[0].effects.decorate.outline.width, 16);
 assert.throws(() => state.setParam(scene, { scope: 'object', ownerId: 'bird', effectId: 'outline', key: 'color', value: 'red' }), /Hex/);
 state.enable(scene, { scope: 'scene', effectId: 'texture-overlay' }); assert.equal(scene.sceneEffects.overlay['texture-overlay'].enabled, true);

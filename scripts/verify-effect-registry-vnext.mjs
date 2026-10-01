@@ -11,7 +11,7 @@ new vm.Script(readFileSync(sourcePath, 'utf8'), { filename: sourcePath }).runInN
 const registry = sandbox.EditorEffectRegistryVNext;
 
 const fail = message => { throw new Error(`effect-registry-vnext: ${message}`); };
-if (!registry || registry.version !== 1 || registry.lifecycle !== 'experimental-runtime-partial') fail('missing experimental v1 contract');
+if (!registry || registry.version !== 1 || registry.lifecycle !== 'classic-shell-connected') fail('missing connected v1 contract');
 
 const ids = new Set();
 const validScopes = new Set(['object', 'scene']);

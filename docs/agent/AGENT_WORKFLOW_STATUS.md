@@ -3,7 +3,7 @@
 > 本文记录截至当前版本的试验过程和共识。它不是格式合同；字段以 `../../SCENE_SPEC.md` 为准，
 > 生成步骤以 `AGENT_GENERATE_SPEC.md` 为准。
 
-> 效果系统的下一版语义已冻结为 [EFFECT_MANIFEST_VNEXT.json](EFFECT_MANIFEST_VNEXT.json)，由 `editor/effect-registry-vnext.js` 自动派生。该 manifest 尚未代表当前 Runtime 可用能力；初始场景生成继续以 `SCENE_SPEC.md` 为准，待 vNext 实装后再渐进披露效果能力。
+> v4 效果语义已冻结为 [EFFECT_MANIFEST_VNEXT.json](EFFECT_MANIFEST_VNEXT.json)，由 `editor/effect-registry-vnext.js` 自动派生，并与 v4 Runtime / Classic Shell 的受控会话接通。它**只**描述 `.tosampool.json`；当前 Legacy JS 初始场景生成继续以 `SCENE_SPEC.md` 为准，不能把两套字段混写。
 
 ## 1. 初始目标
 

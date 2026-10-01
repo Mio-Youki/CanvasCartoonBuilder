@@ -17,6 +17,7 @@
     const scene = () => workspace.requireDocument();
     const entities = value => value.entities || [];
     const byId = (value, id) => entities(value).find(item => item && item.id === id) || null;
+    const partHost = item => !!item && ['vector','image','text','builtin'].includes(item.type);
     const unique = (used, base) => { let id = String(base || 'copy'), index = 2; while (used.has(id)) id = `${base || 'copy'}-${index++}`; used.add(id); return id; };
     const roots = (value, ids) => {
       const chosen = new Set(ids || []);
@@ -38,17 +39,59 @@
       item.x = (+item.x || 0) + dx; item.y = (+item.y || 0) + dy;
       if (item.type === 'line') { item.x2 = (+item.x2 || 0) + dx; item.y2 = (+item.y2 || 0) + dy; }
     };
+    function timingKeyForCopy(key, map) {
+      if (map.has(key)) return map.get(key);
+      const scoped = /^(effect|controller):object:([^:]+):(.*)$/.exec(String(key || ''));
+      return scoped && map.has(scoped[2]) ? `${scoped[1]}:object:${map.get(scoped[2])}:${scoped[3]}` : null;
+    }
+    function timingOwner(key) { const scoped=/^(?:effect|controller):object:([^:]+):/.exec(String(key||'')); return scoped&&scoped[1]||null; }
+    function timingSnapshot(value, ids) {
+      const chosen = new Set(ids || []), timeline = value.timeline || {}, tracks = {}, visibility = {};
+      for (const [key, input] of Object.entries(timeline.tracks || {})) if(chosen.has(key)||chosen.has(timingOwner(key)))tracks[key]=clone(input);
+      for (const [key, input] of Object.entries(timeline.visibility || {})) if (chosen.has(key)) visibility[key] = clone(input);
+      return { tracks, visibility };
+    }
+    function restoreTiming(value, snapshot, map) {
+      if (!snapshot) return;
+      value.timeline = Object.assign({ tracks:{} }, value.timeline || {});
+      value.timeline.tracks = Object.assign({}, value.timeline.tracks || {});
+      for (const [key, input] of Object.entries(snapshot.tracks || {})) { const next = timingKeyForCopy(key, map); if (next) value.timeline.tracks[next] = clone(input); }
+      if (Object.keys(snapshot.visibility || {}).length) {
+        value.timeline.visibility = Object.assign({}, value.timeline.visibility || {});
+        for (const [key, input] of Object.entries(snapshot.visibility)) if (map.has(key)) value.timeline.visibility[map.get(key)] = clone(input);
+      }
+    }
+    function removeTiming(value, ids) {
+      const chosen = new Set(ids || []), timeline = value.timeline;
+      if (!timeline) return;
+      for (const key of Object.keys(timeline.tracks || {})) if(chosen.has(key)||chosen.has(timingOwner(key)))delete timeline.tracks[key];
+      for (const key of Object.keys(timeline.visibility || {})) if (chosen.has(key)) delete timeline.visibility[key];
+    }
+    function cloneEntities(value, payload, offset) {
+      const originals = payload.entities || [], used = new Set(entities(value).map(item => item.id)), map = new Map();
+      for (const item of originals) map.set(item.id, unique(used, item.id));
+      const copied = originals.map(item => {
+        const next = remapReferences(clone(item), map); next.id = map.get(item.id);
+        if (Array.isArray(next.parts)) { const partIds = new Set(); next.parts = next.parts.map(part => { const result = clone(part); result.id = unique(partIds, part.id); return result; }); }
+        return next;
+      });
+      const rootSet = new Set(payload.rootIds || []), delta = Object.assign({ x:8, y:8 }, offset || {});
+      for (let index = 0; index < originals.length; index++) if (rootSet.has(originals[index].id)) move(copied[index], +delta.x || 0, +delta.y || 0);
+      value.entities.push(...copied); restoreTiming(value, payload.timing, map);
+      return (payload.rootIds || []).map(id => map.get(id)).filter(Boolean);
+    }
     function copySelection() {
       const value = scene(), ownerId = view.selectedId, partIds = view.selectedPartIds || [];
       if (ownerId && partIds.length) {
         const owner = byId(value, ownerId), selected = (owner && owner.parts || []).filter(part => partIds.includes(part.id));
         if (!selected.length) return false;
-        clipboard = { kind:'parts', ownerId, parts:clone(selected) };
+        clipboard = { kind:'parts', ownerId, owner:clone(owner), parts:clone(selected) };
         return true;
       }
       const selected = roots(value, view.selectedIds || []);
       if (!selected.length) return false;
-      clipboard = { kind:'entities', rootIds:selected.map(item => item.id), entities:clone(family(value, selected.map(item => item.id))) };
+      const copied=family(value, selected.map(item => item.id));
+      clipboard = { kind:'entities', rootIds:selected.map(item => item.id), entities:clone(copied), timing:timingSnapshot(value,copied.map(item=>item.id)) };
       return true;
     }
     function remapReferences(value, map, key) {
@@ -65,37 +108,34 @@
       let selected = [];
       const result = changes.run('粘贴', value => {
         if (clipboard.kind === 'parts') {
-          const owner = byId(value, clipboard.ownerId);
-          if (!owner) throw new Error('原图元所在对象已不存在，无法粘贴');
-          owner.parts = Array.isArray(owner.parts) ? owner.parts : [];
-          const added = clipboard.parts.map(raw => {
-            const part = clone(raw); move(part, 8, 8); return parts.add(value, { ownerId:owner.id, part, normalize:false });
-          });
-          if (owner.type === 'vector' && owner.parts.length) parts.normalizeBounds(value, owner.id);
-          selected = added.map(part => part.id);
-          return { kind:'parts', ownerId:owner.id };
-        }
-        const originals = clipboard.entities || [], used = new Set(entities(value).map(item => item.id)), map = new Map();
-        for (const item of originals) map.set(item.id, unique(used, item.id));
-        const copied = originals.map(item => {
-          const next = remapReferences(clone(item), map);
-          next.id = map.get(item.id);
-          if (Array.isArray(next.parts)) {
-            const partIds = new Set();
-            next.parts = next.parts.map(part => { const result = clone(part); result.id = unique(partIds, part.id); return result; });
+          const selectedOwner=(view.selectedIds||[]).length===1?byId(value,view.selectedId):null,owner=partHost(selectedOwner)?selectedOwner:null;
+          if (owner) {
+            const added = clipboard.parts.map(raw => { const part=clone(raw); move(part,8,8); return parts.add(value,{ownerId:owner.id,part,normalize:false}); });
+            if(owner.type==='vector'&&owner.parts.length)parts.normalizeBounds(value,owner.id);
+            selected=added.map(part=>part.id);return{kind:'parts',ownerId:owner.id};
           }
-          return next;
-        });
-        const rootSet = new Set(clipboard.rootIds || []);
-        for (let index = 0; index < originals.length; index++) if (rootSet.has(originals[index].id)) move(copied[index], 8, 8);
-        value.entities.push(...copied);
-        selected = (clipboard.rootIds || []).map(id => map.get(id)).filter(Boolean);
+          const source=clipboard.owner||{},used=new Set(entities(value).map(item=>item.id)),holder={id:unique(used,'vector'),name:'矢量',type:'vector',parentId:source.parentId||view.scopeContainerId||null,x:+source.x||0,y:+source.y||0,w:1,h:1,scaleX:+source.scaleX||1,scaleY:+source.scaleY||1,rot:+source.rot||0,alpha:source.alpha==null?1:+source.alpha,parts:[]};
+          value.entities.push(holder);
+          const added=clipboard.parts.map(raw=>{const part=clone(raw);move(part,8,8);return parts.add(value,{ownerId:holder.id,part,normalize:false});});
+          if(holder.parts.length)parts.normalizeBounds(value,holder.id);
+          selected=added.map(part=>part.id);return{kind:'parts',ownerId:holder.id};
+        }
+        selected=cloneEntities(value,clipboard,{x:8,y:8});
         return { kind:'entities' };
       });
       if (!result) return false;
       if (clipboard.kind === 'parts') view.selectPart(result.ownerId, selected[selected.length - 1], false, { keepDrill:true });
       else view.selectMany(selected);
       return true;
+    }
+    function duplicateSelection(options) {
+      options=options||{};
+      if(!copySelection()||!clipboard||clipboard.kind!=='entities')return false;
+      let selected=[];
+      const operation=value=>{selected=cloneEntities(value,clipboard,options.offset||{x:0,y:0});};
+      if(options.history===false)workspace.mutate(operation);else changes.run(options.label||'复制对象',operation);
+      if(selected.length)view.selectMany(selected);
+      return selected;
     }
     function cutSelection() {
       if (!copySelection()) return false;
@@ -113,7 +153,7 @@
       // Delete keeps the established “remove group = ungroup” behavior.  Cut is
       // different: its clipboard contains the complete group tree, so the source
       // tree must leave the document as a whole and be restorable by one undo.
-      changes.run('剪切对象', value => structure.remove(value, family(value, roots(value, ids).map(item => item.id)).map(item => item.id))); view.select(null); return true;
+      changes.run('剪切对象', value => {const removed=family(value,roots(value,ids).map(item=>item.id)).map(item=>item.id);structure.remove(value,removed);removeTiming(value,removed);}); view.select(null); return true;
     }
     function nudge(dx, dy) {
       const value = scene(), ownerId = view.selectedId, partIds = view.selectedPartIds || [];
@@ -145,7 +185,7 @@
       if (event.code === 'Space') { event.preventDefault(); event.stopImmediatePropagation(); togglePlay(); }
     }
     global.addEventListener('keydown', keydown, true);
-    return Object.freeze({ copy:copySelection, cut:cutSelection, paste:pasteSelection, undo:() => applyHistory(false), redo:() => applyHistory(true), get hasClipboard(){return !!clipboard;}, stop(){global.removeEventListener('keydown', keydown, true);} });
+    return Object.freeze({ copy:copySelection, cut:cutSelection, paste:pasteSelection, duplicate:duplicateSelection, undo:() => applyHistory(false), redo:() => applyHistory(true), get hasClipboard(){return !!clipboard;}, stop(){global.removeEventListener('keydown', keydown, true);} });
   }
   global.EditorClassicV4ShortcutController = Object.freeze({ version:1, create });
 })(typeof window !== 'undefined' ? window : globalThis);

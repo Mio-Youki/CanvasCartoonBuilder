@@ -1,6 +1,6 @@
 # Legacy Behavior Baseline 1
 
-> 2026-09-24 更新：候选页普通打开现为 V4；自动基线比较通过 `?legacy=1` 显式取得候选的 Legacy 壳。真实 V4 浏览器验收不再依赖 `v4vertical=1`，并新增场景/对象新页签及左侧效果索引的可见性断言。下方旧日期段落保留为当时证据，不代表当前入口条件。
+> 2026-09-29 更新：`img2asset-v4-classic.html` 已成为单一 v4 产品入口；`?legacy=1`、候选页 Legacy 壳和页内转换均已移除。`img2asset-layout-v1.html` 是唯一冻结 Legacy 页面。下方旧日期段落保留为当时证据，不代表当前入口条件；新浏览器门禁见 [Parity 测试计划](V4_PARITY_TEST_PLAN.md)。
 
 > 冻结日期：2026-09-21。该基线是当前工作树的行为快照；仓库 HEAD 为 `2423acbe3db102d5a069606c975de8ae8544e31a`，但工作树已有尚未提交的产品修改，因此文件哈希而非 HEAD 是精确依据。
 

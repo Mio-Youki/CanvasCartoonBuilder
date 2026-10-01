@@ -54,7 +54,7 @@
   }
   function blank(options) {
     options = options || {};
-    return { format: FORMAT, width: Math.max(1, +options.width || 320), height: Math.max(1, +options.height || 180), loop: Math.max(.001, +options.loop || 4), background: { color: '#000000', alpha: 1, layers: [] }, assets: {}, entities: [], timeline: { tracks: {} }, sceneEffects: { pipeline: ['overlay', 'sample'], overlay: {}, sample: {} } };
+    return { format: FORMAT, width: Math.max(1, +options.width || 320), height: Math.max(1, +options.height || 180), loop: Math.max(.001, +options.loop || 4), background: { color: '#ffffff', alpha: 1, layers: [] }, assets: {}, entities: [], timeline: { tracks: {} }, sceneEffects: { pipeline: ['overlay', 'sample'], overlay: {}, sample: {} } };
   }
   function serialize(scene, space) { const document = normalize(scene); document.format = FORMAT; delete document.runtimeAssets; return JSON.stringify(document, null, space == null ? 2 : space); }
   function hydrate(document, runtimeAssets) { const scene = normalize(document); scene.format = FORMAT; scene.runtimeAssets = runtimeAssets || {}; return scene; }

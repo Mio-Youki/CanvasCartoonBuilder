@@ -42,7 +42,7 @@ Scene Mutation：capture before → mutate → compare → commit
 - 绘制创建、粒子创建/粒子化、程序元素删除、旋转中心和即时镜像；新建图形在写入前捕获历史，不再保存“已经创建”的错误快照。
 - 文字工具以一次编辑会话为事务：实时栅格化只用于预览，失焦提交，Esc 通过 `rollback` 恢复编辑前文本；创建文字和修改文字是两个可解释的撤销步骤。
 
-V4 主路径（Inspector、Canvas、结构树、编排器、绘制/文字和常用快捷操作）使用 `editor/vnext-scene-mutation.js` 的 100 步 undo / redo 双栈；`Ctrl/Cmd+Z`、`Ctrl/Cmd+Shift+Z` 和 `Ctrl/Cmd+Y` 由 `classic-v4-shortcut-controller.js` 直接接到这条边界。对象/图元复制、剪切、粘贴和方向键微移也通过同一边界写入。Legacy 会话保留旧的单向历史，不得混用。
+V4 主路径（Inspector、Canvas、结构树、编排器、绘制/文字和常用快捷操作）使用 `editor/vnext-scene-mutation.js` 的 100 步 undo / redo 双栈；`Ctrl/Cmd+Z`、`Ctrl/Cmd+Shift+Z` 和 `Ctrl/Cmd+Y` 由 `classic-v4-shortcut-controller.js` 直接接到这条边界。对象/图元复制、剪切、粘贴和方向键微移也通过同一边界写入。对象复制必须同时重映射实体本体、显示时段、实体参数轨、对象效果轨和共享控制器轨；`Alt` 拖动以同一手势事务完成“复制并移动”。图元粘贴优先写入当前选中的可承载图元对象；没有目标时创建新的矢量对象。Legacy 会话保留旧的单向历史，不得混用。
 
 ## 4. 验收
 
@@ -51,4 +51,4 @@ V4 主路径（Inspector、Canvas、结构树、编排器、绘制/文字和常�
 - 浏览器 E2E 同时验证 Canvas 拖动、上下时间轴边界拖动、Scene 插入、动画、Sampling Motion、局部 FX、蒙版、全局 FX 以及颜色/纹理连续预览都只生成一步撤销。
 - 结构树 E2E 直接调用与 Pointer 拖放相同的 `applyStructureDrop`，验证普通排序、中央投放成组及一步撤销；不是另造测试专用的数据写入实现。
 - 绘制/文字 E2E 验证图形创建可一步撤销，文字实时输入后按 Esc 会真正恢复编辑前 Scene，再撤销才删除新建文字。
-- `tests/browser/classic-v4-shortcuts.mjs` 验证 V4 对象/图元复制、剪切、粘贴、新 ID、undo / redo 与键盘微移均使用统一 V4 历史，而非 Legacy `undoStack`。
+- `tests/browser/classic-v4-shortcuts.mjs` 验证 V4 对象/图元复制、剪切、粘贴、新 ID、对象时序重映射、`Alt` 复制拖动、undo / redo 与键盘微移均使用统一 V4 历史，而非 Legacy `undoStack`。

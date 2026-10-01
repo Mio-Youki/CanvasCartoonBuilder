@@ -33,4 +33,11 @@ opened = { name:'scene.tosampool.json', text:'{"format":"tosampool-scene/v4","ve
 await assert.rejects(() => controller.open(), error => error.code === 'V4_SESSION_NOT_READY');
 assert.equal(router.activeId, 'legacy', 'blocked v4 open must not switch the active session');
 assert.equal(v4Loaded, 0, 'blocked v4 open must not mutate the v4 workspace');
-console.log('Scene File Controller: format routing, legacy parity and blocked-v4 safety OK');
+
+let v4New=0, v4Saved=0;
+const v4OnlyRouter=sessions.createRouter({adapters:[v4],initial:'v4'});
+const v4OnlyHost={openText:async()=>({name:'old.js',text:'window.HOME_SCENE={};'})};
+const v4Only=files.create({router:v4OnlyRouter,host:v4OnlyHost,v4Only:true,v4Ready:()=>true,v4:{newDocument:()=>{v4New+=1;},saveDocument:()=>{v4Saved+=1;},openDocument:()=>{v4Loaded+=1;}}});
+await v4Only.newDocument();await v4Only.save();await assert.rejects(()=>v4Only.open(),error=>error.code==='V4_ONLY_LEGACY_BLOCKED');
+assert.equal(v4New,1,'v4-only new must never route to Legacy');assert.equal(v4Saved,1,'v4-only save must never route to Legacy');assert.equal(v4OnlyRouter.activeId,'v4','v4-only blocked JS must keep the sole v4 session active');
+console.log('Scene File Controller: format routing, legacy parity, blocked-v4 safety and v4-only boundary OK');

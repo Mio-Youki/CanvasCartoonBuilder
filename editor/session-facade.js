@@ -122,7 +122,29 @@
     return global.ToSampoolSession;
   }
 
-  const api = Object.freeze({ version:1, DOMAINS, createAdapter, createRouter, installClassicShell });
+  // The released v4 product owns exactly one writable Scene.  Legacy remains
+  // a separate tool/page and cannot surface HOME_SCENE in this session.
+  function installV4Only() {
+    if (global.ToSampoolSession || !global.EditorVNextWorkspace || !global.EditorHost) return global.ToSampoolSession || null;
+    const v4Workspace = global.EditorVNextWorkspace.create(global.EditorHost);
+    const v4Assets = global.EditorVNextAssetWorkflow ? global.EditorVNextAssetWorkflow.create({ workspace:v4Workspace }) : null;
+    const v4 = createAdapter({
+      id:'v4', format:'tosampool-scene/v4',
+      capabilities:{ arbitraryProgramCode:false, registeredBuiltins:true, v4Effects:true, persistentJson:true, legacyImport:false },
+      domains:{
+        session:{ isDirty:()=>false, format:()=> 'tosampool-scene/v4', open:options=>v4Workspace.open(options), save:options=>v4Workspace.save(options) },
+        scene:{ current:()=>v4Workspace.current(), create:options=>v4Workspace.createBlank(options) },
+        assets:v4Assets ? { importFiles:v4Assets.importFiles, addToScene:v4Assets.addToScene, addSelectedToScene:v4Assets.addSelectedToScene, openBackground:v4Assets.openBackground, removeSelected:v4Assets.removeSelected, list:v4Assets.list, selected:v4Assets.selected } : {},
+        preview:{ renderTo:(canvas,time,options)=>v4Workspace.renderTo(canvas,time,options) }
+      }
+    });
+    global.ToSampoolSession=createRouter({ adapters:[v4], initial:'v4' });
+    global.ToSampoolV4Workspace=v4Workspace;
+    global.ToSampoolV4Assets=v4Assets;
+    return global.ToSampoolSession;
+  }
+
+  const api = Object.freeze({ version:1, DOMAINS, createAdapter, createRouter, installClassicShell, installV4Only });
   global.EditorSessionFacade = api;
-  if (global.document) installClassicShell();
+  if (global.document) (global.__TOSAMPOOL_V4_ONLY__ ? installV4Only : installClassicShell)();
 })(typeof window !== 'undefined' ? window : globalThis);

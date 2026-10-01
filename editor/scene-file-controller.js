@@ -17,7 +17,7 @@
   }
   function create(options) {
     options = options || {};
-    const router = options.router, host = options.host, legacy = options.legacy || {}, v4 = options.v4 || {};
+    const router = options.router, host = options.host, legacy = options.legacy || {}, v4 = options.v4 || {}, v4Only=options.v4Only===true;
     if (!router || typeof router.activate !== 'function') throw new Error('Scene File Controller requires a session router');
     if (!host || typeof host.openText !== 'function') throw new Error('Scene File Controller requires a Host adapter');
     const v4Ready = () => typeof options.v4Ready === 'function' && options.v4Ready() === true;
@@ -28,7 +28,7 @@
       catch (error) { if (router.activeId !== previous) router.activate(previous, { force:true }); throw error; }
     }
     async function newDocument(payload) {
-      if (router.activeId === 'v4') {
+      if (v4Only || router.activeId === 'v4') {
         if (!v4Ready() || typeof v4.newDocument !== 'function') throw blockedError();
         return v4.newDocument(payload || {});
       }
@@ -37,8 +37,8 @@
     }
     async function open(openOptions) {
       const opened = await host.openText(Object.assign({
-        accept: '.js,.json,.tosampool.json,text/javascript,application/json',
-        types: [{ description:'Scene', accept:{ 'text/javascript':['.js'], 'application/json':['.json'] } }]
+        accept: v4Only ? '.json,.tosampool.json,application/json' : '.js,.json,.tosampool.json,text/javascript,application/json',
+        types: [v4Only ? { description:'ToSampool v4 Scene', accept:{ 'application/json':['.json'] } } : { description:'Scene', accept:{ 'text/javascript':['.js'], 'application/json':['.json'] } }]
       }, openOptions || {}));
       if (!opened) return null;
       const detected = classify(opened);
@@ -46,11 +46,16 @@
         if (!v4Ready() || typeof v4.openDocument !== 'function') throw blockedError();
         return activateAndRun('v4', () => v4.openDocument(opened, detected.document));
       }
+      if (v4Only) {
+        const error=new Error('此编辑器只打开 ToSampool v4 场景（.tosampool.json）；Legacy JS 请使用外部转换工具');
+        error.code='V4_ONLY_LEGACY_BLOCKED';
+        throw error;
+      }
       if (typeof legacy.openDocument !== 'function') throw new Error('Legacy open-scene workflow is unavailable');
       return activateAndRun('legacy', () => legacy.openDocument(opened));
     }
     async function save(saveOptions) {
-      if (router.activeId === 'v4') {
+      if (v4Only || router.activeId === 'v4') {
         if (!v4Ready() || typeof v4.saveDocument !== 'function') throw blockedError();
         return v4.saveDocument(saveOptions || {});
       }

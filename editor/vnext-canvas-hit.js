@@ -29,12 +29,13 @@
     if (entity.type === 'line') return distanceToSegment(point, { x:0, y:0 }, { x:w, y:h }) <= Math.max(4, +values.strokeWidth || 1);
     return point.x >= 0 && point.y >= 0 && point.x <= w && point.y <= h;
   }
-  function partBox(part) { if(part.type==='line'){const x=Math.min(+part.x||0,+part.x2||0),y=Math.min(+part.y||0,+part.y2||0);return{x,y,w:Math.max(1,Math.abs((+part.x2||0)-(+part.x||0))),h:Math.max(1,Math.abs((+part.y2||0)-(+part.y||0)))};}return{x:+part.x||0,y:+part.y||0,w:Math.max(1,+part.w||1),h:Math.max(1,+part.h||1)}; }
+  function partBox(part) { if(part.type==='line'){const x=Math.min(+part.x||0,+part.x2||0),y=Math.min(+part.y||0,+part.y2||0);return{x,y,w:Math.max(1,Math.abs((+part.x2||0)-(+part.x||0))),h:Math.max(1,Math.abs((+part.y2||0)-(+part.y||0)))};}if(part.type==='stroke'){const points=Array.isArray(part.points)&&part.points.length?part.points:[[+part.x||0,+part.y||0]],xs=points.map(point=>+point[0]||0),ys=points.map(point=>+point[1]||0),x=Math.min(...xs),y=Math.min(...ys);return{x,y,w:Math.max(1,Math.max(...xs)-x),h:Math.max(1,Math.max(...ys)-y)};}return{x:+part.x||0,y:+part.y||0,w:Math.max(1,+part.w||1),h:Math.max(1,+part.h||1)}; }
   function containsPart(part, x, y) {
     const box=partBox(part),cx=box.x+box.w/2,cy=box.y+box.h/2,sx=Number.isFinite(+part.scaleX)?+part.scaleX:1,sy=Number.isFinite(+part.scaleY)?+part.scaleY:1,a=(+part.rot||0)*Math.PI/180,cos=Math.cos(-a),sin=Math.sin(-a),dx=x-cx,dy=y-cy,point={x:cx+(cos*dx-sin*dy)/(Math.abs(sx)<1e-8?1:sx),y:cy+(sin*dx+cos*dy)/(Math.abs(sy)<1e-8?1:sy)};
     if(part.type==='ellipse'){const nx=(point.x-cx)/(box.w/2),ny=(point.y-cy)/(box.h/2);return nx*nx+ny*ny<=1;}
     if(part.type==='poly'&&Array.isArray(part.points)&&part.points.length>=3)return polygonContains(part.points.map(value=>[box.x+(+value[0]||0)*box.w,box.y+(+value[1]||0)*box.h]),point.x,point.y);
     if(part.type==='line')return distanceToSegment(point,{x:+part.x||0,y:+part.y||0},{x:+part.x2||0,y:+part.y2||0})<=Math.max(4,+part.strokeWidth||1);
+    if(part.type==='stroke'&&Array.isArray(part.points)&&part.points.length>=2){for(let index=1;index<part.points.length;index++)if(distanceToSegment(point,{x:+part.points[index-1][0]||0,y:+part.points[index-1][1]||0},{x:+part.points[index][0]||0,y:+part.points[index][1]||0})<=Math.max(4,+part.strokeWidth||1))return true;return false;}
     return point.x>=box.x&&point.y>=box.y&&point.x<=box.x+box.w&&point.y<=box.y+box.h;
   }
   function pickPart(scene, entity, x, y, time) {

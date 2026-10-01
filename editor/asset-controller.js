@@ -9,12 +9,12 @@
   }
   function create(options) {
     options = options || {};
-    const router = options.router, legacy = options.legacy || {}, v4 = options.v4 || {};
+    const router = options.router, legacy = options.legacy || {}, v4 = options.v4 || {}, v4Only=options.v4Only===true;
     if (!router || !router.activeId) throw new Error('Asset Controller requires a session router');
     const v4Ready = () => typeof options.v4Ready === 'function' && options.v4Ready() === true;
-    function adapter() { return router.activeId === 'v4' ? v4 : legacy; }
+    function adapter() { return v4Only || router.activeId === 'v4' ? v4 : legacy; }
     function requireAction(name) {
-      if (router.activeId === 'v4' && !v4Ready()) throw blockedError();
+      if ((v4Only || router.activeId === 'v4') && !v4Ready()) throw blockedError();
       const action = adapter()[name];
       if (typeof action !== 'function') throw new Error(`${router.activeId} asset workflow does not support ${name}`);
       return action;

@@ -3,6 +3,7 @@
   'use strict';
 
   const TYPES = Object.freeze(['rect', 'ellipse', 'poly', 'alpha', 'element']);
+  const PARTICLE_SCOPES = Object.freeze(['particle-emission', 'particle-motion']);
   const finite = (value, fallback) => Number.isFinite(+value) ? +value : fallback;
   const positive = (value, fallback) => Math.max(1, finite(value, fallback));
   const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
@@ -11,6 +12,13 @@
     const found = (scene && scene.entities || []).find(item => item && item.id === id);
     if (!found) throw new Error(`找不到蒙版对象「${id || '(空)'}」`);
     return found;
+  }
+  function particleRange(options) { return PARTICLE_SCOPES.includes(options && options.scope); }
+  function particleSlot(scene, options, create) {
+    const owner=entity(scene, options && options.ownerId);
+    if (owner.type !== 'particle-emitter') throw new Error('粒子范围只能附着在粒子发射器上');
+    if (!owner.particle) { if (!create) return null; owner.particle={}; }
+    return { owner, key:options.scope==='particle-emission'?'emissionRange':'motionRange' };
   }
   function effectDefinition(id) {
     const registry = global.EditorEffectRegistryVNext, definition = registry && registry.effectById && registry.effectById[id];
@@ -33,6 +41,7 @@
     return cursor[path.at(-1)] || null;
   }
   function target(scene, options, create) {
+    if (particleRange(options)) return null;
     if (options && options.scope === 'scene') return sceneEffect(scene, options.effectId, create);
     const owner = entity(scene, options && options.ownerId);
     if (!owner.effects) { if (!create) return null; owner.effects={ pipeline:['mask','decorate','sample'], mask:null, decorate:{}, sample:{} }; }
@@ -40,11 +49,13 @@
     return owner.effects;
   }
   function current(scene, options) {
+    if (particleRange(options)) { const slot=particleSlot(scene, options, false); return clone(slot && slot.owner.particle && slot.owner.particle[slot.key]); }
     const slot = target(scene, options, false);
     return clone(options && options.scope === 'scene' ? slot && slot.mask : slot && slot.mask);
   }
   function defaults(scene, options, type) {
-    const owner = options && options.scope === 'scene' ? null : entity(scene, options && options.ownerId), x = owner ? finite(owner.x, 0) : 0, y = owner ? finite(owner.y, 0) : 0, w = owner ? positive(owner.w, 1) : positive(scene.width, 1), h = owner ? positive(owner.h, 1) : positive(scene.height, 1);
+    if (particleRange(options) && ['alpha','element'].includes(type)) throw new Error('粒子范围目前仅支持矩形、椭圆和多边形');
+    const local=particleRange(options), owner = options && options.scope === 'scene' ? null : entity(scene, options && options.ownerId), x = local ? 0 : owner ? finite(owner.x, 0) : 0, y = local ? 0 : owner ? finite(owner.y, 0) : 0, w = owner ? positive(owner.w, 1) : positive(scene.width, 1), h = owner ? positive(owner.h, 1) : positive(scene.height, 1);
     if (type === 'poly') return { type, points:[[x,y],[x+w,y],[x+w,y+h],[x,y+h]], invert:false, follow:false };
     if (type === 'alpha') return { type, assetId:'', x, y, w, h, mode:'alpha', invert:false, follow:false };
     if (type === 'element') return { type, targetId:'', sourceVisibility:'keep', invert:false };
@@ -53,9 +64,10 @@
   function normalize(scene, options, input) {
     const type = String(input && input.type || '');
     if (!TYPES.includes(type)) throw new Error(`不支持的蒙版类型「${type || '(空)'}」`);
+    if (particleRange(options) && ['alpha','element'].includes(type)) throw new Error('粒子范围目前仅支持矩形、椭圆和多边形');
     const base = defaults(scene, options, type), mask = Object.assign(base, clone(input) || {}, { type, invert:!!(input && input.invert) });
     if (type !== 'element') {
-      mask.follow = !!(input && input.follow);
+      mask.follow = particleRange(options) ? false : !!(input && input.follow);
       if (mask.follow && (!Array.isArray(mask.followMatrix) || mask.followMatrix.length !== 6 || !mask.followMatrix.every(value => Number.isFinite(+value)))) mask.followMatrix = [1,0,0,1,0,0];
       if (!mask.follow) delete mask.followMatrix;
     }
@@ -78,10 +90,13 @@
     return mask;
   }
   function set(scene, options, input) {
-    const mask = normalize(scene, options || {}, input), slot = target(scene, options || {}, true);
+    const mask = normalize(scene, options || {}, input);
+    if (particleRange(options)) { const slot=particleSlot(scene, options, true); slot.owner.particle[slot.key]=mask; return clone(mask); }
+    const slot = target(scene, options || {}, true);
     slot.mask = mask; return clone(mask);
   }
   function clear(scene, options) {
+    if (particleRange(options)) { const slot=particleSlot(scene, options, false); if (!slot || !slot.owner.particle || !slot.owner.particle[slot.key]) return false; delete slot.owner.particle[slot.key]; return true; }
     const slot = target(scene, options || {}, false);
     if (!slot || !slot.mask) return false;
     slot.mask = null; return true;
@@ -111,6 +126,7 @@
     return set(scene,options,mask);
   }
   function setFollow(scene, options, enabled, matrix) {
+    if (particleRange(options)) throw new Error('粒子范围始终跟随发射器变换');
     const mask=current(scene,options); if(!mask||mask.type==='element') throw new Error('当前蒙版不支持跟随');
     mask.follow=!!enabled;
     if(mask.follow) mask.followMatrix=Array.isArray(matrix)&&matrix.length===6&&matrix.every(value=>Number.isFinite(+value))?matrix.map(Number):[1,0,0,1,0,0];
@@ -118,5 +134,5 @@
     return set(scene,options,mask);
   }
 
-  global.EditorVNextMaskState = Object.freeze({ TYPES, current, defaults, normalize, set, clear, setSourceVisibility, bounds, setBounds, setFollow });
+  global.EditorVNextMaskState = Object.freeze({ TYPES, PARTICLE_SCOPES, current, defaults, normalize, set, clear, setSourceVisibility, bounds, setBounds, setFollow });
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -8,7 +8,7 @@
   function multiply(left, right) { return [left[0] * right[0] + left[2] * right[1], left[1] * right[0] + left[3] * right[1], left[0] * right[2] + left[2] * right[3], left[1] * right[2] + left[3] * right[3], left[0] * right[4] + left[2] * right[5] + left[4], left[1] * right[4] + left[3] * right[5] + left[5]]; }
   function pivotFor(values) { const pivot=values&&values.pivot,custom=pivot&&pivot.mode==='custom';return{x:(+values.w||0)*(custom?Math.max(0,Math.min(1,+pivot.x||0)):.5),y:(+values.h||0)*(custom?Math.max(0,Math.min(1,+pivot.y||0)):.5)}; }
   function matrixFor(values) {
-    const x = +values.x || 0, y = +values.y || 0, sx = Number.isFinite(+values.scaleX) ? +values.scaleX : 1, sy = Number.isFinite(+values.scaleY) ? +values.scaleY : 1, radians = (+values.rot || 0) * Math.PI / 180, cos = Math.cos(radians), sin = Math.sin(radians), a = cos * sx, b = sin * sx, c = -sin * sy, d = cos * sy, pivot=pivotFor(values),px=x+pivot.x,py=y+pivot.y;
+    const x = +values.x || 0, y = +values.y || 0, sx = Number.isFinite(+values.scaleX) ? +values.scaleX : 1, sy = Number.isFinite(+values.scaleY) ? +values.scaleY : 1, skewX=Math.tan(Math.max(-80,Math.min(80,+values.skewX||0))*Math.PI/180),skewY=Math.tan(Math.max(-80,Math.min(80,+values.skewY||0))*Math.PI/180), radians = (+values.rot || 0) * Math.PI / 180, cos = Math.cos(radians), sin = Math.sin(radians), a = cos*sx*(1+skewX*skewY)-sin*sy*skewY, b = sin*sx*(1+skewX*skewY)+cos*sy*skewY, c = cos*sx*skewX-sin*sy, d = sin*sx*skewX+cos*sy, pivot=pivotFor(values),px=x+pivot.x,py=y+pivot.y;
     return [a, b, c, d, px - a * pivot.x - c * pivot.y, py - b * pivot.x - d * pivot.y];
   }
 
@@ -48,6 +48,15 @@
     return out;
   }
 
+  // Linear tracks deliberately retain sub-pixel values while being evaluated.
+  // Only the drawable frame is snapped, so interpolation stays smooth in data
+  // and every raster edge still lands on the pixel grid.
+  function snapGeometry(values) {
+    const out = Object.assign({}, values);
+    for (const key of ['x', 'y', 'w', 'h']) if (Number.isFinite(+out[key])) out[key] = key === 'w' || key === 'h' ? Math.max(1, Math.round(+out[key])) : Math.round(+out[key]);
+    return out;
+  }
+
   function create(scene, t, preview) {
     const time = wrap(t, scene.loop);
     const rel = time / scene.loop;
@@ -55,7 +64,7 @@
     for (const entity of scene.entities) {
       const values = api.modules.timeline.valuesFor(scene, entity.id, entity, rel);
       values.timelineVisible = api.modules.timeline.visibleFor(scene, entity.id, rel);
-      local.set(entity.id, motion(scene, values, entity, time));
+      local.set(entity.id, snapGeometry(motion(scene, values, entity, time)));
     }
     function resolve(entity) {
       if (byId.has(entity.id)) return byId.get(entity.id);
@@ -71,5 +80,5 @@
     return Object.freeze({ time, rel, preview:quality, valuesFor: entity => byId.get(entity.id) || entity, effectValuesFor: (scope, ownerId, effectId, base) => api.modules.timeline.effectValuesFor(scene, scope, ownerId, effectId, base, rel), controllerValuesFor: (scope, ownerId, controllerId, base) => api.modules.timeline.controllerValuesFor(scene, scope, ownerId, controllerId, base, rel) });
   }
 
-  api.modules.frame = Object.freeze({ create, matrixFor, multiply, pivotFor, curve, IDENTITY });
+  api.modules.frame = Object.freeze({ create, matrixFor, multiply, pivotFor, curve, snapGeometry, IDENTITY });
 })(typeof window !== 'undefined' ? window : globalThis);

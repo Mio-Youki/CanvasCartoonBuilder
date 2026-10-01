@@ -2,7 +2,7 @@
 
 > 状态：**已批准，迁移实施的唯一总规范。**
 > 基线：`Legacy Behavior Baseline 1`（2026-09-21）。
-> 目标：在不改变未列入白名单的用户体验前提下，以 Legacy 体验壳承载隔离的 Legacy JS 与 v4 JSON 会话，并逐步用 v4 Core 替换内部机制。
+> 目标：在不改变未列入白名单的用户体验前提下，以 Legacy 体验壳承载 v4 JSON，并逐步用 v4 Core 替换内部机制。Legacy JS 留在冻结页面和外部转换工具中。
 
 ## 1. 不可违背的目标
 
@@ -12,29 +12,29 @@
 4. 除 [差异白名单](V4_DIFFERENCE_ALLOWLIST.md) 外，布局、控件、快捷键、交互手感、跨面板同步、画面、历史、保存和导出结果都必须与 Legacy 一致。
 5. 未涉及重构的机制第一次迁移必须复用 Legacy 行为；不得以“v4 设计”“代码更整洁”为理由重新设计。
 6. 优化必须先提交提案并经产品负责人确认；缺少批准时只能修复相对 Legacy 的退化。
-7. Tauri 默认入口在全部 P0/P1、视觉、性能和双会话验收通过前继续指向 Legacy。
+7. Tauri 默认入口在全部 P0/P1、视觉和性能验收通过前继续指向 Legacy；v4 产品入口不再以双会话作为前提。
 
 ## 2. 页面与会话职责
+
+> 产品边界更新：`img2asset-v4-classic.html` 已切为单一 v4 会话，不加载 Legacy Runtime，也不提供内部转换入口。`img2asset-layout-v1.html` 保持冻结的 Legacy 页面；转换核心仅作为外部迁移工具保留。以下双会话描述只用于迁移期的历史基线和独立工具，不再是 v4 产品入口的职责。
 
 | 文件 | 职责 | 禁止事项 |
 |---|---|---|
 | `img2asset-layout-v1.html` | 可用 Legacy 产品、行为基线 | 承担 v4 新机制；为迁移方便而改变行为 |
-| `img2asset-v4-classic.html` | Legacy 完整体验壳上的正式迁移候选 | 从 vNext 实验页反向拼接 UI；双写 Scene |
+| `img2asset-v4-classic.html` | v4 产品入口：复用已迁移的 Classic Shell 体验壳 | 读取/执行 Legacy JS；初始化 `HOME_SCENE`；提供页内转换 |
 | `img2asset-vnext.html` | v4 Core 实验与合同验证台 | 成为产品入口；以补按钮方式冒充体验迁移 |
 
-Classic Shell 支持两种严格隔离的会话：
+v4 产品入口只持有一个可写会话；Legacy 页面与外部转换器是并列工具：
 
 ```text
-同一个 Shell / Controller
-        ├─ LegacyFacade → HOME_SCENE → Legacy Runtime → JS 保存
-        └─ V4Facade     → v4 Scene   → v4 Runtime     → .tosampool.json 保存
+img2asset-v4-classic.html → V4Facade → v4 Scene → v4 Runtime → .tosampool.json
+img2asset-layout-v1.html  → Legacy Runtime → Legacy JS
+外部转换工具              → 转换报告 / 新的 .tosampool.json
 ```
 
-- 每次只允许一个会话和一个可写 Scene。
-- Legacy JS 会话保留程序元素、专用绘制函数、旧 FX、旧保存与导出，不自动获得 v4 新字段。
 - v4 JSON 会话只通过 `Workspace → SceneMutation → v4 Scene` 修改作品。
 - View Model 只保存选择、树展开、滚动、缓存和辅助层状态，不得被保存或导出。
-- Controller 不得直接判断底层格式；只调用当前会话的 Facade。
+- v4 Controller 不得直接判断 Legacy 格式；只调用 v4 Facade。
 
 ## 3. Facade 能力边界
 
@@ -106,7 +106,7 @@ result  = shadow → outline → stageSource
 
 ## 6. Legacy 转换与 builtin
 
-“转换为 v4”必须由用户主动触发，创建新的 `.tosampool.json`，不覆盖原 JS，并生成逐项报告。
+外部“转换为 v4”工具必须由用户主动触发，创建新的 `.tosampool.json`，不覆盖原 JS，并生成逐项报告。它不是 v4 编辑器的按钮、菜单或加载路径。
 
 转换顺序：
 
@@ -114,7 +114,7 @@ result  = shadow → outline → stageSource
 2. 程序元素有稳定 builtin 时转成 builtin；
 3. 没有 builtin 时默认阻止完整转换；
 4. 用户可逐项选择冻结为图片，并明确接受动态/参数损失；
-5. 用户可取消转换并继续 Legacy 会话；
+5. 用户可取消转换并继续使用独立的 Legacy 页面；
 6. 不允许把任意 `program.code` 写入 v4 JSON。
 
 每个 builtin 必须有稳定 id/版本、参数 schema、包围盒与 pivot、明确可动画参数、固定时间确定性渲染、无 DOM/网络依赖、按需自包含打包、视觉基准及 Agent manifest。

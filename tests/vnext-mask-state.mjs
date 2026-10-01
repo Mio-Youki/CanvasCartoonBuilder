@@ -6,7 +6,7 @@ import vm from 'node:vm';
 
 const root=resolve(import.meta.dirname,'..'),context={},source=path=>readFileSync(resolve(root,path),'utf8');
 for(const file of ['editor/effect-registry-vnext.js','editor/vnext-inspector-model.js','editor/vnext-effect-state.js','editor/vnext-mask-state.js'])new vm.Script(source(file),{filename:file}).runInNewContext(context);
-const state=context.EditorVNextMaskState,scene={width:64,height:32,assets:{alpha:{locator:'mask.png'}},entities:[{id:'owner',type:'rect',x:4,y:5,w:20,h:10},{id:'source',type:'ellipse',x:8,y:6,w:12,h:8},{id:'group',type:'group'},{id:'child',type:'rect',parentId:'group'}],sceneEffects:{overlay:{},sample:{},outputGrain:{}},timeline:{tracks:{}}};
+const state=context.EditorVNextMaskState,scene={width:64,height:32,assets:{alpha:{locator:'mask.png'}},entities:[{id:'owner',type:'rect',x:4,y:5,w:20,h:10},{id:'source',type:'ellipse',x:8,y:6,w:12,h:8},{id:'group',type:'group'},{id:'child',type:'rect',parentId:'group'},{id:'emitter',type:'particle-emitter',x:3,y:4,w:40,h:18,particle:{}}],sceneEffects:{overlay:{},sample:{},outputGrain:{}},timeline:{tracks:{}}};
 assert.deepEqual(JSON.parse(JSON.stringify(state.defaults(scene,{scope:'object',ownerId:'owner'},'rect'))),{type:'rect',x:4,y:5,w:20,h:10,invert:false,follow:false});
 state.set(scene,{scope:'object',ownerId:'owner'},{type:'poly',points:[[4,5],[24,5],[24,15],[4,15]]});
 assert.deepEqual(JSON.parse(JSON.stringify(state.bounds(state.current(scene,{scope:'object',ownerId:'owner'})))),{x:4,y:5,w:20,h:10});
@@ -19,4 +19,9 @@ state.set(scene,{scope:'object',ownerId:'owner'},{type:'alpha',assetId:'alpha',x
 state.set(scene,{scope:'object',ownerId:'owner'},{type:'element',targetId:'source',sourceVisibility:'keep'});assert.equal(scene.entities[0].effects.mask.sourceVisibility,'keep');state.setSourceVisibility(scene,{scope:'object',ownerId:'owner'},'mask-only');assert.equal(scene.entities[0].effects.mask.sourceVisibility,'mask-only');assert.throws(()=>state.set(scene,{scope:'object',ownerId:'owner'},{type:'element',targetId:'owner'}),/不能引用自身/);
 state.set(scene,{scope:'scene',effectId:'tint-overlay'},{type:'element',targetId:'group',sourceVisibility:'mask-only',invert:true});assert.equal(scene.sceneEffects.overlay['tint-overlay'].enabled,true);assert.equal(scene.sceneEffects.overlay['tint-overlay'].mask.targetId,'group');assert.equal(state.current(scene,{scope:'scene',effectId:'tint-overlay'}).invert,true);
 assert.equal(state.clear(scene,{scope:'scene',effectId:'tint-overlay'}),true);assert.equal(scene.sceneEffects.overlay['tint-overlay'].mask,null);assert.equal(state.clear(scene,{scope:'scene',effectId:'tint-overlay'}),false);
-console.log('✓ vNext Mask State：对象/场景共用类型、素材/元素引用、来源可见性与清理合同通过');
+const emission={scope:'particle-emission',ownerId:'emitter'},motion={scope:'particle-motion',ownerId:'emitter'};
+assert.deepEqual(JSON.parse(JSON.stringify(state.defaults(scene,emission,'rect'))),{type:'rect',x:0,y:0,w:40,h:18,invert:false,follow:false},'发射范围必须使用发射器本地坐标');
+state.set(scene,emission,{type:'ellipse',x:4,y:2,w:20,h:10});assert.equal(scene.entities.at(-1).particle.emissionRange.type,'ellipse');assert.equal(scene.entities.at(-1).particle.emissionRange.follow,false);
+state.set(scene,motion,{type:'poly',points:[[0,0],[40,0],[20,18]]});assert.equal(state.current(scene,motion).type,'poly');assert.equal(state.clear(scene,motion),true);assert.equal(scene.entities.at(-1).particle.motionRange,undefined);
+assert.throws(()=>state.set(scene,emission,{type:'alpha',assetId:'alpha'}),/仅支持矩形、椭圆和多边形/);assert.throws(()=>state.setFollow(scene,emission,true),/始终跟随发射器变换/);
+console.log('✓ vNext Mask State：对象/场景/粒子范围共用几何类型、素材/元素引用、来源可见性与清理合同通过');
