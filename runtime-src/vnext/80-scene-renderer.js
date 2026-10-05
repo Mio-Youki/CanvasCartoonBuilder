@@ -17,6 +17,7 @@
   }
   function transitionHash(x,y,seed){let value=(Math.imul(x+1,374761393)^Math.imul(y+1,668265263)^Math.imul(seed+1,69069))>>>0;value=Math.imul(value^value>>>13,1274126177);return((value^value>>>16)>>>0)/4294967296;}
   function transitionState(scene,frame){const current=sceneAt(scene,frame.rel),segment=current.segment||{},raw=segment.transition||{},legacyType=raw.type==='scan'?'wipe':raw.type||'none',type=['blackout','fade','wipe','dissolve'].includes(legacyType)?legacyType:'none';if(type==='none'||current.index<=0)return null;const range=segment.f||[0,1],sceneDuration=Math.max(.001,(+range[1]-+range[0])*scene.loop),duration=Math.max(.001,Math.min(sceneDuration,+raw.duration||.25)),localTime=Math.max(0,(frame.rel-+range[0])*scene.loop),progress=Math.max(0,Math.min(1,localTime/duration));if(progress>=1)return null;return{current,segment,config:raw,type,duration,progress,direction:raw.direction||((raw.type==='scan')?'down':'right')};}
+  function outgoingTransitionTime(scene,state){if(!state)return 0;const previous=(scene.timeline&&scene.timeline.scenes||[])[state.current.index-1],end=Math.max(0,((previous&&previous.f&&previous.f[1])||0)*scene.loop),elapsed=Math.max(0,Math.min(state.duration,state.progress*state.duration));return Math.max(0,end-state.duration+elapsed);}
   // `next` is already on ctx. Fade / Wipe / Dissolve composite the previous
   // Scene where it has not been revealed. Blackout retains the Legacy black-
   // field language: a configurable colour cover fades away to the new Scene.
@@ -56,14 +57,15 @@
         const applied = api.modules.sceneEffects.applyStage(current, stage, scene, frame, surfaces); if (applied.surface !== current) { if (current !== base) surfaces.release(current); current = applied.surface; } stats.sceneEffects += applied.count;
       }
       if (base !== target) { targetCtx.clearRect(0, 0, scene.width, scene.height); targetCtx.drawImage(current, 0, 0); if (current !== base) surfaces.release(current); surfaces.release(base); }
-      // Each top-level Scene has independent background / timing values.  During
-      // an entry transition we render the preceding Scene at its final instant
-      // into a temporary surface, then reveal the already-rendered current one.
-      // This is intentionally the same Runtime path used by fixed-time export.
-      if(!options||!options._skipTransition){const transition=transitionState(scene,frame);if(transition){if(transition.type==='blackout')drawTransition(targetCtx,scene,frame,null);else{const previousSegment=(scene.timeline&&scene.timeline.scenes||[])[transition.current.index-1],previousTime=Math.max(0,((previousSegment&&previousSegment.f&&previousSegment.f[1])||0)*scene.loop-.00001),previous=surfaces.acquire(scene.width,scene.height);try{createRuntime(scene).renderTo(previous,previousTime,Object.assign({},options||{},{_skipTransition:true}));drawTransition(targetCtx,scene,frame,previous);}finally{surfaces.release(previous);}}}}
+      // Both sides of an entry transition retain their own running clocks.
+      // The outgoing Scene plays through its final `duration`, while the
+      // incoming Scene plays through its first `duration`; only the composite
+      // mask is frozen.  Rendering the preceding Scene at f[1] here made every
+      // wipe and dissolve look like a still-frame transition in the editor.
+      if(!options||!options._skipTransition){const transition=transitionState(scene,frame);if(transition){if(transition.type==='blackout')drawTransition(targetCtx,scene,frame,null);else{const previousTime=outgoingTransitionTime(scene,transition),previous=surfaces.acquire(scene.width,scene.height);try{createRuntime(scene).renderTo(previous,previousTime,Object.assign({},options||{},{_skipTransition:true}));drawTransition(targetCtx,scene,frame,previous);}finally{surfaces.release(previous);}}}}
       stats.previewPixelDivMultiplier=frame.preview.pixelDivMultiplier;stats.surfaces = surfaces.stats();stats.workPixels=stats.surfaces.workPixels;stats.pixelPasses=stats.surfaces.pixelPasses;lastStats = Object.freeze(stats); return lastStats;
     }
     return Object.freeze({ scene, renderTo, getLastFrameStats: () => lastStats, clearCaches: () => surfaces.clear() });
   }
-  api.modules.renderer = Object.freeze({ createRuntime,drawTransition,transitionState,sceneAt,backgroundValues,drawBackgroundFill });
+  api.modules.renderer = Object.freeze({ createRuntime,drawTransition,transitionState,outgoingTransitionTime,sceneAt,backgroundValues,drawBackgroundFill });
 })(typeof window !== 'undefined' ? window : globalThis);

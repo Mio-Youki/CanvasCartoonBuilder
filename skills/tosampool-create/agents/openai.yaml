@@ -1,0 +1,6 @@
+interface:
+  display_name: "ToSampool 创作助手"
+  short_description: "基于描述、当前画布与参考图创作场景或派生素材"
+  default_prompt: "Use $tosampool-create to revise my current canvas or turn my idea, assets, and references into a reviewable ToSampool result."
+policy:
+  allow_implicit_invocation: true

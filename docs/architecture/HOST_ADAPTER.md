@@ -18,12 +18,15 @@ Tauri WebView 前置适配器位于 `editor/tauri-host-adapter.js`，加载顺�
   capabilities: {
     directWrite: boolean,
     projectDirectory: boolean,
+    projectPackage: boolean,
     persistentAssets: boolean,
     nativeEncoding: boolean
   },
   openText(options): Promise<{ name, text, file? } | null>,
   saveFile({ name, data, mime, description, ext }): Promise<{ mode, name } | null>,
   saveBatch({ artifacts }): Promise<Array<{ mode, name }>>,
+  saveProject?({ name, files }): Promise<{ mode, name } | null>,
+  openProject?(): Promise<{ kind:'project', name, files } | { kind:'scene', name, text, document } | null>,
   pickAssets({ accept, multiple }): Promise<File[]>,
   readDataUrl(file): Promise<string>,
   resolveAsset?({ ref, sceneLocator }): Promise<string | Blob | { dataUrl?: string, blob?: Blob } | null>
@@ -41,11 +44,12 @@ Tauri WebView 前置适配器位于 `editor/tauri-host-adapter.js`，加载顺�
 - 打开 JS/JSON 场景；
 - 保存场景与自包含测试 HTML；
 - 从素材库入口选择图片。
+- 浏览器 v4 项目包：以 store-only `.tosampool.zip` 保存/显式打开；它是 P1 的临时载体，不代表 Tauri Vault 已完成。
 
 暂未接线：
 
 - 字体选择；
-- 项目目录、`assets/` 重连与处理配方；
+- Tauri 原生项目目录、`assets/` Vault、持久重连与处理配方缓存；
 - 原生 APNG/WebP/WebM/MP4 编码。
 
 多帧 PNG 等现有多 Artifact 导出已由 Tauri 批量写入所选目录；GIF 本身是单 Artifact。项目目录和持久素材库仍未实现，不能把“当前 Scene 相对路径解析”称为 Project 层。

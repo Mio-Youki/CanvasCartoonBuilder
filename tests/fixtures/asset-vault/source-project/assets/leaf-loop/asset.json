@@ -1,0 +1,14 @@
+{
+  "format": "tosampool-asset/v1",
+  "id": "leaf-loop",
+  "name": "叶片循环",
+  "kind": "sequence",
+  "frames": ["frames/000.svg", "frames/001.svg", "frames/002.svg"],
+  "fps": 2,
+  "frameLoop": true,
+  "recipe": {
+    "width": 18,
+    "height": 18,
+    "backgroundRemoval": { "enabled": false, "color": [0, 0, 0], "tolerance": 0, "feather": 0, "connected": true }
+  }
+}

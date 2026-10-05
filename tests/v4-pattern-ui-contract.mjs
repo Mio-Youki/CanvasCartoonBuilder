@@ -27,9 +27,12 @@ assert.equal(param(halftone,'offsetX').label,'起始偏移 X');
 assert.equal(param(halftone,'rowOffset').label,'错列偏移');
 assert.equal(registry.motionById['dot-drift'].name,'网点震荡');
 assert.equal(registry.motionById['dot-move'].name,'网点移动');
+assert.equal(param(texture,'noiseDensity').label,'噪点强度');
 
 const inspector=read('editor/classic-v4-inspector-controller.js');
 assert.match(inspector,/shape,sides:point\.sides,roundness:point\.roundness/,'纹理叠加必须把 shape 映射为共用编辑器所需的 sides / roundness');
 assert.match(inspector,/staleMotion=panel\.querySelector\('\.v4-inline-texture-motion'\).*staleMotion\.remove/,'图样设置中不得保留未接通的图案运动开关');
+const patternField=read('editor/classic-v4-pattern-field.js');
+assert.match(patternField,/value:'noise',label:'屏幕噪点'/,'图样设置的类型下拉必须提供屏幕噪点');
 
 console.log('✓ V4 图样 UI 合同：点形映射、归一化偏移、命名和无效图案运动入口通过');

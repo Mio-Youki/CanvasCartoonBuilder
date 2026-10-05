@@ -69,7 +69,29 @@
     });
   }
 
-  function normalizeEntity(input, index) {
+  /* A Scene variant is an authored alternative for one semantic entity, not a
+     second draw-layer.  It keeps all Scene-specific geometry in the same
+     selectable object so the renderer only evaluates and paints the active
+     alternative.  This is intentionally narrower than arbitrary shape
+     morphing: variants switch at Scene boundaries and remain ordinary pixel
+     geometry inside each Scene. */
+  function normalizeSceneVariants(entity) {
+    if (!Array.isArray(entity.sceneVariants) || !entity.sceneVariants.length) { delete entity.sceneVariants; return; }
+    entity.sceneVariants = entity.sceneVariants.map((input, index) => {
+      const variant = Object.assign({}, clone(input) || {});
+      for (const key of ['x', 'y']) if (variant[key] != null) variant[key] = pixel(variant[key], 0);
+      for (const key of ['w', 'h']) if (variant[key] != null) variant[key] = Math.max(1, pixel(variant[key], 1));
+      for (const key of ['scaleX', 'scaleY', 'rot']) if (variant[key] != null) variant[key] = finite(variant[key], key.startsWith('scale') ? 1 : 0);
+      if (variant.alpha != null) variant.alpha = Math.max(0, Math.min(1, finite(variant.alpha, 1)));
+      if (variant.parts != null) {
+        const carrier = { id:`${entity.id}:scene-${index + 1}`, type:entity.type, parts:variant.parts };
+        normalizeParts(carrier); variant.parts = carrier.parts;
+      }
+      return variant;
+    });
+  }
+
+  function normalizeEntity(input, index, moduleScope) {
     const entity = Object.assign({
       id: `entity-${index + 1}`,
       type: 'rect', x: 0, y: 0, w: 1, h: 1,
@@ -82,7 +104,9 @@
     entity.scaleX = finite(entity.scaleX, 1); entity.scaleY = finite(entity.scaleY, 1); entity.skewX = Math.max(-80, Math.min(80, finite(entity.skewX, 0))); entity.skewY = Math.max(-80, Math.min(80, finite(entity.skewY, 0)));
     entity.rot = finite(entity.rot, 0); entity.alpha = Math.max(0, Math.min(1, finite(entity.alpha, 1)));
     if (entity.type === 'builtin') entity.builtin = api.modules.builtins.normalize(entity.builtin);
+    if (entity.type === 'procedural') Object.assign(entity, api.modules.sceneModules.normalize(entity,{scope:moduleScope}));
     normalizeParts(entity);
+    normalizeSceneVariants(entity);
     if (entity.pivot && entity.pivot.mode === 'custom') entity.pivot = { mode:'custom', x:Math.max(0, Math.min(1, finite(entity.pivot.x, .5))), y:Math.max(0, Math.min(1, finite(entity.pivot.y, .5))) };
     else delete entity.pivot;
     if (entity.effects) {
@@ -99,8 +123,8 @@
     if (version !== FORMAT && version !== 4) throw new Error(`Runtime vNext 只接受 ${FORMAT}，收到 ${version}`);
     const width = Math.max(1, Math.round(finite(raw.width, 320)));
     const height = Math.max(1, Math.round(finite(raw.height, 180)));
-    const loop = Math.max(.001, finite(raw.loop, 4));
-    const entities = (Array.isArray(raw.entities) ? raw.entities : []).map(normalizeEntity);
+    const loop = Math.max(.001, finite(raw.loop, 4)), moduleScope=String(raw._moduleScope || raw.moduleScope || 'global');
+    const entities = (Array.isArray(raw.entities) ? raw.entities : []).map((entity,index)=>normalizeEntity(entity,index,moduleScope));
     const seen = new Set();
     for (const entity of entities) {
       if (seen.has(entity.id)) throw new Error(`Runtime vNext 场景存在重复实体 id：${entity.id}`);
@@ -147,7 +171,7 @@
     // legacy ordering here: output grain must remain the final pixel pass.
     sceneEffects.pipeline = SCENE_PIPELINE.slice();
     return Object.freeze({
-      format: FORMAT, width, height, loop,
+      format: FORMAT, width, height, loop, moduleScope,
       background: Object.assign({ color: '#ffffff', alpha: 1, layers: [] }, raw.background || {}),
       entities: Object.freeze(entities),
       timeline: raw.timeline || { tracks: {} },

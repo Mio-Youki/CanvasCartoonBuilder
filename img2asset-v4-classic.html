@@ -73,6 +73,76 @@
   .wizard h2 { margin: 0 0 8px; color: var(--yellow); font-size: 13px; }
   .wizard .preview { min-height: 148px; display: grid; place-items: center; margin: 10px 0; border: 2px solid var(--dim); background: #05070f; overflow: hidden; }
   .wizard .preview canvas { max-width: 100%; max-height: 250px; image-rendering: pixelated; }
+  .agent-creative-wizard { width:min(720px,100%); }
+  .agent-creative-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .agent-creative-head h2 { margin:0; }
+  .agent-creative-close { min-height:26px; margin:0; padding:1px 8px; color:var(--dim); background:transparent; border-color:transparent; font-size:15px; }
+  .agent-creative-intro { margin:6px 0 10px; color:var(--dim); font-size:10px; line-height:1.55; }
+  .agent-creative-reference { display:flex; align-items:center; flex-wrap:wrap; gap:5px; margin:0 0 8px; padding:6px 7px; border:1px solid #2c3560; background:#0d1426; color:var(--dim); font-size:9px; }
+  .agent-creative-reference > span { flex:1 1 160px; color:var(--ink); }
+  .agent-creative-reference button { min-height:23px; margin:0; padding:2px 6px; font-size:9px; }
+  .agent-creative-chat { min-height:170px; max-height:360px; overflow:auto; padding:8px; border:1px solid #2c3560; background:#0b1120; }
+  .agent-chat-bubble { max-width:88%; margin:5px 0; padding:7px 8px; border:1px solid #2c3560; background:#151d38; color:var(--ink); font-size:10px; line-height:1.5; white-space:pre-wrap; }
+  .agent-chat-bubble.user { margin-left:auto; border-color:#8a6d00; background:#33270f; }
+  .agent-chat-bubble.system { color:var(--dim); border-style:dashed; background:transparent; }
+  .agent-chat-question { margin:8px 0; padding:8px; border-left:2px solid var(--cyan); background:#121b35; }
+  .agent-chat-question-label { margin-bottom:6px; color:var(--cyan); font-size:10px; }
+  .agent-chat-choices { display:flex; flex-wrap:wrap; gap:5px; }
+  .agent-chat-choices button { margin:0; min-height:26px; padding:4px 7px; font-size:9px; }
+  .agent-creative-composer { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px; margin-top:8px; }
+  .agent-creative-composer textarea { min-height:42px; resize:vertical; }
+  .agent-creative-composer button { align-self:end; margin:0; }
+  .agent-creative-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px 10px; }
+  .agent-creative-field { display:grid; gap:3px; margin:0; color:var(--ink); font-size:10px; }
+  .agent-creative-field:first-child, .agent-creative-field:nth-child(5), .agent-creative-field:nth-child(6), .agent-creative-actions { grid-column:1 / -1; }
+  .agent-creative-field textarea { min-height:44px; resize:vertical; }
+  .agent-creative-note { color:var(--dim); font-size:8px; line-height:1.4; }
+  .agent-creative-actions { display:flex; justify-content:flex-end; border-top:1px solid #2c3560; padding-top:8px; }
+  .agent-creative-actions button { margin:0; }
+  .agent-creative-result { grid-column:1 / -1; margin-top:10px; }
+  .agent-creative-result:empty { display:none; }
+  .agent-creative-result-head { color:var(--cyan); font-size:10px; margin:0 0 5px; }
+  .agent-creative-candidate-list { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+  .agent-creative-candidate { display:grid; grid-template-columns:1fr; align-content:start; gap:4px; min-height:150px; margin:0; padding:8px; text-align:left; border:2px solid #2c3560; background:#101736; color:var(--ink); font-size:9px; }
+  .agent-creative-candidate:hover, .agent-creative-candidate.selected { border-color:var(--yellow); background:#33270f; }
+  .agent-creative-candidate strong { color:var(--yellow); font-size:11px; }
+  .agent-creative-candidate p { margin:2px 0; color:var(--ink); line-height:1.45; }
+  .agent-creative-candidate small { color:var(--dim); line-height:1.35; }
+  .agent-creative-candidate .agent-creative-frozen { color:#c7a3f7; }
+  .agent-creative-carrier { color:var(--cyan); font-size:8px; }
+  .agent-creative-selection { margin-top:8px; padding:8px; border:1px solid var(--yellow); background:#171b2f; font-size:10px; }
+  .agent-creative-selection b { color:var(--yellow); }
+  .agent-creative-selection p { margin:5px 0; color:var(--dim); line-height:1.45; }
+  .agent-creative-selection button { margin:0; }
+  .agent-creative-draft { margin-top:8px; padding:8px; border:1px solid var(--cyan); background:#0d1c2c; font-size:10px; }
+  .agent-creative-draft b { color:var(--cyan); }
+  .agent-creative-draft p { margin:5px 0; line-height:1.45; }
+  .agent-creative-draft small { color:var(--dim); line-height:1.45; }
+  .agent-creative-draft-preview { display:block; width:100%; max-height:150px; margin:7px 0; border:1px solid #2c6680; object-fit:contain; image-rendering:pixelated; background:#060b12; }
+  .agent-creative-draft-actions { display:flex; gap:6px; margin-top:8px; }
+  .agent-creative-draft-actions button { margin:0; }
+  .agent-creative-derive { margin-top:8px; padding:8px; border:1px solid #8d6a2a; background:#1b1624; font-size:10px; }
+  .agent-creative-derive > b { color:var(--yellow); }
+  .agent-creative-derive > p { margin:5px 0; color:var(--dim); line-height:1.45; }
+  .agent-creative-derive > button { margin:8px 0 0; }
+  .agent-creative-derive-task-list { display:grid; gap:5px; margin-top:8px; }
+  .agent-creative-derive-task { padding:6px; border:1px solid #37415f; background:#101736; }
+  .agent-creative-derive-task.selected { border-color:var(--yellow); }
+  .agent-creative-derive-task-head { display:grid; grid-template-columns:auto minmax(80px,1fr) auto auto auto; align-items:center; gap:5px; }
+  .agent-creative-derive-task-head strong { color:var(--yellow); font-size:10px; }
+  .agent-creative-derive-task-head input[type="text"], .agent-creative-derive-task-head input:not([type]) { min-width:0; }
+  .agent-creative-derive-task-head label { display:flex; align-items:center; gap:3px; color:var(--dim); font-size:9px; white-space:nowrap; }
+  .agent-creative-derive-task-head button { min-height:22px; margin:0; padding:1px 5px; font-size:9px; }
+  .agent-creative-derive-task small { display:block; margin-top:4px; color:var(--dim); line-height:1.35; }
+  .agent-roi-wizard { width:min(760px,calc(100% - 28px)); }
+  .agent-roi-stage { position:relative; display:block; width:fit-content; max-width:100%; max-height:65vh; margin:0 auto; overflow:hidden; border:1px solid #2c3560; background:#070b12; touch-action:none; user-select:none; }
+  .agent-roi-stage > img { display:block; max-width:100%; max-height:65vh; object-fit:contain; pointer-events:none; }
+  .agent-roi-selection { position:absolute; box-sizing:border-box; border:2px solid var(--yellow); background:rgba(255,218,72,.08); cursor:move; }
+  .agent-roi-handle { position:absolute; width:8px; height:8px; margin:-5px; border:1px solid var(--yellow); background:#101736; }
+  .agent-roi-handle.nw { top:0; left:0; cursor:nwse-resize; } .agent-roi-handle.ne { top:0; right:0; cursor:nesw-resize; }
+  .agent-roi-handle.se { right:0; bottom:0; cursor:nwse-resize; } .agent-roi-handle.sw { bottom:0; left:0; cursor:nesw-resize; }
+  .agent-creative-context-separator { margin-left:6px; color:var(--dim); }
+  @media (max-width:700px) { .agent-creative-form,.agent-creative-candidate-list { grid-template-columns:1fr; } .agent-creative-field { grid-column:1 / -1; } }
   .wizard .choice { margin: 0; min-height: 28px; padding: 4px 7px; font-size: 9px; }
   .export-mode { display: block; width: 100%; text-align: left; margin: 4px 0; min-height: 30px; padding: 5px 7px; border: 2px solid #2c3560; background: #101736; color: var(--ink); cursor: pointer; font-size: 9px; }
   .export-mode:has(input:checked) { border-color: var(--yellow); background: #33270f; }
@@ -344,6 +414,7 @@
   .asset-card-action { position:absolute; z-index:2; width:19px; height:19px; min-height:19px; padding:0; border:1px solid var(--line); background:#1b2029e8; color:var(--ink); font-size:12px; line-height:16px; }
   .asset-card-action.delete { top:3px; right:3px; color:#d99aa0; }
   .asset-card-action.add { right:3px; bottom:21px; color:var(--yellow); }
+  .asset-card-action.alpha { left:3px; bottom:21px; color:#7ee8ba; font-family:Georgia,serif; font-weight:700; }
   .asset-empty { padding:12px 3px; color:var(--dim); font-size:10px; line-height:1.5; }
   .asset-process-grid { display:grid; grid-template-columns:minmax(220px, .9fr) minmax(240px, 1.1fr); gap:12px; }
   .asset-process-controls { display:grid; gap:7px; align-content:start; }
@@ -364,7 +435,9 @@
   .struct-node.part.sel { color:var(--ink); border-left-color:var(--cyan); background:#173040; }
   .struct-node.fx { color:#8ad9a5; }
   .struct-node.background { color:#b7c1d8; }
-  .struct-node .struct-icon { width:14px; text-align:center; color:inherit; }
+  .struct-node .struct-icon { width:14px; min-width:14px; padding:0; text-align:center; color:inherit; background:transparent; border:0; font:inherit; line-height:1; }
+  .struct-node .struct-expander { cursor:pointer; }
+  .struct-node .struct-icon[aria-disabled="true"] { pointer-events:none; }
   .struct-node .struct-label { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
   .struct-node .struct-meta { color:var(--dim); font-size:9px; }
   .struct-actions { display:flex; align-items:center; gap:1px; }
@@ -493,7 +566,7 @@
   <span class="workbench-note"><b>UI 重构 v1</b> · 功能副本 · 原始编辑器未改动</span>
 </div>
 <div class="workbench-tools" aria-label="场景与绘制工具栏">
-  <div class="scene-file-actions"><button id="btn-new" class="small">新建场景</button><button id="btn-open" class="small">打开场景</button><button class="small future-tool" disabled title="仅保留界面，后续接入 Agent">生成场景</button></div>
+  <div class="scene-file-actions"><button id="btn-new" class="small">新建场景</button><button id="btn-open" class="small">打开场景</button><button id="btn-generate" class="small" title="基于描述、所选素材或当前画布与 Agent 共同创作">Agent创作</button></div>
   <input id="jsfile" type="file" accept=".js,text/javascript,.json" hidden>
   <span class="tool-sep"></span>
   <div class="tool-slots" aria-label="绘制工具">
@@ -682,6 +755,7 @@
 <script src="editor/asset-resolver.js"></script>
 <script src="editor/vnext-asset-recipe.js"></script>
 <script src="editor/vnext-asset-loader.js"></script>
+<script src="editor/vnext-agent-reference.js"></script>
 <script src="editor/vnext-asset-state.js"></script>
 <script src="editor/vnext-asset-workflow.js"></script>
 <script src="editor/artifact-builder.js"></script>
@@ -690,7 +764,22 @@
 <script src="editor/geometry.js"></script>
 <script src="editor/scene-model.js"></script>
 <script src="editor/vnext-scene.js"></script>
+<script src="editor/vnext-project-package.js"></script>
+<script src="editor/vnext-project-archive.js"></script>
+<script src="editor/vnext-agent-draft-package.js"></script>
+<script src="editor/vnext-delivery-builder.js"></script>
+<script src="editor/vnext-module-loader.js"></script>
 <script src="editor/vnext-workspace.js"></script>
+<script src="editor/vnext-agent-creative-protocol.js"></script>
+<script src="editor/vnext-agent-context-pack.js"></script>
+<script src="editor/vnext-agent-creative-bridge.js"></script>
+<script src="editor/vnext-derived-asset-protocol.js"></script>
+<script src="editor/vnext-codex-derived-plan.js"></script>
+<script src="editor/vnext-derived-asset-run-state.js"></script>
+<script src="editor/vnext-derived-asset-bridge.js"></script>
+<script src="editor/classic-v4-derived-asset-controller.js"></script>
+<script src="editor/classic-v4-agent-creative-controller.js"></script>
+<script src="editor/classic-v4-alpha-repair-controller.js"></script>
 <script>window.__TOSAMPOOL_V4_ONLY__=true;</script>
 <script src="editor/session-facade.js"></script>
 <script src="editor/scene-file-controller.js"></script>
@@ -1190,21 +1279,27 @@ function renderLib() {
   for (const s of state.sources) {
     const d = document.createElement('div');
     d.className = 'lib-item' + (state.selSrc === s.id ? ' active' : '');
+    if (classicV4Vertical && s.assetId) d.dataset.v4AssetId = s.assetId;
     d.draggable = true;
     const cv = document.createElement('canvas');
     const sz = sourceFrameSize(s);
     cv.width = sz.w; cv.height = sz.h;
     previews.push({ cv, s, sz });
     const del = document.createElement('button'); del.className = 'asset-card-action delete'; del.textContent = '×'; del.title = '从当前素材库移除';
-    del.addEventListener('click', ev => { ev.stopPropagation(); removeSource(s); });
+    del.addEventListener('click', ev => { ev.stopPropagation(); if (classicV4Vertical && s.assetId) { if (window.ToSampoolV4Assets) ToSampoolV4Assets.select(s.assetId); const removed=classicAssets.removeSelected(); if (!removed) $('m-import').textContent='该素材仍被场景对象、背景或蒙版引用，不能直接删除。'; } else removeSource(s); });
     const add = document.createElement('button'); add.className = 'asset-card-action add'; add.textContent = '→'; add.title = '添加到场景';
-    add.addEventListener('click', ev => { ev.stopPropagation(); state.selSrc=s.id; classicAssets.addToScene(s); });
+    add.addEventListener('click', ev => { ev.stopPropagation(); state.selSrc=s.id; if (classicV4Vertical && s.assetId && window.ToSampoolV4Assets) ToSampoolV4Assets.select(s.assetId); classicAssets.addToScene(classicV4Vertical && s.assetId ? s.assetId : s); });
     const nm = document.createElement('div');
     nm.className = 'nm'; nm.textContent = s.name;
+    if (classicV4Vertical && s.assetId) {
+      const alpha = document.createElement('button'); alpha.className = 'asset-card-action alpha'; alpha.textContent = 'α'; alpha.title = 'Alpha 修边：生成透明派生素材';
+      alpha.addEventListener('click', ev => { ev.stopPropagation(); if (!classicV4AlphaRepair) return; classicV4AlphaRepair.open(s.assetId).catch(error => { $('m-import').textContent = 'Alpha 修边无法打开：' + (error && error.message || error); }); });
+      d.append(alpha);
+    }
     d.append(cv, del, add);
     d.appendChild(nm);
     d.title = '单击选择；再次单击修改预处理';
-    d.onclick = () => { const reopen = state.selSrc === s.id; state.selSrc = s.id; renderLib(); renderStyleCtl(); if (reopen) openAssetProcessModal(s, { discardOnCancel:false }); };
+    d.onclick = () => { const reopen = state.selSrc === s.id; state.selSrc = s.id; if (classicV4Vertical && s.assetId && window.ToSampoolV4Assets) ToSampoolV4Assets.select(s.assetId); renderLib(); renderStyleCtl(); if (classicV4Vertical && reopen && s.assetId) openClassicV4AssetProcess(s.assetId).catch(error => { $('m-import').textContent='素材预处理无法打开：'+(error&&error.message||error); }); else if (!classicV4Vertical && reopen) openAssetProcessModal(s, { discardOnCancel:false }); };
     d.addEventListener('dragstart', ev => { ev.dataTransfer.effectAllowed = 'copy'; ev.dataTransfer.setData('text/plain', 'asset:' + s.id); });
     lib.appendChild(d);
   }
@@ -3189,6 +3284,32 @@ if(classicV4Vertical){
   ToSampoolV4Workspace.createBlank({width:320,height:180,loop:4});
   ToSampoolSession.activate('v4');
 }
+let classicV4AssetShelfToken=0,classicV4AssetShelfSignature='';
+function classicV4Image(locator){return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('素材缩略图无法解码'));image.src=locator;});}
+async function syncClassicV4AssetShelf(){
+  if(!classicV4Vertical||!window.ToSampoolV4Workspace||!ToSampoolV4Workspace.hasDocument)return;
+  const token=++classicV4AssetShelfToken,sceneDocument=ToSampoolV4Workspace.current(),sources=[],selectedAsset=window.ToSampoolV4Assets&&ToSampoolV4Assets.selected(),selectedId=selectedAsset&&selectedAsset.id,previousId=(state.sources||[]).find(source=>source.id===state.selSrc)?.assetId;
+  for(const [assetId,descriptor] of Object.entries(sceneDocument.assets||{})){
+    try{
+      const resolved=await EditorVNextAssetLoader.resolve({assets:{[assetId]:descriptor}},{host:EditorHost,sceneLocator:ToSampoolV4Workspace.locator,baseUrl:location.href}),images=resolved[assetId].frames;
+      const width=Math.max(...images.map(image=>image.naturalWidth||image.width)),height=Math.max(...images.map(image=>image.naturalHeight||image.height)),edge=192,scale=Math.min(1,edge/Math.max(width,height)),thumbW=Math.max(1,Math.round(width*scale)),thumbH=Math.max(1,Math.round(height*scale)),sheet=document.createElement('canvas');sheet.width=thumbW*images.length;sheet.height=thumbH;const context=sheet.getContext('2d');context.imageSmoothingEnabled=false;images.forEach((image,index)=>context.drawImage(image,index*thumbW,0,thumbW,thumbH));
+      sources.push({id:`v4-${assetId}`,assetId,name:descriptor.name||assetId,img:sheet,frames:images.length,fps:Math.max(.1,+descriptor.fps||8),frameLoop:descriptor.frameLoop!==false,v4Recipe:descriptor.recipe||null,frozen:true,previewOnly:true,_canvas:null,_dataUrl:null});
+    }catch(_){/* An unreadable project asset must not reveal a prior project's preview card. */}
+  }
+  if(token!==classicV4AssetShelfToken)return;
+  state.sources=sources;const preferred=selectedId||previousId;state.selSrc=(sources.find(source=>source.assetId===preferred)||sources[0]||{}).id||null;renderLib();renderStyleCtl();
+}
+function classicV4AssetSignature(scene){return Object.entries(scene&&scene.assets||{}).map(([id,asset])=>`${id}:${asset&&asset.locator?String(asset.locator).length:0}:${Array.isArray(asset&&asset.frames)?asset.frames.length:0}:${JSON.stringify(asset&&asset.recipe||{})}:${Math.max(0,+(asset&&asset.alphaMaskRevision)||0)}`).sort().join('|');}
+if(classicV4Vertical&&window.ToSampoolV4Workspace)ToSampoolV4Workspace.subscribe(event=>{const next=classicV4AssetSignature(ToSampoolV4Workspace.current());if(event.type==='replace'||next!==classicV4AssetShelfSignature){classicV4AssetShelfSignature=next;syncClassicV4AssetShelf();}});
+async function openClassicV4AssetProcess(assetId){
+  const scene=ToSampoolV4Workspace.requireDocument(),descriptor=scene.assets&&scene.assets[assetId];if(!descriptor)throw new Error('素材已不存在');
+  if(descriptor.sourceAssetId||descriptor.derivation&&descriptor.derivation.kind==='alpha-mask')throw new Error('Alpha 派生素材已冻结自己的预处理快照；请通过 α 修边继续调整透明范围。');
+  const frames=Array.isArray(descriptor.frames)&&descriptor.frames.length?descriptor.frames:[descriptor],images=[];
+  for(const frame of frames){const locator=EditorVNextAssetLoader.locatorOf(frame),dataUrl=await EditorAssetResolver.resolveToDataUrl(locator,{host:EditorHost,sceneLocator:ToSampoolV4Workspace.locator,baseUrl:location.href});images.push(await classicV4Image(dataUrl));}
+  const width=Math.max(...images.map(image=>image.naturalWidth||image.width)),height=Math.max(...images.map(image=>image.naturalHeight||image.height)),sheet=document.createElement('canvas');sheet.width=width*images.length;sheet.height=height;const context=sheet.getContext('2d');context.imageSmoothingEnabled=false;images.forEach((image,index)=>context.drawImage(image,index*width,0,width,height));
+  const src={id:`v4-edit-${assetId}`,assetId,name:descriptor.name||assetId,img:sheet,frames:images.length,fps:Math.max(.1,+descriptor.fps||8),frameLoop:descriptor.frameLoop!==false,v4Recipe:descriptor.recipe||null,frozen:true,previewOnly:true,_canvas:null,_dataUrl:null};
+  openAssetProcessModal(src,{discardOnCancel:false,onConfirm:(prepared,recipe)=>{const output=EditorVNextAssetRecipe.resizedSize(images[0],recipe);ToSampoolV4Workspace.mutate(next=>{const target=next.assets&&next.assets[assetId];if(!target)throw new Error('素材已不存在');target.recipe=recipe;target.width=output.width;target.height=output.height;});}});
+}
 function commitClassicV4PreparedSource(src){
   const count=Math.max(1,src&&src.frames||1), rawFrame=index=>{const frameWidth=Math.max(1,Math.floor(src.img.width/count)),canvas=document.createElement('canvas');canvas.width=frameWidth;canvas.height=src.img.height;const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;ctx.drawImage(src.img,index*frameWidth,0,frameWidth,src.img.height,0,0,frameWidth,src.img.height);return canvas;}, base=rawFrame(0), recipe=EditorVNextAssetRecipe.normalize(src.v4Recipe||{width:base.width,height:base.height}), output=EditorVNextAssetRecipe.resizedSize(base,recipe), original=src&&count===1&&src.img&&/^data:image\//.test(String(src.img.src||''))?src.img.src:base.toDataURL('image/png'), descriptor={name:src.name,locator:original,mime:'image/png',width:output.width,height:output.height,recipe};
   if(count===1)descriptor.recipe=recipe;
@@ -3286,7 +3407,7 @@ function openAssetProcessModal(src, options) {
   const renderPreview=axis=>{recipe=buildRecipe(axis);syncLabels();const output=EditorVNextAssetRecipe.apply(frameCanvas(previewFrame),recipe),scale=Math.min(1,420/output.width,260/output.height);cv.width=output.width;cv.height=output.height;cv.style.width=Math.round(output.width*scale)+'px';cv.style.height=Math.round(output.height*scale)+'px';const ctx=cv.getContext('2d');ctx.imageSmoothingEnabled=false;ctx.clearRect(0,0,cv.width,cv.height);ctx.drawImage(output,0,0);};
   ['bg-enabled','bg-color','connected'].forEach(key=>q('.'+key).addEventListener('change',()=>renderPreview()));['bgtol','bgfeather'].forEach(key=>q('.'+key).addEventListener('input',()=>renderPreview()));q('.sw').addEventListener('change',()=>renderPreview('w'));q('.sh').addEventListener('change',()=>renderPreview('h'));q('.lock').addEventListener('change',()=>renderPreview());q('.sample-color').addEventListener('click',()=>{q('.sample-color').classList.toggle('active');});cv.addEventListener('pointerdown',event=>{if(!q('.sample-color').classList.contains('active'))return;const rect=cv.getBoundingClientRect(),raw=frameCanvas(previewFrame),x=Math.max(0,Math.min(raw.width-1,Math.floor((event.clientX-rect.left)/Math.max(1,rect.width)*raw.width))),y=Math.max(0,Math.min(raw.height-1,Math.floor((event.clientY-rect.top)/Math.max(1,rect.height)*raw.height))),rgb=raw.getContext('2d',{willReadFrequently:true}).getImageData(x,y,1,1).data;q('.bg-color').value=toHex(rgb);q('.sample-color').classList.remove('active');renderPreview();});
   let stopped=false,previewTick=0; const animate=now=>{if(stopped)return;if(count>1&&now-previewTick>=500){previewTick=now;previewFrame=(previewFrame+1)%count;renderPreview();}requestAnimationFrame(animate);};
-  const actions=document.createElement('div'); actions.className='row'; const confirm=document.createElement('button'); confirm.className='primary'; confirm.textContent='确认入库'; confirm.onclick=()=>{stopped=true;src.v4Recipe=recipe;src.frozen=true;state.selSrc=src.id;if(classicV4Vertical)commitClassicV4PreparedSource(src);$('asset-pane').classList.add('open');renderLib();renderStyleCtl();$('m-import').textContent='已入库「'+src.name+'」'+(src.frames>1?' · '+src.frames+' 帧': '')+'；预处理已冻结。';mask.remove();}; const cancel=document.createElement('button');cancel.textContent='取消';cancel.onclick=()=>{stopped=true;if(options.discardOnCancel!==false)removeSource(src);mask.remove();};actions.append(confirm,cancel);box.append(actions);mask.append(box);document.body.append(mask);renderPreview();requestAnimationFrame(animate);
+  const actions=document.createElement('div'); actions.className='row'; const confirm=document.createElement('button'); confirm.className='primary'; confirm.textContent='确认入库'; confirm.onclick=()=>{stopped=true;src.v4Recipe=recipe;src.frozen=true;state.selSrc=src.id;if(typeof options.onConfirm==='function')options.onConfirm(src,recipe);else if(classicV4Vertical)commitClassicV4PreparedSource(src);$('asset-pane').classList.add('open');renderLib();renderStyleCtl();$('m-import').textContent='已入库「'+src.name+'」'+(src.frames>1?' · '+src.frames+' 帧': '')+'；预处理已冻结。';mask.remove();}; const cancel=document.createElement('button');cancel.textContent='取消';cancel.onclick=()=>{stopped=true;if(options.discardOnCancel!==false)removeSource(src);mask.remove();};actions.append(confirm,cancel);box.append(actions);mask.append(box);document.body.append(mask);renderPreview();requestAnimationFrame(animate);
 }
 // 多文件导入：1 开= 单素材；多张 = 合成横向 sprite sheet（帧序列素材。
 function loadFiles(files) {
@@ -6520,7 +6641,7 @@ function v4SurfaceDataUrl(surface) {
   return canvas.toDataURL('image/png');
 }
 async function portableV4Scene() {
-  const source = ToSampoolV4Workspace.requireDocument(), portable = JSON.parse(EditorVNextScene.serialize(source, 0)), runtimeAssets = await ToSampoolV4Workspace.runtimeAssets();
+  const source = ToSampoolV4Workspace.requireDocument(), portable = EditorVNextDeliveryBuilder.pruneScene(source), runtimeAssets = await ToSampoolV4Workspace.runtimeAssets();
   for (const [id, descriptor] of Object.entries(portable.assets || {})) {
     const resolved = runtimeAssets[id]; if (!resolved) throw new Error('无法冻结 v4 素材「' + id + '」');
     const frames = (resolved.frames && resolved.frames.length ? resolved.frames : [resolved.image]).map(frame => ({ locator:v4SurfaceDataUrl(frame), mime:'image/png' }));
@@ -6529,11 +6650,16 @@ async function portableV4Scene() {
   }
   return portable;
 }
+async function v4DeliveryModuleSources(scene) {
+  const sources = {};
+  for (const [id, descriptor] of Object.entries(scene && scene.modules || {})) sources[id] = await v4ProjectModule(descriptor.source || descriptor.locator);
+  return sources;
+}
 async function currentV4TestArtifact() {
   const runtimeSource = window.__TOSAMPOOL_RUNTIME_VNEXT_SOURCE__;
   if (!runtimeSource) throw new Error('无法读取 v4 Runtime 源码镜像');
-  const scene = await portableV4Scene(), stem = String(ToSampoolV4Workspace.locator || 'scene').split(/[\\/]/).pop().replace(/\.tosampool\.json$/i, '').replace(/\.[^.]+$/, '') || 'scene';
-  return EditorArtifactBuilder.v4TestHtml({ name:stem + '-test.html', scene, runtimeSource });
+  const source = ToSampoolV4Workspace.requireDocument(), scene = await portableV4Scene(), stem = String(ToSampoolV4Workspace.locator || 'scene').split(/[\\/]/).pop().replace(/\.tosampool\.json$/i, '').replace(/\.[^.]+$/, '') || 'scene';
+  return EditorVNextDeliveryBuilder.embedHtml({ name:stem, scene, runtimeSource, moduleSources:await v4DeliveryModuleSources(source) });
 }
 /* V4_CLASSIC_TEST_ARTIFACT_END */
 async function testSceneCommand() {
@@ -6798,6 +6924,42 @@ function runEditorCommand(id, payload, source) {
   });
 }
 /* V4_CLASSIC_FILE_CONTROLLER_BEGIN */
+function v4ProjectStem() {
+  return String(ToSampoolV4Workspace.locator || 'untitled').split(/[\\/]/).pop().replace(/\.tosampool\.zip$/i, '').replace(/\.tosampool\.json$/i, '').replace(/\.[^.]+$/, '') || 'untitled';
+}
+async function v4ProjectAsset(locator) {
+  const dataUrl = await EditorAssetResolver.resolveToDataUrl(locator, { host:EditorHost, sceneLocator:ToSampoolV4Workspace.locator, baseUrl:location.href });
+  return EditorVNextProjectPackage.dataUrlBytes(dataUrl);
+}
+async function v4ProjectModule(locator, sceneLocator) {
+  const dataUrl = await EditorAssetResolver.resolveToDataUrl(locator, { host:EditorHost, sceneLocator:sceneLocator || ToSampoolV4Workspace.locator, baseUrl:location.href });
+  const bytes = EditorVNextProjectPackage.dataUrlBytes(dataUrl).bytes;
+  return new TextDecoder().decode(bytes);
+}
+async function saveV4ProjectDocument() {
+  if (!EditorHost.saveProject) throw new Error('当前宿主尚未支持正式项目包保存');
+  const packed = await EditorVNextProjectPackage.build(ToSampoolV4Workspace.requireDocument(), { displayName:v4ProjectStem(), resolveAsset:v4ProjectAsset, resolveModule:v4ProjectModule });
+  if (window.EditorVNextDeliveryBuilder) {
+    const moduleSources = {}; for (const [id, descriptor] of Object.entries(packed.project.scene.modules || {})) { const file = packed.files.find(item => item.path === descriptor.locator); if (!file) throw new Error('项目包缺少模块源码「' + id + '」'); moduleSources[id] = typeof file.data === 'string' ? file.data : new TextDecoder().decode(file.data); }
+    const runtime = EditorVNextDeliveryBuilder.runtimeScript({ scene:packed.project.scene, name:'scene', assetBase:'../', moduleSources });
+    packed.files.push({ path:'render/scene.runtime.js', data:runtime.data, mime:runtime.mime });
+  }
+  const result = await EditorHost.saveProject({ name:v4ProjectStem()+'.tosampool.zip', files:packed.files });
+  if (result) ToSampoolV4Workspace.replace(ToSampoolV4Workspace.requireDocument(), { locator:result.locator || result.name || ToSampoolV4Workspace.locator });
+  return result;
+}
+async function openV4ProjectDocument(opened) {
+  const restored = await EditorVNextProjectPackage.restore(opened.files);
+  const moduleScope='project:'+restored.project.projectId;
+  const modules = window.EditorVNextModuleLoader ? EditorVNextModuleLoader.inspect(restored.scene) : [];
+  if (modules.length) {
+    const list = modules.map(item => '• ' + item.id + '@' + item.version + (item.manifest && item.manifest.title ? ' · ' + item.manifest.title : '')).join('\n');
+    if (!window.confirm('此项目包含可执行的程序构件：\n' + list + '\n\n仅在你信任项目来源时才继续执行。')) throw new Error('已取消打开：未信任项目程序构件');
+    await EditorVNextModuleLoader.trustAndLoad(restored.scene, modules.map(item => item.id), {scope:moduleScope});
+  }
+  ToSampoolV4Workspace.replace(restored.scene, { locator:opened.name || null, moduleScope });
+  return restored.scene;
+}
 const classicSceneFiles = EditorSceneFileController.create({
   router: ToSampoolSession,
   host: EditorHost,
@@ -6805,8 +6967,18 @@ const classicSceneFiles = EditorSceneFileController.create({
   v4Only: true,
   v4: {
     newDocument: options => ToSampoolV4Workspace.createBlank(options),
-    openDocument: (opened, document) => ToSampoolV4Workspace.replace(document, { locator:opened.locator || opened.name || null }),
-    saveDocument: options => ToSampoolV4Workspace.save(options),
+    openDocument: async (opened, document) => {
+      const moduleScope=ToSampoolV4Workspace.nextModuleScope();
+      const modules=window.EditorVNextModuleLoader?EditorVNextModuleLoader.inspect(document):[];
+      if(modules.length){
+        const list=modules.map(item=>'- '+item.id+'@'+item.version).join('\n');
+        if(!window.confirm('此场景包含可执行的程序构件：\n'+list+'\n\n仅在你信任场景来源时才继续执行。'))throw new Error('已取消打开：未信任项目程序构件');
+        await EditorVNextModuleLoader.trustAndLoad(document,modules.map(item=>item.id),{scope:moduleScope,resolveSource:locator=>v4ProjectModule(locator,opened.locator||opened.name||null)});
+      }
+      return ToSampoolV4Workspace.replace(document, { locator:opened.locator || opened.name || null, moduleScope });
+    },
+    openProject: opened => openV4ProjectDocument(opened),
+    saveDocument: () => saveV4ProjectDocument(),
   },
 });
 /* V4_CLASSIC_FILE_CONTROLLER_END */
@@ -6820,6 +6992,7 @@ const classicSceneFiles = EditorSceneFileController.create({
   ['history.undo', '撤销', () => undo()],
   ['scene.new', '新建场景', () => classicSceneFiles.newDocument()],
   ['scene.open', '打开场景', () => classicSceneFiles.open()],
+  ['scene.generate', 'Agent创作', () => { if (!classicV4AgentCreative) throw new Error('创作卡尚未初始化'); return classicV4AgentCreative.open(); }],
   ['scene.save', '保存场景', () => classicSceneFiles.save()],
   ['scene.test', '测试场景', () => testSceneCommand()],
   ['export.open', '导出其他格式', () => openExportPanel()],
@@ -6827,6 +7000,7 @@ const classicSceneFiles = EditorSceneFileController.create({
 [
   ['btn-new', 'scene.new'],
   ['btn-open', 'scene.open'],
+  ['btn-generate', 'scene.generate'],
   ['btn-save', 'scene.save'],
   ['btn-test-scene', 'scene.test'],
   ['btn-export', 'export.open'],
@@ -7493,12 +7667,23 @@ if(!classicV4Vertical){
   renderStage();
 }
 /* V4_CLASSIC_VIEW_START_BEGIN */
-let classicV4View=null,classicV4Transforms=null,classicV4PartTransforms=null,classicV4Inspector=null,classicV4Drawing=null,classicV4Fonts=null,classicV4Timeline=null,classicV4Changes=null,classicV4PreviewScheduler=null,classicV4Masks=null,classicV4Effects=null,classicV4Particles=null,classicV4Shortcuts=null;
+let classicV4View=null,classicV4Transforms=null,classicV4PartTransforms=null,classicV4Inspector=null,classicV4Drawing=null,classicV4Fonts=null,classicV4Timeline=null,classicV4Changes=null,classicV4PreviewScheduler=null,classicV4Masks=null,classicV4Effects=null,classicV4Particles=null,classicV4Shortcuts=null,classicV4AgentCreative=null,classicV4DerivedAssets=null,classicV4AlphaRepair=null;
 if(classicV4Vertical){
   delete window.HOME_SCENE;
   $('home-scene').style.display='none';
   state.playing=false;
+  const classicV4ReferenceSource=async (mode,referenceOptions)=>{
+    const scene=ToSampoolV4Workspace.requireDocument();let assetId=null;
+    if(typeof mode==='string'&&scene.assets&&scene.assets[mode])assetId=mode;
+    else if(mode==='canvas'){const selected=classicV4View&&classicV4View.selectedId,item=(scene.entities||[]).find(entry=>entry.id===selected);assetId=item&&item.type==='image'?item.assetId:null;if(!assetId)throw new Error('请先在画布或结构树选中一个图片对象');}
+    else {const selected=window.ToSampoolV4Assets&&ToSampoolV4Assets.selected();assetId=selected&&selected.id;if(!assetId)throw new Error('请先在左侧素材库选中一个已完成预处理的静态图片');}
+    return EditorVNextAgentReference.freeze(scene,assetId,{host:EditorHost,sceneLocator:ToSampoolV4Workspace.locator,baseUrl:location.href,role:referenceOptions&&referenceOptions.role,useAsMaterial:referenceOptions&&referenceOptions.useAsMaterial});
+  };
   classicV4Changes=EditorVNextSceneMutation.create(ToSampoolV4Workspace);
+  classicV4AgentCreative=EditorClassicV4AgentCreativeController.create({workspace:ToSampoolV4Workspace,changes:classicV4Changes,root:document,referenceSource:classicV4ReferenceSource,derivedAssets:()=>classicV4DerivedAssets,view:()=>classicV4View,assetSelectionSource:()=>{const selected=window.ToSampoolV4Assets&&ToSampoolV4Assets.selected();return selected&&selected.id?[selected.id]:[];},canvasPreviewSource:()=>{const canvas=classicV4View&&classicV4View.canvas;if(!canvas)return null;try{const scale=Math.min(1,960/Math.max(1,canvas.width)),preview=document.createElement('canvas');preview.width=Math.max(1,Math.round(canvas.width*scale));preview.height=Math.max(1,Math.round(canvas.height*scale));const ctx=preview.getContext('2d');ctx.imageSmoothingEnabled=false;ctx.drawImage(canvas,0,0,preview.width,preview.height);return{url:preview.toDataURL('image/png'),alt:`当前画布 ${state.t.toFixed(2)}s`,time:state.t,width:preview.width,height:preview.height};}catch(_){return null;}}});
+  window.ToSampoolV4AgentCreative=classicV4AgentCreative;
+  classicV4DerivedAssets=EditorClassicV4DerivedAssetController.create({workspace:ToSampoolV4Workspace,changes:classicV4Changes,referenceSource:classicV4ReferenceSource});
+  window.ToSampoolV4DerivedAssets=classicV4DerivedAssets;
   classicV4PreviewScheduler=EditorVNextPreviewScheduler.create();
   $('stage-wrap').style.height='';
   classicV4View=EditorClassicV4ViewController.create({workspace:ToSampoolV4Workspace,changes:classicV4Changes,scheduler:classicV4PreviewScheduler,time:()=>state.t,active:()=>ToSampoolSession.activeId==='v4',viewport:()=>({zoom:state.zoom,pan:state.pan}),selectionOverlay:false,renderInterval:()=>previewPerformance.interval(),previewOptions:()=>{const scene=ToSampoolV4Workspace.current();previewPerformance.setWorkload(scene.width*scene.height);return{pixelDivMultiplier:previewPerformance.pixelDivMultiplier()};},qualitySnapshot:()=>previewPerformance.snapshot(),recordRender:ms=>previewPerformance.record(ms),onError:error=>{$('m-stage').textContent='v4 预览失败：'+(error&&error.message?error.message:error);}});
@@ -7506,7 +7691,9 @@ if(classicV4Vertical){
   classicV4Fonts=EditorClassicV4FontController.create({workspace:ToSampoolV4Workspace,changes:classicV4Changes,host:EditorHost});
   classicV4Timeline=EditorClassicV4TimelineController.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,time:()=>state.t,playing:()=>state.playing,seek:value=>{state.t=value;state.last=performance.now();if(classicV4Inspector)classicV4Inspector.render();},togglePlay});
   classicV4Masks=EditorClassicV4MaskController.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,time:()=>state.t});
-  classicV4Inspector=EditorClassicV4InspectorController.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,fonts:classicV4Fonts,timeline:classicV4Timeline,maskEditor:classicV4Masks,transformController:()=>classicV4Transforms,time:()=>state.t});
+  classicV4AlphaRepair=EditorClassicV4AlphaRepairController.create({workspace:ToSampoolV4Workspace,changes:classicV4Changes,view:classicV4View,root:document,referenceSource:classicV4ReferenceSource});
+  classicV4Inspector=EditorClassicV4InspectorController.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,fonts:classicV4Fonts,timeline:classicV4Timeline,maskEditor:classicV4Masks,transformController:()=>classicV4Transforms,time:()=>state.t,externalPanel:context=>classicV4AlphaRepair&&classicV4AlphaRepair.renderInspector(context.host)});
+  classicV4AlphaRepair.subscribe(()=>classicV4Inspector&&classicV4Inspector.render());
   $('effect-pane').hidden=false;
   classicV4Effects=EditorClassicV4EffectPanelController.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,inspector:classicV4Inspector});
   classicV4Particles=EditorClassicV4ParticleController.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,active:()=>ToSampoolSession.activeId==='v4'});

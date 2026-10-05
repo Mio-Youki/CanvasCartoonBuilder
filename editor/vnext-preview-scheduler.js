@@ -53,7 +53,9 @@
     };
     for (const entity of value.entities || []) {
       const builtins=global.ToSampoolRuntimeVNext&&global.ToSampoolRuntimeVNext.modules&&global.ToSampoolRuntimeVNext.modules.builtins;
+      const sceneModules=global.ToSampoolRuntimeVNext&&global.ToSampoolRuntimeVNext.modules&&global.ToSampoolRuntimeVNext.modules.sceneModules;
       if (entity.type === 'builtin' && builtins && builtins.timeDependent(entity)) { continuous = true; break; }
+      if (entity.type === 'procedural' && sceneModules && sceneModules.timeDependent(entity,{scope:value._moduleScope})) { continuous = true; break; }
       if (entity.type === 'particle-emitter' || hasEnabledMotion(entity)) { continuous = true; break; }
       if (entity.type === 'image' && ((+entity.frames > 1 && +entity.fps > 0) || assetIsAnimated(entity.assetId))) { continuous = true; break; }
     }

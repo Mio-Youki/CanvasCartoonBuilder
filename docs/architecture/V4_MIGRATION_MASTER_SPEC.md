@@ -102,7 +102,7 @@ result  = shadow → outline → stageSource
 
 禁止先得到“阴影 + 本体”再对整体描边。若用户把 `mask` 放到 `decorate` 后，蒙版才允许裁掉阴影和描边；这属于明确的大阶段顺序，而非隐藏副作用。
 
-旧 `fx.layers[]` 只在 Legacy 会话运行。转换到 v4 时，它作为位于对象之后的场景效果处理：范围成为效果蒙版，绑定仅表示范围/蒙版跟随，不伪装继承对象 z。不能无损表达时必须阻止无损转换并报告。
+旧 `fx.layers[]` 只在 Legacy 会话运行。转换报告将其标为 `manual`：由人决定映射为对象效果、场景滤镜或项目 Module 内部处理。范围可成为效果蒙版，绑定只表示范围/蒙版跟随，不伪装继承对象 z；不能无损表达时不得冒充完成迁移。
 
 ## 6. Legacy 转换与 builtin
 
@@ -112,7 +112,7 @@ result  = shadow → outline → stageSource
 
 1. 声明式且无损的字段自动转换；
 2. 程序元素有稳定 builtin 时转成 builtin；
-3. 没有 builtin 时默认阻止完整转换；
+3. 没有 builtin 时，已知绘制语义优先标为 `native-mappable` 并由专用适配器展开；其余再根据内容标为 `hybrid / module-required / freeze-optional / manual`；只有经审计确认不安全或不可移植时才标 `blocked`；
 4. 用户可逐项选择冻结为图片，并明确接受动态/参数损失；
 5. 用户可取消转换并继续使用独立的 Legacy 页面；
 6. 不允许把任意 `program.code` 写入 v4 JSON。

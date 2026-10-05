@@ -38,7 +38,7 @@
 
 ## 不可直接迁移的部分
 
-- 任意 Legacy `program.code`、专用绘制函数与其可编辑 parts；v4 只能通过 builtin、冻结素材或显式转换进入。
+- 任意 Legacy `program.code`、专用绘制函数与其可编辑 parts；v4 可通过项目 Scene Module、普通对象、builtin、冻结素材或显式混合转换进入，但编辑器不会直接执行旧代码。
 - Legacy `fx.layers` / `show` / Scene 数组格式；v4 必须用自己的 Registry 与 Timeline schema 表达。
 - 任何“页面上有控件、但 Runtime 未声明支持”的能力。
 

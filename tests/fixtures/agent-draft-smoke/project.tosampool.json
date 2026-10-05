@@ -1,0 +1,22 @@
+{
+  "format": "tosampool-project/v1",
+  "version": 1,
+  "projectId": "smoke-winter-cabin",
+  "displayName": "冬夜小木屋草稿",
+  "scene": {
+    "format": "tosampool-scene/v4",
+    "width": 160,
+    "height": 90,
+    "loop": 4,
+    "assets": {},
+    "entities": [
+      {"id":"sky","name":"夜空","type":"rect","x":0,"y":0,"w":160,"h":90,"fill":"#142342"},
+      {"id":"moon","name":"月亮","type":"ellipse","x":116,"y":14,"w":22,"h":22,"fill":"#e8e5bf"},
+      {"id":"cabin","name":"小木屋","type":"vector","x":48,"y":44,"w":64,"h":38,"parts":[{"id":"body","type":"rect","x":10,"y":14,"w":44,"h":24,"fill":"#5b3c32"},{"id":"roof","type":"poly","x":4,"y":0,"w":56,"h":24,"points":[[0.5,0],[1,1],[0,1]],"fill":"#272033"},{"id":"window","type":"rect","x":28,"y":21,"w":9,"h":11,"fill":"#ffd36b"}]},
+      {"id":"snow","name":"雪粒","type":"particle-emitter","x":0,"y":0,"w":160,"h":20,"particle":{"sourceId":"flake","count":12,"life":3,"speed":13,"direction":90,"spread":18,"seed":7}},
+      {"id":"flake","name":"雪粒实体","type":"ellipse","x":0,"y":0,"w":2,"h":2,"fill":"#ffffff","particleSourceOnly":true}
+    ],
+    "timeline":{"tracks":{}},
+    "sceneEffects":{"pipeline":["overlay","sample"],"overlay":{},"sample":{}}
+  }
+}

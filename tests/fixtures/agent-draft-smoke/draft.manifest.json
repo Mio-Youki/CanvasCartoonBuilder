@@ -1,0 +1,10 @@
+{
+  "format": "tosampool-agent-draft/v1",
+  "version": 1,
+  "draftId": "smoke-winter-cabin",
+  "title": "冬夜小木屋草稿",
+  "summary": "以可编辑的小木屋、月亮和雪粒测试草稿包验证与 Runtime 渲染。",
+  "changes": ["新增小木屋主体", "新增月亮与雪粒"],
+  "project": "project.tosampool.json",
+  "carrierReport": "carrier-report.json"
+}

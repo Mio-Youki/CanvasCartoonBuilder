@@ -21,13 +21,17 @@
     const commit=(label,operation,reflow)=>{operation(draft);write(label,partsState.normalizeTexture(draft,color));redraw();if(reflow&&typeof onReflow==='function')onReflow();};
     const add=(label,config,apply)=>{const node=root.createElement('label'),caption=root.createElement('span'),input=root.createElement(config?.select?'select':'input');caption.textContent=label;if(config?.select)(config.options||[]).forEach(option=>input.append(new Option(option.label,option.value)));else{input.type='number';if(config?.min!=null)input.min=String(config.min);if(config?.max!=null)input.max=String(config.max);input.step=String(config?.step??1);}input.value=String(config?.value??'');input.addEventListener('change',()=>apply(input.value));node.append(caption,input);fields.append(node);return input;};
     const style=textureStyle(draft);
-    add('类型',{select:true,value:style,options:[{value:'line',label:'单线'},{value:'grid',label:'网格'},{value:'layers',label:'叠线'},{value:'dots',label:'点阵'}]},value=>commit('设置纹理类型',next=>{
+    add('类型',{select:true,value:style,options:[{value:'line',label:'单线'},{value:'grid',label:'网格'},{value:'layers',label:'叠线'},{value:'dots',label:'点阵'},{value:'noise',label:'屏幕噪点'}]},value=>commit('设置纹理类型',next=>{
       const angle=next.layers?.[0]?.angle??45,first=next.layers?.[0]||{width:1,spacing:4};
-      if(value==='dots'){const replacement=partsState.defaultTexture(value,next.color||color);Object.keys(next).forEach(key=>delete next[key]);Object.assign(next,replacement);return;}
+      if(value==='dots'||value==='noise'){const replacement=partsState.defaultTexture(value,next.color||color);Object.keys(next).forEach(key=>delete next[key]);Object.assign(next,replacement);return;}
       const spacing=Math.max(+first.width||1,+first.spacing||((+first.width||1)+(+first.gap||0)));next.type='lines';next.lineMode=value;
       next.layers=value==='grid'?[{angle,width:first.width,spacing},{angle:angle+90,width:first.width,spacing}]:value==='layers'?(next.layers?.length>1?next.layers:[{angle,width:first.width,spacing},{angle:angle+90,width:first.width,spacing}]):[{angle,width:first.width,spacing}];
     },true));
-    if(draft.type==='lines'){
+    if(draft.type==='noise'){
+      add('噪点强度',{value:draft.density,min:0,max:1,step:.01},value=>commit('设置噪点强度',next=>next.density=Math.max(0,Math.min(1,finite(value,.18)))));
+      add('颗粒大小',{value:draft.size,min:1,max:16,step:1},value=>commit('设置噪点颗粒大小',next=>next.size=Math.max(1,Math.round(finite(value,1)))));
+      add('随机种子',{value:draft.seed,step:1},value=>commit('设置噪点随机种子',next=>next.seed=Math.round(finite(value,1))));
+    } else if(draft.type==='lines'){
       const layers=draft.layers||[],base=layers[0]||{angle:45,width:1,spacing:4};
       if(style==='layers')layers.forEach((layer,index)=>{add(`第 ${index+1} 层角度`,{value:layer.angle,step:1},value=>commit('设置叠线角度',next=>next.layers[index].angle=finite(value,0)));add(`第 ${index+1} 层线宽`,{value:layer.width,min:1,step:1},value=>commit('设置叠线线宽',next=>{next.layers[index].width=Math.max(1,finite(value,1));next.layers[index].spacing=Math.max(next.layers[index].width,+next.layers[index].spacing||next.layers[index].width);}));add(`第 ${index+1} 层格距`,{value:layer.spacing??layer.width+layer.gap,min:layer.width,step:1},value=>commit('设置叠线格距',next=>next.layers[index].spacing=Math.max(next.layers[index].width,finite(value,next.layers[index].width))));});
       else{add('整体旋转',{value:base.angle,step:1},value=>commit('设置纹理旋转',next=>{const angle=finite(value,0);next.layers.forEach((layer,index)=>layer.angle=angle+(style==='grid'?index*90:0));}));add('线宽',{value:base.width,min:1,step:1},value=>commit('设置纹理线宽',next=>next.layers.forEach(layer=>{layer.width=Math.max(1,finite(value,1));layer.spacing=Math.max(layer.width,+layer.spacing||layer.width);})));add('格距',{value:base.spacing??base.width+base.gap,min:base.width,step:1},value=>commit('设置纹理格距',next=>next.layers.forEach(layer=>layer.spacing=Math.max(layer.width,finite(value,layer.width)))));}
@@ -36,8 +40,10 @@
       add('整体旋转',{value:draft.angle,step:1},value=>commit('设置纹理旋转',next=>next.angle=finite(value,0)));add('图样大小',{value:draft.size,min:1,step:1},value=>commit('设置纹理大小',next=>{next.size=Math.max(1,finite(value,1));next.spacing=Math.max(next.size,+next.spacing||next.size);}));add('格距',{value:draft.spacing??draft.size+draft.gap,min:draft.size,step:1},value=>commit('设置纹理格距',next=>next.spacing=Math.max(next.size,finite(value,next.size))));
       if(draft.type==='dots'){add('点形',{select:true,value:draft.roundness>=.98?'circle':String(draft.sides||4),options:['circle','3','4','5','6'].map(pointOption)},value=>commit('设置点纹形状',next=>{next.roundness=value==='circle'?1:0;next.sides=value==='circle'?4:Math.max(3,Math.min(6,finite(value,4)));}));add('排列',{select:true,value:draft.layout||'regular',options:[{value:'regular',label:'整齐'},{value:'stagger',label:'错列'}]},value=>commit('设置点纹排列',next=>next.layout=value));if(draft.layout==='stagger')add('错列偏移',{value:draft.phase,min:0,max:1,step:.05},value=>commit('设置错列偏移',next=>next.phase=Math.max(0,Math.min(1,finite(value,0)))));}
     }
-    add('起始偏移 X',{value:Math.max(0,Math.min(1,draft.phaseX||0)),min:0,max:1,step:.05},value=>commit('设置纹理起始偏移 X',next=>{next.phaseX=Math.max(0,Math.min(1,finite(value,0)));}));
-    add('起始偏移 Y',{value:Math.max(0,Math.min(1,draft.phaseY||0)),min:0,max:1,step:.05},value=>commit('设置纹理起始偏移 Y',next=>{next.phaseY=Math.max(0,Math.min(1,finite(value,0)));}));
+    if(draft.type!=='noise'){
+      add('起始偏移 X',{value:Math.max(0,Math.min(1,draft.phaseX||0)),min:0,max:1,step:.05},value=>commit('设置纹理起始偏移 X',next=>{next.phaseX=Math.max(0,Math.min(1,finite(value,0)));}));
+      add('起始偏移 Y',{value:Math.max(0,Math.min(1,draft.phaseY||0)),min:0,max:1,step:.05},value=>commit('设置纹理起始偏移 Y',next=>{next.phaseY=Math.max(0,Math.min(1,finite(value,0)));}));
+    }
     redraw();return panel;
   }
 

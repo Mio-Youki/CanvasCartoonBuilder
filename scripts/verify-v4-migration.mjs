@@ -2,6 +2,10 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { extractLegacyDefaultSnapshot } from './extract-legacy-default-snapshot.mjs';
+import { adaptHomeSceneSnapshot } from './adapt-home-scene-native-v4.mjs';
+import { buildHomeSceneModuleBaseline } from './build-home-scene-module-baseline.mjs';
+import { buildHomeSceneLayeredModule } from './build-home-scene-layered-module.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const matrixPath = resolve(root, 'docs/architecture/V4_MIGRATION_MATRIX.json');
@@ -37,4 +41,13 @@ for (const capability of matrix.capabilities || []) {
 
 const tauri = matrix.capabilities.find(item => item.id === 'tauri-product-entry');
 assert.ok(tauri && tauri.status === 'blocked', 'Tauri entry must remain blocked during migration baseline');
+const homeSnapshot=extractLegacyDefaultSnapshot(readFileSync(resolve(root,'home-scene.js'),'utf8')),homeNative=adaptHomeSceneSnapshot(homeSnapshot);
+assert.equal(homeNative.saveable,true,'已知 home-scene 语义必须经外部适配器完整落入 v4，而非回落 Module');
+assert.equal(homeNative.report.summary.converted,12);
+const homeModule=buildHomeSceneModuleBaseline(homeSnapshot);
+assert.equal(homeModule.saveable,true,'完整 Module 基线必须始终生成有效 v4 项目描述');
+assert.equal(homeModule.candidate.entities[0].moduleId,'home-scene-full');
+const homeLayeredModule=buildHomeSceneLayeredModule(homeSnapshot);
+assert.equal(homeLayeredModule.saveable,true,'语义分层 Module 基线必须始终生成有效 v4 项目描述');
+assert.equal(homeLayeredModule.candidate.entities.length,12,'语义 Module 必须保持有限、可理解的对象粒度，并将月亮保留为独立可编排对象');
 console.log(`v4 migration matrix OK (${ids.size} capabilities; candidate ${matrix.candidate})`);

@@ -91,7 +91,7 @@
       purpose: '将图案或稀疏颗粒裁入对象或场景范围；扫描线、显示器感与噪点均由同一叠加语义组合。', avoidWhen: Object.freeze(['需要真实镜头模糊']),
       timing: Object.freeze({ color: linear, alpha: linear, texture: step, blend: step, motion: step }), motion: Object.freeze(['pattern-drift', 'pattern-step', 'pattern-random', 'pattern-pulse', 'noise-snow', 'random-hold']), particleBake: 'shared-frame', mask: 'optional', cost: Object.freeze({ object: 'B', scene: 'B' }),
       params: Object.freeze([
-        param('texture', '图案', 'select', 'lines-horizontal', { options: Object.freeze(['lines-horizontal', 'grid', 'lines-layers', 'dots', 'noise']), optionLabels: Object.freeze({'lines-horizontal':'单线',grid:'网格','lines-layers':'叠线',dots:'点阵',noise:'噪点'}), timing: step }),
+        param('texture', '图案', 'select', 'lines-horizontal', { options: Object.freeze(['lines-horizontal', 'grid', 'lines-layers', 'dots', 'noise']), optionLabels: Object.freeze({'lines-horizontal':'单线',grid:'网格','lines-layers':'叠线',dots:'点阵',noise:'屏幕噪点'}), timing: step }),
         param('color', '颜色', 'color', '#ffffff', { timing: linear }),
         param('alpha', '透明度', 'number', .2, { min: 0, max: 1, step: .05, timing: linear }),
         param('spacing', '格距', 'number', 4, { min: 1, max: 256, step: 1, timing: step, visibleFor: Object.freeze(['lines-horizontal','grid','lines-layers','dots']) }),
@@ -108,7 +108,7 @@
         param('layer3Angle', '线 3 角度', 'number', 135, { min: -180, max: 180, step: 5, timing: step, visibleFor: 'lines-layers' }),
         param('layer3Width', '线 3 线宽', 'number', 1, { min: 1, max: 256, step: 1, timing: step, visibleFor: 'lines-layers' }),
         param('layer3Spacing', '线 3 格距', 'number', 4, { min: 1, max: 256, step: 1, timing: step, visibleFor: 'lines-layers' }),
-        param('noiseDensity', '颗粒密度', 'number', .15, { min: 0, max: 1, step: .01, timing: step, visibleFor: 'noise' }),
+        param('noiseDensity', '噪点强度', 'number', .18, { min: 0, max: 1, step: .01, timing: step, visibleFor: 'noise' }),
         param('noiseSize', '颗粒大小', 'number', 1, { min: 1, max: 16, integer:true, timing: step, visibleFor: 'noise' }),
         param('noiseSeed', '颗粒种子', 'number', 1, { min: 0, integer:true, timing: step, visibleFor: 'noise' }),
         param('blend', '叠加方式', 'select', 'screen', { options: Object.freeze(['normal', 'screen', 'multiply', 'lighter']), timing: step })

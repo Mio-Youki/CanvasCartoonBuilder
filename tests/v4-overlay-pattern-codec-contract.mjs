@@ -8,6 +8,10 @@ const source=readFileSync(resolve(root,'editor/classic-v4-overlay-pattern-codec.
 const context={};
 new vm.Script(source).runInNewContext(context);
 const codec=context.EditorClassicV4OverlayPatternCodec;
+
+const screenNoise=codec.fromEffect({texture:'noise',noiseDensity:.32,noiseSize:2,noiseSeed:17,color:'#aabbcc'});
+assert.deepEqual(JSON.parse(JSON.stringify(screenNoise)),{phaseX:0,phaseY:0,color:'#aabbcc',type:'noise',density:.32,size:2,seed:17},'屏幕噪点必须从效果参数还原为图样设置可预览的噪点图案');
+assert.deepEqual(JSON.parse(JSON.stringify(codec.toEffect(screenNoise))),{phaseX:0,phaseY:0,texture:'noise',noiseDensity:.32,noiseSize:2,noiseSeed:17},'屏幕噪点从图样设置写回时不得回退为单线');
 const plain=value=>JSON.parse(JSON.stringify(value));
 
 const dots=codec.fromEffect({texture:'dots',shape:'hexagon',size:3,spacing:9,angle:20,layout:'stagger',rowPhase:.25,phaseX:.4,phaseY:.6,color:'#d97706'});

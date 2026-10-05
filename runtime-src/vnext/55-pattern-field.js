@@ -96,11 +96,13 @@
   function paint(ctx,width,height,raw,color){
     const pattern=canonical(raw,color),extent=Math.ceil(Math.hypot(width,height))+24;ctx.fillStyle=pattern.color;
     if(pattern.type==='noise'){
-      // Matches the useful Legacy grain character: sparse final-size squares,
-      // not a full getImageData recolour pass.  It is deterministic for a
-      // given seed/tick and remains cheap at large canvas dimensions.
-      const dots=Math.min(360,Math.max(1,Math.round(width*height*pattern.density/14))),hash=(index,salt)=>{const value=Math.sin((index+1)*12.9898+(pattern.seed+1)*78.233+(pattern.noiseTick+1)*37.719+salt*19.17)*43758.5453;return value-Math.floor(value);};
-      for(let index=0;index<dots;index++)ctx.fillRect(Math.floor(hash(index,1)*width),Math.floor(hash(index,2)*height),pattern.size,pattern.size);
+      /* Screen noise is intentionally a dense, low-cost raster field rather
+         than a few floating "dust" squares.  It uses a deterministic cap so
+         Auto/Draft preview stays bounded even on a full-HD scene; occasional
+         short horizontal runs give it the compact monitor / cassette texture
+         rather than confetti-like particles. */
+      const grain=Math.max(1,pattern.size),cells=Math.ceil(width/grain)*Math.ceil(height/grain),dots=Math.min(6000,Math.max(1,Math.round(cells*pattern.density*.18))),hash=(index,salt)=>{const value=Math.sin((index+1)*12.9898+(pattern.seed+1)*78.233+(pattern.noiseTick+1)*37.719+salt*19.17)*43758.5453;return value-Math.floor(value);};
+      for(let index=0;index<dots;index++){const x=Math.floor(hash(index,1)*width/grain)*grain,y=Math.floor(hash(index,2)*height/grain)*grain,run=hash(index,3)>.78?2:1;ctx.fillRect(x,y,grain*run,grain);}
       return pattern;
     }
     if(pattern.type==='lines'){

@@ -4,11 +4,11 @@
 
 ## 1. 产品策略：混合小景，而非全图元重绘
 
-Patcharium / 拼好景以“高细节素材 + 结构化动态层”的混合场景为默认策略。底图、图片或 sprite 可以承载高密度笔触、角色细节与静态纹理；只有需要移动、替换、调色、蒙版、复用或响应时序的区域才需要进入可编辑 Scene 结构。可编辑不等于每一个像素都由 JS 图元表达。
+ToSampool / 图森破以“高细节素材 + 结构化动态层 + 可选项目 Scene Module”的混合场景为默认策略。图片或序列承载静态高密度内容；需要选择、重排和局部调整的区域进入普通 Scene 对象；作品专用的程序画面可作为受控渲染岛随项目交付。可编辑不等于每个像素都必须拆成图元。
 
 Runtime 是轻量的 Canvas 2D 场景运行层，不是视频编辑器、WebGL 通用渲染器或任意 HTML/Shader 容器。其价值是确定性时间寻址、可移植的自包含场景、声明式局部修改和同一 Scene 在预览/导出中的一致运行。
 
-> 当前产品仍以 Legacy 编辑器为可用入口。`tosampool-scene/v4`、`home-scene-vnext.js` 与 `img2asset-vnext.html` 是隔离的下一代 Core 验证台，不因页面存在而替代 Legacy。正式迁移采用“Legacy 体验壳 + v4 Core”，以 [v4 迁移总规范](V4_MIGRATION_MASTER_SPEC.md) 和 [机器迁移矩阵](V4_MIGRATION_MATRIX.json) 为唯一执行依据；桥接结构与性能细则分别见 [V4_CLASSIC_SHELL_MIGRATION.md](V4_CLASSIC_SHELL_MIGRATION.md) 和 [V4_PREVIEW_PERFORMANCE_CONTRACT.md](V4_PREVIEW_PERFORMANCE_CONTRACT.md)。
+> 当前产品候选采用 Classic 体验壳 + v4 Core；Legacy 页面仅用于行为、视觉与性能对照，不进入 v4 项目或交付物。迁移以 [v4 迁移总规范](V4_MIGRATION_MASTER_SPEC.md) 和 [机器迁移矩阵](V4_MIGRATION_MATRIX.json) 为执行依据。
 
 ## 2. 五层边界
 
@@ -27,7 +27,7 @@ Scene 合同  ──>  Runtime  ──>  编辑器工作台  ──>  交付物
 
 | 层 | 拥有的数据 / 责任 | 不应承担的责任 |
 |---|---|---|
-| Scene | `GENERIC_SCENE`、兼容 `HOME_SCENE` 的可保存字段；元素、组、图片、粒子、蒙版、FX、时段 | DOM 状态、文件句柄、浏览器图片对象、任意用户函数 |
+| Scene / Project | `tosampool-scene/v4`、素材索引、元素、组、图片、粒子、效果、时段；项目包可另带受信任 Module 源与 Manifest | DOM 状态、文件句柄、浏览器图片对象、Scene 内任意函数 |
 | Runtime | 在确定 `t` 将 Scene 绘制到 Canvas；处理图层、动画、组变换、蒙版、粒子、FX、过渡 | 面板、选择、拖拽、文件选择、编码器常驻加载 |
 | 编辑器 | 把 Scene 映射为结构树、舞台、Inspector、编排器；写回合法 Scene 字段 | 创建第二套渲染规则或保存不可运行的 UI 私有状态 |
 | 交付 | 冻结 data URL、生成独立 JS / 测试 HTML / 帧产物 | 保存用户原图、处理配方或跨场景素材关系 |
@@ -49,7 +49,7 @@ v4 的图案相关能力以 [PATTERN_FIELD_SPEC.md](PATTERN_FIELD_SPEC.md) 为�
 
 ## 3. 当前核心数据关系
 
-- **实体层**：顶层程序元素与 `images[]` 统一按 `z` 绘制；`parts[]` 是元素内部图元。程序元素可选择使用 `program.code` 保留黑盒 Canvas 绘制，编辑器只依赖其稳定 id、边界、标准图层外壳和显式暴露参数，避免把精细静态内容强拆为低层图元。
+- **实体层**：普通图形、文字、图片、粒子、Builtin 与 `procedural` 对象统一按 Scene 顺序绘制。`procedural` 只引用项目 Module 的稳定 id/version/params；模块源和 Manifest 独立存于项目包，不写进 Scene JSON。
 - **组**：`groups[]` 仅保存成员关系与共享变换，不建立离屏合成容器；成员保持自身相对顺序和单独编辑能力。
 - **时序**：`show` 负责可见窗口；`timeline.sceneOverrides` / `timeline.tracks` 负责稀疏参数覆层与 Linear 插值；编辑器临时选择状态不写入 Scene。
 - **区域 FX**：当前所谓“局部 FX”保持独立的 `fx.layers[]` 与排序。绑定只让范围跟随目标或裁入目标 Alpha，不赋予目标的 `z`；它仍在全部实体之后执行，因此不能被描述为 `element.localFx` 或对象自身样式。

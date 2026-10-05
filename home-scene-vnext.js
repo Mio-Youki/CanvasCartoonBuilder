@@ -150,6 +150,72 @@
 })(typeof window !== 'undefined' ? window : globalThis);
 /* </vnext:15-builtin-registry.js> */
 
+/* <vnext:16-scene-module-registry.js> */
+/* ToSampool Runtime vNext: controlled, project-scoped procedural scene modules. */
+(function (global) {
+  'use strict';
+
+  const api = global.ToSampoolRuntimeVNext;
+  const records = new Map();
+  let activeScope = 'global';
+  const finite = (value, fallback) => Number.isFinite(+value) ? +value : fallback;
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+  const scopeFor = scope => String(scope == null || scope === '' ? activeScope || 'global' : scope);
+  const keyFor = (id, version, scope) => `${scopeFor(scope)}::${id}@${version}`;
+  const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
+
+  function parameters(manifest) { return Array.isArray(manifest && manifest.parameters) ? manifest.parameters : Array.isArray(manifest && manifest.params) ? manifest.params : []; }
+  function optionValues(param) { return (param.options || []).map(option => typeof option === 'object' ? option.value : option); }
+  function normalizeParam(param, value) {
+    if (param.type === 'number') { let output=finite(value,param.default); if(param.integer)output=Math.round(output); return clamp(output,param.min == null ? -Infinity : param.min,param.max == null ? Infinity : param.max); }
+    if (param.type === 'boolean') return value == null ? !!param.default : !!value;
+    if (param.type === 'select') return optionValues(param).includes(value) ? value : param.default;
+    if (param.type === 'color') return /^#[0-9a-f]{6}$/i.test(String(value || '')) ? String(value) : param.default;
+    return value == null ? param.default : String(value);
+  }
+  function validate(definition) {
+    const manifest=definition && definition.manifest;
+    if (!manifest || manifest.format !== 'tosampool-scene-module/v1') throw new Error('程序构件需要 tosampool-scene-module/v1 Manifest');
+    if (!manifest.id || !Number.isInteger(+manifest.version) || +manifest.version < 1) throw new Error('程序构件 Manifest 缺少稳定 id 或版本');
+    if (typeof definition.render !== 'function') throw new Error(`程序构件「${manifest.id}」缺少 render 入口`);
+    return manifest;
+  }
+  function register(definition, options) {
+    const manifest=validate(definition), scope=scopeFor(options&&options.scope), key=keyFor(manifest.id,manifest.version,scope), prior=records.get(key);
+    if (prior && prior.render !== definition.render) throw new Error(`程序构件「${key}」已注册；不得由第二份未知代码覆盖`);
+    const record=Object.freeze({ manifest:clone(manifest), render:definition.render, timeDependent:typeof definition.timeDependent === 'function' ? definition.timeDependent : () => !!manifest.timeDependent });
+    records.set(key,record); return clone(record.manifest);
+  }
+  function definition(id, version, options) { const record=records.get(keyFor(String(id || ''),+(version || 1),options&&options.scope)); if(!record)throw new Error(`未注册或未信任的程序构件：${id || '(空)'}@${version || 1}`); return record; }
+  function normalize(entity, options) {
+    const value=entity || {}, record=definition(value.moduleId,value.moduleVersion,options), params={};
+    for(const param of parameters(record.manifest)) params[param.key]=normalizeParam(param,value.params&&value.params[param.key]);
+    return { moduleId:record.manifest.id, moduleVersion:record.manifest.version, params };
+  }
+  function seeded(seed, time) { const base=(Math.imul((+seed||1)|0,2654435761)^Math.imul(Math.floor((+time||0)*1000),2246822519))>>>0; return salt=>{let value=(base^Math.imul((+salt||0)|0,3266489917))>>>0;value=Math.imul(value^(value>>>16),2246822519);value=Math.imul(value^(value>>>13),3266489917);return((value^(value>>>16))>>>0)/4294967296;}; }
+  function render(ctx, entity, values, frame, scene) {
+    const scope=scene&&scene.moduleScope, value=normalize(values&&values.moduleId ? values : entity,{scope}), record=definition(value.moduleId,value.moduleVersion,{scope}), declared=new Set((record.manifest.assets || []).map(item=>typeof item==='string'?item:item&&item.id).filter(Boolean)), assets={};
+    for(const id of declared) if(scene.assets&&scene.assets[id]) assets[id]=scene.assets[id];
+    record.render({
+      ctx,
+      time:frame&&frame.time||0,
+      sceneIndex:frame&&Number.isInteger(frame.sceneIndex)?frame.sceneIndex:0,
+      sceneProgress:frame&&Number.isFinite(+frame.sceneProgress)?+frame.sceneProgress:0,
+      width:values.w,
+      height:values.h,
+      params:value.params,
+      assets,
+      random:seeded(value.params.seed == null ? entity.seed : value.params.seed,frame&&frame.time||0)
+    });
+  }
+  function timeDependent(entity, options) { if(!entity||entity.type!=='procedural')return false;const value=normalize(entity,options),record=definition(value.moduleId,value.moduleVersion,options);return !!record.timeDependent(value.params); }
+  function manifest(options) { const scope=scopeFor(options&&options.scope);return Array.from(records.entries()).filter(([key])=>key.startsWith(scope+'::')).map(([,record])=>clone(record.manifest)); }
+  function withScope(scope, operation) { const prior=activeScope;activeScope=scopeFor(scope);let result;try{result=operation();}catch(error){activeScope=prior;throw error;}if(result&&typeof result.then==='function')return result.then(value=>{activeScope=prior;return value;},error=>{activeScope=prior;throw error;});activeScope=prior;return result; }
+
+  api.modules.sceneModules = Object.freeze({ register, definition, normalize, normalizeParam, render, timeDependent, manifest, withScope, parameters });
+})(typeof window !== 'undefined' ? window : globalThis);
+/* </vnext:16-scene-module-registry.js> */
+
 /* <vnext:10-scene-normalize.js> */
 /* ToSampool Runtime vNext source module: isolated v4 scene contract. */
 (function (global) {
@@ -222,7 +288,29 @@
     });
   }
 
-  function normalizeEntity(input, index) {
+  /* A Scene variant is an authored alternative for one semantic entity, not a
+     second draw-layer.  It keeps all Scene-specific geometry in the same
+     selectable object so the renderer only evaluates and paints the active
+     alternative.  This is intentionally narrower than arbitrary shape
+     morphing: variants switch at Scene boundaries and remain ordinary pixel
+     geometry inside each Scene. */
+  function normalizeSceneVariants(entity) {
+    if (!Array.isArray(entity.sceneVariants) || !entity.sceneVariants.length) { delete entity.sceneVariants; return; }
+    entity.sceneVariants = entity.sceneVariants.map((input, index) => {
+      const variant = Object.assign({}, clone(input) || {});
+      for (const key of ['x', 'y']) if (variant[key] != null) variant[key] = pixel(variant[key], 0);
+      for (const key of ['w', 'h']) if (variant[key] != null) variant[key] = Math.max(1, pixel(variant[key], 1));
+      for (const key of ['scaleX', 'scaleY', 'rot']) if (variant[key] != null) variant[key] = finite(variant[key], key.startsWith('scale') ? 1 : 0);
+      if (variant.alpha != null) variant.alpha = Math.max(0, Math.min(1, finite(variant.alpha, 1)));
+      if (variant.parts != null) {
+        const carrier = { id:`${entity.id}:scene-${index + 1}`, type:entity.type, parts:variant.parts };
+        normalizeParts(carrier); variant.parts = carrier.parts;
+      }
+      return variant;
+    });
+  }
+
+  function normalizeEntity(input, index, moduleScope) {
     const entity = Object.assign({
       id: `entity-${index + 1}`,
       type: 'rect', x: 0, y: 0, w: 1, h: 1,
@@ -235,7 +323,9 @@
     entity.scaleX = finite(entity.scaleX, 1); entity.scaleY = finite(entity.scaleY, 1); entity.skewX = Math.max(-80, Math.min(80, finite(entity.skewX, 0))); entity.skewY = Math.max(-80, Math.min(80, finite(entity.skewY, 0)));
     entity.rot = finite(entity.rot, 0); entity.alpha = Math.max(0, Math.min(1, finite(entity.alpha, 1)));
     if (entity.type === 'builtin') entity.builtin = api.modules.builtins.normalize(entity.builtin);
+    if (entity.type === 'procedural') Object.assign(entity, api.modules.sceneModules.normalize(entity,{scope:moduleScope}));
     normalizeParts(entity);
+    normalizeSceneVariants(entity);
     if (entity.pivot && entity.pivot.mode === 'custom') entity.pivot = { mode:'custom', x:Math.max(0, Math.min(1, finite(entity.pivot.x, .5))), y:Math.max(0, Math.min(1, finite(entity.pivot.y, .5))) };
     else delete entity.pivot;
     if (entity.effects) {
@@ -252,8 +342,8 @@
     if (version !== FORMAT && version !== 4) throw new Error(`Runtime vNext 只接受 ${FORMAT}，收到 ${version}`);
     const width = Math.max(1, Math.round(finite(raw.width, 320)));
     const height = Math.max(1, Math.round(finite(raw.height, 180)));
-    const loop = Math.max(.001, finite(raw.loop, 4));
-    const entities = (Array.isArray(raw.entities) ? raw.entities : []).map(normalizeEntity);
+    const loop = Math.max(.001, finite(raw.loop, 4)), moduleScope=String(raw._moduleScope || raw.moduleScope || 'global');
+    const entities = (Array.isArray(raw.entities) ? raw.entities : []).map((entity,index)=>normalizeEntity(entity,index,moduleScope));
     const seen = new Set();
     for (const entity of entities) {
       if (seen.has(entity.id)) throw new Error(`Runtime vNext 场景存在重复实体 id：${entity.id}`);
@@ -300,7 +390,7 @@
     // legacy ordering here: output grain must remain the final pixel pass.
     sceneEffects.pipeline = SCENE_PIPELINE.slice();
     return Object.freeze({
-      format: FORMAT, width, height, loop,
+      format: FORMAT, width, height, loop, moduleScope,
       background: Object.assign({ color: '#ffffff', alpha: 1, layers: [] }, raw.background || {}),
       entities: Object.freeze(entities),
       timeline: raw.timeline || { tracks: {} },
@@ -356,7 +446,7 @@
     let target = out;
     for (let index = 0; index < parts.length - 1; index++) {
       const part = parts[index];
-      target[part] = Object.assign({}, target[part] || {});
+      target[part] = Array.isArray(target[part]) ? target[part].slice() : Object.assign({}, target[part] || {});
       target = target[part];
     }
     target[parts[parts.length - 1]] = value;
@@ -447,6 +537,22 @@
     return Math.sin(p * Math.PI * 2);
   }
 
+  /* Gate is the declaration for a periodic on/off light.  Unlike the normal
+     blink amplitude (a two-state dimmer), it retains an explicit duty window
+     and phase.  It is useful beyond Legacy conversion: signal lights,
+     machine indicators and a deliberately off-beat pixel window can all be
+     described without a custom draw callback. */
+  function blinkAlpha(spec, time) {
+    if (!spec || typeof spec !== 'object') return 1;
+    if (spec.mode === 'gate') {
+      const period=Math.max(.001,+spec.period||1),duty=Math.max(0,Math.min(1,spec.duty==null?.5:+spec.duty)),phase=((+spec.phase||0)%1+1)%1,pos=((time/period)%1+1)%1,relative=(pos-phase+1)%1;
+      return relative<duty?(spec.on==null?1:Math.max(0,Math.min(1,+spec.on))):(spec.off==null?0:Math.max(0,Math.min(1,+spec.off)));
+    }
+    if (!Number.isFinite(+spec.amount)) return 1;
+    const period=Math.max(.001,+spec.period||1);
+    return 1-Math.max(0,Math.min(1,+spec.amount))*((curve(time/period,spec.curve)+1)/2);
+  }
+
   function motion(scene, values, entity, time) {
     const anim = values.anim || entity.anim || {};
     const out = Object.assign({}, values);
@@ -465,10 +571,7 @@
     }
     if (anim.spin && enabled('spin') && Number.isFinite(+anim.spin.speed)) out.rot += time * +anim.spin.speed;
     if (anim.wave && enabled('wave') && Number.isFinite(+anim.wave.amount)) out.rot += Math.sin(time / Math.max(.001, +anim.wave.period || 1) * Math.PI * 2) * +anim.wave.amount;
-    if (anim.blink && enabled('blink') && Number.isFinite(+anim.blink.amount)) {
-      const period = Math.max(.001, +anim.blink.period || 1);
-      out.alpha *= 1 - Math.max(0, Math.min(1, +anim.blink.amount)) * ((curve(time / period, anim.blink.curve) + 1) / 2);
-    }
+    if (anim.blink && enabled('blink')) out.alpha *= blinkAlpha(anim.blink,time);
     return out;
   }
 
@@ -481,12 +584,28 @@
     return out;
   }
 
+  function sceneSegmentAt(scene, rel) {
+    const scenes=scene.timeline&&Array.isArray(scene.timeline.scenes)&&scene.timeline.scenes.length?scene.timeline.scenes:[{f:[0,1]}];
+    const index=scenes.findIndex((segment,current)=>rel>=+(segment.f||[0,1])[0]-.000001&&(rel<+(segment.f||[0,1])[1]-.000001||current===scenes.length-1&&rel<=+(segment.f||[0,1])[1]+.000001));
+    const safeIndex=index<0?Math.max(0,scenes.length-1):index;
+    return { index:safeIndex, segment:scenes[safeIndex]||{f:[0,1]} };
+  }
+  function sceneIndexAt(scene, rel) {
+    return sceneSegmentAt(scene,rel).index;
+  }
+  function sceneVariant(entity, index) {
+    const variants=entity&&entity.sceneVariants;
+    return Array.isArray(variants)&&variants.length?variants[Math.min(Math.max(0,index),variants.length-1)]||null:null;
+  }
+
   function create(scene, t, preview) {
     const time = wrap(t, scene.loop);
     const rel = time / scene.loop;
+    const currentScene=sceneSegmentAt(scene,rel),currentSceneIndex=currentScene.index,sceneRange=currentScene.segment.f||[0,1],sceneStart=Math.max(0,Math.min(1,+sceneRange[0]||0)),sceneEnd=Math.max(sceneStart+.000001,Math.min(1,+sceneRange[1]||1)),sceneProgress=Math.max(0,Math.min(1,(rel-sceneStart)/(sceneEnd-sceneStart)));
     const local = new Map(), byId = new Map(), entities = new Map(scene.entities.map(entity => [entity.id, entity]));
     for (const entity of scene.entities) {
-      const values = api.modules.timeline.valuesFor(scene, entity.id, entity, rel);
+      const variant=sceneVariant(entity,currentSceneIndex),base=variant?Object.assign({},entity,variant):entity;
+      const values = api.modules.timeline.valuesFor(scene, entity.id, base, rel);
       values.timelineVisible = api.modules.timeline.visibleFor(scene, entity.id, rel);
       local.set(entity.id, snapGeometry(motion(scene, values, entity, time)));
     }
@@ -501,10 +620,10 @@
     }
     for (const entity of scene.entities) resolve(entity);
     const quality=Object.freeze({pixelDivMultiplier:Math.max(1,Math.round(preview&&+preview.pixelDivMultiplier||1))});
-    return Object.freeze({ time, rel, preview:quality, valuesFor: entity => byId.get(entity.id) || entity, effectValuesFor: (scope, ownerId, effectId, base) => api.modules.timeline.effectValuesFor(scene, scope, ownerId, effectId, base, rel), controllerValuesFor: (scope, ownerId, controllerId, base) => api.modules.timeline.controllerValuesFor(scene, scope, ownerId, controllerId, base, rel) });
+    return Object.freeze({ time, rel, sceneIndex:currentSceneIndex, sceneProgress, preview:quality, valuesFor: entity => byId.get(entity.id) || entity, effectValuesFor: (scope, ownerId, effectId, base) => api.modules.timeline.effectValuesFor(scene, scope, ownerId, effectId, base, rel), controllerValuesFor: (scope, ownerId, controllerId, base) => api.modules.timeline.controllerValuesFor(scene, scope, ownerId, controllerId, base, rel) });
   }
 
-  api.modules.frame = Object.freeze({ create, matrixFor, multiply, pivotFor, curve, snapGeometry, IDENTITY });
+  api.modules.frame = Object.freeze({ create, matrixFor, multiply, pivotFor, curve, blinkAlpha, snapGeometry, sceneSegmentAt, sceneIndexAt, IDENTITY });
 })(typeof window !== 'undefined' ? window : globalThis);
 /* </vnext:30-frame-state.js> */
 
@@ -753,11 +872,13 @@
   function paint(ctx,width,height,raw,color){
     const pattern=canonical(raw,color),extent=Math.ceil(Math.hypot(width,height))+24;ctx.fillStyle=pattern.color;
     if(pattern.type==='noise'){
-      // Matches the useful Legacy grain character: sparse final-size squares,
-      // not a full getImageData recolour pass.  It is deterministic for a
-      // given seed/tick and remains cheap at large canvas dimensions.
-      const dots=Math.min(360,Math.max(1,Math.round(width*height*pattern.density/14))),hash=(index,salt)=>{const value=Math.sin((index+1)*12.9898+(pattern.seed+1)*78.233+(pattern.noiseTick+1)*37.719+salt*19.17)*43758.5453;return value-Math.floor(value);};
-      for(let index=0;index<dots;index++)ctx.fillRect(Math.floor(hash(index,1)*width),Math.floor(hash(index,2)*height),pattern.size,pattern.size);
+      /* Screen noise is intentionally a dense, low-cost raster field rather
+         than a few floating "dust" squares.  It uses a deterministic cap so
+         Auto/Draft preview stays bounded even on a full-HD scene; occasional
+         short horizontal runs give it the compact monitor / cassette texture
+         rather than confetti-like particles. */
+      const grain=Math.max(1,pattern.size),cells=Math.ceil(width/grain)*Math.ceil(height/grain),dots=Math.min(6000,Math.max(1,Math.round(cells*pattern.density*.18))),hash=(index,salt)=>{const value=Math.sin((index+1)*12.9898+(pattern.seed+1)*78.233+(pattern.noiseTick+1)*37.719+salt*19.17)*43758.5453;return value-Math.floor(value);};
+      for(let index=0;index<dots;index++){const x=Math.floor(hash(index,1)*width/grain)*grain,y=Math.floor(hash(index,2)*height/grain)*grain,run=hash(index,3)>.78?2:1;ctx.fillRect(x,y,grain*run,grain);}
       return pattern;
     }
     if(pattern.type==='lines'){
@@ -819,7 +940,7 @@
     if(anim.bob&&Number.isFinite(+anim.bob.amount)){const offset=curve(anim.bob.period,anim.bob.curve)*+anim.bob.amount,angle=(Number.isFinite(+anim.bob.angle)?+anim.bob.angle:90)*Math.PI/180,dx=Math.cos(angle)*offset,dy=Math.sin(angle)*offset;out.x=(+out.x||0)+dx;out.y=(+out.y||0)+dy;if(out.type==='line'){out.x2=(+out.x2||0)+dx;out.y2=(+out.y2||0)+dy;}else if(out.type==='stroke')out.points=(out.points||[]).map(point=>[(+point[0]||0)+dx,(+point[1]||0)+dy]);}
     if(anim.scroll&&Number.isFinite(+anim.scroll.speed)){const angle=(+anim.scroll.angle||0)*Math.PI/180,span=Math.max(0,+anim.scroll.span||0),raw=time*+anim.scroll.speed,distance=anim.scroll.repeat!==false&&span>0?((raw%span)+span)%span:raw,dx=Math.cos(angle)*distance,dy=Math.sin(angle)*distance;out.x=(+out.x||0)+dx;out.y=(+out.y||0)+dy;if(out.type==='line'){out.x2=(+out.x2||0)+dx;out.y2=(+out.y2||0)+dy;}else if(out.type==='stroke')out.points=(out.points||[]).map(point=>[(+point[0]||0)+dx,(+point[1]||0)+dy]);}
     if(anim.spin&&Number.isFinite(+anim.spin.speed))out.rot=(+out.rot||0)+time*+anim.spin.speed;
-    if(anim.blink&&Number.isFinite(+anim.blink.amount))out.alpha=(out.alpha==null?1:+out.alpha)*(1-Math.max(0,Math.min(1,+anim.blink.amount))*((curve(anim.blink.period,anim.blink.curve)+1)/2));
+    if(anim.blink)out.alpha=(out.alpha==null?1:+out.alpha)*api.modules.frame.blinkAlpha(anim.blink,time);
     if(anim.pulse&&Number.isFinite(+anim.pulse.amount)){const scale=1+curve(anim.pulse.period,anim.pulse.curve)*+anim.pulse.amount;out.scaleX=(Number.isFinite(+out.scaleX)?+out.scaleX:1)*scale;out.scaleY=(Number.isFinite(+out.scaleY)?+out.scaleY:1)*scale;}
     if(anim.wave&&Number.isFinite(+anim.wave.amount))out.rot=(+out.rot||0)+Math.sin(phase/Math.max(.001,+anim.wave.period||1))*+anim.wave.amount;
     return out;
@@ -841,7 +962,7 @@
     else {roundedRect(ctx,box.x,box.y,box.w,box.h,part.radius);ctx.closePath();}
     paintPath(ctx,part,scene,origin,time);ctx.restore();
   }
-  function drawParts(ctx, entity, values, frame, scene, origin){for(const part of entity.parts||[])drawPart(ctx,part,values.w,values.h,frame&&frame.time||0,scene,origin);}
+  function drawParts(ctx, entity, values, frame, scene, origin){for(const part of values&&Array.isArray(values.parts)?values.parts:entity.parts||[])drawPart(ctx,part,values.w,values.h,frame&&frame.time||0,scene,origin);}
   function draw(ctx, scene, entity, values, frame, origin) {
     if (entity.type === 'group') return;
     const w = values.w, h = values.h;
@@ -865,6 +986,7 @@
     ctx.strokeStyle = values.stroke || '#000000';
     ctx.lineWidth = Math.max(0, +values.strokeWidth || 0);
     if (entity.type === 'builtin') { api.modules.builtins.render(ctx, entity, values, frame); drawParts(ctx, entity, values, frame, scene, origin); }
+    else if (entity.type === 'procedural') { api.modules.sceneModules.render(ctx, entity, values, frame, scene); drawParts(ctx, entity, values, frame, scene, origin); }
     else if (entity.type === 'vector') { drawParts(ctx, entity, values, frame, scene, origin); }
     else if (entity.type === 'ellipse') { ctx.beginPath(); ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2); paintPath(ctx,Object.assign({},values,{type:'ellipse'}),scene,origin,frame&&frame.time||0); }
     else if (entity.type === 'poly' && Array.isArray(values.points) && values.points.length >= 3) { ctx.beginPath(); values.points.forEach((point, index) => { const x = (+point[0] - .5) * w, y = (+point[1] - .5) * h; if (index) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.closePath(); paintPath(ctx,Object.assign({},values,{type:'poly'}),scene,origin,frame&&frame.time||0); }
@@ -1704,6 +1826,7 @@
   }
   function transitionHash(x,y,seed){let value=(Math.imul(x+1,374761393)^Math.imul(y+1,668265263)^Math.imul(seed+1,69069))>>>0;value=Math.imul(value^value>>>13,1274126177);return((value^value>>>16)>>>0)/4294967296;}
   function transitionState(scene,frame){const current=sceneAt(scene,frame.rel),segment=current.segment||{},raw=segment.transition||{},legacyType=raw.type==='scan'?'wipe':raw.type||'none',type=['blackout','fade','wipe','dissolve'].includes(legacyType)?legacyType:'none';if(type==='none'||current.index<=0)return null;const range=segment.f||[0,1],sceneDuration=Math.max(.001,(+range[1]-+range[0])*scene.loop),duration=Math.max(.001,Math.min(sceneDuration,+raw.duration||.25)),localTime=Math.max(0,(frame.rel-+range[0])*scene.loop),progress=Math.max(0,Math.min(1,localTime/duration));if(progress>=1)return null;return{current,segment,config:raw,type,duration,progress,direction:raw.direction||((raw.type==='scan')?'down':'right')};}
+  function outgoingTransitionTime(scene,state){if(!state)return 0;const previous=(scene.timeline&&scene.timeline.scenes||[])[state.current.index-1],end=Math.max(0,((previous&&previous.f&&previous.f[1])||0)*scene.loop),elapsed=Math.max(0,Math.min(state.duration,state.progress*state.duration));return Math.max(0,end-state.duration+elapsed);}
   // `next` is already on ctx. Fade / Wipe / Dissolve composite the previous
   // Scene where it has not been revealed. Blackout retains the Legacy black-
   // field language: a configurable colour cover fades away to the new Scene.
@@ -1743,16 +1866,17 @@
         const applied = api.modules.sceneEffects.applyStage(current, stage, scene, frame, surfaces); if (applied.surface !== current) { if (current !== base) surfaces.release(current); current = applied.surface; } stats.sceneEffects += applied.count;
       }
       if (base !== target) { targetCtx.clearRect(0, 0, scene.width, scene.height); targetCtx.drawImage(current, 0, 0); if (current !== base) surfaces.release(current); surfaces.release(base); }
-      // Each top-level Scene has independent background / timing values.  During
-      // an entry transition we render the preceding Scene at its final instant
-      // into a temporary surface, then reveal the already-rendered current one.
-      // This is intentionally the same Runtime path used by fixed-time export.
-      if(!options||!options._skipTransition){const transition=transitionState(scene,frame);if(transition){if(transition.type==='blackout')drawTransition(targetCtx,scene,frame,null);else{const previousSegment=(scene.timeline&&scene.timeline.scenes||[])[transition.current.index-1],previousTime=Math.max(0,((previousSegment&&previousSegment.f&&previousSegment.f[1])||0)*scene.loop-.00001),previous=surfaces.acquire(scene.width,scene.height);try{createRuntime(scene).renderTo(previous,previousTime,Object.assign({},options||{},{_skipTransition:true}));drawTransition(targetCtx,scene,frame,previous);}finally{surfaces.release(previous);}}}}
+      // Both sides of an entry transition retain their own running clocks.
+      // The outgoing Scene plays through its final `duration`, while the
+      // incoming Scene plays through its first `duration`; only the composite
+      // mask is frozen.  Rendering the preceding Scene at f[1] here made every
+      // wipe and dissolve look like a still-frame transition in the editor.
+      if(!options||!options._skipTransition){const transition=transitionState(scene,frame);if(transition){if(transition.type==='blackout')drawTransition(targetCtx,scene,frame,null);else{const previousTime=outgoingTransitionTime(scene,transition),previous=surfaces.acquire(scene.width,scene.height);try{createRuntime(scene).renderTo(previous,previousTime,Object.assign({},options||{},{_skipTransition:true}));drawTransition(targetCtx,scene,frame,previous);}finally{surfaces.release(previous);}}}}
       stats.previewPixelDivMultiplier=frame.preview.pixelDivMultiplier;stats.surfaces = surfaces.stats();stats.workPixels=stats.surfaces.workPixels;stats.pixelPasses=stats.surfaces.pixelPasses;lastStats = Object.freeze(stats); return lastStats;
     }
     return Object.freeze({ scene, renderTo, getLastFrameStats: () => lastStats, clearCaches: () => surfaces.clear() });
   }
-  api.modules.renderer = Object.freeze({ createRuntime,drawTransition,transitionState,sceneAt,backgroundValues,drawBackgroundFill });
+  api.modules.renderer = Object.freeze({ createRuntime,drawTransition,transitionState,outgoingTransitionTime,sceneAt,backgroundValues,drawBackgroundFill });
 })(typeof window !== 'undefined' ? window : globalThis);
 /* </vnext:80-scene-renderer.js> */
 
@@ -1763,7 +1887,7 @@
 
   const api = global.ToSampoolRuntimeVNext;
   api.apiVersion = 1;
-  api.capabilities = Object.freeze({ fixedTimeRender: 1, deterministicFrames: 1, vnextBase: 1, objectEffects: 1, objectDecorateBase: 1, objectSamplingBase: 1, samplingField: 1, halftone: 1, namedPalettes: 1, textureOverlay: 1, lightEffects: 1, imageAssets: 1, backgroundLayers: 1, groupTransforms: 1, programMotion: 1, sceneTransitions: 1, sharedSpriteParticles: 1, registeredBuiltins: 1, staticMasks: 1, alphaMasks: 1, elementMasks: 1, sceneEffects: 1 });
+  api.capabilities = Object.freeze({ fixedTimeRender: 1, deterministicFrames: 1, vnextBase: 1, objectEffects: 1, objectDecorateBase: 1, objectSamplingBase: 1, samplingField: 1, halftone: 1, namedPalettes: 1, textureOverlay: 1, lightEffects: 1, imageAssets: 1, backgroundLayers: 1, groupTransforms: 1, programMotion: 1, sceneTransitions: 1, sharedSpriteParticles: 1, registeredBuiltins: 1, sceneModules: 1, staticMasks: 1, alphaMasks: 1, elementMasks: 1, sceneEffects: 1 });
   api.createRuntime = api.modules.renderer.createRuntime;
   api.renderTo = function renderTo(target, scene, t, options) { return api.createRuntime(scene).renderTo(target, t, options); };
   Object.freeze(api.modules);

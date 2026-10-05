@@ -1,20 +1,18 @@
-# 参考图 → 通用场景协议（生成 Agent）
+# 参考输入 → ToSampool v4 项目协议（生成 Agent）
 
-> 数据字段只以 [SCENE_SPEC.md](../../SCENE_SPEC.md) 为准。本文件规定生成顺序与交付物，不定义第二套 schema。
+> v4 字段以 [VNEXT_SCENE_CONTRACT.md](../architecture/VNEXT_SCENE_CONTRACT.md) 为准；Scene Module 见 [V4_AGENT_SCENE_MODULE_PROTOCOL.md](../architecture/V4_AGENT_SCENE_MODULE_PROTOCOL.md)。本文规定生成顺序与载体选择，不定义第二套 schema。下文残留的 Legacy 字段示例只用于理解旧作品，不得进入新的 v4 产物。
 
 ## 目标
 
-根据文字与一张或多张参考图，输出可被 `img2asset.html` 打开、编辑、保存并再次打开的
-`const GENERIC_SCENE = { ... };` 静态场景文件。
+根据文字与一张或多张参考图，输出可被 v4 编辑器打开、编辑、保存、测试并再次打开的 `tosampool-project/v1` 项目内容。项目至少包含声明式 Scene；只有载体判断确实需要时，才附带项目 Scene Module、Manifest 与素材。
 
 ## 工作流：先静态还原，再赋予时间
 
 不要把「识图重绘」与「格式改写」或「动画设计」混在一次输出中。参考图的细节密度高时，
-必须按下面的阶段推进；每一阶段的文件都已经是合法、可打开的 `GENERIC_SCENE`，而不是任意
-Canvas 草稿。
+必须按下面的阶段推进；每一阶段都应是合法、可打开的 v4 Scene / Project，而不是任意 Canvas 草稿。
 
 1. **参考拆解**：记录原图宽高比、目标画布尺寸、主色板、透视层次和裁切边界；先给出元素表，
-   包含名称、视觉语义、载体（parts / 图片 / sprite / particle）、层级、可编辑项和细节预算。若输入是单张静图，元素表还必须给出“动态区域计划”：每个区域的原图来源、语义（天空/云/水/树梢等）、蒙版来源、运动方式、静止理由与风险；不能以新增的几何装饰代替原图区域的动态化。
+   包含名称、视觉语义、载体（普通实体 / 图片或序列 / 粒子 / Scene Module / Builtin）、选择理由、层级、局部边界、公开参数、时间依赖和性能预算。若输入是单张静图，元素表还必须给出“动态区域计划”：每个区域的原图来源、语义、蒙版来源、运动方式、静止理由与风险；不能以新增的几何装饰代替原图区域的动态化。
 2. **静态基底**：只重建一个指定时刻（通常为第一幕）。先完成天空、远山、中景、河面、前景等
    大层级，再补边缘、岩石、树冠和水面纹理。此阶段不得加入 `anim`、`scroll`、particle、FX 或转场。
 3. **视觉锁定**：以同尺寸预览同参考图反复比较；每轮只修改元素表中命名的层，记录近似点与无法
@@ -30,8 +28,10 @@ Canvas 草稿。
 
 ## 生成决策
 
+新的 v4 生成必须先完成载体选择：需要逐项编辑用普通实体；高细节静态内容用图片/序列；作品专用程序画面用项目 Scene Module；只有跨项目稳定复用且进入产品测试矩阵的能力才使用 Builtin。Scene Module 是可选的渲染岛，不是所有复杂场景的默认容器。
+
 1. 能用 rect、line、ellipse、poly 表达的清晰像素结构，使用 `parts`；每个顶层通用程序元素都必须生成语义稳定、场景内唯一的 `id`（如 `tree-foreground-01`），不得只依赖对象键名。
-2. 复杂纹理、角色细节、无法稳定拆分的局部，优先要求用户提供/导入图片；若用户明确允许 Agent 自生成且图元拆分会显著损失细节，可使用一个**程序元素**，以 `program:{code}` 保留黑盒绘制，且必须声明稳定 `id`、正数 `x/y/w/h`、`params` 和最少一项 `editor.controls`。程序元素应暴露颜色、密度、速度或强度等真正会调整的少量参数；不能把每个内部像素伪装成可编辑项，也不得读取网络/DOM/外部文件。
+2. 复杂纹理、角色细节、无法稳定拆分的局部，优先使用已有图片/序列；若程序绘制更适合且图元拆分会显著损失细节，可生成项目 Scene Module。Module 必须声明稳定 id/version、局部 bounds、确定性时间/seed、素材白名单、性能等级和少量有创作意义的参数；不能读取 DOM、网络、文件或编辑器状态。`program.code` 仅是 Legacy 数据，不得写入新 v4 Scene。
 3. 动画只选择当前内建能力：`anim`（含 `spin:{speed}` 角速度）、`scroll`、多帧图片、图片 Sampling Motion、particle、FX、transition 与 `mask`，且只在静态锁定后加入。Sampling Motion 不是初始生成的必填模板；只有视觉意图明确要求采样本身运动时才写 `style.samplingMotion`，并从 `pixelBoil / thresholdPulse / ditherDrift / grainTide` 中启用必要子项。多个子项可以叠加但不得无目的全开，执行顺序固定为“像素沸腾 → 颗粒潮汐局部采样 → 阈值呼吸 → 网点游移”；需要多个子项共享同一空间节奏时才增加 `field:{type:'uniform'|'wave'|'radial',...}`，需要透明轮廓稳定而内部翻涌时增加 `edge:{mode:'alpha',width,strength}`。`field` 与 `edge` 是控制器而非效果，不能在没有视觉目的时单独堆入；完全不透明图片的 Alpha 边缘保护只能识别外框。`grainTide` 只在意图明确要求粗粒区域成片流动时使用；共享 `samplingMotion.show`。`pixelBoil` 必须与图片 `pixelDiv>1` 配套，Sampling Motion 不能替代对象运动或语义分层。粒子从哪里出生使用顶层 `x/y/w/h`；需要限制最终可见区域时才另加 `mask`，不可混用两者语义。图片粒子写 `particle.source:{type:'image',imageId,...}`；需要保留同一元素的 parts 叠加时加 `compose:'image+parts'`，并保留该粒子元素的 `parts`。需要贴合高细节静态素材的区域时，优先输出 `mask:{type:'alpha',imageId,x,y,w,h}` 引用透明 PNG，而非生成数百个多边形点。只有来源本身已有明确、可编辑的实时轮廓和动画收益时，才使用 `mask:{type:'element',targetId,invert?}`；来源必须在当前 Scene 已存在、具有稳定 id，且不能引用自身或形成循环。局部 FX 只能使用 `fx.layers` 的声明式字段和已列出的 blend 枚举，且固定先于全局像素处理合成。局部色板、调色或像素化只在需要局部风格差异时使用 `pixelDiv/palette/hue/brightness/contrast/saturation`，并保持蒙版包围盒足够小。需要让效果随已有元素移动时可写 `bind:{targetId,mode:'anchor',at:0}`；只有需要限制在元素实际轮廓内时才改用 `mode:'clip'`，且 `targetId` 必须是已有顶层元素的稳定 id；clip 会随目标的 spin/wave/pulse/旋转/镜像/blink 实际轮廓裁入；不能输出自定义 fx 函数。
 4. 使用常量参数；只有用户明确要求分场景时才写 `scenes`、`show` 与按场景数组。
 
@@ -51,15 +51,15 @@ Canvas 草稿。
 
 无局部遮罩时，禁止用大面积粒子或摆动图元模拟树冠、雾或不规则岸线；它们会越出主体。日转夜应优先使用同构图的独立夜景底图，并用内建 dissolve/FX 辅助过渡；全局压暗仅可作为过渡辅助，不能替代夜景底图。
 
-内建锁定元素只能引用 `SCENE_SPEC` 已注册的 `builtin`；它们是“可运行、有限参数可编辑”的白名单能力。若需要未覆盖的精细程序绘制，应明确使用带外壳合同的 `program.code`，而不是伪装为 builtin 或把任意 JS 混入 Scene 顶层。
+内建锁定元素只能引用 v4 Registry 已注册的 builtin。未覆盖的作品专用绘制应作为项目 Scene Module 交付，不能伪造 builtin id，也不能把任意 JS 混入 Scene JSON。
 
 ## 输出要求
 
-- 主产物：一个仅含 `const GENERIC_SCENE = { ... };` 的 js 文件；无 import、顶层函数、模板变量或外部依赖。唯一例外是程序元素内的 `program.code` 字符串：它必须是确定性 Canvas 绘制语句，不能访问 DOM / 网络 / 文件，不得隐藏未声明的可调参数。
-- 附带元素表，列出每项的载体、层级、动画和可调参数。
+- 主产物：合法 v4 Scene；需要项目 Module 时，同时提供独立模块源与 Manifest。Scene JSON 内无函数、`program.code`、import 或外部 URL。
+- 附带载体表，列出每项的载体、选择理由、层级/局部边界、动画、公开参数与性能等级。
 - 附带近似说明：哪些部分是结构化重绘、哪些需要图片素材、哪些效果被简化。
 - 附带阶段状态：`static-base` / `static-locked` / `animated`，以及本轮只修改的元素名。
-- 输出前按 SCENE_SPEC 的“通用场景可编辑性”规则自检；这是默认 Agent 交付合同，不是 Runtime 的全部能力清单，也不决定 GIF/PNG 等导出资格。不输出 `keyframes`、`project`、`assetRef` 或自定义 fx。
+- 输出前运行 v4 Scene、项目包、Module Manifest、固定时间渲染和交付物校验；不输出未登记字段或自定义 Runtime 补丁。
 
 ## 验收
 

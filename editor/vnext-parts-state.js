@@ -8,6 +8,7 @@
   const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
   function defaultTexture(type, color) {
     const common={type:String(type||'lines'),mode:'replace',opacity:1,color:color||'#ffffff'};
+    if(common.type==='noise')return Object.assign(common,{density:.18,size:1,seed:1});
     if(common.type==='dots')return Object.assign(common,{size:3,spacing:5,gap:2,phase:0,angle:0,sides:4,roundness:0,layout:'regular'});
     if(common.type==='checker')return Object.assign(common,{size:3,gap:2,phase:.5,angle:0,layout:'checker'});
     common.type='lines';return Object.assign(common,{layers:[{angle:45,width:1,gap:3}]});
@@ -15,11 +16,15 @@
   function normalizeTexture(raw, color) {
     if(!raw||raw.type==='none')return null;
     const value=Object.assign(defaultTexture(raw.type,color),clone(raw));
-    value.type=['lines','dots','checker'].includes(value.type)?value.type:'lines';
+    value.type=['lines','dots','checker','noise'].includes(value.type)?value.type:'lines';
     value.mode=value.mode==='overlay'?'overlay':'replace';
     value.opacity=Math.max(0,Math.min(1,finite(value.opacity,1)));
     value.color=/^#[0-9a-f]{6}$/i.test(value.color||'')?value.color:(color||'#ffffff');
-    if(value.type==='lines'){
+    if(value.type==='noise'){
+      value.density=Math.max(0,Math.min(1,finite(value.density,.18)));
+      value.size=Math.max(1,Math.round(finite(value.size,1)));
+      value.seed=Math.round(finite(value.seed,1));
+    } else if(value.type==='lines'){
       value.layers=(Array.isArray(value.layers)&&value.layers.length?value.layers:[{angle:45,width:1,gap:3}]).slice(0,3).map(layer=>{const width=Math.max(1,finite(layer&&layer.width,1)),spacing=Math.max(width,finite(layer&&layer.spacing,width+Math.max(0,finite(layer&&layer.gap,3))));return{angle:finite(layer&&layer.angle,45),width,spacing,gap:Math.max(0,spacing-width)};});
       // lineMode is an Inspector hint only.  Runtime keeps the portable
       // layers[] representation, so older scenes and generated files remain

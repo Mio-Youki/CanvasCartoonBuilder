@@ -13,6 +13,7 @@
 | `docs/history/` | 已完成的一次性审查、迁移和事故结论；只作追溯，不作为当前说明入口 | `VERSION_BASELINE_V3_1_REVIEW.md` |
 | `docs/design/` | 产品视觉语言、信息架构、组件和交互动效规范 | `DESIGN_SYSTEM.md`、`UI_INFORMATION_ARCHITECTURE.md`、`COMPONENT_REGISTRY.md`、`INTERACTION_AND_MOTION.md`、`INSPECTOR_EFFECTS_VNEXT.md`、`EFFECTS_PANEL_VNEXT.md`、`assets/` |
 | `docs/product/` | 产品定位、发布叙事、案例与可验证承诺 | `PRODUCT_NARRATIVE.md` |
+| `skills/` | 可被外部 Agent 或编辑器显式调用的版本化 Skill；入口只承担路由，分支说明按需加载 | `tosampool-create/SKILL.md`、`references/`、`agents/openai.yaml` |
 | `scripts/` / `tests/` | 只读静态验证、迁移、真实浏览器验收与性能基准；不是 Scene 合同本身 | `verify-editor.mjs`、`verify-effect-registry-vnext.mjs`、`build-effect-manifest.mjs`、`build-runtime-vnext.mjs`、`runtime-vnext-smoke.mjs`、`validate-scene.mjs`、`editor-e2e.html`、`runtime-performance.html` |
 | `editor/` | 可执行的编辑器内核模块；不是文档 | 几何、Scene model、Runtime bridge、性能监测、Host Adapter、导出器 |
 | `examples/` | 可导入场景、素材与验收样例；不是格式合同 | `*.js`、`assets/`、导出对照图 |
@@ -28,7 +29,7 @@
 | 用户可见工作流、入口或限制 | `README.md`、`CHANGELOG.md` | `PLAN.md` |
 | Scene 字段、默认语义、Runtime 兼容行为 | `SCENE_SPEC.md`、相关 Agent 协议、`CHANGELOG.md` | `README.md`、样例、冒烟测试 |
 | Scene 合同校验规则或 Agent 样例夹具 | `scripts/validate-scene.mjs`、`SCENE_SPEC.md`、`docs/agent/` | `scripts/verify-editor.mjs`、`examples/`、`PLAN.md` |
-| Agent 输入/输出策略、验收或已知缺口 | `docs/agent/` 对应文件、`PLAN.md` | `SCENE_SPEC.md`、`README.md` |
+| Agent 输入/输出策略、验收或已知缺口 | `skills/` 对应入口/分支、`docs/agent/` 或 `docs/architecture/` 对应合同、`PLAN.md` | `SCENE_SPEC.md`、`README.md` |
 | 产品定位、公开承诺、案例验证口径 | `docs/product/`、`README.md`、`PLAN.md` | `CHANGELOG.md`、设计文档 |
 | 已完成的架构域（如蒙版/导出） | 对应 `docs/architecture/` 状态文档、`PLAN.md` | `README.md`、`CHANGELOG.md` |
 | 编辑器行为、命令、Scene 变更、Runtime/Host capability、时间/序列化/素材解析/产物构建边界或验收口径 | `EDITOR_BEHAVIOR_SPEC.md`、`EDITOR_COMMANDS.md`、`SCENE_MUTATION.md`、`RUNTIME_CONTRACT.md`、`HOST_ADAPTER.md`、`ASSET_RESOLVER.md`、`ARTIFACT_BUILDER.md`、`ACCEPTANCE_TEST_MATRIX.md`、`editor/command-registry.js`、`editor/scene-mutation.js`、`editor/timeline-model.js`、`editor/scene-serializer.js`、`editor/asset-resolver.js`、`editor/artifact-builder.js`、`editor/host-adapter.js`、`editor/tauri-host-adapter.js` | `scripts/verify-editor.mjs`、`CHANGELOG.md` |

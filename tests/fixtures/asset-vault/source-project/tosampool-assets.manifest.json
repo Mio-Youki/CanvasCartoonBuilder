@@ -1,0 +1,8 @@
+{
+  "format": "tosampool-assets/v1",
+  "projectId": "fixture-spring-lantern",
+  "assets": [
+    { "path": "assets/lantern/asset.json" },
+    { "path": "assets/leaf-loop/asset.json" }
+  ]
+}

@@ -36,6 +36,15 @@
       return legacy.newDocument(payload || {});
     }
     async function open(openOptions) {
+      if (v4Only && typeof host.openProject === 'function') {
+        const packaged = await host.openProject(openOptions || {});
+        if (!packaged) return null;
+        if (packaged.kind === 'project') {
+          if (!v4Ready() || typeof v4.openProject !== 'function') throw blockedError();
+          return activateAndRun('v4', () => v4.openProject(packaged));
+        }
+        if (packaged.kind === 'scene') return activateAndRun('v4', () => v4.openDocument(packaged, packaged.document));
+      }
       const opened = await host.openText(Object.assign({
         accept: v4Only ? '.json,.tosampool.json,application/json' : '.js,.json,.tosampool.json,text/javascript,application/json',
         types: [v4Only ? { description:'ToSampool v4 Scene', accept:{ 'application/json':['.json'] } } : { description:'Scene', accept:{ 'text/javascript':['.js'], 'application/json':['.json'] } }]

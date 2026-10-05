@@ -36,7 +36,7 @@
     if(anim.bob&&Number.isFinite(+anim.bob.amount)){const offset=curve(anim.bob.period,anim.bob.curve)*+anim.bob.amount,angle=(Number.isFinite(+anim.bob.angle)?+anim.bob.angle:90)*Math.PI/180,dx=Math.cos(angle)*offset,dy=Math.sin(angle)*offset;out.x=(+out.x||0)+dx;out.y=(+out.y||0)+dy;if(out.type==='line'){out.x2=(+out.x2||0)+dx;out.y2=(+out.y2||0)+dy;}else if(out.type==='stroke')out.points=(out.points||[]).map(point=>[(+point[0]||0)+dx,(+point[1]||0)+dy]);}
     if(anim.scroll&&Number.isFinite(+anim.scroll.speed)){const angle=(+anim.scroll.angle||0)*Math.PI/180,span=Math.max(0,+anim.scroll.span||0),raw=time*+anim.scroll.speed,distance=anim.scroll.repeat!==false&&span>0?((raw%span)+span)%span:raw,dx=Math.cos(angle)*distance,dy=Math.sin(angle)*distance;out.x=(+out.x||0)+dx;out.y=(+out.y||0)+dy;if(out.type==='line'){out.x2=(+out.x2||0)+dx;out.y2=(+out.y2||0)+dy;}else if(out.type==='stroke')out.points=(out.points||[]).map(point=>[(+point[0]||0)+dx,(+point[1]||0)+dy]);}
     if(anim.spin&&Number.isFinite(+anim.spin.speed))out.rot=(+out.rot||0)+time*+anim.spin.speed;
-    if(anim.blink&&Number.isFinite(+anim.blink.amount))out.alpha=(out.alpha==null?1:+out.alpha)*(1-Math.max(0,Math.min(1,+anim.blink.amount))*((curve(anim.blink.period,anim.blink.curve)+1)/2));
+    if(anim.blink)out.alpha=(out.alpha==null?1:+out.alpha)*api.modules.frame.blinkAlpha(anim.blink,time);
     if(anim.pulse&&Number.isFinite(+anim.pulse.amount)){const scale=1+curve(anim.pulse.period,anim.pulse.curve)*+anim.pulse.amount;out.scaleX=(Number.isFinite(+out.scaleX)?+out.scaleX:1)*scale;out.scaleY=(Number.isFinite(+out.scaleY)?+out.scaleY:1)*scale;}
     if(anim.wave&&Number.isFinite(+anim.wave.amount))out.rot=(+out.rot||0)+Math.sin(phase/Math.max(.001,+anim.wave.period||1))*+anim.wave.amount;
     return out;
@@ -58,7 +58,7 @@
     else {roundedRect(ctx,box.x,box.y,box.w,box.h,part.radius);ctx.closePath();}
     paintPath(ctx,part,scene,origin,time);ctx.restore();
   }
-  function drawParts(ctx, entity, values, frame, scene, origin){for(const part of entity.parts||[])drawPart(ctx,part,values.w,values.h,frame&&frame.time||0,scene,origin);}
+  function drawParts(ctx, entity, values, frame, scene, origin){for(const part of values&&Array.isArray(values.parts)?values.parts:entity.parts||[])drawPart(ctx,part,values.w,values.h,frame&&frame.time||0,scene,origin);}
   function draw(ctx, scene, entity, values, frame, origin) {
     if (entity.type === 'group') return;
     const w = values.w, h = values.h;
@@ -82,6 +82,7 @@
     ctx.strokeStyle = values.stroke || '#000000';
     ctx.lineWidth = Math.max(0, +values.strokeWidth || 0);
     if (entity.type === 'builtin') { api.modules.builtins.render(ctx, entity, values, frame); drawParts(ctx, entity, values, frame, scene, origin); }
+    else if (entity.type === 'procedural') { api.modules.sceneModules.render(ctx, entity, values, frame, scene); drawParts(ctx, entity, values, frame, scene, origin); }
     else if (entity.type === 'vector') { drawParts(ctx, entity, values, frame, scene, origin); }
     else if (entity.type === 'ellipse') { ctx.beginPath(); ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2); paintPath(ctx,Object.assign({},values,{type:'ellipse'}),scene,origin,frame&&frame.time||0); }
     else if (entity.type === 'poly' && Array.isArray(values.points) && values.points.length >= 3) { ctx.beginPath(); values.points.forEach((point, index) => { const x = (+point[0] - .5) * w, y = (+point[1] - .5) * h; if (index) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); ctx.closePath(); paintPath(ctx,Object.assign({},values,{type:'poly'}),scene,origin,frame&&frame.time||0); }

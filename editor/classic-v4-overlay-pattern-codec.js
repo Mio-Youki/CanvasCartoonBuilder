@@ -14,6 +14,7 @@
   function fromEffect(values){
     const texture=values.texture||'lines-horizontal';
     const base={phaseX:unit(values.phaseX,0),phaseY:unit(values.phaseY,0),color:values.color||'#ffffff'};
+    if(texture==='noise')return Object.assign(base,{type:'noise',density:Math.max(0,Math.min(1,finite(values.noiseDensity,.18))),size:Math.max(1,Math.round(finite(values.noiseSize,1))),seed:Math.round(finite(values.noiseSeed,1))});
     if(texture==='dots'){
       const shape=values.shape||'circle';
       const point={circle:{sides:4,roundness:1},triangle:{sides:3,roundness:0},square:{sides:4,roundness:0},pentagon:{sides:5,roundness:0},hexagon:{sides:6,roundness:0}}[shape]||{sides:4,roundness:1};
@@ -34,6 +35,7 @@
   function toEffect(pattern){
     const patternStyle=style(pattern);
     const patch={phaseX:unit(pattern.phaseX,0),phaseY:unit(pattern.phaseY,0)};
+    if(patternStyle==='noise')return Object.assign(patch,{texture:'noise',noiseDensity:Math.max(0,Math.min(1,finite(pattern.density,.18))),noiseSize:Math.max(1,Math.round(finite(pattern.size,1))),noiseSeed:Math.round(finite(pattern.seed,1))});
     if(patternStyle==='dots')return Object.assign(patch,{
       texture:'dots',size:Math.max(1,finite(pattern.size,1)),spacing:Math.max(1,finite(pattern.spacing,pattern.cell||4)),angle:finite(pattern.angle,0),
       shape:pattern.roundness>=.98?'circle':({3:'triangle',4:'square',5:'pentagon',6:'hexagon'}[Math.round(finite(pattern.sides,4))]||'circle'),

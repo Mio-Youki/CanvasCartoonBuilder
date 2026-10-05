@@ -1,29 +1,35 @@
 # Legacy → v4 转换合同
 
-> 状态：转换核心保留为**编辑器外部工具**；v4 产品入口不加载它，也不接受 Legacy JS。逐项冻结确认界面若继续开发，应作为单独迁移工具，而非编辑器面板。
+> 状态：转换核心是**编辑器外部工具**。v4 产品入口不加载 Legacy JS，也不把 Legacy 兼容层带入 Runtime。
 
-转换是外部工具显式触发的“创建 v4 副本”，不是打开文件时的隐式升级。它永远不覆盖原 JS；v4 编辑器只打开已经生成的 `.tosampool.json`。
+转换是显式创建 v4 副本，不是打开旧文件时的隐式升级。它永远不覆盖原文件；编辑器只打开已经形成的 v4 Scene / Project。
 
-## 四种结果
+## 报告状态
 
-| 状态 | 含义 | 当前处理 |
-|---|---|---|
-| `converted` | 图片、背景图片、通用 parts 等声明式数据可直接表达 | 写入新的 v4 文档 |
-| `builtin` | Legacy 项明确引用已注册 builtin | 写入 `type:"builtin"` 与稳定 id/version |
-| `frozen` | 用户明确接受内部参数和动态损失 | 以提供的图片 locator 写入 v4；核心 API 已支持，UI 待做 |
-| `blocked` | `program.code`、未知专用绘制、旧粒子结构 / FX 等无法无损表达 | 停止交付，导出报告，继续留在 Legacy |
+| 状态 | 含义 | 是否已解决 |
+|---|---|---:|
+| `converted` | 图片、背景、通用 parts 等可直接表达 | 是 |
+| `builtin` | 源项明确映射到已注册共享 Builtin | 是 |
+| `native-mappable` | 已知绘制语义可由 v4 图元、tile、滚动、时序和动画表达，尚待专用适配器展开 | 否 |
+| `hybrid` | 已生成部分 v4 基底，但剩余部分仍待在原生映射、Module 或冻结间作决定 | 否 |
+| `module-required` | 未知或不可安全解析的程序绘制，应适配为项目 Scene Module | 否 |
+| `freeze-optional` | 可继续写 Module，也可由用户选择冻结为素材 | 否 |
+| `frozen` | 用户明确接受冻结与内部可编辑性损失 | 是 |
+| `manual` | 需要人工映射，例如旧粒子、局部 FX 或多 Scene 背景 | 否 |
+| `blocked` | 经审计确认依赖 DOM、网络、外部全局状态等，无法安全携带 | 否 |
 
-`manual` 表示已保留一个安全基础值，但仍有需要用户处理的差异，例如 Legacy 多 Scene 底色数组在当前 v4 中只保留第一项。它不会伪装成无损转换。
+`blocked` 只表示真正不可移植或不安全；“无法自动降级为声明式对象”不等同于“无法迁移”，而“尚未由通用转换器展开”也不等同于“必须使用 Module”。报告为 `tosampool-legacy-conversion-report/2`。只有不存在 `native-mappable / hybrid / module-required / freeze-optional / manual / blocked` 且结构校验通过时，候选才是 `saveable:true`。
 
 ## 安全边界
 
-- 转换核心只接收 Legacy 会话已经解析出的数据对象，不读取或执行原始 JS 文本。
-- Scene 中不得出现函数、`program.code` 或未知 builtin id。
-- `fx.layers` 不会被误写成同 z 的对象效果。其绑定和排序无法无损表达时必须阻止。
-- 报告格式为 `tosampool-legacy-conversion-report/1`，记录每个源项的状态、目标 id、原因和损失。
+- 静态提取器只读取可信文件中的对象字面量；转换器只处理 JSON 数据，不 `import`、`eval` 或执行 Legacy 源码。
+- 持久 Scene JSON 不保存函数体、`program.code` 或未知 builtin id。
+- `program.code` 和专用绘制可在**编辑器外部**被人工适配为受信任项目 Scene Module；转换报告只声明这项工作，不执行原代码。
+- `fx.layers` 不会冒充同 z 的 v4 效果；它进入 `manual`，由人决定映射到对象效果、场景滤镜或 Module 内部。
+- `native-mappable` 与 `hybrid` 候选只用于审计，不能被宣传为保真迁移结果。
 
-## 当前能力与待办
+## 当前能力与下一步
 
-已完成：图片/图片背景、通用 parts、旧式 parts 填描字段、基础变换、按 Scene 数组的基础 Step 值、`show` 到 visibility、`train-beam` builtin、结构校验、真实 Edge 的工具栏转换。
+已完成：图片/背景、通用 parts、旧式填描字段、基础变换、按 Scene 数组的 Step 值、`show` 到 visibility、受控 builtin、冻结入口、候选校验和报告 v2。
 
-未完成：逐项冻结预览与确认、旧粒子结构的转换向导、旧 `fx.layers` 的人工映射向导、所有 `home-scene.js` 专用绘制函数的 builtin/冻结决策。v4 Runtime 已支持图片源的 `particle-age` 播放语义，但这不等于旧粒子数据能被无损自动转换。因此当前首页列车样例仍会得到诚实的阻止报告，而不是一份缺层的伪成功文档。
+`home-scene` 将有两条互不替代的实验路径：原生映射版把已知 tile、滚动、场景时序和图元动画展开为普通 v4 对象，用来测量编辑性；完整项目 Scene Module 版保留原绘制结构，用来建立保真与交付基线。两者都不是永久兼容层，也不要求未来 Agent 场景默认模块化。

@@ -4,9 +4,33 @@
   function slug(value, fallback) { const text = String(value || '').replace(/\.[^.]+$/, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); return text || fallback || 'asset'; }
   function unique(existing, base) { let id = base, index = 2; while (existing.has(id)) id = `${base}-${index++}`; return id; }
   function normalizeFrames(options) { const supplied = Array.isArray(options && options.frames) ? options.frames : []; const first = String(options && options.locator || supplied[0] && (supplied[0].locator || supplied[0]) || ''); if (!first) throw new Error('导入图片需要持久 locator 或 data URL'); const frames = supplied.length ? supplied.map(frame => ({ locator:String(frame && (frame.locator || frame) || ''), mime:frame && frame.mime || options && options.mime || '' })).filter(frame => frame.locator) : [{ locator:first, mime:options && options.mime || '' }]; if (!frames.length) throw new Error('多帧素材缺少有效 locator'); return frames; }
+  /* Derivation is project metadata only. Runtime still sees an ordinary image
+     or ordered frame sequence; the metadata makes cutouts and pose variants
+     auditable and re-editable by a host or Agent. */
+  function derivation(input) {
+    if (!input || typeof input !== 'object') return null;
+    const kind = String(input.kind || '').trim();
+    if (!kind) return null;
+    const value = { kind, semantic:String(input.semantic || '').trim(), alpha:input.alpha === true };
+    if (input.method != null) value.method=String(input.method).trim();
+    if (input.anchor && Number.isFinite(+input.anchor.x) && Number.isFinite(+input.anchor.y)) value.anchor={x:+input.anchor.x,y:+input.anchor.y};
+    if (Array.isArray(input.frameSemantics)) value.frameSemantics=input.frameSemantics.map(item=>String(item || '').trim()).filter(Boolean);
+    if (input.notes != null) value.notes=String(input.notes).trim();
+    return value;
+  }
+  function alphaMask(input) {
+    if (!input || typeof input!=='object') return null;
+    const locator=String(input.locator||'').trim(),width=Math.max(1,Math.round(+input.width||0)),height=Math.max(1,Math.round(+input.height||0));
+    if (!locator||!width||!height) return null;
+    return { locator, width, height, mode:input.mode==='multiply'?'multiply':'replace-alpha' };
+  }
   function addAsset(scene, options) {
-    if (!scene) throw new Error('导入图片需要场景'); scene.assets = Object.assign({}, scene.assets || {}); const frames = normalizeFrames(options), assetId = unique(new Set(Object.keys(scene.assets)), slug(options && options.name, 'image')), width = Math.max(1, Math.round(+(options && options.width) || 1)), height = Math.max(1, Math.round(+(options && options.height) || 1));
+    if (!scene) throw new Error('导入图片需要场景'); scene.assets = Object.assign({}, scene.assets || {}); const frames = normalizeFrames(options), assetId = unique(new Set(Object.keys(scene.assets)), slug(options && (options.assetId || options.name), 'image')), width = Math.max(1, Math.round(+(options && options.width) || 1)), height = Math.max(1, Math.round(+(options && options.height) || 1));
     const descriptor = Object.assign({ locator:frames[0].locator, width, height }, options && options.mime ? { mime:options.mime } : {}, options && options.recipe ? { recipe:Object.assign({}, options.recipe) } : {});
+    const sourceAssetId=String(options && options.sourceAssetId || '').trim(), derived=derivation(options && options.derivation);
+    if (sourceAssetId) descriptor.sourceAssetId=sourceAssetId;
+    if (derived) descriptor.derivation=derived;
+    const matte=alphaMask(options&&options.alphaMask); if(matte) descriptor.alphaMask=matte;
     if (frames.length > 1) { descriptor.frames = frames; descriptor.fps = Math.max(.1, +(options && options.fps) || 8); descriptor.frameLoop = options && options.frameLoop !== false; }
     scene.assets[assetId] = descriptor; return { assetId, width, height, frames:frames.length, fps:descriptor.fps || 0 };
   }
@@ -42,5 +66,5 @@
   function removeAsset(scene, assetId) { if (referenced(scene, assetId)) return false; if (!scene.assets || !scene.assets[assetId]) return false; delete scene.assets[assetId]; return true; }
   function addImage(scene, options) { const asset = addAsset(scene, options); return Object.assign(asset, placeImage(scene, asset.assetId, options)); }
   function addBackground(scene, options) { const asset = addAsset(scene, options); return Object.assign(asset, placeBackground(scene, asset.assetId, options)); }
-  global.EditorVNextAssetState = Object.freeze({ slug, normalizeFrames, addAsset, assetInfo, placeImage, placeBackground, referenced, removeAsset, addImage, addBackground });
+  global.EditorVNextAssetState = Object.freeze({ slug, normalizeFrames, derivation, alphaMask, addAsset, assetInfo, placeImage, placeBackground, referenced, removeAsset, addImage, addBackground });
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,0 +1,19 @@
+#!/usr/bin/env node
+/* Build the project descriptor for the explicit-trust home-scene Module.
+ * The module source stays a normal project file; this script only creates the
+ * v4 Scene JSON and report from a read-only Legacy JSON snapshot. */
+import { readFileSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { validateVNextScene } from './validate-scene-vnext.mjs';
+
+const here=dirname(fileURLToPath(import.meta.url)),root=resolve(here,'..');
+const n=(value,fallback)=>Number.isFinite(+value)?+value:fallback;
+function scenes(input){const names=Array.isArray(input.scenes)&&input.scenes.length?input.scenes:['场景 1'],loop=Math.max(.001,n(input.loop,4)),borders=Array.isArray(input.sceneBorders)?input.sceneBorders:[],edges=[0];for(let index=0;index<names.length-1;index++)edges.push(Math.max(0,Math.min(1,borders[index]==null?(index+1)/names.length:(+borders[index]>1?+borders[index]/loop:+borders[index]))));edges.push(1);return names.map((name,index)=>({id:`scene-${index+1}`,name:String(name),f:[edges[index],edges[index+1]]}));}
+export function buildHomeSceneModuleBaseline(snapshot, locator='examples/modules/home-scene-full-module.js'){
+  const input=snapshot||{},timelineScenes=scenes(input),module={format:'tosampool-scene-module/v1',id:'home-scene-full',version:1,title:'夜行列车完整场景',timeDependent:true,performance:'low',recommendedCanvas:{width:320,height:118},parameters:[{key:'motionScale',type:'number',default:1,min:0,max:2},{key:'windowLight',type:'color',default:'#ffd46b'},{key:'fogOpacity',type:'number',default:1,min:0,max:1},{key:'scene',type:'select',default:'auto',options:['auto','night','fog','pass','bridge']},{key:'seed',type:'number',default:1,min:0,max:9999,integer:true}]};
+  const scene={format:'tosampool-scene/v4',width:Math.max(1,n(input.w,320)),height:Math.max(1,n(input.h,118)),loop:Math.max(.001,n(input.loop,48)),background:{color:'#000000',alpha:0,layers:[]},assets:{},modules:{'home-scene-full':{version:1,manifest:module,locator}},entities:[{id:'home-scene-full',name:'夜行列车完整场景',type:'procedural',moduleId:'home-scene-full',moduleVersion:1,params:{motionScale:1,windowLight:'#ffd46b',fogOpacity:1,scene:'auto',seed:1},x:0,y:0,w:Math.max(1,n(input.w,320)),h:Math.max(1,n(input.h,118)),scaleX:1,scaleY:1,rot:0,alpha:1}],timeline:{tracks:{},scenes:timelineScenes},sceneEffects:{pipeline:['overlay','sample'],overlay:{},sample:{}}};
+  const validation=validateVNextScene(scene),report={format:'tosampool-home-scene-module-baseline-report',version:1,complete:validation.valid,summary:{module:1,converted:0,'module-required':0},items:[{sourceId:'home-scene',status:'module',targetId:'home-scene-full',reason:'完整项目 Module 保真对照；模块须经显式信任后执行'}],candidateValid:validation.valid,validationErrors:validation.errors};return Object.freeze({candidate:scene,report:Object.freeze(report),saveable:validation.valid});
+}
+function main(args){const input=args[0]&&resolve(args[0]);if(!input)throw new Error('用法：node scripts/build-home-scene-module-baseline.mjs <home-scene.snapshot.json> [输出目录] [模块源码 locator]');const output=resolve(args[1]||dirname(input)),external=args[2],locator=external||`data:text/javascript;charset=utf-8,${encodeURIComponent(readFileSync(resolve(root,'examples','modules','home-scene-full-module.js'),'utf8'))}`,result=buildHomeSceneModuleBaseline(JSON.parse(readFileSync(input,'utf8')),locator);writeFileSync(resolve(output,'home-scene.module-v4.tosampool.json'),JSON.stringify(result.candidate,null,2)+'\n','utf8');writeFileSync(resolve(output,'home-scene.module-v4.conversion-report.json'),JSON.stringify(result.report,null,2)+'\n','utf8');console.log(`${result.saveable?'✓':'!'} home-scene Module 基线 ${result.saveable?'通过':'未通过'}${external?'（外部源码）':'（内嵌源码）'}`);}
+if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))main(process.argv.slice(2));

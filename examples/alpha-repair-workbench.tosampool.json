@@ -1,0 +1,42 @@
+{
+  "format": "tosampool-scene/v4",
+  "version": 4,
+  "width": 640,
+  "height": 960,
+  "loop": 4,
+  "background": { "color": "#ffffff", "alpha": 1, "layers": [] },
+  "assets": {
+    "karsten-subject": {
+      "name": "人物主体 · Alpha 修边练习",
+      "locator": "assets/alpha-repair/karsten-subject-source.jpg",
+      "mime": "image/jpeg",
+      "width": 640,
+      "height": 960
+    },
+    "karsten-region": {
+      "name": "天空山脊 · 区域蒙版练习",
+      "locator": "assets/alpha-repair/karsten-region-source.jpg",
+      "mime": "image/jpeg",
+      "width": 640,
+      "height": 960
+    }
+  },
+  "entities": [
+    {
+      "id": "karsten-subject-source",
+      "name": "人物主体源图",
+      "type": "image",
+      "assetId": "karsten-subject",
+      "x": 0,
+      "y": 0,
+      "w": 640,
+      "h": 960,
+      "scaleX": 1,
+      "scaleY": 1,
+      "alpha": 1,
+      "effects": { "pipeline": ["mask", "decorate", "sample"], "mask": null, "decorate": {}, "sample": {} }
+    }
+  ],
+  "timeline": { "tracks": {}, "scenes": [{ "id": "alpha-repair", "name": "Alpha 修边", "f": [0, 1] }] },
+  "sceneEffects": { "pipeline": ["overlay", "sample"], "overlay": {}, "sample": {} }
+}

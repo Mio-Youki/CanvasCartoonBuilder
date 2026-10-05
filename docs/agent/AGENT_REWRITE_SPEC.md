@@ -1,31 +1,35 @@
-# 既有 JS → 可编辑场景协议（改写 Agent）
+# 既有 JS → ToSampool v4 迁移协议（改写 Agent）
 
-> 数据字段只以 [SCENE_SPEC.md](../../SCENE_SPEC.md) 为准。本文件只定义迁移策略与报告格式。
+> Scene 字段以 [VNEXT_SCENE_CONTRACT.md](../architecture/VNEXT_SCENE_CONTRACT.md) 为准；状态模型以 [LEGACY_V4_CONVERSION.md](../architecture/LEGACY_V4_CONVERSION.md) 为准。
 
 ## 目标
 
-将既有 Canvas/参数化场景尽可能迁移为 `GENERIC_SCENE`，或在保留项目代码的前提下整理为可由工具编辑的
-`HOME_SCENE` 配置。不得声称任意 Canvas 代码都可无损参数化。
+把既有 Canvas/参数化场景迁移为 v4 项目内容，不声称任意代码都能自动声明式参数化，也不因无法自动降级就判定不可迁移。v4 编辑器不读取旧 JS；提取、审计和 Module 适配都在编辑器外进行。
 
-## 转换分级
+## 迁移状态
 
-| 级别 | 处理 |
+| 状态 | 处理 |
 |---|---|
-| 完全转换 | 静态几何 → parts；位置、颜色、层级写入配置。 |
-| 内建近似 | 循环/闪烁/粒子 → `scroll`、`anim`、particle、FX、transition。 |
-| 素材化 | 复杂纹理或状态动画 → 图片/sprite，并保留位置、帧率、透明度、显示时段等编辑能力；需要可局部改色时，可为语义区域额外保留透明 PNG Alpha 蒙版，由 `fx.layers` 引用；已有动态轮廓时才可引用它作为元素蒙版。 |
-| 不可安全转换 | 列入报告；不生成不会执行的伪字段或自定义代码。 |
+| `converted` | 静态几何、图片、基础变换和可表达时序直接写入 Scene |
+| `builtin` | 明确映射到已有共享 Builtin |
+| `native-mappable` | 已知绘制语义可由现有 v4 图元、tile、滚动与时序展开，等待专用适配器 |
+| `hybrid` | 先保存可声明基底，专用绘制仍需项目 Scene Module |
+| `module-required` | 将作品专用绘制适配为独立 Module + Manifest |
+| `freeze-optional` / `frozen` | 用户可选择冻结为素材，并明确内部可编辑性损失 |
+| `manual` | 旧粒子、FX、背景时序等需要人工语义映射 |
+| `blocked` | 仅用于真正依赖 DOM、网络、外部全局状态或无法安全携带的逻辑 |
 
 ## 输出要求
 
-1. 主产物：合规 `GENERIC_SCENE` 或仅修改配置对象的兼容 `HOME_SCENE`。
-2. 元素映射表：原始代码段/视觉语义 → 新元素 → 转换级别。
-3. 迁移报告：完全转换、近似、素材化、未覆盖四类清单。
-4. 不能嵌入的原图/纹理，明确要求用户导入素材；不写无效外部路径。
-5. 高细节素材若需要后续局部调整，报告中列出语义区域（如 `tree.canopy`）与对应 `imageId`；使用 `mask:{type:'alpha',imageId,x,y,w,h}`，不以超长多边形点列伪造像素轮廓。若旧脚本已有稳定动态对象，可迁移为 `mask:{type:'element',targetId}`；必须报告被引用来源会在正常画面中自动隐藏，并验证不存在循环引用。
+1. v4 候选 Scene 与 `conversion-report/2`。
+2. 源视觉语义 → 目标对象/Module → 状态 → 损失的映射表。
+3. 选择 Module 时，提供独立源文件与 Manifest：稳定 id/version、bounds、公开参数、素材白名单、时间/seed 和性能等级。
+4. Scene JSON 不含函数、`program.code`、外部 URL 或未知 builtin。
+5. 报告仍有 `native-mappable / hybrid / module-required / freeze-optional / manual / blocked` 时，候选不得标记为完成迁移。
 
 ## 禁止事项
 
-- 不把任意顶层函数或自定义 Runtime 注入 Scene；只有用户明确要求重建精细程序层时，才可新增符合 `SCENE_SPEC` 程序元素外壳的 `program.code`，并同时报告其黑盒边界、公开参数和不可编辑内部。
-- 不输出尚未实现的 `keyframes`、Project 素材引用或自定义导出字段。
-- 不用散键（如 `x2`、`color3`）模拟场景差异；按场景变化使用 SCENE_SPEC 的数组规则。
+- 不在 v4 编辑器或转换器中执行 Legacy 文件。
+- 不把复杂专用画面强拆成大量低质量图元以伪造“完全可编辑”。
+- 不为单个作品特例扩充永久 Builtin；作品专用代码随项目作为 Scene Module 交付。
+- 不把项目 Module 注入共享 Player；它必须通过项目包和交付构建器显式携带。

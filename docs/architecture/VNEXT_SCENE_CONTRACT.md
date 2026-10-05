@@ -2,7 +2,7 @@
 
 > 2026-09-24 入口更新：正式迁移候选 `img2asset-v4-classic.html` 普通打开即进入 V4；`?legacy=1` 仅供 parity 对照。本文后续“候选默认 Legacy”的旧阶段描述已被本条取代。
 
-> 状态：隔离 Runtime 的持久化合同；尚未替换当前产品的 `canvas-cartoon-scene` 格式。
+> 状态：隔离 Runtime 的持久化合同。当前单文件 `.tosampool.json` 是工作区 Scene 快照；正式的“项目保存”将以 [项目包协议](V4_PROJECT_PACKAGE_PROTOCOL.md) 的 `tosampool-project/v1` 包裹它。网页部署与自包含测试页的边界见 [交付产物协议](V4_DELIVERY_ARTIFACT_PROTOCOL.md)，Agent 专用程序绘制见 [场景模块协议](V4_AGENT_SCENE_MODULE_PROTOCOL.md)。
 
 ## 两份同名场景，不混用职责
 
@@ -54,6 +54,7 @@ assets[id].locator      +    runtimeAssets[id] = CanvasImageSource
 - `group` 是父级变换；成员在 `entities` 中以 `parentId` 关联，仍按原数组顺序绘制。
 - 任意实体可声明 `hidden` 与 `locked`。`hidden` 同时影响 Runtime 与保存结果；`locked` 是持久的编辑权限，只阻止 Canvas 命中和直接变换，不隐藏或改变导出画面。“独显”不属于 Scene 字段，只能是编辑器临时预览状态。
 - 任意实体可声明 `pivot:{mode:'custom',x,y}`；`x/y` 是对象局部宽高内的 0–1 归一化坐标。缺省中心为 `0.5/0.5`。Runtime 世界矩阵、实际绘制、对象效果包围盒、粒子发射器和 Canvas 命中必须共同解释该字段；它不是仅供编辑器显示的元数据。
+- 可选 `sceneVariants` 是同一语义实体在不同顶层 Scene 的离散替代值数组。Runtime 只选择当前 Scene 的一项，再应用对象时序、父级变换和效果；它适合 Scene 边界上的图元/颜色/滚动布局替换，不是连续形变。Scene 1 的基底值仍写在实体自身，后续 Scene 才写覆盖项；当前 Inspector 不逐项编辑变体，Agent/外部转换器应仅在“拆成互斥实体明显浪费”时使用它。
 - `particle-emitter.particle.sourceId` 必须指向普通实体；它每帧按固定时间烘焙一次来源视觉胶囊后复用，因此来源的图元动态、对象变换与对象处理会自然进入粒子外观。发射器自身的 `x/y/w/h` 是出生范围，不是来源实体边界。
 - 粒子发射、运动与外观参数位于 `particle`：`count / life / speed / direction / spread / gravity / wind / size / sizeVar / alpha / fade / seed / spin / spinSpeed / spinVar`。图片来源可额外声明 `playback:'static'|'particle-age' / frame / frameFps / frameLoop`：后者按每颗粒子的寿命选择其多帧素材，普通对象自身仍按场景时间播放。它们只接受 Step 时序；轨道仍使用发射器 id，稀疏键写成 `particle.speed` 这类点号路径。
 - 编辑器内置预设可创建 `particleSourceOnly:true` 的私有普通实体。它仍是可被 Runtime 烘焙的声明式实体，但不在主场景重复绘制，也不占用结构树；`particle.sourceOwned:true` 表示删除发射器时可在无人共享的前提下级联清理。普通“粒子化”只建立动态 `sourceId` 引用，不复制或冻结源对象。
@@ -66,6 +67,13 @@ assets[id].locator      +    runtimeAssets[id] = CanvasImageSource
 - Builtin 绘制只接收 Canvas context、归一化对象值和固定时间，不得读取 DOM、网络或编辑器状态。Scene 永远不保存函数体、`program.code` 或动态脚本。
 - Agent 使用 `docs/agent/BUILTIN_MANIFEST_V4.json` 选择构件；清单无法表达的画面应使用图片/图元，或先扩展 Registry 并完成测试，不能伪造 builtin id。
 - `effects.mask` 的元素引用和 `parentId` 都不允许形成循环。
+
+### 项目 Scene Module
+
+- 作品专用程序绘制使用普通实体 `type:"procedural"`，以稳定的 `moduleId / moduleVersion / params` 引用项目 Module。
+- 持久 Scene JSON 仍不保存函数体。模块源、`tosampool-scene-module/v1` Manifest 与依赖素材属于 `tosampool-project/v1` 的独立项目内容；网页交付构建器会把被引用模块带入 `scene.runtime.js` 或 `scene.embed.html`。
+- Module 不是 Builtin，也不要求进入共享 Runtime。Host 只在用户明确信任后加载项目模块；Runtime 仅向其传入局部 Canvas、固定时间、顶部 Scene 的 `sceneIndex / sceneProgress`、尺寸、已声明参数/素材和确定性随机入口。自动 Scene 行为必须读取这组上下文，而不能暗中假定固定循环长度。Module 注册还必须带项目会话作用域；`moduleId / version` 只在该作用域内唯一，避免同页或 Tauri 连续打开的项目互相覆盖。
+- 普通对象、图片、Module、Builtin 都是可选载体。Agent 必须按编辑收益、保真、复用范围和性能选择，不得因画面复杂就一律模块化，也不得为了声明式纯度牺牲画面。
 
 ## 校验与边界
 
@@ -150,4 +158,4 @@ effect:scene:<stage>:<effectId>
 
 `img2asset-vnext.html` 是纯 v4 实验页：打开即创建或读取 `tosampool-scene/v4` JSON，页面只运行 v4 Runtime 与控制器；它不再承担产品迁移完成度。`img2asset-v4-classic.html` 是正式候选，必须保持未迁移表面的 Legacy 行为等价，并只在活动 v4 Session 中把已验收领域路由到 v4 Workspace。
 
-`img2asset-layout-v1.html` 保留为独立 legacy 工具。旧 `home-scene.js` 同时携带默认画面、专用绘制函数、旧 Runtime 与浏览器生命周期，不能被当作 v4 Scene。未来若提供“导入旧 JS”，必须是明确的转换向导：基础图元/图片可转换；任意程序代码必须保留在 legacy、映射为已注册 builtin，或由用户选择冻结为素材，不能静默执行。
+`img2asset-layout-v1.html` 保留为独立 legacy 工具。旧 `home-scene.js` 同时携带默认画面、专用绘制函数、旧 Runtime 与浏览器生命周期，不能被当作 v4 Scene。外部转换器可提取声明式数据；已知绘制逻辑应先标为 `native-mappable` 并由外部语义适配器展开为普通 v4 对象，未知或不可安全解析的逻辑才标为 `module-required`，也可由用户选择冻结为素材。v4 编辑器本身不导入或执行旧 JS。

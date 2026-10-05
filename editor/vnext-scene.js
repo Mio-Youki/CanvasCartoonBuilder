@@ -3,7 +3,7 @@
   'use strict';
 
   const FORMAT = 'tosampool-scene/v4';
-  const transient = new Set(['runtimeAssets', '_runtime', '_image', '_canvas', '_bitmap']);
+  const transient = new Set(['runtimeAssets', '_runtime', '_image', '_canvas', '_bitmap', '_moduleScope']);
   const copy = value => value == null ? value : JSON.parse(JSON.stringify(value, (key, item) => transient.has(key) ? undefined : item));
   /* v4.1: the field and Alpha edge policy are not shared controllers.  They
      are meaningful only while uneven sampling is enabled, so persist them
@@ -57,7 +57,16 @@
     return { format: FORMAT, width: Math.max(1, +options.width || 320), height: Math.max(1, +options.height || 180), loop: Math.max(.001, +options.loop || 4), background: { color: '#ffffff', alpha: 1, layers: [] }, assets: {}, entities: [], timeline: { tracks: {} }, sceneEffects: { pipeline: ['overlay', 'sample'], overlay: {}, sample: {} } };
   }
   function serialize(scene, space) { const document = normalize(scene); document.format = FORMAT; delete document.runtimeAssets; return JSON.stringify(document, null, space == null ? 2 : space); }
-  function hydrate(document, runtimeAssets) { const scene = normalize(document); scene.format = FORMAT; scene.runtimeAssets = runtimeAssets || {}; return scene; }
+  function hydrate(document, runtimeAssets) {
+    const scene = normalize(document);
+    // `_moduleScope` is deliberately transient: it must never be written to a
+    // project file, but it has to survive the editor → Runtime handoff so two
+    // open projects may register an identical Module id without colliding.
+    scene._moduleScope = String(document && (document._moduleScope || document.moduleScope) || 'global');
+    scene.format = FORMAT;
+    scene.runtimeAssets = runtimeAssets || {};
+    return scene;
+  }
   function assetRef(locator, extra) { return Object.assign({ locator: String(locator || '') }, extra || {}); }
   global.EditorVNextScene = Object.freeze({ FORMAT, blank, serialize, hydrate, normalize, normalizeSample, assetRef });
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -13,7 +13,7 @@
       const rawFrames=Array.isArray(value.frames)&&value.frames.length?value.frames:[value.source || value.file].filter(Boolean);
       if(!rawFrames.length) return {error:'素材描述没有 source 或 frames',path:slash(record.path)};
       const frames=rawFrames.map(frame=>join(dirname(record.path),typeof frame==='string'?frame:(frame.file || frame.locator)));
-      return {path:slash(record.path),id:String(value.id || ''),name:String(value.name || value.id || '素材'),kind:value.kind==='sequence'||frames.length>1?'sequence':'image',frames,fps:Math.max(.1,+value.fps||8),frameLoop:value.frameLoop!==false,recipe:value.recipe || null};
+      return {path:slash(record.path),id:String(value.id || ''),name:String(value.name || value.id || '素材'),kind:value.kind==='sequence'||frames.length>1?'sequence':'image',frames,fps:Math.max(.1,+value.fps||8),frameLoop:value.frameLoop!==false,recipe:value.recipe || null,sourceAssetId:String(value.sourceAssetId || ''),derivation:value.derivation || null};
     } catch (_) { return null; }
   }
   function plan(records) {

@@ -19,20 +19,26 @@
       if (before !== after) { undoStack.push({ label: String(label || '编辑场景'), before, after }); trim(undoStack); redoStack.length = 0; }
       return result;
     }
+    /* Snapshot serialization intentionally removes the transient module scope.
+       Restoring it with a freshly generated scope makes already trusted
+       project Modules disappear from Runtime: the selection reads the restored
+       document, while the old canvas keeps its last frame after render fails.
+       A history operation is within one Workspace, so retain its scope. */
+    function restore(text) { return workspace.replace(parse(text), { moduleScope:workspace.moduleScope }); }
     function undo() {
       const entry = undoStack.pop();
       if (!entry) return false;
-      workspace.replace(parse(entry.before)); redoStack.push(entry); return entry.label;
+      restore(entry.before); redoStack.push(entry); return entry.label;
     }
     function redo() {
       const entry = redoStack.pop();
       if (!entry) return false;
-      workspace.replace(parse(entry.after)); undoStack.push(entry); return entry.label;
+      restore(entry.after); undoStack.push(entry); return entry.label;
     }
     function clear() { undoStack.length = 0; redoStack.length = 0; }
     function begin(label) { return Object.freeze({ label:String(label || '编辑场景'), before:snapshot(workspace) }); }
     function commit(token) { if (!token || typeof token.before !== 'string') throw new Error('无效的手势事务'); const after = snapshot(workspace); if (token.before !== after) { undoStack.push({ label:token.label, before:token.before, after }); trim(undoStack); redoStack.length = 0; return true; } return false; }
-    function cancel(token) { if (!token || typeof token.before !== 'string') throw new Error('无效的手势事务'); workspace.replace(parse(token.before)); return true; }
+    function cancel(token) { if (!token || typeof token.before !== 'string') throw new Error('无效的手势事务'); restore(token.before); return true; }
     return Object.freeze({ run, begin, commit, cancel, undo, redo, clear, get canUndo() { return undoStack.length > 0; }, get canRedo() { return redoStack.length > 0; }, get undoLabel() { return undoStack.length ? undoStack[undoStack.length - 1].label : null; }, get redoLabel() { return redoStack.length ? redoStack[redoStack.length - 1].label : null; } });
   }
   global.EditorVNextSceneMutation = Object.freeze({ create });

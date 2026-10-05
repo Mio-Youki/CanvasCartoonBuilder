@@ -70,7 +70,7 @@ Controller 可以从 v4 Scene 派生 Legacy 习惯的卡片或轨道，但所有
 | A：无作品数据的体验代码 | 高 DPI Overlay、视口缩放/平移、按键、滚动定位、DOM 布局 | 原样或轻改复用 |
 | B：可映射交互 | 图片放置、选择框、结构树排序、预处理、时间轴手势 | 复用交互，替换为 Facade 写入 |
 | C：需先补 v4 schema / Runtime | Scene 段、图元、复杂多帧、pivot、可编辑路径 | 字段/Runtime 就绪前不解锁 |
-| D：旧格式特有 | `program.code`、专用绘制函数、`fx.layers`、旧 `show` | 不复用执行逻辑；转换为 builtin、素材冻结或保留 Legacy |
+| D：旧格式特有 | `program.code`、专用绘制函数、`fx.layers`、旧 `show` | 不复用旧执行入口；外部报告分流为普通 v4 对象、项目 Scene Module、builtin、冻结、人工映射或真正阻塞 |
 
 ## 5. 迁移切片与完成定义
 

@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 import vm from 'node:vm';
 
 const FORMAT = 'tosampool-scene/v4';
-const TYPES = new Set(['rect', 'ellipse', 'line', 'poly', 'vector', 'text', 'image', 'group', 'particle-emitter', 'builtin']);
+const TYPES = new Set(['rect', 'ellipse', 'line', 'poly', 'vector', 'text', 'image', 'group', 'particle-emitter', 'builtin', 'procedural']);
 const builtinSandbox={};
 for(const file of ['00-namespace.js','15-builtin-registry.js'])new vm.Script(readFileSync(resolve(import.meta.dirname,'..','runtime-src','vnext',file),'utf8'),{filename:file}).runInNewContext(builtinSandbox);
 const BUILTIN_REGISTRY=builtinSandbox.ToSampoolRuntimeVNext.modules.builtins;
@@ -43,6 +43,11 @@ export function validateVNextScene(scene) {
         const definition=BUILTIN_REGISTRY.definition(id,version),allowed=new Set(definition.params.map(param=>param.key));
         for(const key of Object.keys(entity.builtin.params))if(!allowed.has(key))fail(`内建组件「${entity.id}」包含未声明参数：${key}`);
       }
+    }
+    if (entity.type === 'procedural') {
+      if(typeof entity.moduleId!=='string'||!entity.moduleId.trim())fail(`程序构件「${entity.id}」必须含稳定 moduleId`);
+      if(!Number.isInteger(+entity.moduleVersion)||+entity.moduleVersion<1)fail(`程序构件「${entity.id}」的 moduleVersion 必须是正整数`);
+      if(entity.params!==undefined&&!object(entity.params))fail(`程序构件「${entity.id}」的 params 必须是对象`);
     }
     if (entity.type === 'particle-emitter') { const source = byId.get(entity.particle?.sourceId); if (!source || source.type === 'group' || source.type === 'particle-emitter') fail(`粒子发射器「${entity.id}」必须引用普通 sourceId`); }
     const mask = entity.effects?.mask;

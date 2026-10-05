@@ -36,7 +36,7 @@
     let target = out;
     for (let index = 0; index < parts.length - 1; index++) {
       const part = parts[index];
-      target[part] = Object.assign({}, target[part] || {});
+      target[part] = Array.isArray(target[part]) ? target[part].slice() : Object.assign({}, target[part] || {});
       target = target[part];
     }
     target[parts[parts.length - 1]] = value;

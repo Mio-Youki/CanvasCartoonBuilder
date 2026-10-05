@@ -1,12 +1,12 @@
 # Agent Tool Protocol（草案）
 
-> 目标：让外部 Agent 与 Patcharium / 拼好景围绕同一 Scene 合同协作，而不是让 Agent 直接操控不稳定的界面坐标或输出无法验证的任意 Canvas 代码。
+> 目标：让外部 Agent 与 ToSampool / 图森破围绕同一 v4 项目合同协作，而不是让 Agent 直接操控不稳定的界面坐标或输出无法验证的任意 Canvas 代码。
 >
 > 字段真相仍以 [SCENE_SPEC.md](../../SCENE_SPEC.md) 为准；视觉生成步骤见 [AGENT_GENERATE_SPEC.md](AGENT_GENERATE_SPEC.md)。本文件只定义协作动作、输入输出与验收。
 
 ## 1. 设计原则
 
-1. **Scene 是共同中间物**：Agent 修改的是 Scene 或声明式 Patch，不修改 Runtime 内部逻辑。
+1. **项目内容是共同中间物**：声明式对象修改使用 Scene Patch；项目 Scene Module 作为独立、显式、可审阅的项目文件修改，不把源码塞进 Scene，也不修改共享 Runtime。
 2. **先诊断，后变更**：每次修改先读取场景摘要和固定时间预览，再限定目标对象与影响范围。
 3. **最小 Patch**：一次请求只改必要对象；保留稳定 `id`、命名和未涉及的层级。
 4. **可验证、可撤销**：每次 Patch 都应有校验结果、固定时间预览点和可回退的前态。
@@ -22,7 +22,8 @@
 | `renderFrame` | Scene + 确定 `t` | 预览图与运行告警；不得依赖编辑器 RAF 状态 |
 | `locate` | `id` / 名称 / 语义 | 精确对象、父组、相关蒙版/FX/时段与包围盒 |
 | `proposePlan` | 用户意图 + 参考材料 | 元素表、载体判断、修改范围、不可保真项；不直接伪造图片资源 |
-| `applyScenePatch` | 声明式 Patch | 新 Scene、变更摘要、保留的稳定 id；不得注入顶层 Runtime 函数。程序元素仅可作为显式 `program.code` 字段整体替换，并报告其公开参数与黑盒边界 |
+| `applyScenePatch` | 声明式 Patch | 新 Scene、变更摘要、保留的稳定 id；不得注入函数或 `program.code`。程序对象只能引用已随项目提供并经信任的 Module id/version |
+| `updateSceneModule` | 项目 Module 源 + Manifest | 独立文件变更、公开参数差异、素材依赖、固定时间验证和信任提示；不得绕过项目边界修改共享 Runtime |
 | `validateScene` | Scene | Schema、引用循环、资源、保存往返和固定时间渲染结果 |
 | `compareFrames` | 基准帧 + 新帧 | 差异摘要与人工审稿点；只辅助判断，不作为唯一视觉质量标准 |
 
@@ -49,9 +50,9 @@
 | 阶段 | Agent 可见能力 | 必交付物 |
 |---|---|---|
 | 视觉规划 | 参考角色、画布、元素表、可编辑性预算 | 场景蓝图与载体判断 |
-| 初始生成 | 基础图片/parts/组/层级、基础动画、场景段 | 合规 `GENERIC_SCENE`、元素表、近似说明 |
+| 初始生成 | 普通对象、图片/序列、组、粒子、可选项目 Module、基础动画与场景段 | 合规 v4 Scene/Project、载体表、近似说明 |
 | 局部修正 | 目标对象、当前预览、必要的蒙版/FX/时序字段 | 最小 Patch、前后预览点、验证结果 |
-| 兼容迁移 | 既有 JS 与受支持字段 | 映射表、转换等级、不可转换清单 |
+| 兼容迁移 | 既有 JS 与受支持字段 | 报告 v2、转换/混合/Module/冻结/人工/真正阻塞清单 |
 
 不要在初始生成提示中强制讲解所有时序轨道、复杂蒙版或局部 FX；这会增加不必要的 schema 噪声。高级能力应由明确用户需求或工具诊断触发。
 

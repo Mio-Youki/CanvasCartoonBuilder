@@ -1,0 +1,9 @@
+{
+  "format": "tosampool-carrier-report/v1",
+  "version": 1,
+  "objects": [
+    {"id":"cabin","semantic":"发光小木屋","carrier":"普通对象与图元","editable":["位置","尺寸","窗灯颜色"],"frozen":[],"budget":{"tier":"low","reason":"三图元构成，直接绘制。"}},
+    {"id":"snow","semantic":"降雪","carrier":"粒子发射器","editable":["数量","速度","范围"],"frozen":["雪粒形状"],"budget":{"tier":"low","reason":"共享单个粒子实体。"}}
+  ],
+  "notes": "用于验证 Draft Package v1。"
+}
