@@ -1,0 +1,52 @@
+{
+  "status": "design-proposal-not-runtime-schema",
+  "units": "local-coordinate-units",
+  "lengthSemantics": "centerline",
+  "defaults": {
+    "layout": "full",
+    "shape": "orthogonal",
+    "fullSides": "both",
+    "cornerSet": ["tl", "br"],
+    "width": 240,
+    "height": 240,
+    "thickness": 24,
+    "horizontalLength": 60,
+    "verticalLength": 60,
+    "cornerRadius": 0,
+    "color": "#CCCCCC",
+    "opacity": 1
+  },
+  "variations": [
+    {
+      "id": "reference-left-square",
+      "label": "参考方向：粗左方括号",
+      "overrides": {"fullSides": "left", "width": 96, "height": 192, "thickness": 32, "horizontalLength": 32}
+    },
+    {
+      "id": "reference-top-left",
+      "label": "参考方向：粗左上角标",
+      "overrides": {"layout": "corners", "cornerSet": ["tl"], "width": 192, "height": 192, "thickness": 32, "horizontalLength": 156, "verticalLength": 156}
+    },
+    {
+      "id": "thin-parentheses",
+      "label": "细圆弧成对括号",
+      "overrides": {"shape": "arc", "width": 280, "height": 200, "thickness": 8, "horizontalLength": 40, "color": "#E8EDF5"}
+    },
+    {
+      "id": "rounded-diagonal",
+      "label": "圆角对角标记",
+      "overrides": {"layout": "corners", "cornerSet": ["tl", "br"], "width": 260, "height": 160, "thickness": 12, "horizontalLength": 64, "verticalLength": 40, "cornerRadius": 18, "color": "#78D4C4", "opacity": 0.85}
+    },
+    {
+      "id": "four-corner-frame",
+      "label": "四角取景框",
+      "overrides": {"layout": "corners", "cornerSet": ["tl", "tr", "bl", "br"], "width": 320, "height": 180, "thickness": 10, "horizontalLength": 56, "verticalLength": 36, "color": "#FFFFFF"}
+    },
+    {
+      "id": "arc-opposite-diagonal",
+      "label": "反对角圆弧角标",
+      "overrides": {"layout": "corners", "shape": "arc", "cornerSet": ["bl", "tr"], "width": 260, "height": 200, "thickness": 18, "horizontalLength": 72, "verticalLength": 52, "color": "#F0B86C"}
+    }
+  ],
+  "interpretation": "Merge each overrides object over defaults; apply the geometry and bounds in design.md. This is a proposal for implementation review, not an asserted application format."
+}

@@ -17,10 +17,10 @@
     vga: Object.freeze([[0,0,0],[128,0,0],[0,128,0],[128,128,0],[0,0,128],[128,0,128],[0,128,128],[192,192,192],[128,128,128],[255,0,0],[0,255,0],[255,255,0],[0,0,255],[255,0,255],[0,255,255],[255,255,255]]),
     gb: Object.freeze([[15,56,15],[48,98,48],[139,172,15],[155,188,15]]),
   });
-  // A colour map is often applied every preview frame. Keep extraction and
-  // nearest-colour lookup separate: the palette keeps source RGB precision,
-  // while the 5-bit lookup table keeps the per-pixel mapping inexpensive.
+  // Persist extracted palettes in the effect. RGB5 cells are only a fast-path:
+  // ambiguous cells resolve the original RGB exactly instead of merging it.
   const colorMapCache = new Map(), COLOR_MAP_CACHE_LIMIT = 12, AUTO_PALETTE_SOURCE_LIMIT = 65536;
+  const autoColorCount=value=>2**clamp(Math.round(Math.log2(Math.max(2,+value||16))),1,6);
   const rgb5 = (r, g, b) => ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
   const rgb5Color = code => [((code >> 10) & 31) * 8 + 4, ((code >> 5) & 31) * 8 + 4, (code & 31) * 8 + 4];
   function sourceFingerprint(data) {
@@ -29,51 +29,70 @@
     return (hash >>> 0).toString(36);
   }
   function putColorMapCache(key, value) { colorMapCache.delete(key); colorMapCache.set(key, value); if (colorMapCache.size > COLOR_MAP_CACHE_LIMIT) colorMapCache.delete(colorMapCache.keys().next().value); return value; }
-  // Keep the source palette in full RGB, not RGB555.  The older version made
-  // 16+ colours converge prematurely because it merged nearby source hues
-  // before Median Cut had a chance to divide them.  Mapping still uses a
-  // 32³ LUT afterwards, just like PixelTool, so this costs only on cache miss.
   function boxStats(items) { let minR=255,minG=255,minB=255,maxR=0,maxG=0,maxB=0,weight=0; for (const entry of items) { const {r,g,b}=entry; if(r<minR)minR=r;if(r>maxR)maxR=r;if(g<minG)minG=g;if(g>maxG)maxG=g;if(b<minB)minB=b;if(b>maxB)maxB=b;weight+=entry.count; } return { items, minR, minG, minB, maxR, maxG, maxB, weight }; }
   function autoPalette(data, count) {
-    // Match the useful part of PixelTool's behaviour: gather exact source
-    // colours (bounded for pathological photographs), then use weighted
-    // Median Cut.  Do not alpha-weight colours: a semi-transparent anti-aliased
-    // edge must not crowd out the image's actual paint colours.
+    // Bound sample count, not the first colours encountered. Cover the whole
+    // image uniformly; exact RGB and frequency are retained within the sample.
     const histogram = new Map();
-    for (let i=0;i<data.length;i+=4) {
+    const pixels=data.length>>>2,samples=Math.min(pixels,AUTO_PALETTE_SOURCE_LIMIT);
+    for (let sample=0;sample<samples;sample++) {
+      const i=Math.floor((sample+.5)*pixels/samples)*4;
       if (data[i+3] < 128) continue;
       const code=(data[i]<<16)|(data[i+1]<<8)|data[i+2], known=histogram.get(code);
       if (known) known.count += 1;
-      else if (histogram.size < AUTO_PALETTE_SOURCE_LIMIT) histogram.set(code,{r:data[i],g:data[i+1],b:data[i+2],count:1});
+      else histogram.set(code,{r:data[i],g:data[i+1],b:data[i+2],count:1});
     }
-    const entries=Array.from(histogram.values());
+    const entries=Array.from(histogram.values()).sort((a,b)=>a.r-b.r||a.g-b.g||a.b-b.b);
     if (!entries.length) return [[0,0,0]];
     const boxes=[boxStats(entries)];
     while(boxes.length<count){
       let pick=-1,score=-1;
       for(let index=0;index<boxes.length;index++){const box=boxes[index],range=Math.max(box.maxR-box.minR,box.maxG-box.minG,box.maxB-box.minB),next=range*box.weight;if(box.items.length>1&&next>score){score=next;pick=index;}}
       if(pick<0)break;
-      const box=boxes[pick],ranges=[box.maxR-box.minR,box.maxG-box.minG,box.maxB-box.minB],channel=ranges.indexOf(Math.max(...ranges)),items=box.items.slice().sort((a,b)=>channel===0?a.r-b.r:channel===1?a.g-b.g:a.b-b.b),half=box.weight/2;
+      const box=boxes[pick],ranges=[box.maxR-box.minR,box.maxG-box.minG,box.maxB-box.minB],channel=ranges.indexOf(Math.max(...ranges)),items=box.items.slice().sort((a,b)=>(channel===0?a.r-b.r:channel===1?a.g-b.g:a.b-b.b)||a.r-b.r||a.g-b.g||a.b-b.b),half=box.weight/2;
       let cumulative=0,split=1; for(;split<items.length;split++){cumulative+=items[split-1].count;if(cumulative>=half)break;}
+      split=Math.min(items.length-1,split); // A dominant last colour must not create an empty box.
       boxes.splice(pick,1,boxStats(items.slice(0,split)),boxStats(items.slice(split)));
     }
     return boxes.map(box=>{let r=0,g=0,b=0,total=0;for(const entry of box.items){r+=entry.r*entry.count;g+=entry.g*entry.count;b+=entry.b*entry.count;total+=entry.count;}return [Math.round(r/total),Math.round(g/total),Math.round(b/total)];});
   }
-  function paletteLut(palette) { const lut=new Uint16Array(32768); for(let code=0;code<lut.length;code++){const [r,g,b]=rgb5Color(code);let best=0,distance=Infinity;for(let index=0;index<palette.length;index++){const candidate=palette[index],dr=r-candidate[0],dg=g-candidate[1],db=b-candidate[2],next=dr*dr+dg*dg+db*db;if(next<distance){distance=next;best=index;}}lut[code]=best;} return lut; }
+  function paletteLut(palette){return {palette,lut:new Uint8Array(32768),status:new Uint8Array(32768),exact:new Map()};}
+  function paletteIndex(mapped,r,g,b){
+    const {palette,lut,status,exact}=mapped,code=rgb5(r,g,b);
+    if(!status[code]){
+      const [cr,cg,cb]=rgb5Color(code);let best=0,distance=Infinity;
+      for(let i=0;i<palette.length;i++){const p=palette[i],d=(cr-p[0])**2+(cg-p[1])**2+(cb-p[2])**2;if(d<distance){distance=d;best=i;}}
+      const winner=palette[best];let safe=true;
+      for(let i=0;i<palette.length;i++){if(i===best)continue;const p=palette[i],margin=(cr-p[0])**2+(cg-p[1])**2+(cb-p[2])**2-distance,variation=8*(Math.abs(p[0]-winner[0])+Math.abs(p[1]-winner[1])+Math.abs(p[2]-winner[2]));if(margin<=variation){safe=false;break;}}
+      lut[code]=best;status[code]=safe?1:2;
+    }
+    if(status[code]===1)return lut[code];
+    const rgb=(r<<16)|(g<<8)|b,known=exact.get(rgb);if(known!==undefined)return known;
+    let best=0,distance=Infinity;for(let i=0;i<palette.length;i++){const p=palette[i],d=(r-p[0])**2+(g-p[1])**2+(b-p[2])**2;if(d<distance){distance=d;best=i;}}
+    if(exact.size<4096)exact.set(rgb,best);return best;
+  }
+  function extractedPalette(config){
+    const value=config.extracted,limit=autoColorCount(config.colors);
+    if(!value||value.colors!==limit||!Array.isArray(value.entries)||!value.entries.length||value.entries.length>limit)return null;
+    if(value.entries.some(p=>!Array.isArray(p)||p.length!==3||p.some(v=>!Number.isInteger(v)||v<0||v>255)))return null;
+    return value.entries;
+  }
   function mappedPalette(data, config) {
-    const selected = config.palette === 'none' ? 'auto' : config.palette || 'auto', colors=clamp(Math.round(+config.colors || 16),2,256), named=Array.isArray(selected)?selected:PALETTES[selected];
+    const selected = config.palette === 'none' ? 'auto' : config.palette || 'auto', colors=autoColorCount(config.colors), named=Array.isArray(selected)?selected:PALETTES[selected];
     if (selected !== 'auto' && !named) throw new Error(`未知调色板：${selected}`);
-    const key = named ? `named:${Array.isArray(selected) ? JSON.stringify(selected) : selected}` : `auto:${colors}:${sourceFingerprint(data)}`;
+    const fixed=selected==='auto'&&extractedPalette(config);
+    const key = named ? `named:${Array.isArray(selected) ? JSON.stringify(selected) : selected}` : fixed?`fixed:${JSON.stringify(fixed)}`:`auto:${colors}:${sourceFingerprint(data)}`;
     const cached=colorMapCache.get(key); if(cached){colorMapCache.delete(key);colorMapCache.set(key,cached);return cached;}
-    const palette=named ? named.map(entry=>entry.slice()) : autoPalette(data,colors);
-    return putColorMapCache(key,{palette,lut:paletteLut(palette)});
+    const palette=(named||fixed)?(named||fixed).map(entry=>entry.slice()):autoPalette(data,colors);
+    return putColorMapCache(key,paletteLut(palette));
   }
   // Sampling grid is a real, visible nearest-neighbour resample pass.  It is
   // deliberately not merely a coordinate controller: this is the v4 form of
   // Legacy's pixelDiv contract and the common low-resolution work surface for
   // boil / halftone / uneven sampling.
   const gridSize = group => Math.max(1, Math.round(+((group && group.controllers && group.controllers['sampling-grid'] || {}).size || 1)));
-  const hasBaseGrid = group => gridSize(group) > 1;
+  const gridAlphaMode = group => ((group && group.controllers && group.controllers['sampling-grid'] || {}).alphaMode || 'keep');
+  const hasBaseGrid = group => gridSize(group) > 1 || gridAlphaMode(group) !== 'keep';
   const tickAt = (config, time) => {
     const motion = config.motion || {};
     if (!motion.enabled) return 0;
@@ -88,33 +107,96 @@
     if(surfaces.notePixels)surfaces.notePixels(source.width,source.height,1);transform(from.data, to.data, source.width, source.height);
     out.putImageData(to, 0, 0); return output;
   }
-  function colorMap(source, config, surfaces, time) {
-    // Palette flash is deliberately binary: one full cycle contains original
-    // and mapped states. Its period therefore replaces both the former step
-    // count and amount controls. Returning the source on its original phase
-    // also avoids an unnecessary full pixel pass for half its frames.
-    const selected=config.palette === 'none' ? 'auto' : config.palette || 'auto',colors=clamp(Math.round(+config.colors || 16),2,256);
-    // Keep PixelTool's useful ceiling contract without changing the control:
-    // automatic 256 means “preserve source colour”, while named/custom palettes
-    // remain explicit mappings. This makes the upper end visibly recover the
-    // original image instead of looking like another near-identical reduction.
-    if (selected === 'auto' && colors === 256) return source;
-    const motion=config.motion||{},flash=motion.enabled&&motion.type==='palette-flash',period=Math.max(.001,+motion.period||1),tick=Math.floor(time/period*2),mix=flash?(tick%2?1:0):1;
-    if (mix === 0) return source;
+  function remapEdgeAlpha(data, mode) {
+    if (mode !== 'remove' && mode !== 'boost') return data;
+    for (let i = 3; i < data.length; i += 4) {
+      const value = data[i];
+      data[i] = mode === 'remove' ? (value >= 128 ? 255 : 0) : (value > 0 ? 255 : 0);
+    }
+    return data;
+  }
+  function edgeAlpha(source, group, surfaces) {
+    const mode = gridAlphaMode(group);
+    if (mode === 'keep') return source;
+    return withPixels(source, surfaces, (from, to) => { to.set(from); remapEdgeAlpha(to, mode); });
+  }
+  function colorMap(source, config, surfaces, time, frame) {
+    if(config.mode==='gradient'){
+      const paint=api.modules.paint.normalize(config.gradient)||{type:'linear',stops:[{offset:0,color:'#000000',alpha:1},{offset:1,color:'#ffffff',alpha:1}]},key='ramp:'+JSON.stringify(paint.stops),lut=colorMapCache.get(key)||putColorMapCache(key,api.modules.paint.ramp(paint));
+      return withPixels(source,surfaces,(from,to)=>{
+        for(let i=0;i<from.length;i+=4){
+          const at=Math.round(from[i]*.2126+from[i+1]*.7152+from[i+2]*.0722)*4;
+          to[i]=lut[at];to[i+1]=lut[at+1];to[i+2]=lut[at+2];to[i+3]=from[i+3]*lut[at+3]/255;
+        }
+      });
+    }
+    // Every discrete count is a real reduction; no special original-colour bypass.
     return withPixels(source, surfaces, (from, to) => {
-      const mapped=mappedPalette(from,config),palette=mapped.palette,lut=mapped.lut;
+      const request=frame&&frame.paletteCapture,target=frame&&frame.paletteTarget,capture=request&&target&&request.scope===target.scope&&request.ownerId===target.ownerId;
+      const mapped=capture?paletteLut(autoPalette(from,autoColorCount(config.colors))):mappedPalette(from,config),palette=mapped.palette;
+      if(capture)request.receive({colors:autoColorCount(config.colors),entries:palette.map(p=>p.slice())});
       for (let i = 0; i < from.length; i += 4) {
-        const best=palette[lut[rgb5(from[i],from[i+1],from[i+2])]];
-        to[i] = from[i]+(best[0]-from[i])*mix; to[i + 1] = from[i+1]+(best[1]-from[i+1])*mix; to[i + 2] = from[i+2]+(best[2]-from[i+2])*mix;
+        const best=palette[paletteIndex(mapped,from[i],from[i+1],from[i+2])];
+        to[i] = best[0]; to[i + 1] = best[1]; to[i + 2] = best[2];
         to[i + 3] = from[i + 3];
       }
     });
   }
   function threshold(source, config, surfaces, time) {
-    const dark = color(config.dark), light = color(config.light), motion = config.motion || {}, pulse = motion.enabled ? (+motion.amount || 0) * Math.sin(time / Math.max(.001, +motion.period || 1) * Math.PI * 2) : 0;
-    const pivot = clamp((+config.threshold || .5) + pulse, 0, 1) * 255;
+    const dark = color(config.dark), light = color(config.light), motion = config.motion || {},pulse = motion.enabled ? (+motion.amount || 0) * api.modules.motion.oscillate(motion,time,{stepped:true,frames:12}) : 0;
+    const pivot = clamp((config.threshold==null?.5:+config.threshold) + pulse, 0, 1) * 255;
     return withPixels(source, surfaces, (from, to) => {
       for (let i = 0; i < from.length; i += 4) { const luma = from[i] * .2126 + from[i + 1] * .7152 + from[i + 2] * .0722, pick = luma >= pivot ? light : dark; to[i] = pick[0]; to[i + 1] = pick[1]; to[i + 2] = pick[2]; to[i + 3] = from[i + 3]; }
+    });
+  }
+  function noiseDither(source, config, surfaces, time) {
+    const amount=clamp(+config.amount||0,0,100);
+    if(!amount)return source;
+    const size=Math.max(1,Math.min(16,Math.round(+config.size||1))),seed=Math.round(+config.seed||0),rgb=config.colorMode==='rgb',motion=config.motion||{},period=Math.max(.001,+motion.period||1),steps=Math.max(1,Math.min(120,Math.round(+motion.steps||12))),phase=((time/period)%1+1)%1,tick=motion.enabled&&motion.type==='noise-refresh'?Math.min(steps-1,Math.floor(phase*steps)):0,amplitude=amount*2.55;
+    return withPixels(source,surfaces,(from,to,width,height)=>{
+      const cells=Math.ceil(width/size),channels=rgb?3:1,row=new Uint8Array(cells*channels);
+      let previous=-1;
+      for(let y=0;y<height;y++){
+        const cellY=Math.floor(y/size);
+        if(cellY!==previous){
+          previous=cellY;
+          let state=(Math.imul(seed+1,0x9e3779b1)^Math.imul(tick+1,0x85ebca6b)^Math.imul(cellY+1,0xc2b2ae35))>>>0;
+          if(!state)state=1;
+          for(let i=0;i<row.length;i++){state^=state<<13;state^=state>>>17;state^=state<<5;row[i]=state&255;}
+        }
+        for(let x=0;x<width;x++){
+          const at=(y*width+x)*4,cell=Math.floor(x/size)*channels;
+          if(from[at+3]===0){to[at]=from[at];to[at+1]=from[at+1];to[at+2]=from[at+2];to[at+3]=0;continue;}
+          const red=(row[cell]/127.5-1)*amplitude,green=rgb?(row[cell+1]/127.5-1)*amplitude:red,blue=rgb?(row[cell+2]/127.5-1)*amplitude:red;
+          to[at]=clamp(from[at]+red,0,255);to[at+1]=clamp(from[at+1]+green,0,255);to[at+2]=clamp(from[at+2]+blue,0,255);to[at+3]=from[at+3];
+        }
+      }
+    });
+  }
+  /* RGB channel separation belongs to the sampled image, not to the object
+     transform.  It reads a small neighbourhood only around detected edges,
+     letting transparent capsules gain a coloured fringe without turning the
+     full object into three displaced copies. */
+  function edgeDispersion(source, config, surfaces) {
+    const distance=Math.max(0,Math.round(+config.distance||0)),strength=clamp(config.strength==null?1:+config.strength,0,1);
+    if(!distance||!strength)return source;
+    const radians=(+config.angle||0)*Math.PI/180,dx=Math.round(Math.cos(radians)*distance),dy=Math.round(Math.sin(radians)*distance);
+    if(!dx&&!dy)return source;
+    const mode=config.source||'auto',reach=Math.max(1,distance+Math.max(1,Math.round(+config.width||1))-1),order=config.order||'rgb';
+    return withPixels(source,surfaces,(from,to,width,height)=>{
+      const pixel=(x,y)=>x<0||y<0||x>=width||y>=height?null:(y*width+x)*4;
+      const luma=index=>from[index]*.2126+from[index+1]*.7152+from[index+2]*.0722;
+      const edgeAt=(x,y,index)=>{
+        const alpha=from[index+3],lum=luma(index);let alphaEdge=false,contrastEdge=false;
+        for(const [ox,oy] of [[-reach,0],[reach,0],[0,-reach],[0,reach]]){const next=pixel(x+ox,y+oy);const nextAlpha=next==null?0:from[next+3];if(Math.abs(alpha-nextAlpha)>8)alphaEdge=true;if(next!=null&&Math.abs(lum-luma(next))>24)contrastEdge=true;}
+        return mode==='contour'?alphaEdge:mode==='contrast'?contrastEdge:alphaEdge||contrastEdge;
+      };
+      to.set(from);
+      for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+        const at=(y*width+x)*4;if(!edgeAt(x,y,at))continue;
+        const plus=pixel(x+dx,y+dy),minus=pixel(x-dx,y-dy),redAt=order==='bgr'?minus:plus,blueAt=order==='bgr'?plus:minus,baseAlpha=from[at+3],redAlpha=redAt==null?0:from[redAt+3],blueAlpha=blueAt==null?0:from[blueAt+3],red=redAlpha?from[redAt]:0,green=from[at+1],blue=blueAlpha?from[blueAt+2]:0,nextAlpha=Math.max(baseAlpha,redAlpha,blueAlpha);
+        to[at]=Math.round(from[at]+(red-from[at])*strength);to[at+1]=green;to[at+2]=Math.round(from[at+2]+(blue-from[at+2])*strength);to[at+3]=Math.round(baseAlpha+(nextAlpha-baseAlpha)*strength);
+      }
     });
   }
   /* Every owner reaches the sampling stage as a prepared high-resolution
@@ -243,12 +325,15 @@
   const halftonePlans=new Map();
   // 网点映射不再维护第二套“间距”。size 表示共享采样格的倍数：
   // grid=2、size=4 时，一个印刷单元就是输出上的 8×8 像素。
-  function halftonePlan(width,height,cell,angle){
-    const key=[width,height,cell,angle].join('|');if(halftonePlans.has(key))return halftonePlans.get(key);
+  function halftonePlan(width,height,cell,angle,rowOffset){
+    const key=[width,height,cell,angle,rowOffset].join('|');if(halftonePlans.has(key))return halftonePlans.get(key);
     const cx=width/2,cy=height/2,rad=angle*Math.PI/180,cos=Math.cos(rad),sin=Math.sin(rad),corners=[[0,0],[width,0],[width,height],[0,height]].map(([x,y])=>{const dx=x-cx,dy=y-cy;return[dx*cos+dy*sin,-dx*sin+dy*cos];}),xs=corners.map(point=>point[0]),ys=corners.map(point=>point[1]),minX=Math.floor(Math.min(...xs)/cell)*cell-cell,maxX=Math.ceil(Math.max(...xs)/cell)*cell+cell,minY=Math.floor(Math.min(...ys)/cell)*cell-cell,maxY=Math.ceil(Math.max(...ys)/cell)*cell+cell,points=[];
     // Keep lattice centers as floats. Rounding each rotated center created
     // alternating gaps at 45°, which nearest-neighbour enlargement exposed.
-    for(let ly=minY;ly<=maxY;ly+=cell)for(let lx=minX;lx<=maxX;lx+=cell){const x=cx+lx*cos-ly*sin,y=cy+lx*sin+ly*cos;if(x>=-cell&&y>=-cell&&x<=width+cell&&y<=height+cell)points.push({x,y});}
+    for(let ly=minY;ly<=maxY;ly+=cell){
+      const row=Math.round(ly/cell),shift=Math.abs(row%2)*rowOffset*cell;
+      for(let lx=minX;lx<=maxX;lx+=cell){const localX=lx+shift,x=cx+localX*cos-ly*sin,y=cy+localX*sin+ly*cos;if(x>=-cell&&y>=-cell&&x<=width+cell&&y<=height+cell)points.push({x,y});}
+    }
     const plan=Object.freeze({points:Object.freeze(points),cos,sin});halftonePlans.set(key,plan);if(halftonePlans.size>24)halftonePlans.delete(halftonePlans.keys().next().value);return plan;
   }
   function appendDot(path,x,y,radius,shape,rotation){
@@ -273,20 +358,41 @@
     for(const [colour,batch] of batches)paintHalftonePath(ctx,batch,colour,(path,mark)=>appendDot(path,mark.x,mark.y,mark.radius,shape,rotation));
   }
   function cssColour(rgb){return`rgb(${rgb[0]} ${rgb[1]} ${rgb[2]})`;}
-  function samplingPadding(group){const halftone=active(group,'halftone');if(!halftone)return 0;const actualCell=Math.max(1,Math.round(+halftone.size||4))*gridSize(group);return Math.ceil(actualCell*.52)+2;}
+  function halftoneGradient(dark,light,luma){
+    const t=Math.round(clamp(luma,0,1)*255)/255;
+    return cssColour([0,1,2].map(channel=>Math.round(dark[channel]*(1-t)+light[channel]*t)));
+  }
+  function samplingPadding(group){const halftone=active(group,'halftone'),dispersion=active(group,'edge-dispersion'),grid=gridSize(group),halftonePad=halftone?Math.ceil(Math.max(1,Math.round(+halftone.size||4))*grid*.52)+2:0,dispersionPad=dispersion?Math.max(0,Math.round(+dispersion.distance||0))*grid+Math.max(1,Math.round(+dispersion.width||1)):0;return Math.max(halftonePad,dispersionPad);}
   function halftone(source, config, group, surfaces, time) {
     // Halftone Factory's useful division is preserved here: first make a
     // compact brightness grid, then stamp cached geometry.  We therefore do
     // not scan a full source rectangle for every mark.
-    const cell=Math.max(1,Math.round(+config.size||4)),angle=+config.angle||0,output=surfaces.acquire(source.width,source.height),ctx=output.getContext('2d'),analysis=surfaces.acquire(Math.max(1,Math.ceil(source.width/cell)),Math.max(1,Math.ceil(source.height/cell))),analysisCtx=analysis.getContext('2d');let image;
-    try{analysisCtx.clearRect(0,0,analysis.width,analysis.height);analysisCtx.imageSmoothingEnabled=true;analysisCtx.imageSmoothingQuality='high';analysisCtx.drawImage(source,0,0,analysis.width,analysis.height);image=analysisCtx.getImageData(0,0,analysis.width,analysis.height);}catch(error){surfaces.release(analysis);surfaces.release(output);throw new Error(`网点映射读取失败：${error.message||'Canvas 可能被跨域素材污染'}`);}
-    if(surfaces.notePixels)surfaces.notePixels(analysis.width,analysis.height,1);
-    const data=image.data,motion=config.motion||{},motionPeriod=Math.max(.001,+motion.period||2),motionSteps=Math.max(1,Math.round(+motion.steps||12)),motionPhase=Math.floor((time/motionPeriod)*motionSteps)/motionSteps,drift=motion.enabled&&motion.type==='dot-drift'?Math.sin(motionPhase*Math.PI*2)*clamp(+motion.amount||0,0,1):0,plan=halftonePlan(source.width,source.height,cell,angle),phase=(clamp(+config.phase||0,0,1)+drift)*cell,dx=plan.cos*phase,dy=plan.sin*phase,shape=config.shape||'circle',threshold=clamp(config.threshold==null?.5:+config.threshold,0,1),contrast=clamp(config.contrast==null?1:+config.contrast,.1,3),duotone=!!config.duotone,dark=cssColour(color(config.duotoneDark||'#111827')),light=cssColour(color(config.duotoneLight||'#f2e8cf')),marks=[];
-    for(const point of plan.points){const x=point.x+dx,y=point.y+dy,ix=clamp(Math.floor(x/cell),0,analysis.width-1),iy=clamp(Math.floor(y/cell),0,analysis.height-1),at=(iy*analysis.width+ix)*4,alpha=data[at+3]/255,luma=(data[at]*.2126+data[at+1]*.7152+data[at+2]*.0722)/255,tone=1-luma,strength=clamp((tone-.5)*contrast+.5+(threshold-.5),0,1),colour=duotone?(luma>=threshold?light:dark):halftoneColour(data[at],data[at+1],data[at+2]);marks.push({x,y,radius:strength*cell*.52,alpha,colour});}
+    const cell=Math.max(1,Math.round(+config.size||4)),angle=+config.angle||0,output=surfaces.acquire(source.width,source.height),ctx=output.getContext('2d'),analysis=surfaces.acquire(Math.max(1,Math.ceil(source.width/cell)),Math.max(1,Math.ceil(source.height/cell))),analysisCtx=analysis.getContext('2d');let image,coverage;
+    try{
+      analysisCtx.clearRect(0,0,analysis.width,analysis.height);analysisCtx.imageSmoothingEnabled=true;analysisCtx.imageSmoothingQuality='high';analysisCtx.drawImage(source,0,0,analysis.width,analysis.height);image=analysisCtx.getImageData(0,0,analysis.width,analysis.height);
+      // A second, nearest-neighbour alpha read decides whether the lattice
+      // centre belongs to the object. Averaged alpha alone creates an extra
+      // row of dots around a transparent capsule's bounding box.
+      analysisCtx.clearRect(0,0,analysis.width,analysis.height);analysisCtx.imageSmoothingEnabled=false;analysisCtx.drawImage(source,0,0,analysis.width,analysis.height);coverage=analysisCtx.getImageData(0,0,analysis.width,analysis.height).data;
+    }catch(error){surfaces.release(analysis);surfaces.release(output);throw new Error(`网点映射读取失败：${error.message||'Canvas 可能被跨域素材污染'}`);}
+    if(surfaces.notePixels)surfaces.notePixels(analysis.width,analysis.height,2);
+    const data=image.data,motion=config.motion||{},drift=motion.enabled&&motion.type==='dot-drift'?api.modules.motion.oscillate(motion,time,{period:2,stepped:true,frames:12})*clamp(+motion.amount||0,0,1):0,rowOffset=clamp(config.rowOffset==null?(config.layout==='stagger'?.5:0):+config.rowOffset,0,1),plan=halftonePlan(source.width,source.height,cell,angle,rowOffset),offsetX=clamp(+config.offsetX||0,0,1)+drift,offsetY=clamp(+config.offsetY||0,0,1),dx=(plan.cos*offsetX-plan.sin*offsetY)*cell,dy=(plan.sin*offsetX+plan.cos*offsetY)*cell,shape=config.shape||'circle',threshold=clamp(config.threshold==null?.65:+config.threshold,0,1),contrast=clamp(config.contrast==null?.75:+config.contrast,.25,2),colorMode=config.colorMode||(config.duotone?'legacy-duotone':'original'),single=cssColour(color(config.singleColor||'#111827')),dark=color(config.duotoneDark||'#111827'),light=color(config.duotoneLight||'#f2e8cf'),marks=[];
+    for(const point of plan.points){
+      const x=point.x+dx,y=point.y+dy;
+      // The lattice includes guard cells for rotated patterns. Never extend
+      // edge colours by clamping an off-canvas point to the nearest pixel.
+      if(x<0||y<0||x>=source.width||y>=source.height)continue;
+      const ix=Math.floor(x/cell),iy=Math.floor(y/cell),at=(iy*analysis.width+ix)*4;
+      if(coverage[at+3]<128)continue;
+      const luma=(data[at]*.2126+data[at+1]*.7152+data[at+2]*.0722)/255;
+      const strength=clamp((.5-luma)*contrast+threshold,0,1);
+      const colour=colorMode==='single'?single:colorMode==='gradient'?halftoneGradient(dark,light,luma):colorMode==='legacy-duotone'?cssColour(luma>=threshold?light:dark):halftoneColour(data[at],data[at+1],data[at+2]);
+      marks.push({x,y,radius:strength*cell*.52,colour});
+    }
     // Alpha participates only in point admission/size.  Complete marks are
     // intentionally not clipped back to the original contour: this matches
     // print halftone edges and is why object capsules reserve sample padding.
-    ctx.clearRect(0,0,source.width,source.height);paintHalftoneColourBatches(ctx,marks.filter(mark=>mark.alpha>.01&&mark.radius>.15),shape,angle*Math.PI/180);ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;surfaces.release(analysis);return output;
+    ctx.clearRect(0,0,source.width,source.height);if(config.originalBackground)ctx.drawImage(source,0,0);paintHalftoneColourBatches(ctx,marks.filter(mark=>mark.radius>.15),shape,angle*Math.PI/180);ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;surfaces.release(analysis);return output;
   }
   function unevenSampling(source, config, controllers, surfaces, tide) {
     // The field is the effect, not an optional multiplier.  In particular,
@@ -302,20 +408,22 @@
   }
   function applyFull(source, group, surfaces, frame) {
     let current = source, controllers = group && group.controllers || {}, tideConfig = active(group, 'uneven-sampling'), tideMotion=tideConfig&&tideConfig.motion||{},tideAnimated=!!(tideMotion.enabled&&tideMotion.type==='uneven-motion'),tidePulse=tideAnimated?(Math.sin(frame.time/Math.max(.001,+tideMotion.period||3)*Math.PI*2)+1)/2:.5,tideScale=tideAnimated?Math.max(0,1+(tidePulse-.5)*2*clamp(+tideMotion.tideAmount||0,0,1)):1,fieldConfig=tideConfig&&Object.assign({},tideConfig,{field:Object.assign({enabled:true},tideConfig.field||{}),motion:Object.assign({},tideMotion,{fieldFlow:tideAnimated&&(+tideMotion.flowSpeed||0)!==0})}),tide=tideConfig?{ frame: api.modules.field.build(source, fieldConfig, frame.time), amount:clamp((+tideConfig.amount||0)*tideScale,0,1) } : null;
-    const handlers = { 'color-map': colorMap, threshold, 'offset-sampling': offsetSampling, halftone, 'uneven-sampling': unevenSampling };
-    for (const id of ['color-map', 'threshold', 'offset-sampling', 'halftone', 'uneven-sampling']) {
+    const handlers = { 'color-map': colorMap, 'noise-dither': noiseDither, threshold, 'offset-sampling': offsetSampling, halftone, 'uneven-sampling': unevenSampling, 'edge-dispersion': edgeDispersion };
+    // Edge dispersion is intentionally last inside sampling: it splits the
+    // final sampled picture instead of being erased by a later quantise/grid.
+    for (const id of ['color-map', 'noise-dither', 'threshold', 'offset-sampling', 'halftone', 'uneven-sampling', 'edge-dispersion']) {
       const config = active(group, id); if (!config) continue;
       const handler = handlers[id]; if (!handler) throw new Error(`Runtime vNext 尚未实现采样效果：${id}`);
-      const next = id === 'offset-sampling' ? handler(current, config, controllers, surfaces, frame.time) : id === 'threshold' ? handler(current, config, surfaces, frame.time) : id === 'halftone' ? handler(current, config, group, surfaces, frame.time) : id === 'uneven-sampling' ? handler(current, config, controllers, surfaces, tide) : handler(current, config, surfaces, frame.time);
+      const next = id === 'offset-sampling' ? handler(current, config, controllers, surfaces, frame.time) : id === 'threshold' ? handler(current, config, surfaces, frame.time) : id === 'halftone' ? handler(current, config, group, surfaces, frame.time) : id === 'uneven-sampling' ? handler(current, config, controllers, surfaces, tide) : handler(current, config, surfaces, frame.time,frame);
       if (next !== current) { if (current !== source) surfaces.release(current); current = next; }
     }
     return current;
   }
-  function apply(source,group,surfaces,frame){
+  function applyBase(source,group,surfaces,frame){
     // Preview quality is an extra transient divisor; the scene's sampling
     // grid remains a persistent, visible stage in Full and Draft previews.
     const baseGrid=gridSize(group),previewDivisor=Math.max(1,Math.round(frame&&frame.preview&&frame.preview.pixelDivMultiplier||1)),divisor=Math.max(1,baseGrid*previewDivisor);
-    if(divisor===1)return applyFull(source,group,surfaces,frame);
+    if(divisor===1){const edged=edgeAlpha(source,group,surfaces),sampled=applyFull(edged,group,surfaces,frame);if(sampled!==edged&&edged!==source)surfaces.release(edged);return sampled;}
     const width=Math.max(1,Math.ceil(source.width/divisor)),height=Math.max(1,Math.ceil(source.height/divisor)),work=surfaces.acquire(width,height),ctx=work.getContext('2d');
     const offset=active(group,'offset-sampling'),boil=boilFrame(offset,group&&group.controllers,frame&&frame.time),breath=breathFrame(offset,group&&group.controllers,frame&&frame.time);
     let prepared=null;
@@ -324,9 +432,17 @@
     ctx.clearRect(0,0,width,height);ctx.imageSmoothingEnabled=false;
     if(prepared){ctx.drawImage(prepared,0,0);surfaces.release(prepared);}
     else ctx.drawImage(source,0,0,width,height);
-    const sampled=applyFull(work,group,surfaces,frame),output=surfaces.acquire(source.width,source.height),out=output.getContext('2d');
+    const edged=edgeAlpha(work,group,surfaces),sampled=applyFull(edged,group,surfaces,frame),output=surfaces.acquire(source.width,source.height),out=output.getContext('2d');
     out.clearRect(0,0,output.width,output.height);out.imageSmoothingEnabled=false;out.drawImage(sampled,0,0,source.width,source.height);
-    if(sampled!==work)surfaces.release(sampled);surfaces.release(work);return output;
+    if(sampled!==edged&&edged!==work)surfaces.release(edged);if(sampled!==work)surfaces.release(sampled);surfaces.release(work);return output;
   }
-  api.modules.sampling = Object.freeze({ apply, hash, colorMap, autoPalette, boilOffset, palettes: PALETTES, gridSize, hasBaseGrid, padding:samplingPadding });
+  function apply(source,group,surfaces,frame){
+    const sampled=applyBase(source,group,surfaces,frame),ascii=active(group,'ascii-mapping');
+    if(!ascii)return sampled;
+    // Output mappings consume the full-sized sampled capsule. Running this in
+    // applyFull would apply the grid multiplier twice and pixelate glyphs again.
+    try{return api.modules.ascii.apply(sampled,ascii,surfaces,frame,gridSize(group));}
+    finally{if(sampled!==source)surfaces.release(sampled);}
+  }
+  api.modules.sampling = Object.freeze({ apply, hash, colorMap, noiseDither, autoPalette, paletteLut, paletteIndex, extractedPalette, boilOffset, edgeDispersion, remapEdgeAlpha, palettes: PALETTES, gridSize, hasBaseGrid, padding:samplingPadding });
 })(typeof window !== 'undefined' ? window : globalThis);

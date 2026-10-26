@@ -27,12 +27,14 @@ const expose = item => ({
   particleBake: item.particleBake,
   mask: item.mask,
   cost: item.cost,
+  variantCosts: item.variantCosts,
   parameters: (item.params || []).map(param => ({ key: param.key, label: param.label, type: param.type, default: param.default, min: param.min, max: param.max, options: param.options, requires: param.requires, visibleFor: param.visibleFor })),
 });
 const exposeMotion = item => ({
   id:item.id,
   name:item.name,
-  parameters:(item.params || []).map(param=>({ key:param.key, label:param.label, type:param.type, default:param.default, min:param.min, max:param.max, step:param.step, integer:param.integer })),
+  primitive:item.primitive || 'effect-specific',
+  parameters:(item.params || []).map(param=>({ key:param.key, label:param.label, type:param.type, default:param.default, min:param.min, max:param.max, step:param.step, integer:param.integer, timing:param.timing, options:param.options, optionLabels:param.optionLabels, when:param.when })),
 });
 
 const manifest = {
@@ -40,6 +42,7 @@ const manifest = {
   version: 1,
   lifecycle: registry.lifecycle,
   source: 'editor/effect-registry-vnext.js',
+  motionContract: 'MOTION_CONTRACT_V1.md',
   pipelines: registry.pipelines,
   controllers: registry.controllers.map(expose),
   effects: registry.effects.map(expose),

@@ -105,8 +105,20 @@
     }
     function pasteSelection() {
       if (!clipboard) return false;
+      const providers=global.ToSampoolRuntimeVNext?.modules.patternProviders;
+      let patternDefinitions=null;
+      if(providers){
+        const incoming=clipboard.kind==='parts'?[{parts:clipboard.parts}]:clipboard.entities||[],definitions={...(scene().patternDefinitions||{})};
+        for(const entity of incoming)for(const part of entity.parts||[])if(part.recipe?.definition){
+          const record=providers.validate(part.recipe.definition),key=record.definition.id+'@'+record.definition.version;
+          if(definitions[key]&&providers.validate(definitions[key]).key!==record.key)throw Error('粘贴图样的同ID／版本定义冲突');
+          definitions[key]=record.definition;patternDefinitions=definitions;
+        }
+        providers.validateScene({patternDefinitions:definitions,entities:[...entities(scene()),...incoming]});
+      }
       let selected = [];
       const result = changes.run('粘贴', value => {
+        if(patternDefinitions)value.patternDefinitions=patternDefinitions;
         if (clipboard.kind === 'parts') {
           const selectedOwner=(view.selectedIds||[]).length===1?byId(value,view.selectedId):null,owner=partHost(selectedOwner)?selectedOwner:null;
           if (owner) {
@@ -174,12 +186,14 @@
     }
     function keydown(event) {
       if (!active() || editableTarget(event.target)) return;
+      // Space belongs to a focused native button, not the stage playback shortcut.
+      if (event.code === 'Space' && event.target?.closest?.('button')) return;
       const command = event.ctrlKey || event.metaKey, key = String(event.key || '').toLowerCase();
       if (command && key === 'z') { event.preventDefault(); event.stopImmediatePropagation(); applyHistory(event.shiftKey); return; }
       if (command && key === 'y') { event.preventDefault(); event.stopImmediatePropagation(); applyHistory(true); return; }
       if (command && key === 'c') { event.preventDefault(); event.stopImmediatePropagation(); copySelection(); return; }
       if (command && key === 'x') { event.preventDefault(); event.stopImmediatePropagation(); cutSelection(); return; }
-      if (command && key === 'v') { event.preventDefault(); event.stopImmediatePropagation(); pasteSelection(); return; }
+      if (command && key === 'v') { event.preventDefault(); event.stopImmediatePropagation(); try{pasteSelection();}catch(error){const note=(options.root||document).getElementById('m-props');if(note)note.textContent='粘贴未完成：'+error.message;}return; }
       const arrows = { ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] }, arrow = arrows[event.key];
       if (arrow) { if (nudge(arrow[0] * (event.shiftKey ? 10 : 1), arrow[1] * (event.shiftKey ? 10 : 1))) { event.preventDefault(); event.stopImmediatePropagation(); } return; }
       if (event.code === 'Space') { event.preventDefault(); event.stopImmediatePropagation(); togglePlay(); }

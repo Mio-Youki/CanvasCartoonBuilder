@@ -1,0 +1,41 @@
+import assert from 'node:assert/strict';
+import {existsSync,mkdirSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {chromium} from 'playwright-core';
+const root=resolve(import.meta.dirname,'../..'),edge=[process.env.TOSAMPOOL_EDGE_PATH,'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(p=>p&&existsSync(p));
+const browser=await chromium.launch({executablePath:edge,headless:true});
+try{
+  const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];page.on('pageerror',e=>errors.push(String(e)));
+  await page.goto(pathToFileURL(resolve(root,'img2asset-v4-classic.html')).href);await page.waitForFunction(()=>window.classicV4Patterns);
+  await page.evaluate(()=>{if(state.playing)togglePlay();ToSampoolV4Workspace.createBlank({width:480,height:300,loop:4});classicV4View.select(null);EditorV4Resources.addPattern(ToSampoolV4Workspace.current(),{id:'legacy-corner-arrows',engineId:'corner-arrows',name:'旧自定义本体',params:{}});});
+  await page.locator('#toolbar-pattern').click();const card=page.locator('[data-pattern-id="corner-arrows"]');await card.locator('.asset-card-action.add').click();assert.equal(await page.locator('[data-pattern-carriers]').count(),0);
+  const canvas=page.locator('#'+await page.evaluate(()=>classicV4View.canvas.id)),box=await canvas.boundingBox();
+  await page.mouse.move(box.x+box.width*.2,box.y+box.height*.25);await page.mouse.down();await page.mouse.move(box.x+box.width*.8,box.y+box.height*.8,{steps:5});await page.mouse.up();
+  let part=await page.evaluate(()=>ToSampoolV4Workspace.current().entities[0].parts[0]);assert.equal(part.type,'custom');assert.equal(part.recipe.id,'corner-arrows');assert.equal(part.extensions,undefined);assert.equal(await page.locator('[data-extension-param="corner-arrows.enabled"]').count(),0);
+  const field=id=>page.locator('[data-extension-param="corner-arrows.'+id+'"]');
+  const image=()=>page.evaluate(()=>{const p=ToSampoolRuntimeVNext.createRuntime(ToSampoolV4Workspace.current()),c=document.createElement('canvas');p.renderTo(c,0);const result=c.toDataURL();p.dispose();return result;});
+  const viewportImage=()=>page.evaluate(async()=>{await classicV4View.render();return classicV4View.canvas.toDataURL();});
+  const before=await image(),viewportBefore=await viewportImage();await field('size').fill('45');await field('size').press('Tab');assert.notEqual(await image(),before);assert.notEqual(await viewportImage(),viewportBefore,'正式编辑器画面必须随参数更新');assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities[0].parts[0].recipe.params.size),45);
+  await page.evaluate(()=>classicV4Changes.undo());assert.equal(await field('size').inputValue(),'24');assert.equal(await image(),before);assert.equal(await viewportImage(),viewportBefore,'正式编辑器撤销必须恢复画面而不只是选框');
+  await field('width').fill('7');await field('width').press('Tab');assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities[0].parts[0].strokeWidth),7);
+  const caps=[];for(const cap of['butt','round','point']){await field('shaftCap').selectOption(cap);caps.push(await image());}assert.equal(new Set(caps).size,3,'三种端头必须实际不同');
+  await field('shaftMode').selectOption('fixed');await field('shaftAngle').fill('30');await field('shaftAngle').press('Tab');assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities[0].parts[0].recipe.params.shaftAngle),30);
+  await field('inset').fill('-14');await field('inset').press('Tab');await field('direction').selectOption('in');assert.notEqual(await image(),before);
+  const coverage=await page.evaluate(()=>{const r=ToSampoolRuntimeVNext,s=ToSampoolV4Workspace.current(),render=effect=>{const scene=structuredClone(s);scene.background={alpha:0};if(effect)scene.entities[0].effects={decorate:{'tint-overlay':{enabled:true,color:'#fff',alpha:0}}};const p=r.createRuntime(scene),c=document.createElement('canvas');p.renderTo(c,0);const bytes=Array.from(c.getContext('2d').getImageData(0,0,480,300).data).filter((_,i)=>i%4===3);p.dispose();return bytes;};return{plain:render(false),capsule:render(true)};});assert.deepEqual(coverage.plain,coverage.capsule,'装饰胶囊不能裁掉自定义路径');
+  const handle=page.locator('#v4-part-transform-layer [data-corner="se"]'),hb=await handle.boundingBox();await page.mouse.move(hb.x+hb.width/2,hb.y+hb.height/2);await page.mouse.down();await page.mouse.move(hb.x+hb.width/2+25,hb.y+hb.height/2+15,{steps:4});await page.mouse.up();
+  const resized=await page.evaluate(()=>ToSampoolV4Workspace.current().entities[0].parts[0]);assert.ok(resized.w!==part.w||resized.h!==part.h||resized.scaleX!==part.scaleX||resized.scaleY!==part.scaleY);assert.equal(resized.recipe.params.inset,-14);
+  await page.evaluate(()=>document.activeElement?.blur());await page.keyboard.press('Control+c');await page.keyboard.press('Control+v');const copies=await page.evaluate(()=>ToSampoolV4Workspace.current().entities[0].parts);assert.equal(copies.length,2);assert.equal(copies[1].type,'custom');assert.deepEqual(copies[1].recipe,copies[0].recipe);await page.evaluate(()=>classicV4Changes.undo());
+  const html=await page.evaluate(async()=>{const pkg=await EditorVNextProjectPackage.build(ToSampoolV4Workspace.current()),scene=(await EditorVNextProjectPackage.restore(pkg.files)).scene;if(scene.entities[0].parts[0].type!=='custom')throw Error('重开丢失自定义类型');return EditorVNextDeliveryBuilder.embedHtml({scene,name:'corner-arrows',runtimeSource:window.__TOSAMPOOL_RUNTIME_VNEXT_SOURCE__}).data;});
+  const exported=await browser.newPage();exported.on('pageerror',e=>errors.push(String(e)));await exported.setContent(html);await exported.waitForFunction(()=>document.querySelector('[data-tosampool-ready="1"]'));await exported.close();
+  await page.evaluate(()=>{const owner=ToSampoolV4Workspace.current().entities[0];classicV4Inspector.focusExtension(owner.id,owner.parts[0].id,'corner-arrows');});
+  assert.equal(await page.locator('#v4-pattern-library').getAttribute('data-mode'),'apply');assert.equal(await page.locator('[data-pattern-id="corner-arrows"]').count(),0,'自定义单图元不应回退成全量新建目录');
+  if(process.argv.includes('--capture')){const dir=resolve(root,'docs/design/evidence/pattern-g3-2026-10-18');mkdirSync(dir,{recursive:true});await page.screenshot({path:resolve(dir,'custom.png')});}
+  await page.evaluate(()=>{ToSampoolV4Workspace.createBlank({width:480,height:300,loop:4});ToSampoolV4Workspace.mutate(s=>s.entities=[{id:'carrier',type:'vector',x:100,y:70,w:240,h:160,parts:[{id:'path',type:'rect',x:0,y:0,w:240,h:160,radius:20,fill:null,stroke:'#60c8c0',strokeWidth:2}]}]);classicV4View.select('carrier');});
+  await page.locator('#toolbar-pattern').click();await card.locator('.asset-card-action.add').click();part=await page.evaluate(()=>ToSampoolV4Workspace.current().entities[0].parts[0]);assert.equal(part.type,'rect');assert.equal(part.radius,20);assert.equal(part.extensions['corner-arrows'].enabled,true);assert.equal(part.recipe,undefined);
+  await field('size').fill('40');await field('size').press('Tab');const config=await page.evaluate(()=>JSON.stringify(ToSampoolV4Workspace.current().entities[0].parts[0].extensions));await card.locator('.asset-card-action.add').click();assert.equal(await page.evaluate(()=>JSON.stringify(ToSampoolV4Workspace.current().entities[0].parts[0].extensions)),config);
+  await field('shaftCap').selectOption('point');await field('shaftMode').selectOption('fixed');await field('shaftAngle').fill('60');await field('shaftAngle').press('Tab');assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities[0].parts[0].extensions['corner-arrows'].shaftAngle),60);
+  await page.locator('[data-extension-param="corner-arrows.enabled"]').uncheck();await card.locator('.asset-card-action.add').click();assert.equal(await field('size').inputValue(),'40');
+  if(process.argv.includes('--capture'))await page.screenshot({path:resolve(root,'docs/design/evidence/pattern-g3-2026-10-18/applied.png')});
+  assert.deepEqual(errors,[]);console.log('✓ G3浏览器：直接新建自定义／原图元应用／参数实际绘制／撤销／缩放／完整复制／胶囊边界／重开与HTML／幂等导航通过');
+}finally{await browser.close();}

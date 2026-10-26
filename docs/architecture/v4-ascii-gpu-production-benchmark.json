@@ -1,0 +1,141 @@
+{
+  "cases": 22,
+  "largeDifferences": [
+    {
+      "width": 1280,
+      "height": 720,
+      "channels": 0,
+      "mean": 0,
+      "alpha": 0,
+      "max": 0
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "channels": 39,
+      "mean": 0.0005814766589506173,
+      "alpha": 0,
+      "max": 169
+    }
+  ],
+  "active": {
+    "active": true,
+    "reason": null,
+    "contextLost": false,
+    "textureBytes": 72320
+  },
+  "failures": [
+    "Float framebuffer unavailable",
+    "lost-before-analysis",
+    "lost-after-analysis",
+    "8 textures released",
+    "no-WebGL cached",
+    "shader-failure CPU fallback"
+  ],
+  "measurements": [
+    {
+      "mode": "cpu",
+      "width": 640,
+      "height": 360,
+      "analysis": "cpu",
+      "paint": "gpu",
+      "samples": 60,
+      "median": 21.599999997764826,
+      "p95": 23.300000000745058,
+      "max": 24.399999998509884,
+      "resources": {
+        "active": false,
+        "reason": null,
+        "contextLost": false,
+        "textureBytes": 0
+      }
+    },
+    {
+      "mode": "auto",
+      "width": 640,
+      "height": 360,
+      "analysis": "gpu",
+      "paint": "gpu",
+      "samples": 60,
+      "median": 12.5,
+      "p95": 14.100000001490116,
+      "max": 16,
+      "resources": {
+        "active": true,
+        "reason": null,
+        "contextLost": false,
+        "textureBytes": 1084800
+      }
+    },
+    {
+      "mode": "cpu",
+      "width": 1280,
+      "height": 720,
+      "analysis": "cpu",
+      "paint": "gpu",
+      "samples": 60,
+      "median": 62.19999999925494,
+      "p95": 66.59999999776483,
+      "max": 75.39999999850988,
+      "resources": {
+        "active": false,
+        "reason": null,
+        "contextLost": false,
+        "textureBytes": 0
+      }
+    },
+    {
+      "mode": "auto",
+      "width": 1280,
+      "height": 720,
+      "analysis": "gpu",
+      "paint": "gpu",
+      "samples": 60,
+      "median": 22.300000000745058,
+      "p95": 25.199999999254942,
+      "max": 33.5,
+      "resources": {
+        "active": true,
+        "reason": null,
+        "contextLost": false,
+        "textureBytes": 4339200
+      }
+    },
+    {
+      "mode": "cpu",
+      "width": 1920,
+      "height": 1080,
+      "analysis": "cpu",
+      "paint": "gpu",
+      "samples": 60,
+      "median": 131.90000000223517,
+      "p95": 137.89999999850988,
+      "max": 140.90000000223517,
+      "resources": {
+        "active": false,
+        "reason": null,
+        "contextLost": false,
+        "textureBytes": 0
+      }
+    },
+    {
+      "mode": "auto",
+      "width": 1920,
+      "height": 1080,
+      "analysis": "gpu",
+      "paint": "gpu",
+      "samples": 60,
+      "median": 39.100000001490116,
+      "p95": 44.600000001490116,
+      "max": 57.70000000298023,
+      "resources": {
+        "active": true,
+        "reason": null,
+        "contextLost": false,
+        "textureBytes": 9763200
+      }
+    }
+  ],
+  "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0"
+}

@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+const ctx=vm.createContext({TextEncoder,TextDecoder});
+for(const file of ['home-scene-vnext.js','editor/vnext-scene.js','editor/vnext-mask-state.js','editor/v4-element-references.js','editor/v4-element-presets.js','editor/vnext-structure-state.js','editor/v4-module-instances.js','editor/v4-module-baker.js','editor/v4-material-baker.js'])new vm.Script(readFileSync(new URL('../'+file,import.meta.url),'utf8'),{filename:file}).runInContext(ctx);
+const s=ctx.EditorVNextScene.blank(),api=ctx.EditorV4ElementPresets;
+s.entities=[{id:'g',type:'group',name:'组',x:30,y:40,w:60,h:40,rot:15,alpha:.7},{id:'a',parentId:'g',type:'rect',x:4,y:7,w:20,h:10,fill:'#ff0000'},{id:'n',parentId:'g',type:'group',x:20,y:8,w:30,h:30},{id:'b',parentId:'n',type:'ellipse',x:2,y:3,w:12,h:18,fill:'#00ff00'}];
+const id=api.store(s,'g').id;assert.equal(s.elementPresets[id].children.length,3);const item=api.instantiate(s,id);assert.equal(s.entities.find(e=>e.parentId===item.id&&e.type==='rect').x,4);assert.equal(s.entities.filter(e=>e.referenceSourceOnly).length,0);assert.equal(Object.keys(s.elementPresets).length,1);assert.ok(ctx.EditorV4MaterialBaker.prepare(s,id).plan.width>20);
+s.entities.push({id:'source',type:'rect',x:4,y:9,w:3,h:4,fill:'#123456',anim:{bob:{amount:2,period:3}}},{id:'emitter',type:'particle-emitter',x:0,y:0,w:320,h:180,particle:{sourceId:'source',count:10,life:2,seed:5}});
+s.timeline.tracks.source={segments:[{f:[0,1],values:{alpha:.5}}]};
+const pid=api.store(s,'emitter').id;assert.equal(s.elementPresets[pid].sources.length,1);assert.equal(s.elementPresets[pid].sources[0].anim.bob.amount,2);const p=api.instantiate(s,pid);assert.ok(s.entities.find(e=>e.id===p.particle.sourceId).particleSourceOnly);assert.equal(Object.keys(s.elementPresets).length,2);
+ctx.EditorVNextStructureState.remove(s,['source']);const original=s.entities.find(e=>e.id==='emitter');assert.notEqual(original.particle.sourceId,'source');assert.ok(s.entities.find(e=>e.id===original.particle.sourceId).particleSourceOnly);assert.ok(s.timeline.tracks[original.particle.sourceId]);assert.equal(original.particle.sourceOwned,true);assert.ok(ctx.ToSampoolRuntimeVNext.createRuntime(s));
+const bad=JSON.parse(JSON.stringify(s.elementPresets[id]));bad.children[0].parentId='missing';assert.throws(()=>api.validate(bad),/父级|闭包/);
+console.log('✓ 组／粒子素材：嵌套结构和局部变换／单卡／独立实例／私有粒子实体／删除来源保全动态与时序／非法父级拒绝');

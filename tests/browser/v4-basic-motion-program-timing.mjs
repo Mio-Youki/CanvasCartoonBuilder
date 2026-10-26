@@ -1,0 +1,43 @@
+import assert from 'node:assert/strict';
+import {existsSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {chromium} from 'playwright-core';
+const root=resolve(import.meta.dirname,'../..'),executablePath=['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(existsSync),browser=await chromium.launch({executablePath,headless:true});
+try{
+ const page=await browser.newPage({viewport:{width:1500,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(pathToFileURL(resolve(root,'img2asset-v4-classic.html')).href);await page.waitForFunction(()=>typeof classicV4Inspector!=='undefined');
+ await page.evaluate(()=>{
+  if(state.playing)togglePlay();ToSampoolV4Workspace.createBlank({width:240,height:140,loop:12});
+  window.MOTION_PROBE_DEFINITION={manifest:{format:'tosampool-scene-module/v1',id:'timing-probe',version:1,title:'测试构件',parameters:[{key:'size',label:'大小',type:'number',default:10,timing:'linear-safe'},{key:'count',label:'数量',type:'number',default:2,timing:'step'},{key:'fixed',label:'基础值',type:'number',default:3,timing:'none'},{key:'tint',label:'颜色',type:'color',default:'#ff0000',timing:'linear-safe'}]},render({ctx,params}){ctx.fillStyle=params.tint;ctx.fillRect(0,0,params.size,20);}};
+  ToSampoolRuntimeVNext.modules.sceneModules.register(MOTION_PROBE_DEFINITION,{scope:ToSampoolV4Workspace.moduleScope});
+  classicV4Changes.run('动态夹具',s=>{s.entities=[{id:'a',type:'rect',x:20,y:20,w:50,h:30,fill:'#ff0000',anim:{bob:{amount:8,period:2,angle:0,curve:'smooth'},scroll:{speed:20,span:40,repeat:true},wave:{amount:20,period:2},spin:{speed:30}}},{id:'p',type:'procedural',moduleId:'timing-probe',moduleVersion:1,x:0,y:0,w:40,h:40,params:{size:10,count:2,fixed:3,tint:'#ff0000'}},{id:'v',type:'vector',x:20,y:20,w:80,h:40,parts:[{id:'part.a',type:'rect',x:0,y:0,w:30,h:20,fill:'#223344',anim:{bob:{amount:5,period:2,angle:0}}},{id:'b',type:'rect',x:40,y:0,w:20,h:20,fill:'#ff0000'}]}];for(const id of ['a','p','v']){EditorVNextTimelineState.track(s,id);EditorVNextTimelineState.split(s,id,1/3);EditorVNextTimelineState.split(s,id,2/3);}});state.t=10;classicV4View.select('a');classicV4Inspector.focusMotion('a','bob');
+ });
+ const field=key=>page.locator('[data-formation-parameter="'+key+'"]'),clock=key=>page.locator('[data-formation-parameter-clock="'+key+'"]');
+ const arm=async key=>{await clock(key).locator('xpath=..').hover();await clock(key).click();};
+ const set=async(key,value)=>{await field(key).fill(String(value));await field(key).press('Tab');};
+ const data=id=>page.evaluate(id=>{const s=ToSampoolV4Workspace.current();return{base:s.entities.find(e=>e.id===id),values:s.timeline.tracks[id].segments[2].values};},id);
+ assert.equal(await field('anim.bob.periodFrames').count(),0);await field('anim.bob.stepped').check();assert.equal(await field('anim.bob.periodFrames').inputValue(),'8');
+ await arm('anim.bob.periodFrames');await set('anim.bob.periodFrames',6);let d=await data('a');assert.equal(d.values['anim.bob.periodFrames'],6);assert.equal(d.base.anim.bob.periodFrames,undefined);
+ await set('anim.bob.amount',12);d=await data('a');assert.equal(d.base.anim.bob.amount,12);assert.equal(d.values['anim.bob.amount'],undefined,'其他动态字段有时序不污染当前字段');
+ await arm('anim.bob');await field('anim.bob').uncheck();d=await data('a');assert.equal(d.values['anim.bob'],null);assert.equal(d.values['anim.bob.periodFrames'],undefined,'关闭动态不能被旧子参数复活');
+ await page.locator('#stage-meta-bar .stage-meta-title').click();await page.keyboard.press('Control+z');assert.equal((await data('a')).values['anim.bob.periodFrames'],6);
+ await page.evaluate(()=>classicV4Inspector.focusMotion('a','wave'));await field('anim.wave.curve').selectOption('linear');assert.equal((await data('a')).base.anim.wave.curve,'linear');
+ await page.evaluate(()=>classicV4Inspector.focusMotion('a','spin'));assert.equal(await field('anim.spin.curve').count(),1);
+ await page.evaluate(()=>classicV4Inspector.focusMotion('a','scroll'));await field('anim.scroll.repeat').uncheck();assert.equal(await field('anim.scroll.stepped').count(),0);assert.equal(await field('anim.scroll.curve').count(),0);
+ await page.evaluate(()=>{classicV4View.select('p');if(document.querySelector('.v4-formation-heading')?.textContent.startsWith('动态'))document.querySelector('.v4-formation-toggle')?.click();});
+ assert.equal(await clock('params.fixed').count(),0);await arm('params.size');await set('params.size',30);await set('params.fixed',7);d=await data('p');assert.equal(d.values['params.size'],30);assert.equal(d.base.params.size,10);assert.equal(d.base.params.fixed,7);assert.equal(d.values['params.fixed'],undefined);
+ await arm('params.count');await set('params.count',8);assert.equal(await clock('params.size').getAttribute('data-timing-kind'),'linear');assert.equal(await clock('params.count').getAttribute('data-timing-kind'),'step');
+ await arm('params.size');assert.equal((await data('p')).values['params.size'],undefined);await page.locator('#stage-meta-bar .stage-meta-title').click();await page.keyboard.press('Control+z');assert.equal((await data('p')).values['params.size'],30);
+ await page.evaluate(()=>{classicV4View.selectPart('v','part.a');});
+ const disclosure=page.locator('.v4-motion-button').filter({hasText:'动态'});await disclosure.first().click();
+ await arm('anim.bob.amount');await set('anim.bob.amount',9);assert.equal((await data('v')).values['partsById.part%2Ea.anim.bob.amount'],9);
+ await page.evaluate(()=>{classicV4Changes.run('图元调序',s=>s.entities.find(e=>e.id==='v').parts.reverse());classicV4View.selectPart('v','part.a');});assert.equal(+await field('anim.bob.amount').inputValue(),9);
+ await page.evaluate(()=>{classicV4Changes.run('内建组件',s=>{s.entities.push({id:'builtin',type:'builtin',x:100,y:50,w:40,h:40,builtin:{id:'pixel-star',version:1,params:{rays:4,coreSize:.22}}});EditorVNextTimelineState.track(s,'builtin');EditorVNextTimelineState.split(s,'builtin',1/3);EditorVNextTimelineState.split(s,'builtin',2/3);});classicV4View.select('builtin');});
+ await arm('builtin.params.coreSize');await set('builtin.params.coreSize',.5);assert.equal((await data('builtin')).values['builtin.params.coreSize'],.5);assert.equal(await clock('builtin.params.coreSize').getAttribute('data-timing-kind'),'linear');assert.equal(await clock('builtin.params.rays').getAttribute('data-timing-kind'),'step');
+ const saved=await page.evaluate(()=>EditorVNextScene.serialize(ToSampoolV4Workspace.current()));await page.evaluate(saved=>{ToSampoolV4Workspace.replace(JSON.parse(saved));ToSampoolRuntimeVNext.modules.sceneModules.register(MOTION_PROBE_DEFINITION,{scope:ToSampoolV4Workspace.moduleScope});state.t=10;classicV4View.select('p');classicV4Inspector.render();},saved);assert.equal(+await field('params.size').inputValue(),30);
+ await page.evaluate(()=>{classicV4Changes.run('过渡',s=>EditorVNextTimelineState.setLinear(s,'p',1,{linearKeys:['params.size','params.tint']}));state.t=6;classicV4View.select('p');});assert.equal(+await field('params.size').inputValue(),20);assert.equal(await field('params.size').isDisabled(),true);assert.equal(await field('params.fixed').isDisabled(),false);
+ const colors=await page.evaluate(()=>{const pop=document.querySelector('[data-formation-parameter="params.tint"]');return!!pop;});assert.equal(colors,true);
+ const pixels=await page.evaluate(()=>{const s=JSON.parse(EditorVNextScene.serialize(ToSampoolV4Workspace.current()));s._moduleScope=ToSampoolV4Workspace.moduleScope;s.entities=s.entities.filter(e=>e.id==='p');const r=ToSampoolRuntimeVNext.createRuntime(s),canvas=document.createElement('canvas');try{r.renderTo(canvas,2);const a=canvas.getContext('2d').getImageData(0,0,240,140).data.slice();r.renderTo(canvas,10);const b=canvas.getContext('2d').getImageData(0,0,240,140).data;return a.some((v,i)=>v!==b[i]);}finally{r.dispose();}});assert.equal(pixels,true,'构件时序需改变真实Runtime像素');
+ assert.deepEqual(errors,[]);console.log('✓ browser basic motion/program: progressive frames, rhythm, independent timing, program declarations, stable part ID, undo/reopen and readonly transition');
+}finally{await browser.close();}

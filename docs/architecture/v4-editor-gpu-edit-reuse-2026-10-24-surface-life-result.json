@@ -1,0 +1,558 @@
+{
+  "date": "2026-10-24",
+  "browser": "156.0.4314.42",
+  "runtimeSha256": "5bc820a95737818ebfc10422bc8d777d4f5d34fff83a669912164ef640da77f5",
+  "viewport": [
+    1600,
+    1000
+  ],
+  "deviceScaleFactor": 1,
+  "headless": true,
+  "method": "16 edits per mode, first 4 warmup, CPU/GPU fixed-time comparison after every edit; GPU device time not collected",
+  "errors": [],
+  "rows": [
+    {
+      "mode": "forced-rebuild",
+      "warmupEdits": 4,
+      "samples": 12,
+      "contexts": 16,
+      "liveBeforeRelease": 6,
+      "liveAfterRelease": 0,
+      "runtimeP95": 59.19999998807907,
+      "prepareP95": 1.699999988079071,
+      "editorP95": 60.39999997615814,
+      "visual": [
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        }
+      ],
+      "raw": [
+        {
+          "runtimeMs": 82.39999997615814,
+          "prepareMs": 0.800000011920929,
+          "editorMs": 85.89999997615814,
+          "playerCreated": true,
+          "initialized": true,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 21.700000047683716
+        },
+        {
+          "runtimeMs": 53.5,
+          "prepareMs": 1.4000000357627869,
+          "editorMs": 57.59999996423721,
+          "playerCreated": true,
+          "initialized": true,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 19.599999964237213
+        },
+        {
+          "runtimeMs": 58.89999997615814,
+          "prepareMs": 0.6000000238418579,
+          "editorMs": 61.39999997615814,
+          "playerCreated": true,
+          "initialized": true,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 22.30000001192093
+        },
+        {
+          "runtimeMs": 55.60000002384186,
+          "prepareMs": 0.5,
+          "editorMs": 57.09999996423721,
+          "playerCreated": true,
+          "initialized": true,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 19.700000047683716
+        },
+        {
+          "runtimeMs": 57.09999996423721,
+          "prepareMs": 0.7000000476837158,
+          "editorMs": 59.89999997615814,
+          "playerCreated": true,
+          "initialized": true,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 21.69999998807907
+        },
+        {
+          "runtimeMs": 52.89999997615814,
+          "prepareMs": 0.40000003576278687,
+          "editorMs": 55,
+          "playerCreated": true,
+          "initialized": true,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 18.19999998807907
+        },
+        {
+          "runtimeMs": 51.59999996423721,
+          "prepareMs": 1.699999988079071,
+          "editorMs": 54.19999998807907,
+          "playerCreated": true,
+          "initialized": true,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 19.5
+        },
+        {
+          "runtimeMs": 54.59999996423721,
+          "prepareMs": 0.30000001192092896,
+          "editorMs": 55.69999998807907,
+          "playerCreated": true,
+          "initialized": true,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 21.80000001192093
+        },
+        {
+          "runtimeMs": 59.19999998807907,
+          "prepareMs": 0.40000003576278687,
+          "editorMs": 60.39999997615814,
+          "playerCreated": true,
+          "initialized": true,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 20
+        },
+        {
+          "runtimeMs": 53.200000047683716,
+          "prepareMs": 0.2999999523162842,
+          "editorMs": 54.5,
+          "playerCreated": true,
+          "initialized": true,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 20.19999998807907
+        },
+        {
+          "runtimeMs": 50.69999998807907,
+          "prepareMs": 0.3999999761581421,
+          "editorMs": 51.69999998807907,
+          "playerCreated": true,
+          "initialized": true,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 20.599999964237213
+        },
+        {
+          "runtimeMs": 51.89999997615814,
+          "prepareMs": 0.30000001192092896,
+          "editorMs": 53,
+          "playerCreated": true,
+          "initialized": true,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 20.30000001192093
+        },
+        {
+          "runtimeMs": 50.5,
+          "prepareMs": 0.40000003576278687,
+          "editorMs": 51.80000001192093,
+          "playerCreated": true,
+          "initialized": true,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 18.19999998807907
+        },
+        {
+          "runtimeMs": 49.80000001192093,
+          "prepareMs": 0.2999999523162842,
+          "editorMs": 50.80000001192093,
+          "playerCreated": true,
+          "initialized": true,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 20
+        },
+        {
+          "runtimeMs": 52.39999997615814,
+          "prepareMs": 0.3999999761581421,
+          "editorMs": 54.09999996423721,
+          "playerCreated": true,
+          "initialized": true,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 20.30000001192093
+        },
+        {
+          "runtimeMs": 50.19999998807907,
+          "prepareMs": 0.30000001192092896,
+          "editorMs": 51.30000001192093,
+          "playerCreated": true,
+          "initialized": true,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 20.30000001192093
+        }
+      ]
+    },
+    {
+      "mode": "session-reuse",
+      "warmupEdits": 4,
+      "samples": 12,
+      "contexts": 0,
+      "liveBeforeRelease": 6,
+      "liveAfterRelease": 0,
+      "runtimeP95": 15,
+      "prepareP95": 0.40000003576278687,
+      "editorP95": 16.30000001192093,
+      "visual": [
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        },
+        {
+          "preMax": 0,
+          "alphaMax": 0
+        }
+      ],
+      "raw": [
+        {
+          "runtimeMs": 6.5,
+          "prepareMs": 0.3999999761581421,
+          "editorMs": 7.600000023841858,
+          "playerCreated": true,
+          "initialized": false,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 0
+        },
+        {
+          "runtimeMs": 3.599999964237213,
+          "prepareMs": 0.40000003576278687,
+          "editorMs": 5.099999964237213,
+          "playerCreated": true,
+          "initialized": false,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 0
+        },
+        {
+          "runtimeMs": 3.899999976158142,
+          "prepareMs": 0.19999998807907104,
+          "editorMs": 4.800000011920929,
+          "playerCreated": true,
+          "initialized": false,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 0
+        },
+        {
+          "runtimeMs": 3.199999988079071,
+          "prepareMs": 0.30000001192092896,
+          "editorMs": 4.199999988079071,
+          "playerCreated": true,
+          "initialized": false,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 0
+        },
+        {
+          "runtimeMs": 4.600000023841858,
+          "prepareMs": 0.3999999761581421,
+          "editorMs": 6.300000011920929,
+          "playerCreated": true,
+          "initialized": false,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 0
+        },
+        {
+          "runtimeMs": 5.800000011920929,
+          "prepareMs": 0.30000001192092896,
+          "editorMs": 7,
+          "playerCreated": true,
+          "initialized": false,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 0
+        },
+        {
+          "runtimeMs": 3.800000011920929,
+          "prepareMs": 0.30000001192092896,
+          "editorMs": 5,
+          "playerCreated": true,
+          "initialized": false,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 0
+        },
+        {
+          "runtimeMs": 4.699999988079071,
+          "prepareMs": 0.3999999761581421,
+          "editorMs": 5.800000011920929,
+          "playerCreated": true,
+          "initialized": false,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 0
+        },
+        {
+          "runtimeMs": 3.699999988079071,
+          "prepareMs": 0.3999999761581421,
+          "editorMs": 4.599999964237213,
+          "playerCreated": true,
+          "initialized": false,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 0
+        },
+        {
+          "runtimeMs": 3.600000023841858,
+          "prepareMs": 0.3999999761581421,
+          "editorMs": 4.900000035762787,
+          "playerCreated": true,
+          "initialized": false,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 0
+        },
+        {
+          "runtimeMs": 15,
+          "prepareMs": 0.3999999761581421,
+          "editorMs": 16.30000001192093,
+          "playerCreated": true,
+          "initialized": false,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 0
+        },
+        {
+          "runtimeMs": 4.899999976158142,
+          "prepareMs": 0.30000001192092896,
+          "editorMs": 6.199999988079071,
+          "playerCreated": true,
+          "initialized": false,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 0
+        },
+        {
+          "runtimeMs": 6.600000023841858,
+          "prepareMs": 0.3999999761581421,
+          "editorMs": 7.899999976158142,
+          "playerCreated": true,
+          "initialized": false,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 0
+        },
+        {
+          "runtimeMs": 4.899999976158142,
+          "prepareMs": 0.40000003576278687,
+          "editorMs": 6.199999988079071,
+          "playerCreated": true,
+          "initialized": false,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 0
+        },
+        {
+          "runtimeMs": 3.5,
+          "prepareMs": 0.30000001192092896,
+          "editorMs": 4.600000023841858,
+          "playerCreated": true,
+          "initialized": false,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 0
+        },
+        {
+          "runtimeMs": 3.800000011920929,
+          "prepareMs": 0.30000001192092896,
+          "editorMs": 4.899999976158142,
+          "playerCreated": true,
+          "initialized": false,
+          "allocations": 6,
+          "backend": "gpu",
+          "calibrationMs": 0
+        }
+      ]
+    }
+  ],
+  "sizing": [
+    {
+      "grid": 4,
+      "preMax": 0,
+      "alphaMax": 0,
+      "contextsAdded": 0,
+      "initialized": false,
+      "surfacesRebuilt": true,
+      "programCount": 3
+    },
+    {
+      "grid": 3,
+      "preMax": 0,
+      "alphaMax": 0,
+      "contextsAdded": 0,
+      "initialized": false,
+      "surfacesRebuilt": true,
+      "programCount": 3
+    },
+    {
+      "grid": 1,
+      "preMax": 0,
+      "alphaMax": 0,
+      "contextsAdded": 0,
+      "initialized": false,
+      "surfacesRebuilt": true,
+      "programCount": 3
+    },
+    {
+      "grid": 3,
+      "preMax": 0,
+      "alphaMax": 0,
+      "contextsAdded": 0,
+      "initialized": false,
+      "surfacesRebuilt": true,
+      "programCount": 3
+    }
+  ],
+  "boundaries": {
+    "afterUndoRelease": 0,
+    "afterRedoRelease": 0,
+    "afterResizeRelease": 0,
+    "afterAssetsRelease": 0,
+    "afterReplaceRelease": 0
+  },
+  "visual": {
+    "undo": {
+      "preMax": 0,
+      "alphaMax": 0
+    },
+    "redo": {
+      "preMax": 0,
+      "alphaMax": 0
+    },
+    "resize": {
+      "preMax": 0,
+      "alphaMax": 0
+    },
+    "replacement": {
+      "preMax": 0,
+      "alphaMax": 0
+    }
+  },
+  "liveTextures": 0,
+  "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+}

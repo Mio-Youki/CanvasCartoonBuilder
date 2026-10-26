@@ -1,0 +1,47 @@
+{
+  "browser": "156.0.4314.42",
+  "note": "Canvas readback vs shader mathematical nearest coordinate; not a performance benchmark",
+  "rows": [
+    {
+      "from": 214,
+      "to": 640,
+      "mismatches": [
+        {
+          "x": 158,
+          "canvas": 53,
+          "formula": 52
+        },
+        {
+          "x": 478,
+          "canvas": 160,
+          "formula": 159
+        }
+      ]
+    },
+    {
+      "from": 640,
+      "to": 214,
+      "mismatches": []
+    },
+    {
+      "from": 160,
+      "to": 640,
+      "mismatches": []
+    },
+    {
+      "from": 640,
+      "to": 160,
+      "mismatches": []
+    },
+    {
+      "from": 63,
+      "to": 187,
+      "mismatches": []
+    },
+    {
+      "from": 187,
+      "to": 63,
+      "mismatches": []
+    }
+  ]
+}

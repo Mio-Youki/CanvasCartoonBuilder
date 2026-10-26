@@ -3,8 +3,8 @@
   'use strict';
 
   const defaults = Object.freeze({ count:40, life:2, speed:20, direction:90, spread:0, gravity:0, wind:0, size:1, sizeVar:0, alpha:1, fade:true, seed:1, spin:0, spinSpeed:0, spinVar:0, playback:'static', frame:0, frameFps:8, frameLoop:true });
-  const numeric = new Set(['count','life','speed','direction','spread','gravity','wind','size','sizeVar','alpha','seed','spin','spinSpeed','spinVar','frame','frameFps']);
-  const boolean = new Set(['fade','usePresetSource','frameLoop']);
+  const numeric = new Set(['count','life','speed','direction','spread','gravity','wind','size','sizeVar','alpha','seed','spin','spinSpeed','spinVar','frame','frameFps','cellSize','startTime']);
+  const boolean = new Set(['fade','usePresetSource','frameLoop','showSource']);
   const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
   const finite = (value, fallback) => Number.isFinite(+value) ? +value : fallback;
   function unique(scene, base) { const used=new Set((scene.entities||[]).map(item=>item.id));let id=base,index=2;while(used.has(id))id=`${base}-${index++}`;return id; }
@@ -23,6 +23,22 @@
   }
   function setSource(scene,emitterId,sourceId){const target=emitter(scene,emitterId),source=entity(scene,sourceId);if(!source||source.type==='group'||source.type==='particle-emitter')throw new Error('粒子实体必须是普通对象');discardOwnedSource(scene,target,source.id);target.particle=Object.assign({},target.particle,{sourceId:source.id,sourceOwned:false,usePresetSource:false,presetId:'custom'});return target;}
   function applyPreset(scene,emitterId,presetId,usePresetSource){const target=emitter(scene,emitterId),presetValue=preset(presetId);if(!presetValue)throw new Error(`找不到粒子预设「${presetId}」`);let sourceId=target.particle&&target.particle.sourceId,owned=!!(target.particle&&target.particle.sourceOwned);if(usePresetSource){const source=sourceFromPreset(scene,presetValue);scene.entities.push(source);discardOwnedSource(scene,target,source.id);sourceId=source.id;owned=true;}target.particle=normalizedParticle(Object.assign({},target.particle,presetValue.particle,{sourceId,sourceOwned:owned,presetId,usePresetSource:!!usePresetSource}));return target;}
-  function set(scene,emitterId,key,value){const target=emitter(scene,emitterId),particle=target.particle=Object.assign({},target.particle||{});if(numeric.has(key))particle[key]=finite(value,defaults[key]);else if(boolean.has(key))particle[key]=!!value;else if(key==='playback')particle.playback=value==='particle-age'?'particle-age':'static';else throw new Error(`不允许写入粒子字段「${key}」`);Object.assign(particle,normalizedParticle(particle));return particle[key];}
+  function set(scene,emitterId,key,value){
+    const target=emitter(scene,emitterId),particle=target.particle=Object.assign({},target.particle||{});
+    if(key==='mode'){
+      if(value==='layer'&&particle.mode!=='layer')Object.assign(particle,{size:1,sizeVar:0,spin:0,spinVar:0,alpha:1});
+      particle.mode=value==='layer'?'layer':'sprite';
+    }else if(key==='cellSize')particle.cellSize=Math.max(1,Math.round(finite(value,32)));
+    else if(key==='sourceFps')particle.sourceFps=Math.max(1,Math.min(30,Math.round(finite(value,12))));
+    else if(key==='layerEmission')particle.layerEmission=value==='continuous'?'continuous':'burst';
+    else if(key==='fragmentShape')particle.fragmentShape=value==='circle'?'circle':'rect';
+    else if(key==='sampleTime')particle.sampleTime=value==='fixed'?'fixed':'birth';
+    else if(key==='startTime')particle.startTime=Math.max(0,Math.min(Math.max(0,scene.loop-.001),finite(value,0)));
+    else if(numeric.has(key))particle[key]=finite(value,defaults[key]);
+    else if(boolean.has(key))particle[key]=!!value;
+    else if(key==='playback')particle.playback=value==='particle-age'?'particle-age':'static';
+    else throw new Error(`不允许写入粒子字段「${key}」`);
+    Object.assign(particle,normalizedParticle(particle));return particle[key];
+  }
   global.EditorVNextParticleState=Object.freeze({defaults,presets,preset,entity,emitter,eligible,normalizedParticle,create,setSource,applyPreset,set});
 })(typeof window!=='undefined'?window:globalThis);

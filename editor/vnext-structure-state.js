@@ -27,13 +27,32 @@
     scene.entities.splice(scene.entities.indexOf(group), 1); return group;
   }
   function remove(scene, ids) {
-    const selected = new Set(ids || []), dissolved = []; for (const id of Array.from(selected)) { const item = byId(scene, id); if (item && item.type === 'group') { dissolveGroup(scene, id); dissolved.push(id); selected.delete(id); } }
-    for(const id of Array.from(selected)){const item=byId(scene,id),sourceId=item&&item.type==='particle-emitter'&&item.particle&&item.particle.sourceOwned&&item.particle.sourceId;if(sourceId){const shared=(scene.entities||[]).some(other=>other!==item&&other.type==='particle-emitter'&&other.particle&&other.particle.sourceId===sourceId);if(!shared)selected.add(sourceId);}}
+    const selected = new Set(ids || []), dissolved = [];
+    const uses=(item,id)=>{
+      const scan=value=>value&&typeof value==='object'&&Object.entries(value).some(([key,child])=>(key==='sourceId'||key==='targetId')&&child===id||child&&typeof child==='object'&&scan(child));
+      // Incomplete, newly enabled placement controls may have no source yet;
+      // deletion of an unrelated row must still work.
+      return !!(scan(item.effects)||scan(item.particle)||[item,...item.parts||[]].some(p=>scan(p.extensions?.elements)||scan(p.pathEndpoints)));
+    };
+    // A live emitter must not retain a dangling source when its visible source
+    // is deleted. Keep one private definition closure, not a frozen image.
+    for(const sourceId of Array.from(selected)){
+      const users=(scene.entities||[]).filter(e=>!selected.has(e.id)&&uses(e,sourceId));if(!users.length)continue;
+      const source=byId(scene,sourceId),presets=global.EditorV4ElementPresets;if(!presets)throw Error('缺少粒子依赖保护模块，未删除来源');
+      const preset=presets.capture(scene,sourceId),scratch={...scene,elementPresets:{...scene.elementPresets,'private-particle-source':preset}},replacement=presets.instantiate(scratch,'private-particle-source',{x:source.x,y:source.y});
+      replacement.referenceSourceOnly=true;if(users.some(e=>e.type==='particle-emitter'))replacement.particleSourceOnly=true;delete replacement.resourceBindings;if(source.parentId){replacement.parentId=source.parentId;if(source.effects?.mask){const targetId=replacement.effects.mask.targetId;replacement.effects.mask=JSON.parse(JSON.stringify(source.effects.mask));if(targetId)replacement.effects.mask.targetId=targetId;}}if(source.sceneVariants)replacement.sceneVariants=JSON.parse(JSON.stringify(source.sceneVariants));scene.entities=scratch.entities;
+      const timeline=scene.timeline||{};if(timeline.visibility?.[sourceId])timeline.visibility[replacement.id]=JSON.parse(JSON.stringify(timeline.visibility[sourceId]));
+      for(const [key,track]of Object.entries(timeline.tracks||{})){const next=key===sourceId?replacement.id:key==='entity:'+sourceId?'entity:'+replacement.id:key.replace('object:'+sourceId+':','object:'+replacement.id+':');if(next!==key)timeline.tracks[next]=JSON.parse(JSON.stringify(track));}
+      const mapping=Object.fromEntries(scene.entities.map(e=>[e.id,e.id]));mapping[sourceId]=replacement.id;
+      for(const user of users){if(global.EditorV4ElementReferences)Object.assign(user,global.EditorV4ElementReferences.remap(user,mapping));if(user.type==='particle-emitter')user.particle={...user.particle,sourceId:replacement.id,sourceOwned:true};}
+    }
+    for(const id of Array.from(selected)){const item=byId(scene,id);if(item?.type==='group'){dissolveGroup(scene,id);dissolved.push(id);selected.delete(id);}}
+    for(const id of Array.from(selected)){const item=byId(scene,id),sourceId=item&&item.type==='particle-emitter'&&item.particle&&item.particle.sourceOwned&&item.particle.sourceId;if(sourceId){const shared=(scene.entities||[]).some(other=>!selected.has(other.id)&&uses(other,sourceId));if(!shared)selected.add(sourceId);}}
     if (selected.size) scene.entities = scene.entities.filter(item => !selected.has(item.id));
     const removed=Array.from(selected),allRemoved=new Set(removed.concat(dissolved)),timeline=scene.timeline||{};
     if(timeline.visibility)for(const id of allRemoved)delete timeline.visibility[id];
     if(timeline.tracks)for(const id of allRemoved){delete timeline.tracks[id];delete timeline.tracks[`entity:${id}`];}
-    return { removed, dissolved };
+    global.EditorV4ElementReferences?.prunePrivate(scene);return { removed, dissolved };
   }
   function reorder(scene, dragId, targetId, mode) {
     const drag = byId(scene, dragId), target = byId(scene, targetId); if (!drag || !target || drag === target) return false;

@@ -14,6 +14,7 @@
   function fromEffect(values){
     const texture=values.texture||'lines-horizontal';
     const base={phaseX:unit(values.phaseX,0),phaseY:unit(values.phaseY,0),color:values.color||'#ffffff'};
+    if(texture==='custom')return Object.assign(base,{type:'custom',tileWidth:values.tileWidth||4,tileHeight:values.tileHeight||4,tileScale:values.tileScale||1,tileScaleMode:values.tileScaleMode||'pixel',tilePixels:Array.isArray(values.tilePixels)?values.tilePixels.slice():[]});
     if(texture==='noise')return Object.assign(base,{type:'noise',density:Math.max(0,Math.min(1,finite(values.noiseDensity,.18))),size:Math.max(1,Math.round(finite(values.noiseSize,1))),seed:Math.round(finite(values.noiseSeed,1))});
     if(texture==='dots'){
       const shape=values.shape||'circle';
@@ -35,6 +36,7 @@
   function toEffect(pattern){
     const patternStyle=style(pattern);
     const patch={phaseX:unit(pattern.phaseX,0),phaseY:unit(pattern.phaseY,0)};
+    if(patternStyle==='custom')return Object.assign(patch,{texture:'custom',tileWidth:pattern.tileWidth,tileHeight:pattern.tileHeight,tileScale:pattern.tileScale,tileScaleMode:pattern.tileScaleMode,tilePixels:Array.isArray(pattern.tilePixels)?pattern.tilePixels.slice():[]});
     if(patternStyle==='noise')return Object.assign(patch,{texture:'noise',noiseDensity:Math.max(0,Math.min(1,finite(pattern.density,.18))),noiseSize:Math.max(1,Math.round(finite(pattern.size,1))),noiseSeed:Math.round(finite(pattern.seed,1))});
     if(patternStyle==='dots')return Object.assign(patch,{
       texture:'dots',size:Math.max(1,finite(pattern.size,1)),spacing:Math.max(1,finite(pattern.spacing,pattern.cell||4)),angle:finite(pattern.angle,0),
@@ -51,5 +53,13 @@
     return patch;
   }
 
-  global.EditorClassicV4OverlayPatternCodec=Object.freeze({fromEffect,toEffect,style});
+  function editPatch(before,after,key){
+    const previous=toEffect(before),next=toEffect(after),patch={};
+    for(const [name,value]of Object.entries(next))if(JSON.stringify(previous[name])!==JSON.stringify(value))patch[name]=value;
+    if(Object.keys(patch).length&&['tileWidth','tileHeight','tilePixels'].includes(key))for(const name of ['tileWidth','tileHeight','tilePixels'])patch[name]=next[name];
+    // Include the initiating field even if a normalization changed only a dependency.
+    if(Object.keys(patch).length&&key&&Object.hasOwn(next,key))patch[key]=next[key];
+    return patch;
+  }
+  global.EditorClassicV4OverlayPatternCodec=Object.freeze({fromEffect,toEffect,style,editPatch});
 })(typeof window!=='undefined'?window:globalThis);

@@ -24,6 +24,11 @@ assert.equal(state.track(scene, mergeKey).segments.length, 1, '清除唯一参�
 state.split(scene, mergeKey, .5); state.setStep(scene, mergeKey, 0, { x: 10 });
 state.clearSegment(scene, mergeKey, 1);
 assert.equal(state.track(scene, mergeKey).segments.length, 2, '相邻仍有参数值时，清除不应吞掉其有效边界');
+const motionKey=state.keyForEntity('motion-check');
+state.setStep(scene,motionKey,0,{x:12,'anim.bob.amount':5,'anim.bob.period':2,'anim.spin.speed':30});
+assert.equal(state.clearSegmentPrefix(scene,motionKey,0,'anim.bob'),true);
+assert.deepEqual(Object.keys(state.track(scene,motionKey).segments[0].values).sort(),['anim.spin.speed','x'],'清除漂浮时序不能影响基础属性和其他动态');
+assert.equal(state.clearSegmentPrefix(scene,motionKey,0,'anim.bob'),false,'重复清除不应改变其他属性');
 assert.equal(state.clear(scene, key), true); assert.equal(state.clear(scene, key), false);
 assert.equal(state.visibility(scene, 'orb', false), null, '读取默认全程可见不能写入空轨道');
 assert.equal(state.visibilityAt(scene, 'orb', .6), true);

@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {webcrypto} from 'node:crypto';
+import vm from 'node:vm';
+const ctx=vm.createContext({TextEncoder,TextDecoder,Buffer,crypto:webcrypto});
+for(const file of ['home-scene-vnext.js','editor/vnext-scene.js','editor/vnext-asset-state.js','editor/vnext-mask-state.js','editor/v4-element-references.js','editor/v4-element-presets.js','editor/v4-resource-core.js','editor/v4-resource-library.js','editor/v4-material-sharing.js','editor/vnext-project-package.js'])new vm.Script(readFileSync(new URL('../'+file,import.meta.url),'utf8'),{filename:file}).runInContext(ctx);
+const scene=ctx.EditorVNextScene.blank(),core=ctx.EditorV4Resources,packages=ctx.EditorVNextProjectPackage;
+scene.assets={'图片甲':{name:'甲',locator:'data:text/plain,red',width:4,height:4},'图片乙':{name:'乙',locator:'data:text/plain,blue',width:4,height:4}};
+const sharing=ctx.EditorV4MaterialSharing.create({library:ctx.EditorV4ResourceLibrary.create({storage:ctx.EditorV4ResourceLibrary.memoryStorage()})});
+const record=await sharing.publish(scene,{kind:'asset',id:'图片甲'}),target=ctx.EditorVNextScene.blank();target.assets=JSON.parse(JSON.stringify(scene.assets));
+const taken=await sharing.take(target,record.record.id),packed=await packages.build(taken.scene);
+assert.equal(new Set(packed.files.map(f=>f.path)).size,packed.files.length,'不同素材ID不能覆盖同一打包路径');
+await packages.restore(packed.files);
+const mimeCase=ctx.EditorVNextScene.blank();mimeCase.assets={photo:{locator:'data:image/jpeg,source-bytes',mime:'image/png',width:4,height:4}};
+await packages.restore((await packages.build(mimeCase)).files);
+const program=ctx.EditorVNextScene.blank();program.modules={'test.program':{manifest:{format:'tosampool-scene-module/v1',id:'test.program',version:1,parameters:[],assets:[]},locator:'external.js'}};
+await packages.restore((await packages.build(program,{resolveModule:()=> '/* source */'})).files);
+console.log('✓ 项目交接：共享素材／非ASCII与同名路径／模块路径规范化／索引严格往返');

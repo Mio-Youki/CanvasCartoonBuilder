@@ -1,0 +1,95 @@
+{
+  "host": "tauri-webview",
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+    "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "tauri": true,
+    "visibility": "visible",
+    "entry": "/img2asset-v4-classic.html"
+  },
+  "nativeShell": {
+    "path": "E:\\ProjectDSH\\CIEL\\tools\\src-tauri\\target\\release\\patcharium.exe",
+    "sha256": "d228853e0d92d2c3fd54ea5a1dfcfb13ac56f2f4c820132bc1340789c2a67ea0",
+    "modifiedAt": "2026-09-14T07:02:15.683Z"
+  },
+  "runtimeSha256": "8c6c17ff673727a60bc9526da531f1c6aa8b781e9fd7f54fb2563fef86aefced",
+  "functional": {
+    "builtinsPreserved": 14,
+    "extensions": [
+      "A",
+      "a",
+      "中",
+      "界"
+    ],
+    "fixedCell": [
+      8,
+      8
+    ],
+    "atlasBytes": 1152,
+    "baselineBytes": 896,
+    "densities": [
+      {
+        "char": " ",
+        "density": 0
+      },
+      {
+        "char": ".",
+        "density": 0.03125
+      },
+      {
+        "char": ":",
+        "density": 0.0625
+      },
+      {
+        "char": "-",
+        "density": 0.078125
+      },
+      {
+        "char": "a",
+        "density": 0.125
+      },
+      {
+        "char": "+",
+        "density": 0.140625
+      },
+      {
+        "char": "=",
+        "density": 0.15625
+      },
+      {
+        "char": "A",
+        "density": 0.171875
+      },
+      {
+        "char": "%",
+        "density": 0.21875
+      },
+      {
+        "char": "*",
+        "density": 0.265625
+      },
+      {
+        "char": "#",
+        "density": 0.3125
+      },
+      {
+        "char": "@",
+        "density": 0.328125
+      },
+      {
+        "char": "中",
+        "density": 0.359375
+      },
+      {
+        "char": "界",
+        "density": 0.421875
+      }
+    ],
+    "fontCallsDuring20Frames": 0,
+    "glyphUploadsDuring20Frames": 1,
+    "portable": true
+  },
+  "performance": null,
+  "errors": [],
+  "desktopBoundary": "Existing release shell + temporary localhost v4 frontend; not packaged-resource or native file-dialog acceptance."
+}

@@ -18,7 +18,7 @@
   }
   function card(effect, scope, owner) {
     const support = registry().runtimeSupport[effect.id][scope], storage = storageFor(effect, scope), bucket = scope === 'scene' ? owner.sceneEffects?.[storage] : owner.effects?.[storage], value = bucket && bucket[effect.id] || null;
-    return Object.freeze({ id: effect.id, name: effect.name, aliases: effect.aliases || [], page: pageFor(effect, scope), storage, enabled: !!(value && value.enabled), availability: support, editable: support === 'ready', purpose: effect.purpose, params: effect.params, motion: effect.motion, timing: effect.timing, mask: effect.mask });
+    return Object.freeze({ id: effect.id, name: effect.name, aliases: effect.aliases || [], page: pageFor(effect, scope), storage, present:!!value, enabled: !!(value && value.enabled), availability: support, editable: support === 'ready', purpose: effect.purpose, params: effect.params, motion: effect.motion, timing: effect.timing, mask: effect.mask });
   }
   function create(scope, owner) {
     const validScope = scope === 'scene' ? 'scene' : 'object', root = owner || {};

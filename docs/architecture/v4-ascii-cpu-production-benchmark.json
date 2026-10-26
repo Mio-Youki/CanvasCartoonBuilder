@@ -1,0 +1,85 @@
+{
+  "cases": 40,
+  "first": {
+    "edgeBytes": 34720,
+    "cellBytes": 1280,
+    "edgeAllocations": 1,
+    "cellAllocations": 1
+  },
+  "repeated": {
+    "edgeBytes": 34720,
+    "cellBytes": 1280,
+    "edgeAllocations": 1,
+    "cellAllocations": 1
+  },
+  "cleared": {
+    "edgeBytes": 0,
+    "cellBytes": 0,
+    "edgeAllocations": 0,
+    "cellAllocations": 0
+  },
+  "rebuilt": {
+    "edgeBytes": 34720,
+    "cellBytes": 1280,
+    "edgeAllocations": 1,
+    "cellAllocations": 1
+  },
+  "measurements": [
+    {
+      "name": "reference",
+      "width": 640,
+      "height": 360,
+      "backend": "gpu",
+      "samples": 60,
+      "median": 29.199999999254942,
+      "p95": 73.10000000149012
+    },
+    {
+      "name": "production",
+      "width": 640,
+      "height": 360,
+      "backend": "gpu",
+      "samples": 60,
+      "median": 16.899999998509884,
+      "p95": 20.199999999254942
+    },
+    {
+      "name": "reference",
+      "width": 1280,
+      "height": 720,
+      "backend": "gpu",
+      "samples": 60,
+      "median": 113.70000000298023,
+      "p95": 149.60000000149012
+    },
+    {
+      "name": "production",
+      "width": 1280,
+      "height": 720,
+      "backend": "gpu",
+      "samples": 60,
+      "median": 41.19999999925494,
+      "p95": 52
+    },
+    {
+      "name": "reference",
+      "width": 1920,
+      "height": 1080,
+      "backend": "gpu",
+      "samples": 60,
+      "median": 263.3999999985099,
+      "p95": 351.6000000014901
+    },
+    {
+      "name": "production",
+      "width": 1920,
+      "height": 1080,
+      "backend": "gpu",
+      "samples": 60,
+      "median": 76,
+      "p95": 113.5
+    }
+  ],
+  "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0"
+}

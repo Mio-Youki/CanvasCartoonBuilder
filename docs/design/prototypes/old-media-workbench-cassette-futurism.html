@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ToSampool · Cassette Futurism 工作台</title>
+  <script defer src="vendor/alpine.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --casing: #cdbb98;
+      --casing-hi: #f0e4c7;
+      --casing-low: #a48e6b;
+      --casing-edge: #594c38;
+      --deck: #20282c;
+      --deck-low: #111a1f;
+      --screen: #0c1115;
+      --screen-soft: #151b1e;
+      --screen-line: #45535a;
+      --amber: #81d2c8;
+      --amber-hi: #f2eee2;
+      --amber-dim: #9aaeb0;
+      --ink: #e3ded2;
+      --muted: #a1aaa8;
+      --cyan: #8cddd1;
+      --ink-cut: #d66b60;
+      --ink-sample: #e3ad4e;
+      --ink-source: #81c9bd;
+      --ink-blue: #79b9d9;
+      --ink-time: #009944;
+      --button-glow: #f8c751;
+      --danger: #ed765c;
+      --focus: #fff2a9;
+      --shell-gap: 8px;
+      --timeline-h: 126px;
+      --key-size: 38px;
+      --type-body: 14px;
+      --type-control: 13px;
+      --type-caption: 11px;
+      --type-section: 14px;
+      --type-heading: 16px;
+      font-family: "Microsoft YaHei UI", "Noto Sans CJK SC", sans-serif;
+      font-size: var(--type-body);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 1110px; background: #10171b; color: var(--ink); overflow: hidden; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+    svg.ico { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square; stroke-linejoin: miter; }
+    .mono { font-family: Consolas, "Cascadia Mono", monospace; font-variant-numeric: tabular-nums; }
+    .tiny { font-size: var(--type-caption); letter-spacing: .04em; }
+    .bench {
+      display: grid;
+      grid-template-columns: var(--left-w, 270px) minmax(0, 1fr) var(--right-w, 348px);
+      grid-template-rows: 37px 79px minmax(0, 1fr) var(--timeline-h);
+      gap: var(--shell-gap);
+      height: 100vh;
+      min-height: 680px;
+      padding: 8px;
+      background: radial-gradient(ellipse at 50% -30%, #263238, #10171b 68%);
+    }
+    [x-cloak] { display: none !important; }
+    .command-deck, .tool-deck {
+      grid-column: 1 / 4;
+      min-width: 0;
+      border: 1px solid #6e5b3d;
+      background: linear-gradient(#ebdbb7, #bca57d);
+      box-shadow: inset 0 1px #fff3d5, 0 3px 0 #5d4b34, 0 5px 8px #0008;
+    }
+    .command-deck { grid-row: 1; display:grid; place-items:center; }
+    .tool-deck { grid-row: 2; display:grid; grid-template-columns:var(--left-w, 270px) minmax(0,1fr) var(--right-w, 348px); gap:var(--shell-gap); padding:0; border-radius:14px; box-shadow:inset 0 2px 5px #4b382d66,inset 0 -1px #fff4db,0 3px 0 #5d4b34,0 5px 8px #0008; }
+    .brand-plaque { display:flex; align-items:center; justify-content:center; gap:10px; color:#3b2b1d; }
+    .brand-mark { display: inline-grid; grid-template-columns: repeat(2, 6px); grid-template-rows: repeat(2, 6px); gap: 2px; transform: rotate(-12deg); }
+    .brand-mark i { background: #3b2b1d; }
+    .brand-mark i:nth-child(2) { background: #cf8e36; }
+    .brand-plaque strong { font-family: Consolas, "Cascadia Mono", monospace; font-size: 16px; letter-spacing: .13em; white-space: nowrap; }
+    .hardware-bay { min-width:0; position:relative; margin:4px 3px; border:2px solid #31281c; border-radius:12px; padding:2px 5px 4px; background:transparent; box-shadow:inset 0 0 0 1px #f6e6c4,0 1px 0 #f6e6c4; }
+    .bay-keys { display:flex; align-items:center; justify-content:space-around; gap:3px; height:59px; }
+    .console-key { flex:1 1 0; min-width:0; height:59px; border:0; background:transparent; color:#332b20; padding:0 1px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; font:700 12px "Microsoft YaHei UI",sans-serif; white-space:nowrap; }
+    .console-key .key-cap { width:var(--key-size); height:var(--key-size); display:grid; place-items:center; border:2px solid #2a2117; border-radius:8px; color:#32291f; background:linear-gradient(#f5e6c8,#c5ad85); box-shadow:0 0 0 2px #cfb891,inset 0 1px #fff1d2,inset 0 -1px #806d50; transition:transform 90ms,box-shadow 90ms,background 90ms; }
+    .hardware-bay:not(.tools) .key-cap { width:calc(100% - 4px); }
+    .console-key .key-cap .ico { width:18px; height:18px; stroke-width:2; }
+    .console-key:hover .key-cap { transform:translateY(1px); box-shadow:0 0 0 2px #cfb891,inset 0 1px #fff; }
+    .console-key:active .key-cap { transform:translateY(3px); box-shadow:inset 0 1px #8d9184; }
+    .console-key.selected .key-cap { background:linear-gradient(#ffe398,#e6aa34); box-shadow:0 0 0 2px #cfb891,inset 0 0 10px #fff4b6; }
+    .console-key .key-label { display:block; line-height:1; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+    .hardware-bay.tools .console-key { color:#34291d; width:42px; flex:0 0 42px; }
+    .hardware-bay.tools .key-cap { border-color:#171512; background:linear-gradient(#45433e,#1b1c1b); color:#e9e1cb; box-shadow:0 0 0 2px #ae9774,inset 0 1px #807b6e; }
+    .hardware-bay.tools .console-key.selected .key-cap { color:#201d15; background:linear-gradient(#ffe496,#d9a635); box-shadow:0 0 0 2px #ae9774,inset 0 0 10px #fff3b0; }
+    .tool-middle { display:flex; min-width:0; gap:8px; align-items:center; }
+    .tool-bank { display:flex; align-items:center; gap:1px; flex:none; }
+    .tool-readout {
+      flex: 1 1 0;
+      min-width: 110px;
+      height: 49px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 14px;
+      overflow: hidden;
+      border: 2px solid #292f30;
+      border-left: 4px solid var(--ink-cut);
+      background: var(--screen);
+      box-shadow: inset 0 0 0 1px #62665c, inset 0 0 15px #000;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+    .tool-readout strong { font-size: var(--type-control); min-width: 34px; }
+    .tool-readout .readout-pair { display:flex; gap:6px; align-items:center; flex:none; font:var(--type-control) Consolas,monospace; }
+    .tool-readout .readout-pair label { font-size:var(--type-control); color:var(--ink-source); }
+    .tool-readout .readout-pair input[type=number] { width:50px; height:25px; padding:2px 4px; border:1px solid #586461; border-radius:0; background:#1a2226; color:var(--amber-hi); font:var(--type-control) Consolas,monospace; }
+    .tool-readout .readout-pair input[type=color] { width:29px; height:24px; padding:2px; border:1px solid #586461; border-radius:0; background:#1a2226; cursor:pointer; }
+    .tool-readout .readout-pair input:hover { border-color:var(--ink-source); }
+    .tool-side-note { display:none; }
+    .unit {
+      min-height: 0;
+      min-width: 0;
+      border: 1px solid var(--casing-edge);
+      background: linear-gradient(135deg, var(--casing-hi), var(--casing) 18%, #b29b76 90%);
+      box-shadow: inset 0 1px #fff3d9, inset 0 -2px #877455, 0 3px 0 #0b0c0a, 0 8px 15px #0007;
+      padding: 7px;
+    }
+    .screen {
+      position: relative;
+      min-height: 0;
+      min-width: 0;
+      height: 100%;
+      overflow: hidden;
+      border: 3px solid #293033;
+      background: var(--screen);
+      box-shadow: inset 0 0 0 1px #66706b, inset 0 0 24px #000;
+    }
+    .pane-screen::after { content:""; position:absolute; bottom:0; right:0; width:39px; height:3px; pointer-events:none; background:linear-gradient(90deg,var(--ink-source) 0 33%,var(--ink-cut) 33% 66%,var(--ink-sample) 66%); }
+    .left-column .pane-screen::after { left:0; right:0; width:auto; background:linear-gradient(90deg,var(--ink-source) 0 calc(100% - 26px),var(--ink-cut) calc(100% - 26px) calc(100% - 13px),var(--ink-sample) calc(100% - 13px)); }
+    .left-column { grid-column: 1; grid-row: 3 / 5; display: grid; grid-template-rows: minmax(180px, 52%) 8px minmax(150px, 1fr); min-height: 0; }
+    .left-divider { cursor: row-resize; position: relative; }
+    .left-divider::after { content:""; position:absolute; left:42%; right:42%; top:3px; height:2px; background:#b4a07c; }
+    .left-column .unit { padding: 6px; }
+    .left-column .lower-unit { display:flex; flex-direction:column; }
+    .lower-unit .screen { flex:1; height:auto; }
+    .lower-screen-actions { height:27px; flex:none; display:flex; justify-content:flex-end; align-items:center; gap:3px; padding:0 7px; border-bottom:1px solid var(--screen-line); }
+    .pane-screen { display: flex; flex-direction: column; }
+    .screen-head { flex: none; display: flex; align-items: center; justify-content: space-between; min-height: 34px; padding: 0 8px; border-bottom: 1px solid var(--screen-line); color: var(--amber-hi); font: 700 var(--type-section) Consolas, "Microsoft YaHei UI", sans-serif; letter-spacing: .03em; }
+    .screen-head .head-title { display: flex; align-items: center; gap: 7px; }
+    .head-line { width: 12px; height: 3px; background: var(--ink-cut); box-shadow:3px 1px 0 var(--ink-source); }
+    .head-actions { display:flex; gap:3px; }
+    .screen-action { width:24px; height:22px; padding:0; border:1px solid transparent; background:transparent; color:var(--amber-dim); display:grid; place-items:center; }
+    .screen-action:hover,.screen-action:focus-visible { color:var(--amber-hi); border-color:var(--screen-line); background:#272b2d; }
+    .screen-action .ico { width:14px; height:14px; }
+    .tree-scroll, .lower-scroll, .inspector-scroll { position:relative; min-height:0; overflow-x:hidden; overflow-y:auto; scrollbar-width:none; }
+    .tree-scroll::-webkit-scrollbar, .lower-scroll::-webkit-scrollbar, .inspector-scroll::-webkit-scrollbar { display:none; width:0; height:0; }
+    .screen-scroll-rail { position:absolute; z-index:5; top:0; right:0; width:16px; height:100%; background:transparent; cursor:pointer; touch-action:none; }
+    .screen-scroll-rail::before { content:""; position:absolute; top:0; right:0; bottom:0; width:3.5px; background:var(--ink-sample); }
+    .screen-scroll-thumb { position:absolute; top:0; right:0; width:3.5px; height:100%; border-radius:0; background:var(--ink-source); pointer-events:none; }
+    .tree-scroll { padding:8px 16px 8px 5px; }
+    .tree-root { margin:1px 2px 0; }
+    .tree-children { margin:0 2px 0 12px; border-left:1px solid #66716c; padding:5px 0 6px; }
+    .tree-element-children { margin:0 0 3px 14px; border-left:1px solid #66716c; }
+    .tree-children .tree-row.depth-1 { padding-left:8px; }
+    .tree-element-children .tree-row.depth-2 { padding-left:7px; }
+    .tree-children .tree-row.depth-2 .node-name { color:#b8c3bc; }
+    .tree-row { --row-ink:var(--amber-hi); display:flex; align-items:center; gap:5px; min-height:32px; padding:0 5px; color:var(--ink); white-space:nowrap; font-size:var(--type-control); outline:1px solid transparent; outline-offset:-1px; cursor:pointer; }
+    .tree-row.depth-1 { padding-left:18px; }
+    .tree-row.depth-2 { padding-left:33px; }
+    .tree-row:hover:not(.current),.tree-row:focus-within:not(.current) { outline-color:var(--row-ink); }
+    .tree-row.current { background:var(--row-ink); color:#12191b; outline-color:var(--row-ink); }
+    .tree-row.dim { color:var(--muted); }
+    .tree-row.current.dim,.tree-children .tree-row.depth-2.current .node-name { color:#12191b; }
+    .tree-row .expander { width:13px; height:23px; flex:none; text-align:center; color:var(--amber-dim); font:700 15px/23px Consolas,monospace; }
+    .tree-row button.expander { padding:0; border:0; background:none; cursor:pointer; }
+    .tree-row.current .expander,.tree-row.current .state-button { color:#12191b; }
+    .tree-row .node-mark { width:13px; height:13px; flex:none; border:1px solid currentColor; opacity:.85; }
+    .tree-row .node-mark.circle { border-radius:50%; }
+    .tree-row .node-mark.poly { transform:rotate(45deg) scale(.75); }
+    .tree-row .node-name { overflow:hidden; text-overflow:ellipsis; flex:1; }
+    .tree-row .state-button { flex:none; width:20px; height:20px; padding:0; border:0; color:var(--muted); background:transparent; display:grid; place-items:center; opacity:0; }
+    .tree-row:hover .state-button,.tree-row:focus-within .state-button,.tree-row .state-button.on { opacity:1; }
+    .tree-row .state-button:hover, .tree-row .state-button.on { color:var(--amber-hi); }
+    .tree-row .state-button .ico { width:13px; height:13px; }
+    .tree-row .state-button.on { background:#334b48; }
+    .tree-row.current .state-button.on { color:#12191b; background:#ffffff55; }
+    .tab-strip { display:flex; flex:none; height:33px; border-bottom:1px solid var(--screen-line); }
+    .tab-strip button { flex:1; border:0; border-right:1px solid #394246; background:transparent; color:var(--muted); font-weight:700; font-size:var(--type-control); }
+    .tab-strip button:last-child { border-right:0; }
+    .tab-strip button:hover { color:var(--amber-hi); background:#293035; }
+    .tab-strip button.active { color:#171819; background:#e6dfc8; box-shadow:inset 0 -3px var(--ink-source); }
+    .signal-viewport { position:relative; flex:1; min-height:0; overflow:hidden; }
+    .signal-viewport > .lower-scroll,.signal-viewport > .inspector-scroll { height:100%; }
+    .side-signal { view-transition-name:side-signal; }
+    .inspector-signal { view-transition-name:inspector-signal; }
+    .bench[data-transition-scope="side"] .inspector-signal,.bench[data-transition-scope="inspector"] .side-signal { view-transition-name:none; }
+    ::view-transition-old(root),::view-transition-new(root) { animation:none; }
+    ::view-transition-group(side-signal),::view-transition-group(inspector-signal) { animation-duration:210ms; animation-timing-function:linear; }
+    ::view-transition-old(side-signal),::view-transition-old(inspector-signal) { animation:signal-out 105ms steps(5,end) both; }
+    ::view-transition-new(side-signal),::view-transition-new(inspector-signal) { animation:signal-lock 155ms 55ms steps(7,end) both; }
+    @keyframes signal-out {
+      0% { opacity:1; transform:translateX(0) scaleX(1); filter:brightness(1); clip-path:inset(0); }
+      35% { opacity:.95; transform:translateX(-3px) scaleX(1.012); filter:brightness(1.3); clip-path:inset(0 0 3% 0); }
+      65% { opacity:.82; transform:translateX(4px) scaleX(1.025); filter:brightness(.8); clip-path:inset(13% 0 29% 0); }
+      100% { opacity:0; transform:translateX(-2px) scaleX(1.035); filter:brightness(.5); clip-path:inset(49% 0 49% 0); }
+    }
+    @keyframes signal-lock {
+      0% { opacity:0; transform:translateX(4px) scaleX(1.025); filter:brightness(1.5); clip-path:inset(49% 0 49% 0); }
+      30% { opacity:.7; transform:translateX(-3px) scaleX(1.014); filter:brightness(.85); clip-path:inset(19% 0 22% 0); }
+      55% { opacity:.9; transform:translateX(2px) scaleX(1.006); filter:brightness(1.12); clip-path:inset(0); }
+      100% { opacity:1; transform:translateX(0) scaleX(1); filter:brightness(1); clip-path:inset(0); }
+    }
+    @media(prefers-reduced-motion:reduce){::view-transition-old(side-signal),::view-transition-old(inspector-signal),::view-transition-new(side-signal),::view-transition-new(inspector-signal){animation-duration:.01ms!important;animation-delay:0ms!important}}
+    .inspector-tabs button:nth-child(1).active { box-shadow:inset 0 -3px var(--ink-source); }
+    .inspector-tabs button:nth-child(2).active { box-shadow:inset 0 -3px var(--ink-cut); }
+    .inspector-tabs button:nth-child(3).active { box-shadow:inset 0 -3px var(--ink-sample); }
+    .lower-scroll { padding:7px 16px 7px 9px; }
+    .effect-stage { position:relative; border:1px solid #596660; margin-top:9px; padding:0; background:#11191c; }
+    .effect-stage:first-child { margin-top:0; }
+    .effect-stage::after { content:""; position:absolute; width:5px; height:5px; right:-1px; bottom:-1px; border-right:1px solid var(--stage-ink); border-bottom:1px solid var(--stage-ink); pointer-events:none; }
+    .stage-heading { display:flex; align-items:center; gap:6px; color:var(--amber-dim); font:700 var(--type-section) Consolas,"Microsoft YaHei UI",sans-serif; letter-spacing:.03em; min-height:27px; padding:1px 6px; border-bottom:1px solid #43504d; background:#1b2528; }
+    .effect-stage.sample { --stage-ink:var(--ink-sample); }
+    .effect-stage.decor { --stage-ink:var(--ink-cut); }
+    .effect-stage.mask { --stage-ink:var(--ink); }
+    .effect-stage.compose { --stage-ink:var(--ink-source); }
+    .effect-stage .stage-heading { color:var(--stage-ink); }
+    .stage-heading .drag-mark { color:var(--stage-ink); letter-spacing:-2px; margin-left:auto; }
+    .stage-heading .tiny { margin-left:auto; font:var(--type-caption) Consolas,monospace; letter-spacing:0; }
+    .effect-list-row { display:flex; align-items:center; gap:8px; padding:2px 7px; min-height:25px; color:var(--ink); font-size:var(--type-control); cursor:pointer; outline:1px solid transparent; outline-offset:-1px; }
+    .effect-list-row:hover:not(.selected) { outline-color:var(--stage-ink); }
+    .effect-list-row.selected { background:var(--stage-ink); color:#12191b; }
+    .effect-list-row .effect-dot { width:7px; height:7px; background:var(--stage-ink); flex:none; }
+    .effect-list-row .effect-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .effect-list-row .effect-value { font:var(--type-caption) Consolas,monospace; color:var(--muted); }
+    .effect-list-row.selected .effect-dot { background:#12191b; }
+    .effect-list-row.selected .effect-value { color:#263033; }
+    .asset-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .asset-card { min-width:0; }
+    .asset-picture { aspect-ratio:1; display:grid; place-items:center; border:1px solid #827047; background:#151b1d; position:relative; overflow:hidden; }
+    .asset-picture::before { content:""; position:absolute; width:66%; height:66%; background:linear-gradient(140deg,#606e87 20%,#a1bfd2 20% 42%,#334a4c 43% 70%,#d9c9aa 70%); image-rendering:pixelated; transform:rotate(-8deg); }
+    .asset-picture.second::before { background:linear-gradient(140deg,#28334a 32%,#d1a756 33% 42%,#775a3e 43% 75%,#e5b859 76%); transform:none; }
+    .asset-caption { display:flex; align-items:center; justify-content:space-between; font-size:var(--type-control); padding-top:4px; overflow:hidden; white-space:nowrap; }
+    .asset-caption span { overflow:hidden; text-overflow:ellipsis; }
+    .stage-unit { grid-column:2; grid-row:3; display:flex; flex-direction:column; padding:7px 9px 9px; border-radius:14px 14px 17px 17px; }
+    .stage-bezel { height:34px; flex:none; display:flex; align-items:center; gap:9px; padding:0 4px 4px; color:#4b3923; }
+    .stage-bezel strong { font:700 12px Consolas,monospace; letter-spacing:.13em; }
+    .stage-bezel .bezel-slot { flex:1; height:4px; margin:0 10px; background:repeating-linear-gradient(90deg,#8d7b60 0 3px,transparent 3px 7px); opacity:.7; }
+    .bezel-led { width:11px; height:11px; border:2px solid #2d3738; border-radius:50%; background:#31c7a4; box-shadow:inset 0 1px #ddfff5,0 0 7px #37d6b4; flex:none; }
+    .bezel-led.draft { background:#f1bf4d; box-shadow:inset 0 1px #fff0bd,0 0 7px #e7b440; }
+    .status-readout { height:27px; display:flex; align-items:center; gap:10px; padding:0 9px; border:2px solid #333b3b; background:var(--screen); color:var(--ink); font:var(--type-control) Consolas,monospace; box-shadow:inset 0 0 9px #000,inset 0 0 0 1px #6e736a; }
+    .status-readout select { width:67px; height:22px; padding:0 2px; border:0; border-bottom:1px solid #63817f; border-radius:0; background:var(--screen); color:var(--ink-source); font:700 var(--type-control) Consolas,monospace; cursor:pointer; }
+    .status-readout .quality { min-width:35px; color:var(--ink-source); font-weight:700; }
+    .status-readout .quality.draft { color:var(--ink-sample); }
+    .stage-screen { flex:1; min-height:0; position:relative; overflow:hidden; border-width:5px; border-radius:11px 11px 12px 12px; display:flex; align-items:center; justify-content:center; background:#101717; }
+    .stage-screen::before { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(90deg,#0003 0 1px,transparent 1px 100%); background-size:28px 28px; opacity:.2; }
+    .screen-label { position:absolute; z-index:3; top:11px; left:13px; color:#b5b496; font:10px Consolas,monospace; letter-spacing:.08em; }
+    .canvas-art { position:relative; width:min(88%, 900px); aspect-ratio:16/9; max-height:85%; border:1px solid #776f55; box-shadow:0 0 0 10px #0a0d0d,0 14px 30px #0009; }
+    .canvas-art svg { display:block; width:100%; height:100%; image-rendering:pixelated; }
+    .selection { position:absolute; left:34%; top:47%; width:34%; height:29%; border:2px solid #ffd54f; box-shadow:0 0 0 1px #34240e; pointer-events:none; }
+    .selection .corner { position:absolute; width:8px; height:8px; background:#ffdc59; border:1px solid #402b0d; }
+    .selection .tl { left:-5px; top:-5px; } .selection .tr { right:-5px; top:-5px; } .selection .bl { left:-5px; bottom:-5px; } .selection .br { right:-5px; bottom:-5px; }
+    .selection .rotate { position:absolute; left:calc(50% - 5px); top:-31px; width:10px; height:10px; border:2px solid #ffdc59; border-radius:50%; }
+    .selection .rotate::after { content:""; position:absolute; top:8px; left:3px; width:1px; height:17px; background:#ffdc59; }
+    .inspector-unit { grid-column:3; grid-row:3; display:flex; flex-direction:column; padding:6px; }
+    .inspector-screen { display:flex; flex-direction:column; }
+    .inspector-head { padding:15px 12px 8px; border-bottom:1px solid var(--screen-line); flex:none; }
+    .inspector-head h1 { margin:0; color:var(--amber-hi); font-size:var(--type-heading); font-weight:700; }
+    .inspector-tabs { height:36px; }
+    .inspector-scroll { flex:1; padding:12px 16px 12px 12px; }
+    .compose-inspector { counter-reset:basic-section; }
+    .v4-formation-heading .v4-formation-toggle { margin-left:auto; color:var(--ink-source); }
+    .v4-formation-heading .v4-formation-toggle:hover,.v4-formation-heading .v4-formation-toggle:focus-visible { background:#284a48; outline:1px solid var(--ink-source); }
+    .v4-formation-motion-gallery { margin-bottom:9px; }
+    .subframe-title { display:flex; align-items:center; gap:8px; min-height:29px; border-bottom:1px solid var(--screen-line); margin-bottom:8px; color:var(--ink); font:700 var(--type-section) Consolas,monospace; letter-spacing:.06em; }
+    .subframe-title .spacer { flex:1; }
+    .time-key,.motion-toggle { width:24px; height:24px; display:grid; place-items:center; padding:0; border:0; background:transparent; color:var(--ink-source); }
+    .time-key { color:#55bd81; }
+    .time-key .ico,.motion-toggle .ico { width:15px; height:15px; stroke-width:1.8; }
+    .time-key:hover { background:#00994435; color:#34bd72; }
+    .time-key.on { background:var(--ink-time); color:#f7f4e8; }
+    .subsection { margin:0 0 13px; }
+    .compose-inspector > .subsection { position:relative; border:1px solid #51605e; background:#121b1e; padding:0 8px 7px; margin-bottom:8px; }
+    .compose-inspector > .subsection::after { content:""; position:absolute; right:-1px; bottom:-1px; width:6px; height:6px; border-right:1px solid var(--ink-source); border-bottom:1px solid var(--ink-source); }
+    .compose-inspector > .subsection .subsection-head { margin:0 -8px 5px; padding:0 8px; background:#1b282a; }
+    .compose-inspector > .subsection .subsection-head .motion-toggle { margin-left:auto; }
+    .v4-transform-preview-body { display:flex; flex-direction:column; gap:0; }
+    .v4-transform-preview-row { display:grid; grid-template-columns:54px repeat(2,minmax(0,1fr)); gap:5px; align-items:center; min-height:34px; color:var(--ink); font-size:var(--type-control); }
+    .v4-transform-preview-row>span { color:var(--muted); }
+    .v4-transform-preview-row label { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:4px; min-width:0; }
+    .v4-transform-preview-row label small { font:var(--type-caption) Consolas,monospace; color:var(--muted); white-space:nowrap; }
+    .v4-transform-preview-row input,.v4-transform-preview-row select { min-width:0; width:100%; height:26px; border:0; background:transparent; color:var(--ink); font:var(--type-control) Consolas,monospace; }
+    .v4-transform-preview-row input:hover,.v4-transform-preview-row input:focus,.v4-transform-preview-row select:hover,.v4-transform-preview-row select:focus { outline:1px solid var(--ink-source); background:#203137; }
+    .v4-transform-preview-divider { height:1px; margin:5px 0; background:#3d4749; }
+    .v4-transform-pivot { width:100%; min-height:26px; border:1px solid #51605e; background:transparent; color:var(--ink); font:var(--type-control) Consolas,monospace; }
+    .subsection-head { display:flex; align-items:center; gap:5px; min-height:29px; color:var(--ink); border-bottom:1px solid #3d4749; margin-bottom:7px; font-size:var(--type-section); font-weight:700; }
+    .subsection-head .spacer { flex:1; }
+    .motion-toggle { color:var(--amber-dim); }
+    .motion-toggle:hover { background:#79b9d935; color:var(--amber-hi); }
+    .motion-toggle.on { background:var(--ink-blue); color:#10191d; }
+    .param-row { display:grid; grid-template-columns:72px minmax(0,1fr); gap:7px; align-items:center; min-height:34px; color:var(--ink); font-size:var(--type-control); }
+    .param-row.double { grid-template-columns:72px minmax(0,1fr) minmax(0,1fr); }
+    .param-row input, .param-row select { width:100%; min-width:0; height:27px; background:#1a2226; border:1px solid #586461; color:var(--amber-hi); padding:2px 6px; border-radius:0; font:var(--type-control) Consolas,monospace; }
+    .param-row input[type=range] { padding:0; accent-color:var(--amber); height:18px; }
+    .param-row .numeric { display:flex; align-items:center; gap:5px; }
+    .param-row .numeric small { color:var(--amber-dim); font:var(--type-caption) Consolas,monospace; }
+    .swatch-field { width:25px; height:23px; border:1px solid #e7ca74; background:#edb559; display:inline-block; }
+    .effect-gallery { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .effect-tile { position:relative; min-height:91px; width:100%; border:1px solid #65706d; background:#161d20; color:#d8d6ca; padding:0; text-align:left; overflow:hidden; display:flex; flex-direction:column; }
+    .effect-tile:hover { border-color:var(--ink-source); background:#242b2d; }
+    .effect-tile.active { background:#284a48; color:#f5efe1; border-color:var(--ink-source); }
+    .effect-tile.active:hover { background:#315956; }
+    .effect-tile.selected { outline:2px solid var(--ink-sample); outline-offset:1px; }
+    .effect-tile .tile-name { display:block; flex:none; height:25px; padding:4px 7px; border-bottom:1px solid #727b74; font:700 var(--type-control) Consolas,"Microsoft YaHei UI",sans-serif; letter-spacing:.04em; }
+    .effect-tile .tile-art { flex:1; display:grid; place-items:center; overflow:hidden; position:relative; font:700 40px Consolas,monospace; letter-spacing:-.07em; line-height:1; }
+    .effect-tile.selected .tile-art::after { content:""; position:absolute; right:5px; bottom:5px; width:18px; height:3px; background:linear-gradient(90deg,var(--ink-source) 0 33%,var(--ink-cut) 33% 66%,var(--ink-sample) 66%); }
+    .effect-tile .tile-art span { display:block; transition:transform 250ms steps(3,end),text-shadow 250ms steps(3,end),filter 250ms steps(3,end); }
+    .effect-tile:hover .tile-art span { transform:translate(2px,-1px); }
+    .effect-tile .tile-art.projection span { text-shadow:5px 5px var(--ink-cut); }
+    .effect-tile .tile-art.outline span { -webkit-text-stroke:2px var(--ink-sample); color:transparent; }
+    .effect-tile .tile-art.tint { background:linear-gradient(90deg,#d66b6038 0 33%,#e3ad4e30 33% 66%,#81c9bd38 66%); }
+    .effect-tile .tile-art.tint span { text-shadow:-5px 0 var(--ink-cut),5px 0 var(--ink-source); }
+    .effect-tile .tile-art.texture { background:repeating-linear-gradient(0deg,transparent 0 5px,#e3ad4e46 5px 6px); }
+    .effect-tile .tile-art.inner span { text-shadow:0 0 4px var(--ink-sample),0 0 11px var(--ink-cut); }
+    .effect-tile .tile-art.outer span { text-shadow:-4px 0 var(--ink-cut),4px 0 var(--ink-source),0 4px var(--ink-sample); }
+    .effect-tile .tile-art.halftone span { display:block; width:48px; height:43px; font-size:0; color:var(--ink-sample); background:radial-gradient(circle,currentColor 36%,transparent 42%) 0 0 / 10px 10px; }
+    .effect-tile .tile-art.threshold { background:linear-gradient(90deg,#813c39 0 48%,#1a2326 48%); }
+    .effect-tile .tile-art.threshold span { filter:contrast(4); }
+    .effect-tile .tile-art.offset { background:repeating-linear-gradient(180deg,transparent 0 15px,#d66b6030 15px 18px); }
+    .effect-tile .tile-art.offset span { text-shadow:5px 1px var(--ink-cut),-3px -1px var(--ink-source); }
+    .effect-tile .tile-art.dispersion { background:linear-gradient(90deg,#d66b6030 0 33%,#e3ad4e22 33% 66%,#81c9bd30 66%); }
+    .effect-tile .tile-art.dispersion span { text-shadow:-4px 0 var(--ink-cut),4px 0 var(--ink-source); }
+    .tile-power { position:absolute; top:2px; right:3px; z-index:2; width:22px; height:19px; border:0; background:transparent; color:var(--ink-source); display:grid; place-items:center; padding:0; }
+    .tile-power:hover { background:#81c9bd44; }
+    .effect-tile.active .tile-power { background:var(--ink-source); color:#142521; }
+    .tile-power .ico { width:12px; height:12px; stroke-width:2.1; }
+    .effect-detail { position:relative; margin-top:15px; border:1px solid #697470; background:#121b1e; padding:0 9px 9px; }
+    .effect-detail::after { content:""; position:absolute; right:-1px; bottom:-1px; width:8px; height:8px; border-right:1px solid var(--ink-sample); border-bottom:1px solid var(--ink-sample); }
+    .detail-title { display:flex; align-items:center; gap:7px; min-height:31px; margin:0 -9px 5px; padding:0 9px; border-bottom:1px solid #4b5a58; background:#1c2728; color:var(--amber-hi); font-size:var(--type-section); font-weight:700; }
+    .detail-title::before { content:"EDIT /"; color:var(--ink-sample); font:700 var(--type-caption) Consolas,monospace; }
+    .detail-title .spacer { flex:1; }
+    .detail-title .time-key { flex:none; }
+    .detail-copy { margin:2px 0 8px; color:var(--muted); font-size:var(--type-control); line-height:1.5; }
+    .detail-params { border-top:1px solid #3d4c4a; padding-top:6px; }
+    .timeline-dock { grid-column:2 / 4; grid-row:4; min-width:0; display:flex; flex-direction:column; padding:4px 8px 7px; background:linear-gradient(#e1d0ab,#a9926e); border:1px solid #675637; box-shadow:inset 0 1px #fff2d6,0 3px 0 #0c0d0a; }
+    .timeline-head { display:flex; align-items:center; gap:6px; height:36px; flex:none; position:relative; overflow:visible; color:#3e3020; }
+    .play-key { width:45px; height:45px; flex:none; align-self:flex-start; margin-top:1px; position:relative; z-index:2; border-radius:50%; padding:0; border:2px solid #2d261d; background:linear-gradient(#4d4840,#20211f); color:#f3e5c8; box-shadow:inset 0 1px #a49b84,0 2px #655337; display:grid; place-items:center; }
+    .play-key.playing { transform:translateY(2px); background:linear-gradient(#263335,#152125); box-shadow:inset 0 2px 4px #000; }
+    .play-key .ico { width:18px; height:18px; fill:currentColor; stroke-width:1; }
+    .transport-lights { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; width:12px; height:45px; flex:none; align-self:flex-start; margin-top:1px; position:relative; z-index:2; }
+    .transport-lights span { display:block; line-height:0; }
+    .transport-lights i { display:block; width:10px; height:10px; border-radius:50%; border:1px solid #574b39; background:#655548; }
+    .transport-lights span:first-child.on i { background:#24c7a4; box-shadow:0 0 5px #38e2b6; }
+    .transport-lights span:last-child.on i { background:#f3bf39; box-shadow:0 0 5px #ffe079; }
+    .timeline-readout { position:absolute; left:84px; margin-left:0; width:min(395px, calc(100% - 84px)); height:29px; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:0 9px; border:2px solid #403e31; background:var(--screen); color:var(--amber-hi); box-shadow:inset 0 0 0 1px #2b6a71,inset 0 0 9px #000; font-size:var(--type-control); white-space:nowrap; }
+    .timeline-readout strong { color:var(--amber); font:700 var(--type-control) Consolas,monospace; flex:none; }
+    .ruler { height:21px; flex:none; position:relative; display:flex; padding-left:84px; padding-right:11px; color:#493d2b; font:10px Consolas,monospace; border-bottom:2px solid #69573d; }
+    .ruler .tick { position:relative; flex:1; min-width:0; font-size:0; }
+    .ruler .tick:last-child { flex:0; }
+    .ruler .tick::after { content:""; position:absolute; left:0; bottom:0; height:5px; width:1px; background:#9c896d; }
+    .ruler .tick.second::after { height:6px; background:#667778; }
+    .ruler .tick.mid::after { height:8px; background:#3d5d60; }
+    .ruler .tick.major::after { height:10px; background:#16353a; }
+    .ruler .tick em { position:absolute; left:0; top:-2px; transform:translateX(-50%); font:var(--type-caption)/var(--type-caption) Consolas,monospace; font-style:normal; white-space:nowrap; }
+    .track-screen { flex:1; min-height:0; position:relative; padding:4px 9px; border:2px solid #303a3c; background:var(--screen); box-shadow:inset 0 0 10px #000,inset 0 0 0 1px #6c756d; }
+    .track-row { height:20px; display:flex; align-items:center; position:relative; }
+    .track-row + .track-row { margin-top:4px; }
+    .track-label { width:73px; flex:none; color:var(--amber-dim); font:var(--type-caption) Consolas,monospace; letter-spacing:.04em; }
+    .track-lane { display:flex; align-items:stretch; position:relative; flex:1; height:18px; border:1px solid #36717b; }
+    .scene-segment { display:flex; align-items:center; justify-content:center; border-right:1px solid #091a1f; background:#164951; color:var(--amber-hi); font-size:var(--type-control); font-weight:700; }
+    .scene-segment:nth-child(2) { background:#15525b; }
+    .scene-segment:nth-child(3) { background:#1b4650; }
+    .scene-segment:last-child { border-right:0; }
+    .track-row.context { --track-ink:var(--ink-cut); }
+    .track-row.context.compose { --track-ink:var(--ink-source); }
+    .track-row.context.sample { --track-ink:var(--ink-sample); }
+    .track-row.context .track-lane { height:16px; border:0; overflow:visible; }
+    .context-segment { position:relative; box-sizing:border-box; flex:none; height:16px; min-width:0; padding-right:3px; cursor:crosshair; }
+    .context-segment::before { content:""; position:absolute; top:0; left:0; right:3px; height:8px; border-radius:5px; background:var(--track-ink); }
+    .context-segment.timed::after { content:""; position:absolute; top:11px; left:0; right:3px; height:4px; border-radius:3px; background:var(--ink-time); }
+    .context-segment.linear { display:flex; align-items:flex-start; overflow:hidden; }
+    .context-segment.linear .halftone-cell { position:relative; top:11px; height:4px; min-width:0; flex:1; background-image:radial-gradient(circle,var(--ink-time) var(--dot),transparent calc(var(--dot) + .2px)); background-size:5px 5px; background-position:center; }
+    .context-segment:last-child { padding-right:0; }
+    .context-segment:last-child::before,.context-segment:last-child::after { right:0; }
+    .playhead { position:absolute; top:0; bottom:0; width:2px; background:var(--cyan); box-shadow:0 0 5px var(--cyan); pointer-events:none; z-index:2; }
+    .playhead::before { content:""; position:absolute; top:-5px; left:-4px; width:9px; height:6px; background:var(--cyan); }
+    .resize-handle { width:7px; cursor:col-resize; position:absolute; top:128px; bottom:var(--timeline-h); z-index:7; }
+    .resize-handle.left { left:calc(8px + var(--left-w, 270px) + 1px); }
+    .resize-handle.right { right:calc(8px + var(--right-w, 348px) + 1px); }
+    .resize-handle:hover { background:#ffe16b30; }
+    .overlay { position:fixed; inset:0; z-index:20; display:grid; place-items:center; background:#060807ba; }
+    .temporary-panel { width:min(690px, calc(100vw - 80px)); min-height:245px; border:8px solid var(--casing); padding:5px; background:var(--casing); box-shadow:0 0 0 1px #f3faee,0 22px 70px #000e; animation:signal-open 310ms steps(5,end) both; }
+    .temporary-panel .screen { min-height:230px; }
+    .temporary-panel .panel-content { padding:15px 18px; animation:content-in 110ms ease 250ms both; }
+    .temporary-panel .screen-head { height:37px; }
+    .panel-intro { color:var(--muted); margin:0 0 18px; line-height:1.6; }
+    .export-options { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    .export-options button { border:1px solid var(--screen-line); background:#1b2428; color:var(--ink); min-height:72px; text-align:left; padding:10px; }
+    .export-options button:hover { border-color:var(--amber); }
+    .export-options button strong { display:block; color:var(--amber-hi); margin-bottom:7px; }
+    .panel-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:22px; }
+    .screen-button { min-height:29px; border:1px solid #68726d; background:#212b2c; color:var(--amber-hi); padding:3px 12px; }
+    .screen-button.primary { background:var(--ink-source); color:#102027; }
+    @keyframes signal-open {
+      0% { clip-path:inset(50% 49.8% 50% 49.8%); opacity:.3; }
+      17% { clip-path:inset(12% 49.8% 12% 49.8%); opacity:1; }
+      30% { clip-path:inset(12% 49.8% 12% 49.8%); opacity:.38; }
+      44% { clip-path:inset(12% 49.8% 12% 49.8%); opacity:1; }
+      100% { clip-path:inset(0); opacity:1; }
+    }
+    @keyframes content-in { from { opacity:0; } to { opacity:1; } }
+    @media (max-width:1340px) { :root { --shell-gap:6px; } .bench { padding:6px; } .hardware-bay.tools .console-key { width:39px; flex-basis:39px; } .tool-middle { gap:5px; } .tool-readout { gap:7px; padding:0 7px; } .tool-readout .readout-pair input[type=number] { width:40px; } .resize-handle.left { left:calc(6px + var(--left-w, 270px) + 1px); } .resize-handle.right { right:calc(6px + var(--right-w, 348px) + 1px); } }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; scroll-behavior:auto!important; } }
+  </style>
+  <link rel="stylesheet" href="workbench-shell-variants.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23535D50' d='M2 2h20v20H2z'/%3E%3Cpath fill='%23D7A947' d='M6 6h12v3h-4v9h-4V9H6z'/%3E%3C/svg%3E">
+</head>
+<body class="shell-cassette">
+  <svg aria-hidden="true" width="0" height="0" style="position:absolute;overflow:hidden">
+    <symbol id="i-new" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v12H3z"/></symbol>
+    <symbol id="i-agent" viewBox="0 0 24 24"><path d="M4 5h16v12H9l-5 4zM8 10h8M8 13h5"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M4 3h14l3 3v15H3V3zM7 3v7h10V3M7 21v-8h10v8"/></symbol>
+    <symbol id="i-test" viewBox="0 0 24 24"><path d="m7 4 13 8-13 8z"/></symbol>
+    <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/></symbol>
+    <symbol id="i-select" viewBox="0 0 24 24"><path d="M4 3v17l5-5 4 6 3-2-4-6h8z"/></symbol>
+    <symbol id="i-rect" viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/></symbol>
+    <symbol id="i-line" viewBox="0 0 24 24"><path d="m4 19 16-14M3 17v4h4M17 3h4v4"/></symbol>
+    <symbol id="i-ellipse" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="7"/></symbol>
+    <symbol id="i-poly" viewBox="0 0 24 24"><path d="m12 3 9 7-3 10H6L3 10z"/></symbol>
+    <symbol id="i-pen" viewBox="0 0 24 24"><path d="m4 20 4-10 8-7 5 5-7 8zM8 10l6 6M4 20l6-3"/></symbol>
+    <symbol id="i-text" viewBox="0 0 24 24"><path d="M3 5h18M12 5v15M7 20h10"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><path d="M3 4h18v16H3zM6 16l4-5 3 3 3-5 4 7M8 8h1"/></symbol>
+    <symbol id="i-particle" viewBox="0 0 24 24"><path d="M4 4h2M17 5h2M11 11h2M4 18h2M17 18h2M8 7l1 1M15 14l1 1"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 6h16M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7M14 10v7"/></symbol>
+    <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3v10M7 6a9 9 0 1 0 10 0"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><path d="M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2"/></symbol>
+    <symbol id="i-solo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><path d="M5 5h14v14H5z"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+    <symbol id="i-motion" viewBox="0 0 24 24"><path d="M3 16h3l3-9 5 11 3-7h4M18 5l3 2-3 2"/></symbol>
+    <symbol id="i-timing" viewBox="0 0 24 24"><path d="M3 6h18M3 18h18M7 4v16M16 4v16M7 12h9"/></symbol>
+  </svg>
+  <main class="bench" x-data="bench()" x-init="init()" :style="`--left-w:${leftWidth}px;--right-w:${rightWidth}px`" @keydown.escape.window="modal=''">
+    <div class="command-deck">
+      <div class="shell-ident" aria-hidden="true"><span class="mission-badge">TS<br>84</span><span class="emboss-label">SYS / VISUAL CONSOLE<br><b>UNIT 084 · I/O BUS</b></span></div>
+      <div class="brand-plaque"><span class="brand-mark"><i></i><i></i><i></i><i></i></span><strong>ToSampool</strong></div>
+      <div class="shell-markings" aria-hidden="true"><span class="mission-stripes"><i></i><i></i><i></i><i></i></span><span class="emboss-label">PWR • / AUX —</span><span class="service-note">check tape</span></div>
+    </div>
+
+    <div class="tool-deck">
+      <div class="hardware-bay"><div class="bay-keys">
+        <button class="console-key" title="新建场景" @click="modal='new'"><span class="key-cap"><svg class="ico"><use href="#i-new"/></svg></span><span class="key-label">新建场景</span></button>
+        <button class="console-key" title="打开场景" @click="modal='open'"><span class="key-cap"><svg class="ico"><use href="#i-folder"/></svg></span><span class="key-label">打开场景</span></button>
+        <button class="console-key" :class="{'selected':modal==='agent'}" title="Agent 创作" @click="modal='agent'"><span class="key-cap"><svg class="ico"><use href="#i-agent"/></svg></span><span class="key-label">Agent 创作</span></button>
+      </div></div>
+      <div class="hardware-bay tools"><div class="tool-middle">
+        <div class="tool-bank" role="toolbar" aria-label="绘制工具"><template x-for="item in tools" :key="item.id">
+          <button class="console-key" :class="{'selected':tool===item.id}" :title="item.name" :aria-label="item.name" :aria-pressed="tool===item.id" @click="tool=item.id"><span class="key-cap"><svg class="ico"><use :href="'#i-'+item.id"/></svg></span><span class="key-label" x-text="item.short || item.name"></span></button>
+        </template></div>
+        <div class="tool-readout" aria-live="polite">
+          <strong x-text="toolName()"></strong>
+          <template x-if="tool==='rect' || tool==='ellipse' || tool==='poly' || tool==='text'"><span class="readout-pair"><label for="tool-fill">填色</label><input id="tool-fill" type="color" x-model="toolSettings.fill" aria-label="工具填色"></span></template>
+          <template x-if="tool==='rect'"><span class="readout-pair"><label for="tool-radius">圆角</label><input id="tool-radius" type="number" min="0" max="128" x-model.number="toolSettings.radius"></span></template>
+          <template x-if="tool==='line'"><span class="readout-pair"><label for="tool-stroke">描线</label><input id="tool-stroke" type="number" min="1" max="128" x-model.number="toolSettings.stroke"></span></template>
+          <template x-if="tool==='poly'"><span class="readout-pair"><label for="tool-sides">边数</label><input id="tool-sides" type="number" min="3" max="32" x-model.number="toolSettings.sides"></span></template>
+          <template x-if="tool==='text'"><span class="readout-pair"><label for="tool-font-size">字号</label><input id="tool-font-size" type="number" min="1" max="256" x-model.number="toolSettings.fontSize"></span></template>
+          <template x-if="tool==='pen'"><span class="readout-pair"><label for="tool-pen-size">笔宽</label><input id="tool-pen-size" type="number" min="1" max="128" x-model.number="toolSettings.penSize"></span></template>
+        </div>
+      </div></div>
+      <div class="hardware-bay"><div class="bay-keys">
+        <button class="console-key" :class="{'selected':flash==='save'}" title="保存场景" @click="flash='save';setTimeout(()=>flash='',700)"><span class="key-cap"><svg class="ico"><use href="#i-save"/></svg></span><span class="key-label">保存场景</span></button>
+        <button class="console-key" :class="{'selected':flash==='test'}" title="测试场景" @click="flash='test';setTimeout(()=>flash='',700)"><span class="key-cap"><svg class="ico"><use href="#i-test"/></svg></span><span class="key-label">测试场景</span></button>
+        <button class="console-key" title="导出其他格式" @click="modal='export'"><span class="key-cap"><svg class="ico"><use href="#i-export"/></svg></span><span class="key-label">导出格式</span></button>
+      </div></div>
+    </div>
+
+    <div class="left-column">
+      <section class="unit"><div class="screen pane-screen">
+        <header class="screen-head"><span class="head-title">场景结构</span><span class="head-actions"><button class="screen-action" title="粒子化" aria-label="粒子化"><svg class="ico"><use href="#i-particle"/></svg></button><button class="screen-action" title="删除选中对象" aria-label="删除选中对象"><svg class="ico"><use href="#i-trash"/></svg></button></span></header>
+        <div class="tree-scroll">
+          <div class="tree-row tree-root group" :class="{'current':selectedNode==='snowglobe'}" @click="selectedNode='snowglobe'"><button class="expander" type="button" @click.stop="treeOpen=!treeOpen" :aria-label="treeOpen?'收起雪花球':'展开雪花球'" x-text="treeOpen?'⌄':'>'"></button><i class="node-mark"></i><span class="node-name">雪花球</span><button class="state-button" title="锁定" @click.stop><svg class="ico"><use href="#i-lock"/></svg></button><button class="state-button" title="独显" @click.stop><svg class="ico"><use href="#i-solo"/></svg></button><button class="state-button on" title="显示" @click.stop><svg class="ico"><use href="#i-eye"/></svg></button></div>
+          <div class="tree-children" x-show="treeOpen" x-cloak>
+            <div class="tree-row depth-1 element dim" :class="{'current':selectedNode==='glass'}" @click="selectedNode='glass'"><span class="expander">·</span><i class="node-mark circle"></i><span class="node-name">玻璃罩</span><button class="state-button" title="锁定" @click.stop><svg class="ico"><use href="#i-lock"/></svg></button><button class="state-button" title="独显" @click.stop><svg class="ico"><use href="#i-solo"/></svg></button><button class="state-button on" title="显示" @click.stop><svg class="ico"><use href="#i-eye"/></svg></button></div>
+            <div class="tree-row depth-1 element" :class="{'current':selectedNode==='cabin'}" @click="selectedNode='cabin'"><button class="expander" type="button" @click.stop="elementOpen=!elementOpen" :aria-label="elementOpen?'收起木屋图元':'展开木屋图元'" x-text="elementOpen?'⌄':'>'"></button><i class="node-mark"></i><span class="node-name">冬季 · 木屋</span><button class="state-button" title="锁定" @click.stop><svg class="ico"><use href="#i-lock"/></svg></button><button class="state-button" title="独显" @click.stop><svg class="ico"><use href="#i-solo"/></svg></button><button class="state-button on" title="显示" @click.stop><svg class="ico"><use href="#i-eye"/></svg></button></div>
+            <div class="tree-element-children" x-show="elementOpen" x-cloak>
+              <div class="tree-row depth-2 primitive" :class="{'current':selectedNode==='roof'}" @click="selectedNode='roof'"><span class="expander">·</span><i class="node-mark poly"></i><span class="node-name">屋顶</span></div>
+              <div class="tree-row depth-2 primitive" :class="{'current':selectedNode==='window'}" @click="selectedNode='window'"><span class="expander">·</span><i class="node-mark"></i><span class="node-name">窗光</span></div>
+            </div>
+            <div class="tree-row depth-1 element" :class="{'current':selectedNode==='snow'}" @click="selectedNode='snow'"><span class="expander">·</span><i class="node-mark circle"></i><span class="node-name">飘雪</span></div>
+            <div class="tree-row depth-1 element" :class="{'current':selectedNode==='plain'}" @click="selectedNode='plain'"><span class="expander">·</span><i class="node-mark"></i><span class="node-name">背景雪原</span></div>
+          </div>
+        </div>
+      </div></section>
+      <div class="left-divider" title="调整场景结构与下方屏幕的高度"></div>
+      <section class="unit lower-unit"><div class="screen pane-screen">
+        <nav class="tab-strip" aria-label="左侧屏幕"><button :class="{'active':sideTab==='effects'}" @click="switchSide('effects')">对象效果</button><button :class="{'active':sideTab==='assets'}" @click="switchSide('assets')">素材</button></nav>
+        <div class="lower-screen-actions" x-show="sideTab==='effects'"><button class="screen-action" title="删除所选效果" aria-label="删除所选效果" @click="removeSelectedEffect()"><svg class="ico"><use href="#i-trash"/></svg></button></div>
+        <div class="lower-screen-actions" x-show="sideTab==='assets'" x-cloak><button class="screen-action" title="导入文件夹" aria-label="导入文件夹"><svg class="ico"><use href="#i-folder"/></svg></button><button class="screen-action" title="导入精灵图" aria-label="导入精灵图"><svg class="ico"><use href="#i-image"/></svg></button><button class="screen-action" title="导入素材" aria-label="导入素材"><svg class="ico"><use href="#i-new"/></svg></button></div>
+        <div class="signal-viewport side-signal"><div class="lower-scroll" x-show="sideTab==='effects'">
+          <div class="effect-stage sample"><div class="stage-heading"><span>采样</span><span class="drag-mark">≡</span></div><div class="effect-list-row" x-show="!removedEffects.halftone" :class="{'selected':selectedEffect==='halftone'}" @click="inspectorTab='sample';selectedEffect='halftone'"><span class="effect-dot"></span><span class="effect-name">网点映射</span><span class="effect-value">4×</span></div></div>
+          <div class="effect-stage decor"><div class="stage-heading"><span>加样</span><span class="drag-mark">≡</span></div><div class="effect-list-row" x-show="!removedEffects.outline" :class="{'selected':selectedEffect==='outline'}" @click="inspectorTab='decor';selectedEffect='outline'"><span class="effect-dot"></span><span class="effect-name">描边</span><span class="effect-value">4 px</span></div><div class="effect-list-row" x-show="!removedEffects.texture" :class="{'selected':selectedEffect==='texture'}" @click="inspectorTab='decor';selectedEffect='texture'"><span class="effect-dot"></span><span class="effect-name">纹理叠加</span><span class="effect-value">35%</span></div></div>
+          <div class="effect-stage mask"><div class="stage-heading"><span>蒙版</span><span class="drag-mark">≡</span></div><div class="effect-list-row" x-show="!removedEffects.mask" :class="{'selected':selectedEffect==='mask'}" @click="selectedEffect='mask'"><span class="effect-dot"></span><span class="effect-name">对象蒙版</span><span class="effect-value">矩形</span></div></div>
+          <div class="effect-stage compose"><div class="stage-heading"><span>动态</span><span class="tiny">对象运动</span></div><div class="effect-list-row" :class="{'selected':selectedMotion==='bob'&&inspectorTab==='compose'&&formationPage==='motion'}" @click="setInspector('compose');formationPage='motion';selectedMotion='bob'"><span class="effect-dot"></span><span class="effect-name">漂浮</span><span class="effect-value">2.0 s</span></div></div>
+        </div>
+        <div class="lower-scroll" x-show="sideTab==='assets'" x-cloak>
+          <div class="asset-grid"><div class="asset-card"><div class="asset-picture"></div><div class="asset-caption"><span>冬季天空</span><span>→</span></div></div><div class="asset-card"><div class="asset-picture second"></div><div class="asset-caption"><span>窗光 · 2 帧</span><span>→</span></div></div></div>
+        </div></div>
+      </div></section>
+    </div>
+
+    <div class="resize-handle left" aria-label="调整左栏宽度" @pointerdown="startResize('left',$event)"></div>
+    <div class="resize-handle right" aria-label="调整 Inspector 宽度" @pointerdown="startResize('right',$event)"></div>
+
+    <section class="unit stage-unit" aria-label="舞台">
+      <header class="stage-bezel"><strong>STAGE / 01</strong><span class="bezel-slot"></span><span class="bezel-led" :class="{'draft':effectivePreview()==='Draft'}" :title="'实际预览：'+effectivePreview()"></span><div class="status-readout"><select x-model="previewMode" aria-label="预览质量"><option>Auto</option><option>Full</option><option>Draft</option></select><span class="quality" :class="{'draft':effectivePreview()==='Draft'}" x-text="effectivePreview().toUpperCase()"></span><span>12 FPS</span><span x-text="'P95 '+p95Ms.toFixed(1)+'MS'"></span></div></header>
+      <div class="screen stage-screen"><span class="screen-label">FOUR SEASONS / WINTER</span><div class="canvas-art">
+        <svg viewBox="0 0 720 405" role="img" aria-label="雪夜中的木屋画面">
+          <rect width="720" height="405" fill="#1a2637"/>
+          <rect y="0" width="720" height="204" fill="#243753"/>
+          <path d="M0 239 117 151l93 74 84-113 109 123 105-94 100 80 112-60v244H0z" fill="#677591"/>
+          <path d="M0 278 117 169l93 74 84-111 109 120 105-86 100 75 112-57v221H0z" fill="#8899ab"/>
+          <path d="M0 291 101 243l95 35 100-55 105 45 111-35 105 45 103-25v152H0z" fill="#c8d6d6"/>
+          <path d="M0 334 126 305l137 21 137-36 98 18 128-22 94 28v91H0z" fill="#e0e2d6"/>
+          <circle cx="566" cy="78" r="32" fill="#eee1ab"/>
+          <circle cx="580" cy="70" r="31" fill="#243753"/>
+          <g fill="#fbf1d0"><rect x="93" y="58" width="4" height="4"/><rect x="159" y="93" width="3" height="3"/><rect x="236" y="44" width="3" height="3"/><rect x="380" y="67" width="4" height="4"/><rect x="439" y="41" width="3" height="3"/><rect x="629" y="120" width="3" height="3"/><rect x="667" y="61" width="4" height="4"/><rect x="48" y="137" width="3" height="3"/><rect x="307" y="84" width="3" height="3"/></g>
+          <g fill="#263b3a"><path d="m88 311 26-94 28 94z"/><path d="m80 286 34-98 37 98z"/><path d="m575 309 27-97 30 97z"/><path d="m567 283 35-100 39 100z"/><path d="m637 319 22-85 24 85z"/></g>
+          <g fill="#344d48"><path d="m115 315 27-107 31 107z"/><path d="m106 291 36-110 40 110z"/><path d="m538 316 23-93 29 93z"/><path d="m531 288 30-103 34 103z"/></g>
+          <rect x="281" y="225" width="177" height="111" fill="#815d4b"/>
+          <path d="m260 231 108-80 109 80 10 15H251z" fill="#3d4147"/>
+          <path d="m269 225 99-72 99 72 7 9-106-75-106 75z" fill="#f5eee0"/>
+          <rect x="304" y="252" width="43" height="46" fill="#3a4240"/><rect x="311" y="258" width="29" height="32" fill="#efb351"/><rect x="323" y="258" width="3" height="32" fill="#5c4033"/>
+          <rect x="391" y="251" width="44" height="46" fill="#3a4240"/><rect x="397" y="258" width="31" height="32" fill="#e9af50"/><rect x="411" y="258" width="3" height="32" fill="#5c4033"/>
+          <rect x="351" y="273" width="34" height="63" fill="#483b34"/><circle cx="379" cy="306" r="2" fill="#f0c06c"/>
+          <rect x="419" y="177" width="16" height="33" fill="#514947"/><path d="M417 179h19l3 9h-25z" fill="#ede4d4"/>
+          <path d="M256 335q93 12 224 0" fill="none" stroke="#ecede0" stroke-width="13"/>
+          <g fill="#fff6db" opacity=".78"><circle cx="66" cy="211" r="2"/><circle cx="202" cy="139" r="2"/><circle cx="337" cy="111" r="2"/><circle cx="505" cy="121" r="2"/><circle cx="613" cy="245" r="2"/><circle cx="681" cy="184" r="2"/><circle cx="124" cy="352" r="2"/><circle cx="581" cy="353" r="2"/><circle cx="294" cy="373" r="2"/></g>
+        </svg>
+        <div class="selection"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><i class="rotate"></i></div>
+      </div></div>
+    </section>
+
+    <section class="unit inspector-unit" aria-label="Inspector"><div class="screen inspector-screen">
+      <header class="inspector-head"><h1 x-text="selectedNodeName()"></h1></header>
+      <nav class="tab-strip inspector-tabs" aria-label="Inspector 页签"><button :class="{'active':inspectorTab==='compose'}" @click="setInspector('compose')">成样</button><button :class="{'active':inspectorTab==='decor'}" @click="setInspector('decor')">加样</button><button :class="{'active':inspectorTab==='sample'}" @click="setInspector('sample')">采样</button></nav>
+      <div class="signal-viewport inspector-signal"><div class="inspector-scroll compose-inspector" x-show="inspectorTab==='compose'" x-cloak>
+        <div class="subframe-title v4-formation-heading"><span x-text="formationPage==='basic'?'成样':'动态'"></span><span class="spacer"></span><button class="motion-toggle v4-formation-toggle" type="button" @click="switchFormation()" :aria-label="formationPage==='basic'?'查看动态效果':'返回成样参数'" :aria-pressed="formationPage==='motion'"><svg class="ico"><use href="#i-motion"/></svg></button></div>
+        <div class="subsection v4-transform-preview" x-show="formationPage==='basic'"><div class="subsection-head"><span>基本</span><span class="spacer"></span><button class="time-key" type="button" :class="{'on':baseTiming}" @click="baseTiming=!baseTiming" :aria-pressed="baseTiming" aria-label="基本参数时序" title="基本参数时序"><svg class="ico"><use href="#i-timing"/></svg></button></div><div class="v4-transform-preview-body">
+          <div class="v4-transform-preview-row"><span>位置</span><label><small>X</small><input type="number" value="273"></label><label><small>Y</small><input type="number" value="181"></label></div>
+          <div class="v4-transform-preview-row"><span>尺寸</span><label><small>W</small><input type="number" value="190"></label><label><small>H</small><input type="number" value="126"></label></div>
+          <div class="v4-transform-preview-row"><span>比例</span><label><small>X</small><input type="text" value="100%"></label><label><small>Y</small><input type="text" value="100%"></label></div>
+          <div class="v4-transform-preview-divider"></div>
+          <div class="v4-transform-preview-row"><span>斜切</span><label><small>水平</small><input type="number" value="0.0"></label><label><small>垂直</small><input type="number" value="0.0"></label></div>
+          <div class="v4-transform-preview-row"><span>旋转</span><label><small>角度</small><input type="text" value="0°"></label><button class="v4-transform-pivot" type="button">设置中心</button></div>
+          <div class="v4-transform-preview-divider"></div>
+          <div class="v4-transform-preview-row"><span>混合</span><label><small>模式</small><select><option>正常</option><option>正片叠底</option><option>滤色</option></select></label><label><small>透明度</small><input type="text" value="100%"></label></div>
+        </div></div>
+        <div x-show="formationPage==='motion'" x-cloak><div class="effect-gallery v4-formation-motion-gallery"><template x-for="motion in motionEffects" :key="motion.id"><div class="effect-tile" role="button" tabindex="0" :class="{'selected':selectedMotion===motion.id,'active':!!activeMotions[motion.id]}" @click="selectedMotion=motion.id" @keydown.enter.prevent="selectedMotion=motion.id" :aria-label="'选择'+motion.name"><span class="tile-name" x-text="motion.name"></span><span class="tile-art"><span x-text="motion.glyph"></span></span><button class="tile-power" type="button" :aria-label="(activeMotions[motion.id]?'停用':'启用')+motion.name" @click.stop="selectedMotion=motion.id;activeMotions[motion.id]=!activeMotions[motion.id]"><svg class="ico"><use href="#i-power"/></svg></button></div></template></div><div class="effect-detail"><div class="detail-title"><span x-text="motionEffects.find(m=>m.id===selectedMotion)?.name"></span><span class="spacer"></span><button class="time-key" :class="{'on':motionTiming[selectedMotion]}" @click="motionTiming[selectedMotion]=!motionTiming[selectedMotion]" :aria-label="selectedMotion+'参数时序'"><svg class="ico"><use href="#i-timing"/></svg></button></div><div class="detail-params" x-show="activeMotions[selectedMotion]"><label class="param-row"><span>幅度 / 速度</span><input type="number" value="8"></label><label class="param-row"><span>周期时间</span><input type="number" value="2"></label></div></div></div>
+      </div>
+      <div class="inspector-scroll" x-show="inspectorTab==='decor' || inspectorTab==='sample'">
+        <div class="subframe-title"><span x-text="inspectorTab==='decor'?'加样效果':'采样效果'"></span></div>
+        <div class="effect-gallery">
+          <template x-for="fx in visibleEffects()" :key="fx.id"><div class="effect-tile" role="button" tabindex="0" :class="{'selected':selectedEffect===fx.id,'active':!!activeEffects[fx.id]}" @click="selectedEffect=fx.id" @keydown.enter.prevent="selectedEffect=fx.id" :aria-label="'编辑'+fx.name" :aria-pressed="selectedEffect===fx.id"><span class="tile-name" x-text="fx.name"></span><span class="tile-art" :class="fx.id"><span x-text="fx.glyph"></span></span><button class="tile-power" type="button" :aria-label="(activeEffects[fx.id]?'停用':'启用')+fx.name" @click.stop="toggleEffect(fx.id)"><svg class="ico"><use href="#i-power"/></svg></button></div></template>
+        </div>
+        <div class="effect-detail"><div class="detail-title"><span x-text="effectName(selectedEffect)"></span><span class="spacer"></span><button class="time-key" :class="{'on':effectTiming}" @click="effectTiming=!effectTiming" :aria-pressed="effectTiming" :title="effectName(selectedEffect)+'时序'" :aria-label="effectName(selectedEffect)+'时序'"><svg class="ico"><use href="#i-timing"/></svg></button></div><p class="detail-copy" x-text="effectDescription(selectedEffect)"></p><div class="detail-params">
+          <template x-if="selectedEffect==='outline'"><div><label class="param-row"><span>描边宽度</span><span class="numeric"><input type="range" min="1" max="16" value="4"><small>04 px</small></span></label><label class="param-row"><span>颜色</span><span class="swatch-field"></span></label><label class="param-row"><span>包含投影</span><input type="checkbox"></label></div></template>
+          <template x-if="selectedEffect==='texture'"><div><label class="param-row"><span>图案</span><select><option>屏幕噪点</option><option>单线</option><option>网格</option></select></label><label class="param-row"><span>透明度</span><span class="numeric"><input type="range" value="35"><small>35%</small></span></label></div></template>
+          <template x-if="selectedEffect==='halftone'"><div><label class="param-row"><span>点形</span><select><option>圆点</option><option>三角</option><option>矩形</option></select></label><label class="param-row"><span>相对尺寸</span><span class="numeric"><input type="range" min="1" max="32" value="4"><small>4×</small></span></label></div></template>
+          <template x-if="!['outline','texture','halftone'].includes(selectedEffect)"><div><label class="param-row"><span>强度</span><span class="numeric"><input type="range" min="0" max="100" value="45"><small>45%</small></span></label><label class="param-row"><span>混合方式</span><select><option>正常</option><option>滤色</option></select></label></div></template>
+        </div></div>
+      </div></div>
+    </div></section>
+
+    <section class="timeline-dock" aria-label="时间轴">
+      <div class="timeline-head">
+        <button class="play-key" :class="{'playing':playing}" :title="playing?'暂停':'播放'" @click="playing=!playing" aria-label="播放或暂停"><svg class="ico"><use href="#i-test"/></svg></button>
+        <span class="transport-lights" role="status" :aria-label="playing?'正在播放':'已暂停'"><span :class="{'on':playing}" title="播放"><i aria-hidden="true"></i></span><span :class="{'on':!playing}" title="暂停"><i aria-hidden="true"></i></span></span>
+        <div class="timeline-readout"><span>冬季 · 木屋 / 显示与参数</span><strong x-text="time.toFixed(1)+' / 36.0 S'"></strong></div>
+      </div>
+      <div class="ruler"><template x-for="tick in Array.from({length:181},(_,i)=>i)" :key="tick"><span class="tick" :class="{'major':tick%30===0,'mid':tick%15===0&&tick%30!==0,'second':tick%5===0&&tick%15!==0}"><em x-text="tick%30===0?(tick/5)+'s':''"></em></span></template></div>
+      <div class="track-screen">
+        <div class="playhead" :style="`left:calc(84px + (100% - 95px) * ${time/36})`"></div>
+        <div class="track-row"><span class="track-label">SCENE</span><div class="track-lane"><div class="scene-segment" style="width:33.33%" @click="time=6">冬季</div><div class="scene-segment" style="width:33.33%" @click="time=18">夏季</div><div class="scene-segment" style="width:33.34%" @click="time=30">秋季</div></div></div>
+        <div class="track-row context" :class="inspectorTab==='compose'?'compose':inspectorTab==='sample'?'sample':'decor'">
+          <span class="track-label">TRACK</span>
+          <div class="track-lane">
+            <div class="context-segment" style="width:14%" title="默认时段" @click="time=2"></div>
+            <div class="context-segment linear enter" style="width:13%" title="Linear：默认 → 时序" @click="time=7"><template x-for="dot in [0,0.25,0.5,0.75,1,1.25,1.5,1.75,2]"><span class="halftone-cell" :style="`--dot:${dot}px`"></span></template></div>
+            <div class="context-segment timed" style="width:16%" title="时序时段" @click="time=12"></div>
+            <div class="context-segment linear bridge" style="width:22%" title="Linear：时序 → 时序" @click="time=19"><template x-for="dot in [2,1.75,1.5,1.25,1,0.5,0,0,0.5,1,1.25,1.5,1.75,2]"><span class="halftone-cell" :style="`--dot:${dot}px`"></span></template></div>
+            <div class="context-segment timed" style="width:16%" title="时序时段" @click="time=26"></div>
+            <div class="context-segment linear exit" style="width:11%" title="Linear：时序 → 默认" @click="time=31"><template x-for="dot in [2,1.75,1.5,1.25,1,0.75,0.5,0.25,0]"><span class="halftone-cell" :style="`--dot:${dot}px`"></span></template></div>
+            <div class="context-segment" style="width:8%" title="默认时段" @click="time=35"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="overlay" x-show="modal" x-cloak @click.self="null"><div class="temporary-panel" role="dialog" aria-modal="true" aria-label="临时工作面板"><div class="screen pane-screen"><header class="screen-head"><span class="head-title"><i class="head-line"></i><span x-text="modalTitle()"></span></span><button class="screen-button" @click="modal=''" aria-label="关闭面板">×</button></header><div class="panel-content"><p class="panel-intro" x-text="modal==='export'?'选择本次要输出的格式。':modal==='agent'?'描述想让 Agent 创作或修改的画面。':'选择要载入的文件。'"></p><div class="export-options" x-show="modal==='export'"><button><strong>PNG</strong>当前帧图像</button><button><strong>SPRITE</strong>逐帧精灵图</button><button><strong>GIF</strong>循环动画</button></div><div x-show="modal!=='export'"><label class="param-row"><span x-text="modal==='agent'?'创作意图':'项目文件'"></span><input type="text" :placeholder="modal==='agent'?'例如：木屋窗内的光缓慢闪烁':'选择文件…'"></label></div><div class="panel-actions"><button class="screen-button" @click="modal=''">取消</button><button class="screen-button primary" @click="modal=''" x-text="modal==='export'?'继续导出':'继续'"></button></div></div></div></div></div>
+  </main>
+  <script>
+    function installScreenScrollRails(){
+      const host=document.querySelector('.bench');
+      if(!host)return;
+      const selector='.tree-scroll, .lower-scroll, .inspector-scroll';
+      const rails=new Map();
+      let frame=0;
+      const measure=()=>{
+        frame=0;
+        rails.forEach(({rail,thumb},node)=>{
+          if(node.offsetParent===null)return;
+          const view=node.clientHeight,content=node.scrollHeight,scrollMax=Math.max(0,content-view);
+          const thumbHeight=scrollMax?Math.min(view,Math.max(20,view*view/content)):view;
+          const thumbTop=scrollMax?(node.scrollTop/scrollMax)*(view-thumbHeight):0;
+          rail.style.height=view+'px';
+          rail.style.transform=`translateY(${node.scrollTop}px)`;
+          thumb.style.height=thumbHeight+'px';
+          thumb.style.top=thumbTop+'px';
+          rail.dataset.overflow=String(scrollMax>1);
+        });
+      };
+      const schedule=()=>{if(!frame)frame=requestAnimationFrame(measure);};
+      const resize=new ResizeObserver(schedule);
+      host.querySelectorAll(selector).forEach(node=>{
+        const contentChildren=Array.from(node.children);
+        const rail=document.createElement('div'),thumb=document.createElement('div');
+        rail.className='screen-scroll-rail';rail.setAttribute('aria-hidden','true');
+        thumb.className='screen-scroll-thumb';rail.appendChild(thumb);node.appendChild(rail);
+        if(!node.hasAttribute('tabindex'))node.tabIndex=0;
+        rails.set(node,{rail,thumb});
+        resize.observe(node);contentChildren.forEach(child=>resize.observe(child));
+        node.addEventListener('scroll',schedule,{passive:true});
+        rail.addEventListener('pointerdown',event=>{
+          if(event.button!==0||node.scrollHeight<=node.clientHeight+1)return;
+          event.preventDefault();event.stopPropagation();
+          const thumbRect=thumb.getBoundingClientRect();
+          const inThumb=event.clientY>=thumbRect.top&&event.clientY<=thumbRect.bottom;
+          const grabOffset=inThumb?event.clientY-thumbRect.top:thumbRect.height/2;
+          const setPosition=clientY=>{
+            const rect=rail.getBoundingClientRect(),travel=rect.height-thumbRect.height;
+            if(travel<=0)return;
+            node.scrollTop=Math.max(0,Math.min(1,(clientY-rect.top-grabOffset)/travel))*(node.scrollHeight-node.clientHeight);
+          };
+          if(!inThumb)setPosition(event.clientY);
+          rail.setPointerCapture(event.pointerId);
+          const move=next=>{if(rail.hasPointerCapture(next.pointerId))setPosition(next.clientY);};
+          const stop=()=>{rail.removeEventListener('pointermove',move);rail.removeEventListener('pointerup',stop);rail.removeEventListener('pointercancel',stop);};
+          rail.addEventListener('pointermove',move);rail.addEventListener('pointerup',stop,{once:true});rail.addEventListener('pointercancel',stop,{once:true});
+        });
+      });
+      new MutationObserver(records=>{if(records.some(record=>!record.target.closest('.screen-scroll-rail')))schedule();}).observe(host,{subtree:true,attributes:true,childList:true,attributeFilter:['class','style','hidden']});
+      window.addEventListener('resize',schedule);
+      schedule();
+    }
+    window.addEventListener('DOMContentLoaded',installScreenScrollRails);
+    function bench(){let activeViewTransition=null;return {
+      leftWidth:270,rightWidth:348,tool:'rect',toolSettings:{fill:'#eeae42',radius:8,stroke:2,sides:5,fontSize:16,penSize:1},sideTab:'effects',inspectorTab:'decor',selectedEffect:'outline',selectedNode:'cabin',modal:'',flash:'',playing:true,time:16.8,previewMode:'Auto',autoFallsBack:false,p95Ms:3.0,treeOpen:true,elementOpen:true,baseTiming:false,dynamicTiming:false,effectTiming:false,
+      formationPage:'basic',selectedMotion:'bob',motionTiming:{},activeMotions:{bob:false,scroll:false,pulse:false,spin:false,wave:false,blink:false},motionEffects:[{id:'bob',name:'漂浮',glyph:'↕'},{id:'scroll',name:'循环滚动',glyph:'⇢'},{id:'pulse',name:'呼吸缩放',glyph:'◎'},{id:'spin',name:'持续旋转',glyph:'⟳'},{id:'wave',name:'摆动',glyph:'⌁'},{id:'blink',name:'闪烁',glyph:'◐'}],
+      dynamic:{position:false,scale:false,rotation:false,alpha:false},
+      activeEffects:{outline:true,texture:true,halftone:true,mask:true},
+      removedEffects:{outline:false,texture:false,halftone:false,mask:false},
+      tools:[{id:'select',name:'选择'},{id:'rect',name:'矩形'},{id:'line',name:'直线'},{id:'ellipse',name:'椭圆'},{id:'poly',name:'多边形'},{id:'pen',name:'像素铅笔',short:'铅笔'},{id:'text',name:'位图文字',short:'文字'},{id:'image',name:'图片'}],
+      decorEffects:[{id:'projection',name:'投影',glyph:'▨',description:'沿对象轮廓生成硬边投影。'},{id:'outline',name:'描边',glyph:'D',description:'沿对象最终轮廓向外生成描边。'},{id:'tint',name:'染色叠加',glyph:'◫',description:'给对象加入统一颜色。'},{id:'texture',name:'纹理叠加',glyph:'≋',description:'将图案叠在对象内部。'},{id:'inner',name:'内光效',glyph:'◉',description:'从内部边缘向中心退晕。'},{id:'outer',name:'外光效',glyph:'◌',description:'从外部轮廓向外退晕。'}],
+      sampleEffects:[{id:'color-map',name:'颜色映射',glyph:'◧',description:'提取或指定有限颜色。'},{id:'threshold',name:'阈值分色',glyph:'◩',description:'将明暗压成两色。'},{id:'dispersion',name:'边缘色散',glyph:'D',description:'在边缘分离彩色通道。'},{id:'offset',name:'偏移采样',glyph:'▤',description:'让像素产生局部位移。'},{id:'halftone',name:'网点映射',glyph:'◉',description:'将明暗印成彩色网点。'},{id:'uneven',name:'不均采样',glyph:'▦',description:'生成粗细不均的采样颗粒。'}],
+      init(){const state=new URLSearchParams(location.search).get('state');if(state==='compose')this.inspectorTab='compose';if(state==='sample'){this.inspectorTab='sample';this.selectedEffect='halftone';}if(state==='assets')this.sideTab='assets';if(state==='modal')this.modal='export';if(state==='group')this.selectedNode='snowglobe';if(state==='primitive')this.selectedNode='roof';if(state==='timed'){this.inspectorTab='compose';this.formationPage='motion';this.activeMotions.bob=true;this.motionTiming.bob=true;}if(state==='auto-draft'){this.autoFallsBack=true;this.p95Ms=26.0;}},
+      effectivePreview(){return this.previewMode==='Auto'?(this.autoFallsBack?'Draft':'Full'):this.previewMode;},
+      toolName(){return this.tools.find(item=>item.id===this.tool)?.name||'选择';},
+      selectedNodeName(){return {snowglobe:'雪花球',glass:'玻璃罩',cabin:'冬季 · 木屋',roof:'屋顶',window:'窗光',snow:'飘雪',plain:'背景雪原'}[this.selectedNode]||'雪花球';},
+      visibleEffects(){return this.inspectorTab==='sample'?this.sampleEffects:this.decorEffects;},
+      effectName(id){return [...this.decorEffects,...this.sampleEffects].find(item=>item.id===id)?.name||'';},
+      effectDescription(id){return [...this.decorEffects,...this.sampleEffects].find(item=>item.id===id)?.description||'';},
+      transitionScreen(scope,change){
+        if(activeViewTransition)activeViewTransition.skipTransition();
+        if(!document.startViewTransition||matchMedia('(prefers-reduced-motion: reduce)').matches){change();return;}
+        const host=document.querySelector('.bench');
+        host.dataset.transitionScope=scope;
+        const transition=document.startViewTransition(async()=>{change();await this.$nextTick();});
+        activeViewTransition=transition;
+        const clear=()=>{if(activeViewTransition===transition){activeViewTransition=null;delete host.dataset.transitionScope;}};
+        transition.finished.then(clear,clear);
+      },
+      switchSide(tab){if(this.sideTab===tab)return;this.transitionScreen('side',()=>{this.sideTab=tab;});},
+      switchFormation(){this.transitionScreen('inspector',()=>{this.formationPage=this.formationPage==='basic'?'motion':'basic';});},
+      setInspector(tab){if(this.inspectorTab===tab)return;this.transitionScreen('inspector',()=>{this.inspectorTab=tab;if(tab!=='compose')this.selectedEffect=tab==='sample'?'halftone':'outline';});},
+      toggleEffect(id){this.activeEffects[id]=!this.activeEffects[id];if(this.activeEffects[id]&&id in this.removedEffects)this.removedEffects[id]=false;},
+      removeSelectedEffect(){const id=this.selectedEffect;if(!(id in this.removedEffects))return;this.removedEffects[id]=true;this.activeEffects[id]=false;this.selectedEffect='compose';this.inspectorTab='compose';},
+      hasDynamic(){return Object.values(this.dynamic).some(Boolean);},
+      modalTitle(){return {export:'导出其他格式',agent:'Agent 创作',new:'新建场景',open:'打开场景'}[this.modal]||'面板';},
+      startResize(which,event){event.preventDefault();const startX=event.clientX,initial=which==='left'?this.leftWidth:this.rightWidth;const move=next=>{const delta=next.clientX-startX;if(which==='left')this.leftWidth=Math.min(340,Math.max(232,initial+delta));else this.rightWidth=Math.min(430,Math.max(308,initial-delta));};const stop=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',stop);};window.addEventListener('pointermove',move);window.addEventListener('pointerup',stop);}
+    };}
+  </script>
+</body>
+</html>

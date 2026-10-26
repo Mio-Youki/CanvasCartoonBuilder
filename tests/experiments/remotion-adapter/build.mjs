@@ -1,0 +1,16 @@
+import {build,transform} from 'esbuild';
+import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
+import {gzipSync} from 'node:zlib';
+import {resolve} from 'node:path';
+const root=import.meta.dirname;mkdirSync(resolve(root,'dist'),{recursive:true});
+const options={absWorkingDir:root,bundle:true,minify:true,format:'iife',platform:'browser',target:'es2022',define:{'process.env.NODE_ENV':'"production"'},metafile:true,legalComments:'eof'};
+const result=await build({...options,entryPoints:['entry.js'],outfile:resolve(root,'dist/trial.js')});
+const single=await build({...options,stdin:{contents:"import{brightness}from'@remotion/effects/brightness';window.singleEffect=brightness;",resolveDir:root,loader:'js'},outfile:resolve(root,'dist/brightness.js')});
+const measure=file=>{const bytes=readFileSync(resolve(root,file));return {bytes:bytes.length,gzipBytes:gzipSync(bytes).length};};
+const runtime=readFileSync(resolve(root,'../../../home-scene-vnext.js'),'utf8'),minRuntime=await transform(runtime,{minify:true,target:'es2022',legalComments:'eof'});
+const inline=code=>'<script>'+code.replace(/<\/script/gi,'<\\/script')+'</script>';
+const standalone=readFileSync(resolve(root,'index.html'),'utf8').replace('<script src="../../../home-scene-vnext.js"></script><script src="dist/trial.js"></script>',()=>inline(minRuntime.code)+inline(readFileSync(resolve(root,'dist/trial.js'),'utf8')));
+writeFileSync(resolve(root,'dist/standalone.html'),standalone);
+const contributions=Object.values(result.metafile.outputs).flatMap(output=>Object.entries(output.inputs||{}).map(([input,v])=>({input,bytes:v.bytesInOutput}))).sort((a,b)=>b.bytes-a.bytes);
+const report={versions:{effects:'4.0.538',react:'19.2.0',esbuild:'0.25.12'},trial:measure('dist/trial.js'),brightnessOnly:measure('dist/brightness.js'),standalone:measure('dist/standalone.html'),existingRuntimeReference:{sourceBytes:Buffer.byteLength(runtime),minifiedBytes:Buffer.byteLength(minRuntime.code),minifiedGzipBytes:gzipSync(minRuntime.code).length,warning:'No product file rewritten; included only in experimental standalone HTML'},contributions,inputs:Object.keys(result.metafile.inputs),singleInputs:Object.keys(single.metafile.inputs),effectsLicense:JSON.parse(readFileSync(resolve(root,'node_modules/@remotion/effects/package.json'))).license};
+writeFileSync(resolve(root,'build-result.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify({trial:report.trial,brightnessOnly:report.brightnessOnly,inputCount:report.inputs.length,effectsLicense:report.effectsLicense},null,2));

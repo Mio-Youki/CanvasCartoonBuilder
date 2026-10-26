@@ -1,0 +1,44 @@
+import assert from 'node:assert/strict';
+import {existsSync,mkdirSync,writeFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {chromium} from 'playwright-core';
+const root=resolve(import.meta.dirname,'../..'),edge=['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(existsSync),browser=await chromium.launch({executablePath:edge,headless:true});
+try{
+ const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(String(e)));
+ await page.goto(pathToFileURL(resolve(root,'img2asset-v4-classic.html')).href);await page.waitForFunction(()=>window.classicV4Resources);
+ await page.evaluate(async()=>{if(state.playing)togglePlay();const scene=EditorVNextScene.blank({width:320,height:180}),c=document.createElement('canvas');c.width=c.height=8;const g=c.getContext('2d');g.fillStyle='#ff3300';g.fillRect(0,0,8,8);scene.assets.photo={locator:c.toDataURL(),width:8,height:8};scene.entities=[{id:'host',type:'vector',x:0,y:0,w:200,h:1,parts:[{id:'p',type:'line',x:0,y:0,x2:200,y2:0,stroke:'#ffd23f',strokeWidth:1,extensions:{elements:{enabled:true,sourceId:'group',count:7,scale:1}}}]},{id:'group',type:'group',x:10,y:10,w:16,h:16},{id:'photo',type:'image',parentId:'group',assetId:'photo',x:0,y:0,w:8,h:8,anim:{bob:{amount:4,angle:90,period:2}}},{id:'dot',type:'ellipse',parentId:'group',x:8,y:0,w:8,h:8,fill:'#00aaff'}];const recipe=EditorV4PathPatternPresets.fromPart(scene,scene.entities[0].parts[0],'elements',{ownerId:'host'});EditorV4Resources.addPattern(scene,{id:'line-stamps',...recipe});const bundle=await EditorV4Resources.capture(scene,[{kind:'pattern',id:'line-stamps'}]),target=EditorVNextScene.blank({width:320,height:180});await EditorV4Resources.importInto(target,bundle);ToSampoolV4Workspace.replace(target);classicV4View.select(null);classicV4Changes.clear();});
+ assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities.length),0);
+ await page.evaluate(()=>classicV4Resources.beginPreset('line-stamps'));await page.keyboard.press('Escape');assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities.length),0);
+ await page.locator('#toolbar-pattern').click();
+ await page.locator('[data-pattern-resource-id="line-stamps"] .asset-card-action.add').click();
+ await page.locator('[data-pattern-carrier="line"]').click();
+ const stage=page.locator('#v4-classic-stage'),b=await stage.boundingBox();await page.mouse.move(b.x+b.width*.15,b.y+b.height*.5);await page.mouse.down();await page.mouse.move(b.x+b.width*.8,b.y+b.height*.5,{steps:4});await page.mouse.up();
+ const output=await page.evaluate(async()=>{const scene=ToSampoolV4Workspace.current(),owner=scene.entities.find(e=>!e.referenceSourceOnly),p=owner.parts[0],assets=await EditorVNextAssetLoader.resolve(scene),runtime=ToSampoolRuntimeVNext.createRuntime(EditorVNextScene.hydrate(scene,assets)),c=document.createElement('canvas');let first,next;try{const a=runtime.renderTo(c,0);const x=c.getContext('2d').getImageData(0,0,c.width,c.height).data;first=Array.from(x).reduce((s,v,i)=>(Math.imul(s^v,16777619))>>>0,2166136261);const z=runtime.renderTo(c,.5);const y=c.getContext('2d').getImageData(0,0,c.width,c.height).data;next=Array.from(y).reduce((s,v)=>(Math.imul(s^v,16777619))>>>0,2166136261);return{type:p.type,count:scene.entities.length,privateCount:scene.entities.filter(e=>e.referenceSourceOnly).length,source:p.extensions.elements.sourceId,drawn:a.pathInstancesDrawn,sprites:z.pathSpriteBuilds,first,next};}finally{runtime.dispose();}});
+ assert.equal(output.type,'line');assert.equal(output.count,4);assert.equal(output.privateCount,3);assert.equal(output.drawn,7);assert.equal(output.sprites,1);assert.notEqual(output.first,output.next,'source animation must survive capture and transfer');
+ await page.evaluate(()=>classicV4Changes.undo());assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities.length),0,'single undo removes carrier and all private sources');
+ await page.evaluate(()=>classicV4Changes.redo());assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities.length),4);
+ const saved=await page.evaluate(async()=>{const s=ToSampoolV4Workspace.current(),pkg=await EditorVNextProjectPackage.build(s),restored=await EditorVNextProjectPackage.restore(pkg.files);return JSON.stringify(restored.scene);});
+ const samples=resolve(root,'tests/artifacts/path-pattern-presets');mkdirSync(samples,{recursive:true});writeFileSync(resolve(samples,'project.tosampool.json'),saved,'utf8');
+ const portable=await page.evaluate(async()=>JSON.stringify(await EditorV4Resources.capture(ToSampoolV4Workspace.current(),[{kind:'pattern',id:'line-stamps'}])));writeFileSync(resolve(samples,'line-stamps.tosampool-resource.json'),portable,'utf8');
+ await page.evaluate(json=>{ToSampoolV4Workspace.replace(JSON.parse(json));classicV4View.select(null);},saved);
+ assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities.length),4);
+ const moduleBundle=await page.evaluate(async()=>{
+   const s=EditorVNextScene.blank({width:320,height:180}),manifest={format:'tosampool-scene-module/v1',id:'path-stamp-program',version:1,title:'路径程序来源',assets:[],timeDependent:true,parameters:[]};
+   const source='window.PATH_STAMP_RUNS=(window.PATH_STAMP_RUNS||0)+1;ToSampoolRuntimeVNext.modules.sceneModules.register({manifest:'+JSON.stringify(manifest)+',render({ctx,width,height}){ctx.fillStyle="#ff4400";ctx.fillRect(-width/2,-height/2,width,height);}});';
+   s.modules={[manifest.id]:{manifest,locator:'data:text/javascript,'+encodeURIComponent(source)}};s.entities=[{id:'host',type:'rect',x:0,y:0,w:100,h:60,extensions:{elements:{enabled:true,sourceId:'program',count:3}}},{id:'program',type:'procedural',moduleId:manifest.id,moduleVersion:1,params:{},x:0,y:0,w:10,h:10}];
+   const preset=EditorV4PathPatternPresets.fromPart(s,s.entities[0],'elements',{ownerId:'host'});EditorV4Resources.addPattern(s,{id:'program-stamps',...preset});return JSON.stringify(await EditorV4Resources.capture(s,[{kind:'pattern',id:'program-stamps'}]));
+ });
+ await page.evaluate(()=>{ToSampoolV4Workspace.createBlank({width:320,height:180});classicV4View.select(null);});
+ page.once('dialog',d=>d.dismiss());assert.equal(await page.evaluate(async text=>{try{await classicV4Resources.importBundle(JSON.parse(text));return 'unexpected';}catch(e){return e.name;}},moduleBundle),'AbortError');
+ assert.equal(await page.evaluate(()=>Object.keys(ToSampoolV4Workspace.current().patternResources||{}).length),0);assert.equal(await page.evaluate(()=>window.PATH_STAMP_RUNS||0),0);
+ page.once('dialog',d=>d.accept());await page.evaluate(text=>classicV4Resources.importBundle(JSON.parse(text)),moduleBundle);
+ assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities.length),0);assert.equal(await page.evaluate(()=>window.PATH_STAMP_RUNS||0),0,'import authorizes, does not execute private program source');
+ let repeatPrompts=0;page.on('dialog',d=>{repeatPrompts++;void d.dismiss();});
+ await page.evaluate(()=>classicV4Resources.beginPreset('program-stamps'));assert.equal(await page.evaluate(()=>window.PATH_STAMP_RUNS),1);
+ const bb=await stage.boundingBox();await page.mouse.move(bb.x+bb.width*.2,bb.y+bb.height*.3);await page.mouse.down();await page.mouse.move(bb.x+bb.width*.6,bb.y+bb.height*.65,{steps:3});await page.mouse.up();
+ assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities.length),2);assert.equal(repeatPrompts,0,'authorized use must not ask again');
+ await page.evaluate(()=>classicV4Resources.beginPreset('program-stamps'));await page.keyboard.press('Escape');assert.equal(await page.evaluate(()=>window.PATH_STAMP_RUNS),1,'same scoped Module executes once');
+ assert.deepEqual(errors,[]);
+ console.log('✓ 路径预设真实流程：跨项目仅导入定义、直线载体、组／图片私有来源、动态单精灵复用、Esc／单撤销／重开；程序来源导入拒绝无写入、接受不执行、使用不重复询问且单次加载');
+}finally{await browser.close();}

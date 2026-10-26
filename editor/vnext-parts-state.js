@@ -2,12 +2,13 @@
 (function (global) {
   'use strict';
 
-  const TYPES = Object.freeze(['rect', 'ellipse', 'line', 'poly', 'stroke']);
-  const APPEARANCE = Object.freeze(['fill', 'fillAlpha', 'fillPattern', 'stroke', 'strokeAlpha', 'strokeWidth', 'radius', 'points']);
+  const TYPES = Object.freeze(['rect', 'ellipse', 'line', 'poly', 'stroke', 'custom']);
+  const APPEARANCE = Object.freeze(['fill', 'fillAlpha', 'fillPaint', 'fillPattern', 'stroke', 'strokeAlpha', 'strokeWidth', 'strokeCap', 'strokeJoin', 'strokeDash', 'smoothing', 'pathRevealEnabled', 'strokeCompletion', 'strokeTrimStart', 'strokeReverse', 'pathStart', 'fillReveal', 'strokeWave', 'pathEndpoints', 'extensions', 'polygonMode', 'sides', 'radius', 'points']);
   const finite = (value, fallback) => Number.isFinite(+value) ? +value : fallback;
   const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
   function defaultTexture(type, color) {
     const common={type:String(type||'lines'),mode:'replace',opacity:1,color:color||'#ffffff'};
+    if(common.type==='custom')return Object.assign(common,{tileWidth:4,tileHeight:4,tileScale:1,tileScaleMode:'pixel',tilePixels:Array(16).fill('#00000000')});
     if(common.type==='noise')return Object.assign(common,{density:.18,size:1,seed:1});
     if(common.type==='dots')return Object.assign(common,{size:3,spacing:5,gap:2,phase:0,angle:0,sides:4,roundness:0,layout:'regular'});
     if(common.type==='checker')return Object.assign(common,{size:3,gap:2,phase:.5,angle:0,layout:'checker'});
@@ -16,11 +17,20 @@
   function normalizeTexture(raw, color) {
     if(!raw||raw.type==='none')return null;
     const value=Object.assign(defaultTexture(raw.type,color),clone(raw));
-    value.type=['lines','dots','checker','noise'].includes(value.type)?value.type:'lines';
+    value.type=['lines','dots','checker','noise','custom'].includes(value.type)?value.type:'lines';
     value.mode=value.mode==='overlay'?'overlay':'replace';
     value.opacity=Math.max(0,Math.min(1,finite(value.opacity,1)));
     value.color=/^#[0-9a-f]{6}$/i.test(value.color||'')?value.color:(color||'#ffffff');
-    if(value.type==='noise'){
+    if(value.type==='custom'){
+      value.tileWidth=Math.max(1,Math.min(64,Math.round(finite(value.tileWidth,4))));
+      value.tileHeight=Math.max(1,Math.min(64,Math.round(finite(value.tileHeight,4))));
+      value.tileScale=Math.max(1,Math.min(16,Math.round(finite(value.tileScale,1))));
+      value.tileScaleMode=value.tileScaleMode==='sampling'?'sampling':'pixel';
+      const pixels=Array.isArray(value.tilePixels)?value.tilePixels:[];
+      value.tilePixels=Array.from({length:value.tileWidth*value.tileHeight},(_,index)=>/^#[0-9a-f]{8}$/i.test(pixels[index]||'')?pixels[index].toLowerCase():'#00000000');
+      value.phaseX=Math.max(0,Math.min(1,finite(value.phaseX,0)));
+      value.phaseY=Math.max(0,Math.min(1,finite(value.phaseY,0)));
+    } else if(value.type==='noise'){
       value.density=Math.max(0,Math.min(1,finite(value.density,.18)));
       value.size=Math.max(1,Math.round(finite(value.size,1)));
       value.seed=Math.round(finite(value.seed,1));
@@ -48,6 +58,8 @@
   function normalizePart(input, parts) {
     const raw = clone(input) || {}, type = TYPES.includes(raw.type) ? raw.type : 'rect';
     const part = Object.assign({ id:`part-${type}`, name:{ rect:'矩形', ellipse:'椭圆', line:'直线', poly:'多边形', stroke:'像素笔触' }[type], type, alpha:1, scaleX:1, scaleY:1, rot:0, hidden:false, locked:false }, raw);
+    const pathStroke=global.ToSampoolRuntimeVNext&&global.ToSampoolRuntimeVNext.modules.pathStroke;
+    if(pathStroke)Object.assign(part,pathStroke.normalize(part));
     part.id = uniqueId(parts || [], String(part.id || `part-${type}`));
     part.x = Math.round(finite(part.x, 0)); part.y = Math.round(finite(part.y, 0));
     part.alpha = Math.max(0, Math.min(1, finite(part.alpha, 1)));
@@ -68,9 +80,12 @@
       if (part.fill === undefined) part.fill = '#ffffff';
       if(part.fillPattern)part.fillPattern=normalizeTexture(part.fillPattern,part.fill||'#ffffff');
       part.strokeWidth = Math.max(0, finite(part.strokeWidth, 0));
-      if (type === 'rect') part.radius = Math.max(0, Math.min(finite(part.radius, 0), part.w / 2, part.h / 2)); else delete part.radius;
+      if (type === 'rect'||type==='poly') part.radius = Math.max(0, Math.min(finite(part.radius, 0), part.w / 2, part.h / 2)); else delete part.radius;
       if (type === 'poly') part.points = Array.isArray(part.points) ? part.points.map(point => [finite(point && point[0], 0), finite(point && point[1], 0)]) : [[.5, 0], [1, 1], [0, 1]];
       else delete part.points;
+    }
+    if(type==='custom'){
+      part.strokeWidth=Math.max(0,finite(raw.strokeWidth,3));part.recipe=global.ToSampoolRuntimeVNext.modules.customShapes.normalizePartRecipe(part);part.name=raw.name||global.ToSampoolRuntimeVNext.modules.customShapes.definitions.find(d=>d.id===part.recipe.id)?.name||'自定义图样';part.stroke=raw.stroke===undefined?'#ffd23f':raw.stroke;part.fill=null;delete part.fillPaint;delete part.fillPattern;
     }
     return part;
   }
@@ -102,6 +117,8 @@
     return found;
   }
   function shapeBounds(item) {
+    const content=global.ToSampoolRuntimeVNext&&global.ToSampoolRuntimeVNext.modules.content;
+    if(content&&content.partVisualBounds)return content.partVisualBounds(item,0);
     let x, y, w, h;
     if (item.type === 'line') { x=Math.min(item.x,item.x2);y=Math.min(item.y,item.y2);w=Math.max(1,Math.abs(item.x2-item.x));h=Math.max(1,Math.abs(item.y2-item.y)); }
     else if (item.type === 'stroke') { const points=Array.isArray(item.points)&&item.points.length?item.points:[[item.x||0,item.y||0]], xs=points.map(point=>finite(point&&point[0],0)),ys=points.map(point=>finite(point&&point[1],0)); x=Math.min(...xs);y=Math.min(...ys);w=Math.max(1,Math.max(...xs)-x);h=Math.max(1,Math.max(...ys)-y); }
@@ -115,7 +132,7 @@
     const entity = owner(scene, ownerId);
     if (entity.type !== 'vector' || !Array.isArray(entity.parts) || !entity.parts.length) return entity;
     const boxes=entity.parts.filter(item=>!item.hidden).map(shapeBounds); if(!boxes.length)return entity;
-    const minX=Math.min(...boxes.map(box=>box.x)),minY=Math.min(...boxes.map(box=>box.y)),maxX=Math.max(...boxes.map(box=>box.x+box.w)),maxY=Math.max(...boxes.map(box=>box.y+box.h));
+    const minX=Math.floor(Math.min(...boxes.map(box=>box.x))),minY=Math.floor(Math.min(...boxes.map(box=>box.y))),maxX=Math.ceil(Math.max(...boxes.map(box=>box.x+box.w))),maxY=Math.ceil(Math.max(...boxes.map(box=>box.y+box.h)));
     const oldW=Math.max(1,finite(entity.w,1)),oldH=Math.max(1,finite(entity.h,1)),newW=Math.max(1,maxX-minX),newH=Math.max(1,maxY-minY),pivot=entity.pivot&&entity.pivot.mode==='custom'?entity.pivot:null,px=oldW*(pivot?finite(pivot.x,.5):.5),py=oldH*(pivot?finite(pivot.y,.5):.5),npx=newW*(pivot?finite(pivot.x,.5):.5),npy=newH*(pivot?finite(pivot.y,.5):.5),sx=finite(entity.scaleX,1),sy=finite(entity.scaleY,1),a=finite(entity.rot,0)*Math.PI/180,cos=Math.cos(a),sin=Math.sin(a),ma=cos*sx,mb=sin*sx,mc=-sin*sy,md=cos*sy,tx=finite(entity.x,0)+px-ma*px-mc*py,ty=finite(entity.y,0)+py-mb*px-md*py,ntx=tx+ma*minX+mc*minY,nty=ty+mb*minX+md*minY;
     for(const item of entity.parts){if(item.type==='line'){item.x=Math.round(item.x-minX);item.y=Math.round(item.y-minY);item.x2=Math.round(item.x2-minX);item.y2=Math.round(item.y2-minY);}else if(item.type==='stroke'){item.x=Math.round((+item.x||0)-minX);item.y=Math.round((+item.y||0)-minY);item.points=(item.points||[]).map(point=>[Math.round((+point[0]||0)-minX),Math.round((+point[1]||0)-minY)]);}else{item.x=Math.round(item.x-minX);item.y=Math.round(item.y-minY);item.w=Math.max(1,Math.round(item.w));item.h=Math.max(1,Math.round(item.h));}}
     entity.w=Math.max(1,Math.round(newW));entity.h=Math.max(1,Math.round(newH));entity.x=Math.round(ntx-npx+ma*npx+mc*npy);entity.y=Math.round(nty-npy+mb*npx+md*npy);
@@ -135,7 +152,7 @@
   }
   function remove(scene, options) {
     const entity=owner(scene,options&&options.ownerId),index=(entity.parts||[]).findIndex(item=>item.id===(options&&options.partId));
-    if(index<0)return false;entity.parts.splice(index,1);if(entity.type==='vector'&&entity.parts.length&&(!options||options.normalize!==false))normalizeBounds(scene,entity.id);return true;
+    if(index<0)return false;entity.parts.splice(index,1);global.EditorV4ElementReferences?.prunePrivate(scene);if(entity.type==='vector'&&entity.parts.length&&(!options||options.normalize!==false))normalizeBounds(scene,entity.id);return true;
   }
   function reorder(scene, options) {
     const entity=owner(scene,options&&options.ownerId),parts=entity.parts||[],from=parts.findIndex(item=>item.id===(options&&options.partId));if(from<0)return false;

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "project": "ToSampool · 外部机壳对照",
+  "brief": "在相同工作台布局、场景与数显内部语言下，比较两种航天设备机壳。",
+  "round": "shell-01",
+  "candidates": [
+    { "id": "baseline", "name": "现状 · 旧媒介工作台", "concept": "米色机壳与镶嵌键帽。", "typography": "沿用原型字体与字号", "palette": ["#CDBB98", "#20282C", "#81C9BD"], "traits": ["暖米色材质", "现有键帽与面板"], "kind": "html", "source": "old-media-workbench.html", "interactive": true, "baseline": true },
+    { "id": "nasa-punk", "name": "NASA-punk · 航天仪器", "concept": "哑光白色航天面板与明确的任务标识。", "typography": "外部铭牌 Consolas，字标 Arial/Helvetica；屏内沿用原型", "palette": ["#ECE5D6", "#E2E3DE", "#253039", "#D63A2C"], "traits": ["浅灰白哑光面板", "黑白警示斜纹与任务色条", "红色 Agent 主键"], "kind": "html", "source": "old-media-workbench-nasa-punk.html", "interactive": true },
+    { "id": "cassette-futurism", "name": "Cassette Futurism · 船舱控制台", "concept": "可维护的军绿硬件模块与塑料实体控件。", "typography": "外部铭牌 Consolas、中文键名系统字体；屏内沿用原型", "palette": ["#282E2E", "#535D50", "#BFC0A9", "#D7A947"], "traits": ["军绿与炭灰分立模块", "黑底白字压字标签", "琥珀选中键与三色条纹"], "kind": "html", "source": "old-media-workbench-cassette-futurism.html", "interactive": true }
+  ]
+}

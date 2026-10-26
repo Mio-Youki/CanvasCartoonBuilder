@@ -9,7 +9,7 @@
   const finite = (value, fallback) => Number.isFinite(+value) ? +value : fallback;
   const clone = value => value == null ? value : JSON.parse(JSON.stringify(value));
   const sameStages = (candidate, stages) => Array.isArray(candidate) && candidate.length === stages.length && candidate.every(stage => stages.includes(stage)) && new Set(candidate).size === stages.length;
-  const PART_TYPES = new Set(['rect', 'ellipse', 'line', 'poly', 'stroke']);
+  const PART_TYPES = new Set(['rect', 'ellipse', 'line', 'poly', 'stroke', 'custom']);
   // Persistent geometry is authored on the pixel grid.  Runtime animation can
   // still interpolate these values, but the final frame state snaps them back
   // to pixels before drawing (see 30-frame-state.js).
@@ -23,6 +23,11 @@
     if (!sample || typeof sample !== 'object') return sample || {};
     const group = sample, controllers = Object.assign({}, group.controllers || {}), uneven = group['uneven-sampling'];
     const halftone = group.halftone;
+    if(group['color-map']){
+      const map=group['color-map'];delete map.motion;
+      map.mode=map.mode==='gradient'?'gradient':'discrete';
+      map.colors=2**Math.max(1,Math.min(6,Math.round(Math.log2(Math.max(2,+map.colors||16)))));
+    }
     // v4.2 gives halftone one unambiguous scale: sampling-grid × size.
     // Earlier drafts stored a raw point radius plus a separate spacing; the
     // spacing is the closest equivalent of the new unit multiplier.
@@ -59,12 +64,17 @@
       if (seen.has(part.id)) throw new Error(`实体「${entity.id}」存在重复图元 id：${part.id}`);
       seen.add(part.id);
       if (!PART_TYPES.has(part.type)) throw new Error(`实体「${entity.id}」的图元「${part.id}」类型无效：${part.type}`);
+      Object.assign(part,api.modules.pathStroke.normalize(part));
+      if(part.type==='custom'){
+        part.recipe=api.modules.customShapes.normalizePartRecipe(part);part.stroke=part.stroke===undefined?'#ffd23f':part.stroke;part.strokeWidth=Math.max(0,finite(part.strokeWidth,3));part.fill=null;delete part.fillPattern;delete part.fillPaint;
+      }
       part.x = pixel(part.x, 0); part.y = pixel(part.y, 0); part.scaleX = finite(part.scaleX, 1); part.scaleY = finite(part.scaleY, 1); part.rot = finite(part.rot, 0); part.alpha = Math.max(0, Math.min(1, finite(part.alpha, 1)));
       if (part.type === 'line') { part.x2 = pixel(part.x2, part.x + 1); part.y2 = pixel(part.y2, part.y + 1); delete part.w; delete part.h; }
       else if (part.type === 'stroke') { part.points = Array.isArray(part.points) ? part.points.map(point => [pixel(point && point[0], 0), pixel(point && point[1], 0)]) : [[part.x, part.y], [part.x + 1, part.y + 1]]; part.stroke = part.stroke || '#000000'; part.strokeWidth = Math.max(1, pixel(part.strokeWidth, 1)); delete part.fill; delete part.w; delete part.h; }
       else { part.w = Math.max(1, finite(part.w, 1)); part.h = Math.max(1, finite(part.h, 1)); }
       if (part.type === 'rect') part.radius = Math.max(0, Math.min(finite(part.radius, 0), part.w / 2, part.h / 2));
       if (part.type === 'poly') part.points = Array.isArray(part.points) ? part.points : [[.5,0],[1,1],[0,1]];
+      if(Array.isArray(part.extensions?.attached)&&part.extensions.attached.some(id=>api.modules.pathGenerators?.definition(id)))part.extensions=api.modules.pathExtensions.normalize(part);
       return part;
     });
   }
@@ -103,6 +113,15 @@
     entity.w = Math.max(1, pixel(entity.w, 1)); entity.h = Math.max(1, pixel(entity.h, 1));
     entity.scaleX = finite(entity.scaleX, 1); entity.scaleY = finite(entity.scaleY, 1); entity.skewX = Math.max(-80, Math.min(80, finite(entity.skewX, 0))); entity.skewY = Math.max(-80, Math.min(80, finite(entity.skewY, 0)));
     entity.rot = finite(entity.rot, 0); entity.alpha = Math.max(0, Math.min(1, finite(entity.alpha, 1)));
+    if(['rect','ellipse','poly','line'].includes(entity.type))Object.assign(entity,api.modules.pathStroke.normalize(entity));
+    if (entity.type === 'text') {
+      entity.textCompletion = Math.max(0, Math.min(100, finite(entity.textCompletion, 100)));
+      if (entity.textCursor) entity.textCursor = Object.assign({}, entity.textCursor, {
+        enabled:!!entity.textCursor.enabled,
+        style:['bar','underline','block'].includes(entity.textCursor.style) ? entity.textCursor.style : 'bar',
+        period:Math.max(0, finite(entity.textCursor.period, 1)),
+      });
+    }
     if (entity.type === 'builtin') entity.builtin = api.modules.builtins.normalize(entity.builtin);
     if (entity.type === 'procedural') Object.assign(entity, api.modules.sceneModules.normalize(entity,{scope:moduleScope}));
     normalizeParts(entity);
@@ -119,6 +138,7 @@
 
   function normalize(scene) {
     const raw = clone(scene) || {};
+    api.modules.patternProviders.validateScene(raw);
     const version = raw.format || raw.formatVersion || FORMAT;
     if (version !== FORMAT && version !== 4) throw new Error(`Runtime vNext 只接受 ${FORMAT}，收到 ${version}`);
     const width = Math.max(1, Math.round(finite(raw.width, 320)));
@@ -153,6 +173,16 @@
       if (!source) throw new Error(`粒子发射器「${entity.id}」缺少可用 sourceId：${sourceId || '(空)'}`);
       if (source.id === entity.id || source.type === 'group' || source.type === 'particle-emitter') throw new Error(`粒子发射器「${entity.id}」的 sourceId 必须指向普通实体`);
       entity.particle.sourceId = sourceId;
+      if(entity.particle.mode!=null&&!['sprite','layer'].includes(entity.particle.mode))throw Error('未知粒子实体模式：'+entity.particle.mode);
+      if(entity.particle.mode==='layer'){
+        const p=entity.particle;
+        if(p.layerEmission!=null&&!['burst','continuous'].includes(p.layerEmission))throw Error('未知图层发射方式');
+        if(p.fragmentShape!=null&&!['rect','circle'].includes(p.fragmentShape))throw Error('未知切片形状');
+        if(p.sampleTime!=null&&!['birth','fixed'].includes(p.sampleTime))throw Error('未知图层取样时间');
+        if(p.sourceFps!=null&&(!Number.isInteger(p.sourceFps)||p.sourceFps<1||p.sourceFps>30))throw Error('来源刷新率须为1～30的整数');
+        if(p.cellSize!=null&&(!Number.isInteger(p.cellSize)||p.cellSize<1))throw Error('图层切片尺寸须为正整数');
+        if(p.startTime!=null&&(!Number.isFinite(p.startTime)||p.startTime<0||p.startTime>=loop))throw Error('图层切片开始时间须位于循环内');
+      }
     }
     const dependencies = new Map();
     for (const owner of entities) {
@@ -170,6 +200,7 @@
     // Scene stages are intentionally not draggable.  Preserve no malformed or
     // legacy ordering here: output grain must remain the final pixel pass.
     sceneEffects.pipeline = SCENE_PIPELINE.slice();
+    api.modules.maskContract?.validateReferences({entities,sceneEffects});
     return Object.freeze({
       format: FORMAT, width, height, loop, moduleScope,
       background: Object.assign({ color: '#ffffff', alpha: 1, layers: [] }, raw.background || {}),

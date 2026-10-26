@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ToSampool · 输入组件 A / 印刷说明书</title>
+  <style>
+    :root{
+      color-scheme:dark;
+      --shell:#cdbb98;--shell-hi:#eee0bf;--shell-edge:#67543a;
+      --screen:#0d1418;--screen-soft:#172125;--screen-line:#536168;
+      --ink:#eee9db;--muted:#aab8b9;--cyan:#84d7ce;--cyan-dark:#315a59;
+      --red:#db746c;--yellow:#e9b451;--blue:#80b8da;
+      --focus:#fff2a9;--gap:16px;
+      --type-body:14px;--type-control:13px;--type-caption:11px;--type-section:14px;--type-heading:16px;
+      font:var(--type-body) "Microsoft YaHei UI","Noto Sans CJK SC",sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-width:720px;background:#171e22;color:var(--ink)}
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer}
+    button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+    .mono{font-family:Consolas,"Cascadia Mono",monospace;font-variant-numeric:tabular-nums}
+    .shell{min-height:100vh;padding:12px 18px 32px;background:linear-gradient(115deg,#2b3030,#171e22 42%)}
+    .mast{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:20px;min-height:76px;padding:10px 20px;border:2px solid #473927;border-radius:12px;background:linear-gradient(#e9daba,#bfa987);box-shadow:inset 0 2px #fff0d0,0 5px 0 #0a0c0c;color:#302920}
+    .brand{font:800 18px Consolas,monospace;letter-spacing:.1em;white-space:nowrap}
+    .brand i{display:inline-block;width:12px;height:12px;margin-right:9px;background:linear-gradient(90deg,#d56a63 0 33%,#e5ad49 33% 66%,#80cec3 66%);transform:rotate(-16deg)}
+    .mast-title{border-left:1px solid #8f7a5c;padding-left:20px;font-weight:700;font-size:15px}
+    .mast-meta{display:flex;align-items:center;gap:10px;font:700 11px Consolas,monospace;letter-spacing:.08em}
+    .lamp{width:10px;height:10px;border:2px solid #22363a;border-radius:50%;background:#55d6bd;box-shadow:0 0 5px #63e5c8}
+    .intro{display:flex;align-items:end;justify-content:space-between;gap:20px;padding:22px 3px 15px}
+    h1{margin:0;font-size:24px;letter-spacing:.02em}
+    .intro p{margin:5px 0 0;color:#b8c2bc;font-size:var(--type-body)}
+    .legend{display:flex;gap:12px;align-items:center;color:#bbc6c3;font:var(--type-control) Consolas,monospace;white-space:nowrap}
+    .legend b{display:inline-block;width:9px;height:9px;margin-right:5px;background:var(--cyan)}
+    .legend .l2{background:var(--yellow)}.legend .l3{background:var(--red)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(315px,1fr));gap:var(--gap)}
+    .specimen{position:relative;min-width:0;min-height:246px;padding:0 12px 14px;border:2px solid #a99b7b;background:var(--screen);box-shadow:inset 0 0 0 2px #26343a,0 3px 0 #0b0d0e}
+    .specimen::after{content:"";position:absolute;bottom:-2px;right:-2px;width:34px;height:3px;background:linear-gradient(90deg,var(--cyan) 0 33%,var(--red) 33% 66%,var(--yellow) 66%)}
+    .spec-head{display:flex;align-items:center;gap:8px;height:43px;margin:0 -12px 12px;padding:0 12px;border-bottom:1px solid var(--screen-line);background:#172125}
+    .spec-head .index{color:var(--cyan);font:700 var(--type-caption) Consolas,monospace}
+    .spec-head h2{margin:0;font-size:var(--type-heading);font-weight:700;white-space:nowrap}
+    .spec-head small{margin-left:auto;color:#a4b1b3;font:var(--type-caption) Consolas,monospace;white-space:nowrap}
+    .group-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #39494d;font-size:var(--type-section);font-weight:700;color:var(--cyan)}
+    .group-head span:last-child{color:#718a8d;font:var(--type-caption) Consolas,monospace}
+    .field{display:grid;grid-template-columns:85px minmax(0,1fr);align-items:center;gap:9px;min-height:39px;font-size:var(--type-control)}
+    .field>span:first-child{color:#c9d5d0}
+    .field-stack{display:flex;gap:6px;min-width:0}
+    .field-stack>*{min-width:0}
+    .readout,.text-input,textarea,select,.ref-button{border:1px solid #536c70;border-radius:0;background:#18262b;color:#f1ecdb;min-height:29px}
+    .num{min-height:29px;border:1px solid transparent;border-radius:0;background:transparent;color:#f1ecdb;cursor:ns-resize;appearance:textfield}
+    .num:hover,.num:focus{border-color:#536c70;background:#18262b}
+    .num:focus{cursor:text}
+    .num::-webkit-inner-spin-button,.num::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+    .num,.text-input,textarea,select{width:100%;padding:4px 7px}
+    .num{text-align:right;font-family:Consolas,monospace;font-variant-numeric:tabular-nums}
+    .unit-input{position:relative;min-width:0;flex:1}
+    .unit-input .num{padding-right:34px}
+    .unit-input em{position:absolute;right:7px;top:6px;color:#8da6a5;font:var(--type-caption) Consolas,monospace;font-style:normal;pointer-events:none}
+    .icon-key{width:28px;height:28px;flex:none;border:1px solid #65878a;background:#183136;color:var(--cyan);font:700 16px Consolas,monospace}
+    .icon-key[aria-pressed=true]{background:var(--yellow);border-color:var(--yellow);color:#172022}
+    .note{margin:10px 0 0;color:#a5b6b6;font-size:var(--type-control);line-height:1.55}
+    .data-line{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:11px;padding-top:8px;border-top:1px solid #35464b;color:#a9bebc;font:var(--type-caption) Consolas,monospace}
+    .data-line strong{color:var(--cyan);font-size:13px}
+    .range-line{display:flex;gap:9px;align-items:center;min-width:0}
+    input[type=range]{width:100%;min-width:0;height:19px;margin:0;cursor:pointer;appearance:none;background:transparent}
+    input[type=range]::-webkit-slider-runnable-track{height:17px;border:1px solid #536c70;background:repeating-linear-gradient(90deg,transparent 0 5px,#0d1418 5px 7px),linear-gradient(90deg,var(--cyan) 0 var(--fill,38%),#455255 var(--fill,38%) 100%)}
+    input[type=range]::-webkit-slider-thumb{appearance:none;width:7px;height:23px;margin-top:-4px;border:1px solid #e8e3d2;background:#b7f4e9;box-shadow:0 0 0 1px #0b1114}
+    input[type=range]::-moz-range-track{height:17px;border:1px solid #536c70;background:repeating-linear-gradient(90deg,transparent 0 5px,#0d1418 5px 7px),linear-gradient(90deg,var(--cyan) 0 var(--fill,38%),#455255 var(--fill,38%) 100%)}
+    input[type=range]::-moz-range-thumb{width:7px;height:23px;border:1px solid #e8e3d2;border-radius:0;background:#b7f4e9}
+    .range-line .num{width:69px;flex:none}
+    .pair{display:grid;grid-template-columns:1fr 1fr;gap:6px;min-width:0}
+    .pair label{display:flex;align-items:center;gap:5px;min-width:0;color:var(--cyan);font:700 var(--type-control) Consolas,monospace}
+    .pair input{min-width:0}
+    .pair-rail{display:grid;grid-template-columns:minmax(0,1fr) 28px;gap:7px;align-items:center;min-width:0}
+    .pair-slot{display:block;width:28px;height:28px;visibility:hidden}
+    .ratio-icon{display:block;width:12px;height:22px;margin:auto;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.2}
+    .ratio-icon .linked{display:none}
+    .icon-key[aria-pressed=true] .ratio-icon .unlinked{display:none}
+    .icon-key[aria-pressed=true] .ratio-icon .linked{display:block}
+    .angle-layout{display:flex;align-items:center;gap:12px;min-width:0}
+    .angle-layout .unit-input{max-width:92px}
+    .angle-dial{position:relative;width:37px;height:37px;flex:none;border:1px solid #586a6a;border-radius:50%;background:radial-gradient(circle,#0d1418 0 24%,transparent 25% 38%,#263239 39% 62%,#10181b 63%);box-shadow:inset 0 0 0 3px #172125;cursor:crosshair;touch-action:none}
+    .angle-dial::after{content:"";position:absolute;left:17px;top:2px;width:2px;height:17px;background:var(--yellow);transform-origin:1px 16px;transform:rotate(var(--angle,0deg))}
+    .angle-dial::before{content:"";position:absolute;left:15px;top:15px;width:6px;height:6px;border-radius:50%;background:var(--yellow)}
+    .angle-dial:hover{border-color:var(--cyan)}
+    .segments{display:flex;gap:5px}
+    .segments button{flex:1;min-height:33px;border:1px solid #56696a;background:transparent;color:#b7c4c2;font-size:var(--type-control);white-space:nowrap}
+    .segments button[aria-pressed=true]{background:var(--yellow);color:#172022;font-weight:700}
+    select{appearance:auto;cursor:pointer}
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:41px;border-bottom:1px solid #3c4c4f;font-size:var(--type-control)}
+    .switch{width:40px;height:22px;padding:2px;border:1px solid #71858a;background:#273335;display:flex;align-items:center}
+    .switch i{display:block;width:16px;height:16px;background:#9da7a5;transition:transform .16s ease,background .16s ease}
+    .switch[aria-checked=true]{background:#235754;border-color:#82d5ca}.switch[aria-checked=true] i{background:var(--cyan);transform:translateX(17px)}
+    .dependent{margin-top:10px;padding:7px 8px;background:#1a272b;border-left:2px solid var(--yellow)}
+    .dependent[hidden]{display:none}
+    .swatch{position:relative;display:block;width:38px;height:29px;flex:none;border:1px solid #dfc58b;background:#c95a54;overflow:hidden}
+    .swatch input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+    .color-row{display:flex;align-items:center;gap:5px;min-width:0}
+    .color-row .text-input{width:81px;min-width:0;flex:1;border-color:transparent;background:transparent}
+    .color-row .text-input:hover,.color-row .text-input:focus{border-color:#536c70;background:#18262b}
+    .color-row .num{width:46px;flex:none}
+    .checker{width:31px;height:29px;flex:none;border:1px solid #5c6668;position:relative;overflow:hidden;background:conic-gradient(#667070 25%,#283438 0 50%,#667070 0 75%,#283438 0) 0 0/10px 10px}
+    .checker::after{content:"";position:absolute;inset:0;background:var(--preview-color,#c95a54);opacity:var(--preview-alpha,.64)}
+    .checker input{position:absolute;inset:0;z-index:1;width:100%;height:100%;opacity:0;cursor:pointer}
+    .percent{color:#aab8b9;font:var(--type-control) Consolas,monospace}
+    .ref-button{display:flex;align-items:center;gap:7px;width:100%;padding:3px 8px;text-align:left;cursor:pointer}
+    .ref-thumb{display:grid;place-items:center;width:22px;height:22px;flex:none;background:#263b46;color:var(--yellow);font:700 13px Consolas,monospace}
+    .ref-button .ref-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+    .ref-wrap{position:relative}
+    .ref-menu{position:absolute;z-index:4;top:31px;left:0;right:0;border:1px solid #7db7b4;background:#162226;box-shadow:0 6px 14px #0009}
+    .ref-menu[hidden]{display:none}
+    .ref-menu button{display:flex;align-items:center;gap:7px;width:100%;padding:6px 8px;border:0;border-bottom:1px solid #3c4c4f;background:transparent;color:var(--ink);text-align:left;font-size:var(--type-control)}
+    .ref-menu button:hover{background:#2b4b4b}
+    textarea{resize:vertical;min-height:73px;line-height:1.5}
+    .spatial-actions{display:flex;gap:7px;min-width:0}
+    .spatial-actions button{min-height:29px;border:1px solid #56696a;background:transparent;color:var(--ink)}
+    .spatial-actions button:hover{border-color:var(--cyan)}
+    .spatial-actions .set-center{flex:1}
+    .spatial-actions .reset-center{width:31px;flex:none;color:var(--cyan);font-size:17px}
+    .pattern-preview{position:relative;height:72px;margin:8px 0 10px;border:1px solid #6a7977;background-color:#172125;background-image:repeating-linear-gradient(0deg,transparent 0 7px,var(--pattern-color,#e5b85b) 7px 9px);background-size:100% 10px}
+    .pattern-color{position:absolute;right:6px;bottom:6px;display:flex;align-items:center;gap:6px;padding:3px 5px;border:1px solid #65777a;background:#10191de8;color:var(--ink);font:var(--type-control) Consolas,monospace}
+    .pattern-color .swatch{width:20px;height:19px}
+    .pattern-pair{margin-top:7px}
+    .compact{min-height:27px}
+    footer{margin:24px 0 0;padding:12px 4px 4px;border-top:1px solid #697171;color:#aebdbc;font-size:var(--type-control)}
+    @media(max-width:1030px){.mast{grid-template-columns:1fr auto}.mast-title{grid-column:1/3;grid-row:2;border-left:0;border-top:1px solid #8f7a5c;padding:8px 0 0}.legend{display:none}}
+    @media(prefers-reduced-motion:reduce){.switch i{transition:none}}
+  </style>
+  <style>
+    /* A: 功能说明书。暖纸张、墨色排版与精确的套印索引。 */
+    :root{color-scheme:light;--shell:#e6d6b5;--screen:#f1e8d2;--screen-soft:#e5dbc5;--screen-line:#66706b;--ink:#162629;--muted:#50625e;--cyan:#126d73;--cyan-dark:#b5d5cf;--red:#bc5447;--yellow:#d49b36;--blue:#397c91;--focus:#b33d36;--stage-compose:#11646a;--stage-decor:#a83f35;--stage-sample:#8b610e;--stage-compose-ink:#fff5de;--stage-decor-ink:#fff5de;--stage-sample-ink:#fff5de}
+    body{background:#cabd9e;color:var(--ink)}
+    .shell{background:repeating-linear-gradient(0deg,#dfd2b5 0 2px,#ddcfb0 2px 4px);padding:20px 25px 40px}
+    .mast{border:2px solid #18292b;border-radius:0;background:#e8dbbe;box-shadow:5px 5px 0 #253234;color:#17272a}
+    .brand{font-size:21px;letter-spacing:.045em}.brand i{transform:none;width:17px;height:17px}
+    .mast-title{border-color:#6d766c}.mast-meta{font-size:12px}.lamp{box-shadow:none;background:#c6584c}
+    h1{font-size:29px;letter-spacing:-.02em}.intro p{color:#536661}.legend{color:#4b5e5b}
+    .specimen{border:1.5px solid #17292c;background:#f1e8d2;box-shadow:4px 4px 0 #b8b69e}
+    .specimen::after{bottom:auto;right:0;top:0;width:44px;height:5px}
+    .spec-head{background:#1b3033;border-bottom:0;color:#f0e7d4;margin:0 -12px 13px;height:45px}
+    .spec-head .index{background:#c95949;color:#fff4dc;padding:4px 6px;margin-left:-4px;font-size:12px}
+    .spec-head h2{font-size:16px}.spec-head small{color:#bed2ca;font-size:11px}
+    .group-head{color:#185e65;border-bottom:2px solid #1b3033}.group-head span:last-child{color:#66736b}
+    .field>span:first-child{color:#223638}.num,.text-input,textarea,select,.ref-button{color:#16292d}
+    .readout,.text-input,textarea,select,.ref-button{background:#faf3df;border-color:#596b69}
+    .num{color:#152a2d}.num:hover,.num:focus,.color-row .text-input:hover,.color-row .text-input:focus{background:#fff9e7;border-color:#1b7478}
+    .unit-input em,.note,.data-line,.percent{color:#536460}.note{font-size:13px}
+    .data-line{border-top:1px solid #566b68;color:#47605d}.data-line strong{color:#175f66}
+    .pair label{color:#1a6870}.segments button,.spatial-actions button,.icon-key{background:#e2dac5;color:#1d4449;border-color:#485f60}
+    .segments button[aria-pressed=true],.icon-key[aria-pressed=true]{background:#bd5848;border-color:#923e34;color:#fff9e7}
+    .toggle-row{border-color:#9ca9a0}.switch{background:#c1c7b7}.switch[aria-checked=true]{background:#19747b}.switch[aria-checked=true] i{background:#e4eee4}
+    .dependent{background:#e4d9bd}.ref-menu{background:#f5ead1}.ref-menu button{color:#17292c;border-color:#98a59c}.ref-menu button:hover{background:#d4e2d6}
+    .pattern-preview{background-color:#e1d8be;border-color:#526762}.pattern-color{background:#f8edd7;color:#17292c;border-color:#566c68}
+    .angle-dial{background:radial-gradient(circle,#f1e8d2 0 24%,transparent 25% 38%,#769b95 39% 62%,#d5ddce 63%);box-shadow:none;border-color:#4c6664}.angle-dial::after,.angle-dial::before{background:#bc5447}
+    input[type=range]::-webkit-slider-runnable-track{background:repeating-linear-gradient(90deg,transparent 0 5px,#f1e8d2 5px 7px),linear-gradient(90deg,#187079 0 var(--fill,38%),#b4c2b8 var(--fill,38%) 100%)}
+    input[type=range]::-webkit-slider-thumb{background:#bf5948;border-color:#8b3c35;box-shadow:0 0 0 1px #f1e8d2}
+    footer{border-color:#73817a;color:#475b58}
+  </style>
+  <link rel="stylesheet" href="inspector-input-contract.css">
+</head>
+<body class="print-manual">
+<div class="shell">
+  <header class="mast"><div class="brand"><i aria-hidden="true"></i>ToSampool</div><div class="mast-title">Inspector · 输入组件</div><div class="mast-meta"><span class="lamp" aria-hidden="true"></span>11 CONTROL TYPES</div></header>
+  <div class="intro"><div><h1>输入样式</h1><p>同一套数显语法，分别服务精确输入、快速试探与画布直接编辑。</p></div><div class="legend"><span><b></b>读数</span><span><b class="l2"></b>当前选择</span><span><b class="l3"></b>空间目标</span></div></div>
+  <main class="grid">
+    <article class="specimen" id="scalar"><header class="spec-head"><span class="index">01</span><h2>精确数值</h2><small>SCALAR</small></header><div class="group-head"><span>画布尺寸</span><span>INTEGER / PX</span></div><label class="field"><span>宽度</span><span class="unit-input"><input class="num" id="scalarValue" type="number" min="1" step="1" value="1920"><em>px</em></span></label><p class="note">单击键入；按住数值上下拖动可增减。尺寸、帧序号和随机种子无需加减按钮。</p><div class="data-line"><span>OUTPUT / WIDTH</span><strong id="scalarOut">1920 PX</strong></div></article>
+
+    <article class="specimen" id="range"><header class="spec-head"><span class="index">02</span><h2>滑杆＋数值</h2><small>RANGE</small></header><div class="group-head"><span>不均采样</span><span>LIVE</span></div><label class="field"><span>粗细幅度</span><span class="range-line"><input id="rangeSlider" type="range" min="0" max="100" value="38"><input class="num" id="rangeValue" type="number" min="0" max="100" value="38" aria-label="粗细幅度百分比"></span></label><p class="note">拖动先看视觉变化，数值框负责精确落点；实际复杂效果可在拖动时使用 Draft 预算。</p><div class="data-line"><span>OUTPUT / AMOUNT</span><strong id="rangeOut">38%</strong></div></article>
+
+    <article class="specimen" id="pair"><header class="spec-head"><span class="index">03</span><h2>成对数值</h2><small>PAIR</small></header><div class="group-head"><span>位置与大小</span><span>X / Y · W / H</span></div><div class="field"><span>坐标</span><div class="pair-rail"><div class="pair"><label>X<input class="num" id="pairX" type="number" step="1" value="273"></label><label>Y<input class="num" id="pairY" type="number" step="1" value="181"></label></div><span class="pair-slot" aria-hidden="true"></span></div></div><div class="field"><span>宽 / 高</span><div class="pair-rail"><div class="pair"><label>W<input class="num" id="pairW" type="number" min="1" step="1" value="640"></label><label>H<input class="num" id="pairH" type="number" min="1" step="1" value="360"></label></div><button class="icon-key" id="ratioLock" type="button" aria-label="锁定宽高比例" aria-pressed="false" title="锁定宽高比例"><svg class="ratio-icon" viewBox="0 0 12 22" aria-hidden="true"><g class="unlinked"><path d="M5 1.5c-1.4 0-2 1-2 2.3v3.4C3 8 3.6 9 5 9s2-1 2-2.3V3.8c0-1.3-.6-2.3-2-2.3Z"/><path d="M7 13c-1.4 0-2 1-2 2.3v3.4C5 20 5.6 21 7 21s2-1 2-2.3v-3.4C9 14 8.4 13 7 13Z"/></g><g class="linked"><path d="M5 1.5c-1.4 0-2 1-2 2.3v4C3 9 3.6 10 5 10s2-1 2-2.7V3.8c0-1.3-.6-2.3-2-2.3Z"/><path d="M7 12c-1.4 0-2 1-2 2.3v4.4C5 20 5.6 21 7 21s2-1 2-2.3v-4.4C9 13 8.4 12 7 12Z"/><path d="M6 7.5v7"/></g></svg></button></div></div><p class="note">锁定后调整宽或高，另一项按原比例同步。</p><div class="data-line"><span>OUTPUT / POSITION</span><strong id="pairOut">273, 181 · 640×360</strong></div></article>
+
+    <article class="specimen" id="angle"><header class="spec-head"><span class="index">04</span><h2>角度／方向</h2><small>ANGLE</small></header><div class="group-head"><span>扫描擦除</span><span>CONTINUOUS</span></div><div class="angle-layout"><span>方向</span><div class="angle-dial" id="angleDial" role="slider" tabindex="0" aria-label="扫描擦除方向" aria-valuemin="-180" aria-valuemax="180" aria-valuenow="24"></div><span class="unit-input"><input class="num" id="angleValue" type="number" min="-180" max="180" step="1" value="24" aria-label="扫描擦除方向角度"><em>°</em></span></div><p class="note">方向盘可拖动，数值可直接键入或上下拖动；扫描方向不再限于四个方向。</p><div class="data-line"><span>OUTPUT / DIRECTION</span><strong id="angleOut">24°</strong></div></article>
+
+    <article class="specimen" id="choice"><header class="spec-head"><span class="index">05</span><h2>枚举选择</h2><small>CHOICE</small></header><div class="group-head"><span>过渡</span><span>ONE OF N</span></div><div class="field"><span>方式</span><div class="segments" role="group" aria-label="过渡方式"><button data-choice="扫描擦除" aria-pressed="true">扫描擦除</button><button data-choice="溶解" aria-pressed="false">溶解</button><button data-choice="淡入淡出" aria-pressed="false">淡入淡出</button></div></div><label class="field"><span>叠加方式</span><select id="choiceSelect"><option>正常</option><option>滤色</option><option>正片叠底</option><option>加亮</option></select></label><div class="data-line"><span>OUTPUT / MODE</span><strong id="choiceOut">扫描擦除 · 正常</strong></div></article>
+
+    <article class="specimen" id="toggle"><header class="spec-head"><span class="index">06</span><h2>双态开关</h2><small>TOGGLE</small></header><div class="group-head"><span>网点映射</span><span>PROGRESSIVE</span></div><div class="toggle-row"><span>双色</span><button class="switch" id="duotoneSwitch" type="button" role="switch" aria-checked="false" aria-label="启用双色"><i></i></button></div><div class="dependent" id="duotoneFields" hidden><div class="field"><span>暗色 / 亮色</span><div class="field-stack"><span class="swatch" style="background:#1b2e3a"><input type="color" value="#1b2e3a" aria-label="暗色"></span><span class="swatch" style="background:#ead6a8"><input type="color" value="#ead6a8" aria-label="亮色"></span></div></div></div><p class="note">关时从属参数消失；开关只改变启用状态，不承担展开动作。</p><div class="data-line"><span>OUTPUT / DUOTONE</span><strong id="toggleOut">OFF</strong></div></article>
+
+    <article class="specimen" id="color"><header class="spec-head"><span class="index">07</span><h2>颜色＋透明度</h2><small>COLOR</small></header><div class="group-head"><span>染色叠加</span><span>COLOR / ALPHA</span></div><div class="field"><span>颜色</span><div class="color-row"><span class="checker" id="colorSwatch"><input id="colorValue" type="color" value="#c95a54" aria-label="染色颜色"></span><input class="text-input mono" id="colorHex" type="text" value="#C95A54" maxlength="7" aria-label="十六进制颜色"><input class="num" id="alphaValue" type="number" min="0" max="100" value="64" aria-label="颜色透明度百分比"><span class="percent">%</span></div></div><p class="note">色块直接预览透明方格上的合成结果；色号与透明度同行，不再额外占一行预览。</p><div class="data-line"><span>OUTPUT / COLOR</span><strong id="colorOut">#C95A54 / 64%</strong></div></article>
+
+    <article class="specimen" id="reference"><header class="spec-head"><span class="index">08</span><h2>素材／对象引用</h2><small>REFERENCE</small></header><div class="group-head"><span>蒙版来源</span><span>OBJECT</span></div><div class="field"><span>引用对象</span><div class="ref-wrap"><button class="ref-button" id="refButton" type="button" aria-expanded="false" aria-controls="refMenu"><span class="ref-thumb">▤</span><span class="ref-name" id="refName">冬季 · 木屋</span><span>▾</span></button><div class="ref-menu" id="refMenu" hidden><button type="button" data-ref="冬季 · 木屋" data-glyph="▤"><span class="ref-thumb">▤</span>冬季 · 木屋</button><button type="button" data-ref="前景松林" data-glyph="♠"><span class="ref-thumb">♠</span>前景松林</button><button type="button" data-ref="玻璃罩组" data-glyph="◯"><span class="ref-thumb">◯</span>玻璃罩组</button></div></div></div><p class="note">引用显示用户可辨认的名称，不能只露出内部 ID；后续可加缩略图与失联状态。</p><div class="data-line"><span>OUTPUT / TARGET</span><strong id="refOut">冬季 · 木屋</strong></div></article>
+
+    <article class="specimen" id="text"><header class="spec-head"><span class="index">09</span><h2>文本</h2><small>TEXT</small></header><div class="group-head"><span>位图文字</span><span>MULTILINE</span></div><div class="field" style="align-items:start"><span style="padding-top:5px">内容</span><textarea id="textValue" rows="3">下一站，秋天。</textarea></div><p class="note">短名称保持单行，作品文字允许多行与明确的编辑区域。</p><div class="data-line"><span>OUTPUT / CHARACTERS</span><strong id="textOut">8</strong></div></article>
+
+    <article class="specimen" id="spatial"><header class="spec-head"><span class="index">10</span><h2>画布空间编辑</h2><small>SPATIAL</small></header><div class="group-head"><span>旋转中心</span><span>CANVAS TARGET</span></div><div class="field"><span>中心</span><div class="spatial-actions"><button class="set-center" id="setCenter" type="button">设置中心</button><button class="reset-center" id="resetCenter" type="button" aria-label="还原到中心" title="还原到中心">⌖</button></div></div><p class="note">进入设置状态后在正式画布取点；这里仅演示入口和复位状态，不另设坐标框。</p><div class="data-line"><span>OUTPUT / PIVOT</span><strong id="spatialOut">默认中心</strong></div></article>
+
+    <article class="specimen" id="pattern"><header class="spec-head"><span class="index">11</span><h2>图样预览编辑</h2><small>PATTERN</small></header><div class="group-head"><span>纹理叠加</span><span>PREVIEW</span></div><div class="field"><span>图样类型</span><select id="patternType"><option value="line">单线</option><option value="grid">网格</option><option value="dots">点阵</option><option value="noise">屏幕噪点</option></select></div><div class="pattern-preview" id="patternPreview"><span class="pattern-color"><span class="swatch" id="patternSwatch" style="background:#e5b85b"><input id="patternColor" type="color" value="#e5b85b" aria-label="图样颜色"></span><span id="patternHex">#E5B85B</span></span></div><div class="field compact"><span>格距</span><input class="num" id="patternSpacing" type="number" min="4" max="22" value="10" aria-label="图样格距"></div><div class="field compact pattern-pair"><span>起始偏移</span><div class="pair-rail"><div class="pair"><label>X<input class="num" id="patternOffsetX" type="number" min="0" max="1" step="0.01" value="0.25"></label><label>Y<input class="num" id="patternOffsetY" type="number" min="0" max="1" step="0.01" value="0.5"></label></div><span class="pair-slot" aria-hidden="true"></span></div></div><div class="data-line"><span>OUTPUT / PATTERN</span><strong id="patternOut">单线 · 10 PX</strong></div></article>
+  </main>
+  <footer>ToSampool / Inspector Control Register <span class="mono">· 11 INPUT TYPES · 01</span></footer>
+</div>
+<script>
+  const $=id=>document.getElementById(id);
+  const clamp=(value,min,max)=>Math.max(min,Math.min(max,Number(value)||0));
+  const bind=(ids,fn)=>ids.forEach(id=>$(id).addEventListener('input',fn));
+  function scalar(){$('scalarOut').textContent=$('scalarValue').value+' PX';}
+  $('scalarValue').oninput=scalar;
+  function range(from){const value=clamp($(from).value,0,100);$('rangeSlider').value=value;$('rangeValue').value=value;$('rangeOut').textContent=value+'%';}
+  bind(['rangeSlider','rangeValue'],event=>range(event.target.id));
+  const updateSliderFill=()=>{$('rangeSlider').style.setProperty('--fill',$('rangeSlider').value+'%');};
+  bind(['rangeSlider','rangeValue'],updateSliderFill);updateSliderFill();
+  let ratio=640/360;
+  function pair(changed){
+    if($('ratioLock').getAttribute('aria-pressed')==='true'&&['pairW','pairH'].includes(changed)){
+      if(changed==='pairW')$('pairH').value=Math.max(1,Math.round(Number($('pairW').value||1)/ratio));
+      else $('pairW').value=Math.max(1,Math.round(Number($('pairH').value||1)*ratio));
+    }
+    $('pairOut').textContent=($('pairX').value||0)+', '+($('pairY').value||0)+' · '+($('pairW').value||0)+'×'+($('pairH').value||0);
+  }
+  bind(['pairX','pairY','pairW','pairH'],event=>pair(event.target.id));
+  $('ratioLock').onclick=()=>{const on=$('ratioLock').getAttribute('aria-pressed')!=='true';$('ratioLock').setAttribute('aria-pressed',String(on));$('ratioLock').setAttribute('aria-label',on?'解除宽高比例锁定':'锁定宽高比例');if(on)ratio=Math.max(1,Number($('pairW').value||1))/Math.max(1,Number($('pairH').value||1));};
+  function angle(value){value=Math.round(clamp(value,-180,180));$('angleValue').value=value;$('angleDial').style.setProperty('--angle',value+'deg');$('angleDial').setAttribute('aria-valuenow',value);$('angleOut').textContent=value+'°';}
+  $('angleValue').oninput=()=>angle($('angleValue').value);angle($('angleValue').value);
+  function angleAt(event){const rect=$('angleDial').getBoundingClientRect(),dx=event.clientX-(rect.left+rect.width/2),dy=event.clientY-(rect.top+rect.height/2);angle(Math.atan2(dx,-dy)*180/Math.PI);}
+  $('angleDial').onpointerdown=event=>{if(event.button!==0)return;$('angleDial').setPointerCapture(event.pointerId);angleAt(event);};
+  $('angleDial').onpointermove=event=>{if($('angleDial').hasPointerCapture(event.pointerId))angleAt(event);};
+  $('angleDial').onkeydown=event=>{if(event.key==='ArrowRight'||event.key==='ArrowUp'){event.preventDefault();angle(Number($('angleValue').value)+1);}if(event.key==='ArrowLeft'||event.key==='ArrowDown'){event.preventDefault();angle(Number($('angleValue').value)-1);}};
+  let direction='扫描擦除';function choice(){ $('choiceOut').textContent=direction+' · '+$('choiceSelect').value; }
+  document.querySelectorAll('[data-choice]').forEach(button=>button.onclick=()=>{direction=button.dataset.choice;document.querySelectorAll('[data-choice]').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));choice();});$('choiceSelect').onchange=choice;
+  $('duotoneSwitch').onclick=()=>{const on=$('duotoneSwitch').getAttribute('aria-checked')!=='true';$('duotoneSwitch').setAttribute('aria-checked',String(on));$('duotoneFields').hidden=!on;$('toggleOut').textContent=on?'ON':'OFF';};
+  document.querySelectorAll('#duotoneFields input').forEach(input=>input.oninput=()=>{input.parentElement.style.background=input.value;});
+  function color(){const hex=/^#[0-9a-f]{6}$/i.test($('colorHex').value)?$('colorHex').value.toUpperCase():$('colorValue').value.toUpperCase(),alpha=clamp($('alphaValue').value,0,100);$('colorValue').value=hex;$('colorHex').value=hex;$('alphaValue').value=alpha;$('colorSwatch').style.setProperty('--preview-color',hex);$('colorSwatch').style.setProperty('--preview-alpha',alpha/100);$('colorOut').textContent=hex+' / '+alpha+'%';}
+  $('colorValue').oninput=()=>{$('colorHex').value=$('colorValue').value;color();};$('colorHex').onchange=color;$('alphaValue').oninput=color;color();
+  $('refButton').onclick=()=>{const open=$('refMenu').hidden;$('refMenu').hidden=!open;$('refButton').setAttribute('aria-expanded',String(open));};
+  document.querySelectorAll('[data-ref]').forEach(button=>button.onclick=()=>{$('refName').textContent=button.dataset.ref;$('refOut').textContent=button.dataset.ref;$('refButton').querySelector('.ref-thumb').textContent=button.dataset.glyph;$('refMenu').hidden=true;$('refButton').setAttribute('aria-expanded','false');});
+  document.addEventListener('click',event=>{if(!event.target.closest('.ref-wrap')){$('refMenu').hidden=true;$('refButton').setAttribute('aria-expanded','false');}});
+  $('textValue').oninput=()=>{$('textOut').textContent=Array.from($('textValue').value).length;};$('textValue').dispatchEvent(new Event('input'));
+  $('setCenter').onclick=()=>{$('setCenter').textContent='点击画布取点…';$('spatialOut').textContent='等待画布取点';};
+  $('resetCenter').onclick=()=>{$('setCenter').textContent='设置中心';$('spatialOut').textContent='默认中心';};
+  function pattern(){const gap=clamp($('patternSpacing').value,4,22),type=$('patternType').value,preview=$('patternPreview'),hex=$('patternColor').value,ox=clamp($('patternOffsetX').value,0,1),oy=clamp($('patternOffsetY').value,0,1);$('patternSpacing').value=gap;preview.style.setProperty('--pattern-color',hex);preview.style.backgroundPosition=`${Math.round(ox*gap)}px ${Math.round(oy*gap)}px`;const style={line:`repeating-linear-gradient(0deg,transparent 0 ${gap-2}px,${hex} ${gap-2}px ${gap}px)`,grid:`repeating-linear-gradient(0deg,transparent 0 ${gap-2}px,${hex} ${gap-2}px ${gap}px),repeating-linear-gradient(90deg,transparent 0 ${gap-2}px,${hex} ${gap-2}px ${gap}px)`,dots:`radial-gradient(circle,${hex} 35%,transparent 40%)`,noise:`radial-gradient(circle,${hex} 20%,transparent 28%),radial-gradient(circle,#80cec3 12%,transparent 20%)`}[type];preview.style.backgroundImage=style;preview.style.backgroundSize=type==='dots'||type==='noise'?`${gap}px ${gap}px`:'auto';$('patternSwatch').style.background=hex;$('patternHex').textContent=hex.toUpperCase();$('patternOut').textContent=$('patternType').selectedOptions[0].text+' · '+gap+' PX';}
+  $('patternType').onchange=pattern;bind(['patternSpacing','patternOffsetX','patternOffsetY','patternColor'],pattern);pattern();
+  document.querySelectorAll('input.num').forEach(input=>{
+    input.addEventListener('pointerdown',event=>{
+      if(event.button!==0||event.ctrlKey||event.metaKey||event.altKey)return;
+      const startY=event.clientY,startValue=Number(input.value)||0,step=Number(input.step)>0?Number(input.step):1,min=input.min===''?-Infinity:Number(input.min),max=input.max===''?Infinity:Number(input.max),precision=(String(step).split('.')[1]||'').length;
+      let dragging=false;
+      const move=next=>{
+        const pixels=startY-next.clientY;
+        if(!dragging&&Math.abs(pixels)<4)return;
+        if(!dragging){dragging=true;input.blur();document.body.style.userSelect='none';}
+        const nextValue=Math.max(min,Math.min(max,startValue+Math.trunc(pixels/5)*step));
+        input.value=nextValue.toFixed(Math.min(precision,3));input.dispatchEvent(new Event('input',{bubbles:true}));
+        next.preventDefault();
+      };
+      const end=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',end);window.removeEventListener('pointercancel',end);document.body.style.userSelect='';};
+      window.addEventListener('pointermove',move);window.addEventListener('pointerup',end,{once:true});window.addEventListener('pointercancel',end,{once:true});
+    });
+  });
+</script>
+<script src="inspector-input-contract.js"></script>
+</body>
+</html>

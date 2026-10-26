@@ -23,10 +23,12 @@ const boil=planner.plan({id:'offset-sampling'},effect('offset-sampling'),{type:'
 assert.ok(keys(boil).includes('boil.bias'),'沸腾模式必须显示偏置');
 assert.ok(keys(boil).includes('edge.width'),'轮廓保护必须显示保护宽度');
 
-const map=planner.plan({id:'color-map'},effect('color-map'),{palette:'auto',colors:16});
+const map=planner.plan({id:'color-map'},effect('color-map'),{mode:'discrete',palette:'auto',colors:16});
 assert.ok(keys(map).includes('colors'),'自动提取必须显示最大颜色数');
 const tint=planner.plan({id:'tint-overlay'},effect('tint-overlay'),{color:'#ffffff',alpha:.5});
 assert.equal(keys(tint).includes('alpha'),false,'带颜色参数的效果不能额外生成重复透明度字段');
+const vignette=planner.plan({id:'masked-inner-light'},effect('masked-inner-light'),{color:'#000000',strength:.38});
+assert.equal(keys(vignette).includes('strength'),false,'蒙版暗角的透明度应归入同一颜色控件，而非独立强度字段');
 
 const texture=planner.plan({id:'texture-overlay'},effect('texture-overlay'),{texture:'dots'});
 assert.equal(texture.special,'texture','纹理叠加必须进入专用图样编辑器');

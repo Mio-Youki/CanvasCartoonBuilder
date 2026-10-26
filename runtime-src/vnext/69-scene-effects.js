@@ -3,9 +3,7 @@
   'use strict';
 
   const api = global.ToSampoolRuntimeVNext;
-  const active = (group, id) => group && group[id] && group[id].enabled ? group[id] : null;
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-  const effectIds = group => Object.keys(group || {}).filter(id => id !== 'controllers' && active(group, id));
   function withPixels(source, surfaces, transform, frame) {
     const divisor=Math.max(1,Math.round(frame&&frame.preview&&frame.preview.pixelDivMultiplier||1)),width=Math.max(1,Math.ceil(source.width/divisor)),height=Math.max(1,Math.ceil(source.height/divisor)),input=divisor===1?source:surfaces.acquire(width,height),inputCtx=input.getContext('2d');
     if(divisor>1){inputCtx.clearRect(0,0,width,height);inputCtx.imageSmoothingEnabled=false;inputCtx.drawImage(source,0,0,width,height);}
@@ -49,32 +47,39 @@
     const bounds = { x: 0, y: 0, w: source.width, h: source.height }, edge = surfaces.acquire(source.width, source.height), edgeCtx = edge.getContext('2d'), strength = clamp(config.strength == null ? +config.alpha || .4 : +config.strength, 0, 1), inner = clamp(config.inner == null ? .35 : +config.inner, 0, 1.5), outer = Math.max(inner + .001, config.outer == null ? .72 : +config.outer), color = config.color || '#000000';
     edgeCtx.clearRect(0,0,edge.width,edge.height);edgeCtx.globalAlpha=strength;if(typeof edgeCtx.createRadialGradient==='function'){const gradient=edgeCtx.createRadialGradient(edge.width/2,edge.height/2,Math.min(edge.width,edge.height)*inner,edge.width/2,edge.height/2,Math.max(edge.width,edge.height)*outer);gradient.addColorStop(0,'rgba(0,0,0,0)');gradient.addColorStop(1,color);edgeCtx.fillStyle=gradient;}else edgeCtx.fillStyle=color;edgeCtx.fillRect(0,0,edge.width,edge.height);edgeCtx.globalAlpha=1;
     if(config.mask&&config.mask.type&&config.mask.type!=='none'&&!api.modules.masks.apply(edge,config.mask,bounds,scene,frame,surfaces)){surfaces.release(edge);throw new Error(`场景暗场使用了未实现的范围蒙版：${config.mask.type || '未知'}`);}
-    const output=surfaces.acquire(source.width,source.height),out=output.getContext('2d');out.clearRect(0,0,output.width,output.height);out.drawImage(source,0,0);out.globalCompositeOperation=['normal','screen','multiply','lighter'].includes(config.blend)?config.blend:'source-over';out.drawImage(edge,0,0);out.globalCompositeOperation='source-over';surfaces.release(edge);return output;
+    const output=surfaces.acquire(source.width,source.height),out=output.getContext('2d');out.clearRect(0,0,output.width,output.height);out.drawImage(source,0,0);out.globalCompositeOperation=api.modules.blend.toCanvas(config.blend);out.drawImage(edge,0,0);out.globalCompositeOperation='source-over';surfaces.release(edge);return output;
   }
-  function applyOne(source, id, config, scene, frame, surfaces, controllers) {
+  function applyOne(source, id, config, scene, frame, surfaces, controllers, samplingSize) {
     let result;
     if (id === 'color-grade') result = colorGrade(source, config, surfaces,frame);
     else if (id === 'tint-overlay') result = api.modules.decorate.apply(source, { 'tint-overlay': config }, surfaces, frame);
-    else if (id === 'texture-overlay') result = api.modules.decorate.apply(source, { 'texture-overlay': config }, surfaces, frame);
+    else if (id === 'texture-overlay') result = api.modules.decorate.apply(source, { 'texture-overlay': config }, surfaces, frame, samplingSize);
+    else if (id === 'grain-overlay') result = api.modules.decorate.apply(source, { 'grain-overlay': config }, surfaces, frame);
     else if (id === 'masked-inner-light') return maskedInnerLight(source, config, scene, frame, surfaces);
-    else if (['color-map', 'threshold', 'offset-sampling', 'halftone', 'uneven-sampling'].includes(id)) result = api.modules.sampling.apply(source, Object.assign({ controllers: controllers || {} }, { [id]: config }), surfaces, frame);
+    else if (id === 'crt-display') result = api.modules.crtScreen.apply(source,config,surfaces,frame);
+    else if (id === 'ascii-mapping') result = api.modules.ascii.apply(source,config,surfaces,frame,samplingSize);
+    else if (['color-map', 'noise-dither', 'threshold', 'offset-sampling', 'halftone', 'uneven-sampling', 'edge-dispersion'].includes(id)) result = api.modules.sampling.apply(source, Object.assign({ controllers: controllers || {} }, { [id]: config }), surfaces, frame.paletteCapture?Object.assign({},frame,{paletteTarget:{scope:'scene',ownerId:null}}):frame);
     else throw new Error(`Runtime vNext 尚未实现场景滤镜：${id}`);
     return compositeMasked(source, result, config.mask, scene, frame, surfaces);
   }
   function applyStage(source, stage, scene, frame, surfaces) {
     const group = stage === 'overlay' ? scene.sceneEffects.overlay : scene.sceneEffects.sample;
-    const order = stage === 'overlay' ? ['color-grade', 'tint-overlay', 'texture-overlay', 'masked-inner-light'] : ['color-map', 'threshold', 'offset-sampling', 'halftone', 'uneven-sampling'];
+    const order = stage === 'overlay' ? ['color-grade', 'tint-overlay', 'texture-overlay', 'masked-inner-light', 'grain-overlay'] : ['color-map', 'noise-dither', 'threshold', 'offset-sampling', 'halftone', 'uneven-sampling', 'edge-dispersion', 'ascii-mapping', 'crt-display'];
     let current = source, count = 0, controllers = {};
     for (const [id, config] of Object.entries(group && group.controllers || {})) controllers[id] = frame.controllerValuesFor('scene', 'sample', id, config);
     // A scene-level sampling grid is independently visible.  With no other
     // sample effect it must still allocate a work surface and resample once.
-    if(stage==='sample'&&api.modules.sampling.hasBaseGrid({controllers})&&!effectIds(group).length){const next=api.modules.sampling.apply(current,{controllers},surfaces,frame);if(next!==current){if(current!==source)surfaces.release(current);current=next;}count+=1;}
-    for (const id of order) { const config = active(group, id); if (!config) continue; const timed = frame.effectValuesFor('scene', stage, id, config); const next = applyOne(current, id, timed, scene, frame, surfaces, controllers); if (next !== current) { if (current !== source) surfaces.release(current); current = next; } count += 1; }
+    const hasTimedEffect=Object.entries(group||{}).some(([id,config])=>id!=='controllers'&&config&&config.enabled&&frame.effectValuesFor('scene',stage,id,config).enabled);
+    const hasGridConsumer=Object.entries(group||{}).some(([id,config])=>!['controllers','crt-display','ascii-mapping'].includes(id)&&config&&config.enabled&&frame.effectValuesFor('scene',stage,id,config).enabled);
+    if(stage==='sample'&&api.modules.sampling.hasBaseGrid({controllers})&&(!hasTimedEffect||!hasGridConsumer)){const next=api.modules.sampling.apply(current,{controllers},surfaces,frame);if(next!==current){if(current!==source)surfaces.release(current);current=next;}count+=1;}
+    const sampleControllers=scene.sceneEffects&&scene.sceneEffects.sample&&scene.sceneEffects.sample.controllers||{},sampleGrid=sampleControllers['sampling-grid'],samplingSize=api.modules.sampling.gridSize({controllers:sampleGrid?{'sampling-grid':frame.controllerValuesFor('scene','sample','sampling-grid',sampleGrid)}:{}});
+    for (const id of order) { const config = group && group[id]; if (!config || !config.enabled) continue; const timed = frame.effectValuesFor('scene', stage, id, config); if(!timed.enabled)continue; const next = applyOne(current, id, timed, scene, frame, surfaces, controllers, samplingSize); if (next !== current) { if (current !== source) surfaces.release(current); current = next; } count += 1; }
     return { surface: current, count };
   }
-  function activeCount(scene) {
+  function activeCount(scene,frame) {
     const effects = scene.sceneEffects || {};
-    return effectIds(effects.overlay).length + effectIds(effects.sample).length + (api.modules.sampling.hasBaseGrid(effects.sample) ? 1 : 0);
+    const count=(stage,group)=>Object.entries(group||{}).filter(([id,config])=>id!=='controllers'&&config&&config.enabled&&(!frame||frame.effectValuesFor('scene',stage,id,config).enabled)).length;
+    return count('overlay',effects.overlay)+count('sample',effects.sample)+(api.modules.sampling.hasBaseGrid(effects.sample)?1:0);
   }
   api.modules.sceneEffects = Object.freeze({ applyStage, activeCount, colorGrade, maskedInnerLight });
 })(typeof window !== 'undefined' ? window : globalThis);

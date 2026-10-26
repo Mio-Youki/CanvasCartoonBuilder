@@ -1,0 +1,100 @@
+{
+  "format": "tosampool-scene/v4",
+  "width": 1000,
+  "height": 640,
+  "loop": 4,
+  "background": {"color": "#303030", "alpha": 1},
+  "assets": {},
+  "entities": [
+    {
+      "id": "brackets-reference-left-square",
+      "name": "参考方向：粗左方括号",
+      "type": "vector",
+      "x": 40, "y": 40, "w": 96, "h": 192,
+      "parts": [{
+        "id": "reference-left-square-part", "type": "custom",
+        "x": 0, "y": 0, "w": 96, "h": 192,
+        "stroke": "#CCCCCC", "strokeWidth": 32, "strokeAlpha": 1,
+        "recipe": {"id": "brackets", "version": 1, "params": {
+          "shape": "square", "layout": "full", "side": "left", "corners": "tl-br",
+          "armX": 32, "armY": 60, "radius": 0
+        }}
+      }]
+    },
+    {
+      "id": "brackets-reference-top-left",
+      "name": "参考方向：粗左上角标",
+      "type": "vector",
+      "x": 260, "y": 40, "w": 192, "h": 192,
+      "parts": [{
+        "id": "reference-top-left-part", "type": "custom",
+        "x": 0, "y": 0, "w": 192, "h": 192,
+        "stroke": "#CCCCCC", "strokeWidth": 32, "strokeAlpha": 1,
+        "recipe": {"id": "brackets", "version": 1, "params": {
+          "shape": "square", "layout": "corners", "side": "both", "corners": "tl",
+          "armX": 156, "armY": 156, "radius": 0
+        }}
+      }]
+    },
+    {
+      "id": "brackets-thin-parentheses",
+      "name": "细圆弧成对括号",
+      "type": "vector",
+      "x": 580, "y": 40, "w": 280, "h": 200,
+      "parts": [{
+        "id": "thin-parentheses-part", "type": "custom",
+        "x": 0, "y": 0, "w": 280, "h": 200,
+        "stroke": "#E8EDF5", "strokeWidth": 8, "strokeAlpha": 1,
+        "recipe": {"id": "brackets", "version": 1, "params": {
+          "shape": "round", "layout": "full", "side": "both", "corners": "tl-br",
+          "armX": 40, "armY": 60, "radius": 0
+        }}
+      }]
+    },
+    {
+      "id": "brackets-rounded-diagonal",
+      "name": "圆角对角标记",
+      "type": "vector",
+      "x": 30, "y": 340, "w": 260, "h": 160,
+      "parts": [{
+        "id": "rounded-diagonal-part", "type": "custom",
+        "x": 0, "y": 0, "w": 260, "h": 160,
+        "stroke": "#78D4C4", "strokeWidth": 12, "strokeAlpha": 0.85,
+        "recipe": {"id": "brackets", "version": 1, "params": {
+          "shape": "square", "layout": "corners", "side": "both", "corners": "tl-br",
+          "armX": 64, "armY": 40, "radius": 18
+        }}
+      }]
+    },
+    {
+      "id": "brackets-four-corner-frame",
+      "name": "四角取景框",
+      "type": "vector",
+      "x": 340, "y": 340, "w": 320, "h": 180,
+      "parts": [{
+        "id": "four-corner-frame-part", "type": "custom",
+        "x": 0, "y": 0, "w": 320, "h": 180,
+        "stroke": "#FFFFFF", "strokeWidth": 10, "strokeAlpha": 1,
+        "recipe": {"id": "brackets", "version": 1, "params": {
+          "shape": "square", "layout": "corners", "side": "both", "corners": "all",
+          "armX": 56, "armY": 36, "radius": 0
+        }}
+      }]
+    },
+    {
+      "id": "brackets-arc-opposite-diagonal",
+      "name": "反对角圆弧角标",
+      "type": "vector",
+      "x": 700, "y": 340, "w": 260, "h": 200,
+      "parts": [{
+        "id": "arc-opposite-diagonal-part", "type": "custom",
+        "x": 0, "y": 0, "w": 260, "h": 200,
+        "stroke": "#F0B86C", "strokeWidth": 18, "strokeAlpha": 1,
+        "recipe": {"id": "brackets", "version": 1, "params": {
+          "shape": "round", "layout": "corners", "side": "both", "corners": "bl-tr",
+          "armX": 72, "armY": 52, "radius": 0
+        }}
+      }]
+    }
+  ]
+}

@@ -1,0 +1,627 @@
+{
+  "date": "2026-10-25",
+  "browser": "156.0.4314.42",
+  "runtimeSha256": "8dbfacc4eadec66524b7cd199a939a756789c57a7deb782d41605311c61fe4e8",
+  "build": {
+    "versions": {
+      "effects": "4.0.538",
+      "react": "19.2.0",
+      "esbuild": "0.25.12"
+    },
+    "trial": {
+      "bytes": 291561,
+      "gzipBytes": 91456
+    },
+    "brightnessOnly": {
+      "bytes": 274422,
+      "gzipBytes": 86749
+    },
+    "standalone": {
+      "bytes": 607742,
+      "gzipBytes": 198160
+    },
+    "existingRuntimeReference": {
+      "sourceBytes": 485266,
+      "minifiedBytes": 315236,
+      "minifiedGzipBytes": 106181,
+      "warning": "No product file rewritten; included only in experimental standalone HTML"
+    },
+    "contributions": [
+      {
+        "input": "node_modules/remotion/dist/esm/index.mjs",
+        "bytes": 259736
+      },
+      {
+        "input": "node_modules/react/cjs/react.production.js",
+        "bytes": 7616
+      },
+      {
+        "input": "node_modules/@remotion/effects/dist/esm/blur.mjs",
+        "bytes": 7379
+      },
+      {
+        "input": "node_modules/@remotion/effects/dist/esm/wave.mjs",
+        "bytes": 6028
+      },
+      {
+        "input": "entry.js",
+        "bytes": 3755
+      },
+      {
+        "input": "node_modules/react-dom/cjs/react-dom.production.js",
+        "bytes": 3342
+      },
+      {
+        "input": "node_modules/@remotion/effects/dist/esm/brightness.mjs",
+        "bytes": 1512
+      },
+      {
+        "input": "node_modules/react/cjs/react-jsx-runtime.production.js",
+        "bytes": 364
+      },
+      {
+        "input": "node_modules/react-dom/index.js",
+        "bytes": 253
+      },
+      {
+        "input": "node_modules/react/index.js",
+        "bytes": 50
+      },
+      {
+        "input": "node_modules/react/jsx-runtime.js",
+        "bytes": 50
+      }
+    ],
+    "inputs": [
+      "node_modules/react/cjs/react.production.js",
+      "node_modules/react/index.js",
+      "node_modules/react-dom/cjs/react-dom.production.js",
+      "node_modules/react-dom/index.js",
+      "node_modules/react/cjs/react-jsx-runtime.production.js",
+      "node_modules/react/jsx-runtime.js",
+      "node_modules/remotion/dist/esm/index.mjs",
+      "node_modules/@remotion/effects/dist/esm/brightness.mjs",
+      "node_modules/@remotion/effects/dist/esm/blur.mjs",
+      "node_modules/@remotion/effects/dist/esm/wave.mjs",
+      "entry.js"
+    ],
+    "singleInputs": [
+      "node_modules/react/cjs/react.production.js",
+      "node_modules/react/index.js",
+      "node_modules/react-dom/cjs/react-dom.production.js",
+      "node_modules/react-dom/index.js",
+      "node_modules/react/cjs/react-jsx-runtime.production.js",
+      "node_modules/react/jsx-runtime.js",
+      "node_modules/remotion/dist/esm/index.mjs",
+      "node_modules/@remotion/effects/dist/esm/brightness.mjs",
+      "<stdin>"
+    ],
+    "effectsLicense": "UNLICENSED"
+  },
+  "method": "Official npm factories; official Internals runner vs direct lifecycle adapter; ToSampool Canvas source; 4 warmup + 24 samples; synchronous/await wall time, not GPU timer query",
+  "errors": [],
+  "schemas": {
+    "brightness": {
+      "backend": "2d",
+      "type": "dev.remotion.effects.brightness",
+      "schema": {
+        "disabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disabled"
+        },
+        "amount": {
+          "type": "number",
+          "min": -1,
+          "max": 1,
+          "step": 0.01,
+          "default": 0,
+          "description": "Amount",
+          "hiddenFromList": false
+        }
+      }
+    },
+    "blur": {
+      "backend": "webgl2",
+      "type": "dev.remotion.effects.blur",
+      "schema": {
+        "disabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disabled"
+        },
+        "radius": {
+          "type": "number",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "default": 40,
+          "description": "Radius",
+          "hiddenFromList": false
+        },
+        "horizontal": {
+          "type": "boolean",
+          "default": true,
+          "description": "Horizontal"
+        },
+        "vertical": {
+          "type": "boolean",
+          "default": true,
+          "description": "Vertical"
+        }
+      }
+    },
+    "wave": {
+      "backend": "webgl2",
+      "type": "dev.remotion.effects.wave",
+      "schema": {
+        "disabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disabled"
+        },
+        "phase": {
+          "type": "number",
+          "default": 0,
+          "description": "Phase",
+          "hiddenFromList": false
+        },
+        "direction": {
+          "type": "enum",
+          "variants": {
+            "horizontal": {},
+            "vertical": {}
+          },
+          "default": "horizontal",
+          "description": "Direction"
+        },
+        "amplitude": {
+          "type": "number",
+          "min": 0,
+          "max": 500,
+          "step": 1,
+          "default": 60,
+          "description": "Amplitude",
+          "hiddenFromList": false
+        },
+        "wavelength": {
+          "type": "number",
+          "min": 1,
+          "max": 2000,
+          "step": 1,
+          "default": 240,
+          "description": "Wavelength",
+          "hiddenFromList": false
+        }
+      }
+    }
+  },
+  "visual": [
+    {
+      "kind": "brightness",
+      "preMax": 0,
+      "alphaMax": 0,
+      "sourceDelta": {
+        "preMax": 51,
+        "alphaMax": 0
+      },
+      "hash": 1219049004,
+      "backends": [
+        "2d"
+      ]
+    },
+    {
+      "kind": "blur",
+      "preMax": 0,
+      "alphaMax": 0,
+      "sourceDelta": {
+        "preMax": 105,
+        "alphaMax": 81
+      },
+      "hash": 470472139,
+      "backends": [
+        "webgl2"
+      ]
+    },
+    {
+      "kind": "wave",
+      "preMax": 0,
+      "alphaMax": 0,
+      "sourceDelta": {
+        "preMax": 198,
+        "alphaMax": 140
+      },
+      "hash": 3141509028,
+      "backends": [
+        "webgl2"
+      ]
+    },
+    {
+      "kind": "vertical",
+      "preMax": 0,
+      "alphaMax": 0,
+      "sourceDelta": {
+        "preMax": 198,
+        "alphaMax": 140
+      },
+      "hash": 2118952128,
+      "backends": [
+        "webgl2"
+      ]
+    },
+    {
+      "kind": "chain",
+      "preMax": 0,
+      "alphaMax": 0,
+      "sourceDelta": {
+        "preMax": 198,
+        "alphaMax": 140
+      },
+      "hash": 1124338016,
+      "backends": [
+        "2d",
+        "webgl2",
+        "webgl2"
+      ]
+    },
+    {
+      "kind": "mixed",
+      "preMax": 0,
+      "alphaMax": 0,
+      "sourceDelta": {
+        "preMax": 198,
+        "alphaMax": 140
+      },
+      "hash": 1901519710,
+      "backends": [
+        "webgl2",
+        "2d",
+        "webgl2"
+      ]
+    },
+    {
+      "kind": "identity",
+      "preMax": 0,
+      "alphaMax": 0,
+      "sourceDelta": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "hash": 2081581818,
+      "backends": [
+        "2d",
+        "webgl2",
+        "webgl2"
+      ]
+    },
+    {
+      "kind": "disabled",
+      "preMax": 0,
+      "alphaMax": 0,
+      "sourceDelta": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "hash": 2081581818,
+      "backends": [
+        "webgl2",
+        "webgl2"
+      ]
+    }
+  ],
+  "seek": {
+    "a": 1567075084,
+    "b": 4244846579,
+    "again": 1567075084
+  },
+  "invalid": [
+    "TypeError: \"amount\" must be <= 1, but got 2",
+    "TypeError: \"wavelength\" must be > 0, but got 0"
+  ],
+  "failure": "Error: Failed to acquire WebGL2 context for canvas effect. Pass --gl=angle when using the CLI, set chromiumOptions: { gl: \"angle\" } when using SSR APIs, or set \"OpenGL render backend\" to \"angle\" in the Advanced section when rendering in the Studio. See https://remotion.dev/docs/troubleshooting/webgl2-context",
+  "rows": [
+    {
+      "w": 640,
+      "h": 360,
+      "kind": "brightness",
+      "mode": "official",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 9,
+      "p95": 11.100000023841858,
+      "p50": 10.899999976158142,
+      "sourceUploads": 0,
+      "draws": 0
+    },
+    {
+      "w": 640,
+      "h": 360,
+      "kind": "brightness",
+      "mode": "direct",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 8.599999964237213,
+      "p95": 11.5,
+      "p50": 10.800000011920929,
+      "sourceUploads": 0,
+      "draws": 0
+    },
+    {
+      "w": 640,
+      "h": 360,
+      "kind": "blur",
+      "mode": "official",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 19.700000047683716,
+      "p95": 0.30000001192092896,
+      "p50": 0.19999998807907104,
+      "sourceUploads": 1,
+      "draws": 2
+    },
+    {
+      "w": 640,
+      "h": 360,
+      "kind": "blur",
+      "mode": "direct",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 20.100000023841858,
+      "p95": 0.30000001192092896,
+      "p50": 0.19999998807907104,
+      "sourceUploads": 1,
+      "draws": 2
+    },
+    {
+      "w": 640,
+      "h": 360,
+      "kind": "wave",
+      "mode": "official",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 55.5,
+      "p95": 0.40000003576278687,
+      "p50": 0.19999998807907104,
+      "sourceUploads": 1,
+      "draws": 1
+    },
+    {
+      "w": 640,
+      "h": 360,
+      "kind": "wave",
+      "mode": "direct",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 44.40000003576279,
+      "p95": 0.30000001192092896,
+      "p50": 0.19999998807907104,
+      "sourceUploads": 1,
+      "draws": 1
+    },
+    {
+      "w": 640,
+      "h": 360,
+      "kind": "chain",
+      "mode": "official",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 230.39999997615814,
+      "p95": 13.5,
+      "p50": 12.900000035762787,
+      "sourceUploads": 2,
+      "draws": 3
+    },
+    {
+      "w": 640,
+      "h": 360,
+      "kind": "chain",
+      "mode": "direct",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 210,
+      "p95": 13.900000035762787,
+      "p50": 12.899999976158142,
+      "sourceUploads": 2,
+      "draws": 3
+    },
+    {
+      "w": 640,
+      "h": 360,
+      "kind": "mixed",
+      "mode": "official",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 204.89999997615814,
+      "p95": 17.80000001192093,
+      "p50": 14.699999988079071,
+      "sourceUploads": 2,
+      "draws": 3
+    },
+    {
+      "w": 640,
+      "h": 360,
+      "kind": "mixed",
+      "mode": "direct",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 219.5,
+      "p95": 16,
+      "p50": 15.100000023841858,
+      "sourceUploads": 2,
+      "draws": 3
+    },
+    {
+      "w": 1280,
+      "h": 720,
+      "kind": "brightness",
+      "mode": "official",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 22.30000001192093,
+      "p95": 19.80000001192093,
+      "p50": 18.599999964237213,
+      "sourceUploads": 0,
+      "draws": 0
+    },
+    {
+      "w": 1280,
+      "h": 720,
+      "kind": "brightness",
+      "mode": "direct",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 20.80000001192093,
+      "p95": 19.80000001192093,
+      "p50": 18.400000035762787,
+      "sourceUploads": 0,
+      "draws": 0
+    },
+    {
+      "w": 1280,
+      "h": 720,
+      "kind": "blur",
+      "mode": "official",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 180.19999998807907,
+      "p95": 8.400000035762787,
+      "p50": 7.300000011920929,
+      "sourceUploads": 1,
+      "draws": 2
+    },
+    {
+      "w": 1280,
+      "h": 720,
+      "kind": "blur",
+      "mode": "direct",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 196.0999999642372,
+      "p95": 8.400000035762787,
+      "p50": 7.800000011920929,
+      "sourceUploads": 1,
+      "draws": 2
+    },
+    {
+      "w": 1280,
+      "h": 720,
+      "kind": "wave",
+      "mode": "official",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 40,
+      "p95": 8.699999988079071,
+      "p50": 8,
+      "sourceUploads": 1,
+      "draws": 1
+    },
+    {
+      "w": 1280,
+      "h": 720,
+      "kind": "wave",
+      "mode": "direct",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 35.19999998807907,
+      "p95": 8.100000023841858,
+      "p50": 7.599999964237213,
+      "sourceUploads": 1,
+      "draws": 1
+    },
+    {
+      "w": 1280,
+      "h": 720,
+      "kind": "chain",
+      "mode": "official",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 240.60000002384186,
+      "p95": 28.30000001192093,
+      "p50": 25,
+      "sourceUploads": 2,
+      "draws": 3
+    },
+    {
+      "w": 1280,
+      "h": 720,
+      "kind": "chain",
+      "mode": "direct",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 239,
+      "p95": 26.80000001192093,
+      "p50": 24,
+      "sourceUploads": 2,
+      "draws": 3
+    },
+    {
+      "w": 1280,
+      "h": 720,
+      "kind": "mixed",
+      "mode": "official",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 252.39999997615814,
+      "p95": 56.90000003576279,
+      "p50": 54.19999998807907,
+      "sourceUploads": 2,
+      "draws": 3
+    },
+    {
+      "w": 1280,
+      "h": 720,
+      "kind": "mixed",
+      "mode": "direct",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 247.5,
+      "p95": 60,
+      "p50": 55.90000003576279,
+      "sourceUploads": 2,
+      "draws": 3
+    },
+    {
+      "w": 1280,
+      "h": 720,
+      "kind": "wave",
+      "mode": "official",
+      "motion": "changing-parameters",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 30.69999998807907,
+      "p95": 7.100000023841858,
+      "p50": 6.700000047683716,
+      "sourceUploads": 1
+    },
+    {
+      "w": 1280,
+      "h": 720,
+      "kind": "chain",
+      "mode": "official",
+      "motion": "changing-parameters",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 195.89999997615814,
+      "p95": 23.5,
+      "p50": 22.399999976158142,
+      "sourceUploads": 2
+    },
+    {
+      "w": 1280,
+      "h": 720,
+      "kind": "mixed",
+      "mode": "official",
+      "motion": "changing-parameters",
+      "samples": 24,
+      "warmup": 4,
+      "initial": 91.60000002384186,
+      "p95": 56,
+      "p50": 53.19999998807907,
+      "sourceUploads": 2
+    }
+  ],
+  "liveTextures": 0,
+  "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "contextsCreated": 44,
+  "uiLivePreview": true
+}

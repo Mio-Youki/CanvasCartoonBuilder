@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+import vm from 'node:vm';
+const sandbox={};new vm.Script(readFileSync(resolve(import.meta.dirname,'../home-scene-vnext.js'),'utf8')).runInNewContext(sandbox);
+const api=sandbox.ToSampoolRuntimeVNext.modules,{pathInstances:instances,pathExtensions:extensions,pathGeometry:geometry}=api;
+const owner={id:'owner',type:'vector',x:40,y:80,w:100,h:20,parts:[{id:'path',type:'line',x:0,y:0,x2:100,y2:0,stroke:'#fff',strokeWidth:1,extensions:{elements:{enabled:true,sourceId:'source',count:3}}}]},source={id:'source',type:'rect',x:220,y:30,w:12,h:8,fill:'#ff0000'},
+  scene=api.scene.normalize({format:'tosampool-scene/v4',width:320,height:180,loop:4,entities:[owner,source]});
+const frame=api.frame.create(scene,0),part=scene.entities[0].parts[0],g=geometry.full(part),context={scene,frame,ownerId:'owner'},placements=extensions.build(part,g).instances;
+assert.equal(placements.length,3);assert.deepEqual(Array.from(placements,p=>Array.from(p.point)),[[0,0],[50,0],[100,0]]);
+const box=instances.bounds(part,g,context),sourcePlan=instances.plan(scene,frame,'owner','source');
+assert.deepEqual(JSON.parse(JSON.stringify(box)),{x:sourcePlan.bounds.x-sourcePlan.anchor[0],y:sourcePlan.bounds.y-sourcePlan.anchor[1],w:100+sourcePlan.bounds.w,h:sourcePlan.bounds.h});
+assert.ok(instances.contains(part,g,context,50,3));assert.ok(!instances.contains(part,g,context,30,3));
+assert.equal(instances.canReference(scene,'owner','owner').ok,false);assert.equal(instances.canReference(scene,'owner','missing').ok,false);assert.ok(instances.canReference(scene,'owner','source').ok);
+const cyclic=JSON.parse(JSON.stringify(scene));cyclic.entities[1].extensions={elements:{enabled:true,sourceId:'owner'}};assert.equal(instances.canReference(cyclic,'owner','source').ok,false);
+const group=JSON.parse(JSON.stringify(scene));group.entities.push({id:'g',type:'group',x:0,y:0,w:100,h:100,alpha:1});group.entities[0].parentId='g';assert.equal(instances.canReference(group,'owner','g').ok,false);
+assert.equal(instances.choices(group,'source').some(e=>e.id==='owner'),false,'组内元素不得绕过组引用');
+const hidden=JSON.parse(JSON.stringify(scene));hidden.entities[0].parts[0].extensions.elements.keepSource=false;const sourceSaved=JSON.stringify(hidden.entities[1]);assert.ok(instances.hiddenSources(hidden).has('source'));assert.equal(JSON.stringify(hidden.entities[1]),sourceSaved,'保留源对象关闭不应修改hidden');
+const moving=api.scene.normalize({...scene,entities:[owner,{...source,anim:{bob:{amount:10,angle:0,period:2,curve:'linear'}}}]});
+const a=instances.plan(moving,api.frame.create(moving,0),'owner','source'),b=instances.plan(moving,api.frame.create(moving,.5),'owner','source');
+assert.notEqual(a.bounds.x,b.bounds.x);assert.deepEqual(Array.from(a.anchor),Array.from(b.anchor),'动画位移不得被锚点抵消');
+const shifted=api.scene.normalize({...scene,entities:[owner,{...source,x:420,y:70}]});
+const shiftedBox=instances.bounds(shifted.entities[0].parts[0],geometry.full(shifted.entities[0].parts[0]),{scene:shifted,frame:api.frame.create(shifted,0),ownerId:'owner'});
+assert.deepEqual(JSON.parse(JSON.stringify(shiftedBox)),JSON.parse(JSON.stringify(box)),'静态世界位置不应叠加进排布');
+assert.equal(extensions.normalize({...part,extensions:{elements:{enabled:true,count:100000}}}).elements.count,extensions.limits.instances);
+console.log('✓ 元素排布合同：等弧长／原位置消除／动态保留／边界命中／引用循环／组来源／无破坏隐藏／实例预算通过');

@@ -1,0 +1,85 @@
+/* Shared interaction language. Visual directions may restyle surfaces, not values. */
+.specimen[data-stage=compose]{--accent:var(--stage-compose,#70d5cc);--accent-ink:var(--stage-compose-ink,#102323)}
+.specimen[data-stage=decor]{--accent:var(--stage-decor,#e87569);--accent-ink:var(--stage-decor-ink,#102323)}
+.specimen[data-stage=sample]{--accent:var(--stage-sample,#efc266);--accent-ink:var(--stage-sample-ink,#19231f)}
+.specimen .group-head,.specimen .pair label{color:var(--accent)}
+.specimen .data-line strong{color:var(--accent)}
+.num{text-align:left;font-variant-numeric:tabular-nums}
+.unit-input .num{padding-right:7px}
+.percent-input{position:relative;display:block;min-width:0;flex:1}
+.percent-input .num{width:100%;padding-right:21px;text-align:left}
+.percent-sign{position:absolute;right:7px;top:50%;transform:translateY(-50%);color:var(--accent);font:700 12px Consolas,monospace;pointer-events:none}
+.color-row .percent-input{width:52px;flex:none}
+.color-row .percent-input .num{width:100%;padding-right:17px}
+.range-control{width:100%;min-width:0}
+.range-ends{display:flex;justify-content:space-between;margin:0 74px 3px 1px;color:var(--muted);font:11px Consolas,monospace;font-variant-numeric:tabular-nums}
+.range-line{width:100%}
+.range-line .percent-input{width:69px;flex:none}
+.range-line .num{width:100%}
+.specimen input[type=range]{accent-color:var(--accent)}
+.specimen input[type=range]::-webkit-slider-runnable-track{background:repeating-linear-gradient(90deg,transparent 0 5px,var(--screen) 5px 7px),linear-gradient(90deg,var(--accent) 0 var(--fill,38%),#455255 var(--fill,38%) 100%)}
+.specimen input[type=range]::-webkit-slider-thumb{background:var(--accent);border-color:var(--accent-ink)}
+.specimen input[type=range]::-moz-range-track{background:repeating-linear-gradient(90deg,transparent 0 5px,var(--screen) 5px 7px),linear-gradient(90deg,var(--accent) 0 var(--fill,38%),#455255 var(--fill,38%) 100%)}
+.specimen input[type=range]::-moz-range-thumb{background:var(--accent);border-color:var(--accent-ink)}
+.dial-ring{position:relative;display:grid;place-items:center;width:57px;height:57px;flex:none}
+.dial-ring .angle-dial{width:37px;height:37px}
+.dial-ring .angle-dial::after,.dial-ring .angle-dial::before{background:var(--accent)}
+.dial-tick{position:absolute;inset:0;pointer-events:none;transform:rotate(var(--tick-angle))}
+.dial-tick::before{content:"";position:absolute;left:calc(50% - .5px);top:1px;width:1px;height:6px;background:var(--accent);opacity:.9}
+.select-shell{position:relative;display:block;min-width:0;width:100%}
+.select-shell select{display:block;width:100%;appearance:none;text-align:left;padding-left:25px;padding-right:7px}
+.select-arrow{position:absolute;z-index:1;left:8px;top:50%;transform:translateY(-50%);font:700 14px Consolas,monospace;color:var(--accent);pointer-events:none}
+.select-shell.open .select-arrow{font-size:17px;top:42%}
+.specimen .segments button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.toggle-row{justify-content:flex-start;gap:12px}
+.toggle-row .switch{order:0;position:relative;flex:none}
+.toggle-row .toggle-name{order:1}
+.toggle-row.enabled .toggle-name{color:var(--accent);font-weight:700}
+.toggle-row .switch[aria-checked=true]{background:color-mix(in srgb,var(--accent) 37%,var(--screen));border-color:var(--accent)}
+.toggle-row .switch[aria-checked=true] i{background:var(--accent)}
+.toggle-row .switch[aria-checked=true]::before{content:"";position:absolute;left:7px;top:6px;width:6px;height:6px;border-right:2px solid var(--accent);border-bottom:2px solid var(--accent);transform:rotate(45deg)}
+.ref-thumb{position:relative;width:20px;height:20px;flex:none;border:1px solid currentColor;background:transparent!important;color:var(--accent);font-size:0!important}
+.ref-thumb::before{content:"";position:absolute;inset:4px;background:currentColor}
+.ref-menu button[data-ref="前景松林"] .ref-thumb{color:var(--stage-decor,#e87569)}
+.ref-menu button[data-ref="玻璃罩组"] .ref-thumb{color:var(--stage-sample,#efc266)}
+.field-vertical{display:flex;flex-direction:column;align-items:stretch!important;gap:6px}
+.field-vertical>span:first-child{padding-top:0!important}
+.field-vertical textarea{width:100%;min-height:86px}
+.pattern-preview{margin-top:0;margin-bottom:6px}
+.pattern-controls{display:grid;grid-template-columns:minmax(0,1fr);gap:1px;margin-bottom:7px}
+.pattern-controls .field{grid-template-columns:85px minmax(0,1fr)}
+.pattern-color{position:static;right:auto;bottom:auto;min-height:29px;padding:3px 5px;width:100%;justify-content:flex-start;background:transparent}
+.pattern-color-field .pattern-color .swatch{width:25px;height:21px}
+.pattern-color-field .pattern-color{border-color:var(--screen-line)}
+.specimen .icon-key[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+
+/* Three genuinely different control grammars over the same value contract. */
+.print-manual .specimen .num:hover,.print-manual .specimen .num:focus{border-color:transparent;border-bottom:2px solid var(--accent);background:#fff8e6}
+.print-manual .specimen .select-shell select{border:0;border-bottom:2px solid #465e5b;background:transparent;color:#183338}
+.print-manual .specimen .select-arrow{left:3px}
+.print-manual .specimen .segments{gap:0;border:1px solid #314f50}
+.print-manual .specimen .segments button{border:0;border-right:1px solid #314f50;background:transparent;color:#1b3437}
+.print-manual .specimen .segments button:last-child{border-right:0}
+.print-manual .specimen .segments button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.print-manual .specimen .switch{border:1px solid #375b59;background:#d0d4c4}
+.print-manual .specimen .switch i{background:#4b6966}
+.print-manual .specimen .pattern-color{background:transparent;color:#183338}
+
+.overprint-poster .specimen .range-ends{font-weight:700;color:var(--accent)}
+.overprint-poster .specimen .percent-input{background:#263439;box-shadow:inset 3px 0 var(--accent)}
+.overprint-poster .specimen .select-shell select{border:2px solid #8a9e96;background:#223137;font-weight:700}
+.overprint-poster .specimen .select-arrow{left:7px;font-size:17px}
+.overprint-poster .specimen .segments button{border-width:2px;font-weight:800}
+.overprint-poster .specimen .switch{border:2px solid var(--accent);background:#28383b}
+.overprint-poster .specimen .switch[aria-checked=true]::before{font-weight:900}
+.overprint-poster .specimen .angle-dial{box-shadow:inset 0 0 0 4px #344448,0 0 0 2px var(--accent)}
+.overprint-poster .specimen .pattern-color{border-width:2px}
+
+.signal-instrument .specimen .num:hover,.signal-instrument .specimen .num:focus{border-color:var(--accent);background:#163b40}
+.signal-instrument .specimen .select-shell select{border:0;border-bottom:1px dashed var(--accent);background:transparent;color:#e7edcd}
+.signal-instrument .specimen .select-arrow{left:1px}
+.signal-instrument .specimen .segments{gap:3px}
+.signal-instrument .specimen .segments button{border:1px dashed #608f8d;background:#0b242a}
+.signal-instrument .specimen .segments button[aria-pressed=true]{border-style:solid}
+.signal-instrument .specimen .switch{border:1px dashed var(--accent);background:#103238}
+.signal-instrument .specimen .pattern-color{border-style:dashed}

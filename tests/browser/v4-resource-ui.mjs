@@ -1,0 +1,122 @@
+import assert from 'node:assert/strict';
+import {existsSync,mkdirSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {chromium} from 'playwright-core';
+const root=resolve(import.meta.dirname,'../..');
+const edge=['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(existsSync);
+const browser=await chromium.launch({executablePath:edge,headless:true});
+const evidence=resolve(root,'docs/design/evidence/resource-r2-2026-10-18');
+try{
+  const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
+  page.on('pageerror',e=>errors.push(String(e)));
+  await page.goto(pathToFileURL(resolve(root,'img2asset-v4-classic.html')).href);
+  await page.waitForFunction(()=>window.classicV4Resources);
+  const database='tosampool-resource-ui-test-'+Date.now();
+  await page.evaluate(async database=>{
+    if(state.playing)togglePlay();await classicV4Resources.stop();
+    const scene=EditorVNextScene.blank({width:480,height:300});
+    const svg='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" fill="#e34455"/></svg>');
+    scene.assets={photo:{name:'红色素材',locator:svg,width:16,height:16}};
+    scene.modules={rain:{manifest:{format:'tosampool-scene-module/v1',id:'rain',version:1,title:'雨构件',parameters:[],assets:[]},locator:'data:text/javascript,'+encodeURIComponent('window.RESOURCE_UI_EXECUTED=true;')}};
+    scene.entities=[{id:'bracket',type:'vector',x:40,y:40,w:120,h:80,parts:[{id:'p',type:'custom',x:0,y:0,w:120,h:80,recipe:{id:'brackets',version:1,params:{armX:27,shape:'square',layout:'corners'}},stroke:'#ffbb33',strokeWidth:5,strokeAlpha:.8}]}];
+    ToSampoolV4Workspace.replace(scene);classicV4Changes.clear();classicV4View.select('bracket');
+    window.RESOURCE_UI_EXPORTS=[];
+    window.classicV4Resources=EditorClassicV4ResourceController.create({workspace:ToSampoolV4Workspace,changes:classicV4Changes,view:classicV4View,patterns:classicV4Patterns,drawing:classicV4Drawing,inspector:classicV4Inspector,library:EditorV4ResourceLibrary.create({name:database}),saveFile:async value=>{RESOURCE_UI_EXPORTS.push(value);return{saved:true};}});
+  },database);
+  const tab=page.locator('[data-library-tab="collection"]'),shelf=page.locator('#v4-resource-library');
+  const row=(kind,id)=>shelf.locator('[data-resource-kind="'+kind+'"][data-resource-id="'+id+'"]');
+  const saved=()=>shelf.locator('[data-resource-kind="saved"]');
+  await tab.click();await page.waitForFunction(()=>!classicV4Resources.busy);
+  await shelf.locator('[data-resource-action="collect-pattern"]').click();
+  await page.waitForFunction(()=>!classicV4Resources.busy&&ToSampoolV4Workspace.current().patternResources);
+  assert.equal(await saved().count(),1);
+  await shelf.locator('[data-resource-action="collect-pattern"]').click();
+  await page.waitForFunction(()=>!classicV4Resources.busy);
+  assert.equal(await saved().count(),1,'重复收藏相同图样参数不应增加副本');
+  assert.equal(await page.evaluate(()=>Object.keys(ToSampoolV4Workspace.current().patternResources).length),1);
+  await row('asset','photo').locator('[data-resource-action="collect"]').click();
+  await page.waitForFunction(()=>!classicV4Resources.busy&&document.querySelectorAll('[data-resource-kind="saved"]').length===2);
+  await row('module','rain').locator('[data-resource-action="collect"]').click();
+  await page.waitForFunction(()=>!classicV4Resources.busy&&document.querySelectorAll('[data-resource-kind="saved"]').length===3);
+  assert.equal(await page.evaluate(()=>!!window.RESOURCE_UI_EXECUTED),false);
+  await page.waitForFunction(()=>document.querySelectorAll('.v4-resource-preview').length>=2);
+  const alpha=await shelf.locator('canvas').evaluateAll(cs=>cs.map(c=>c.getContext('2d').getImageData(0,0,c.width,c.height).data.some((v,i)=>i%4===3&&v>0)));
+  assert.ok(alpha.every(Boolean));
+  if(process.argv.includes('--capture')){mkdirSync(evidence,{recursive:true});await page.screenshot({path:resolve(evidence,'collection.png')});}
+  const hashes=await saved().evaluateAll(items=>Object.fromEntries(items.map(el=>[el.querySelector('.v4-resource-name').textContent,el.dataset.resourceId])));
+  const photoHash=hashes.photo||hashes['红色素材'];assert.ok(photoHash);
+  // Explicit migration uses the same DB as the new Shared shelf, without touching Scene.
+  const migrationBefore=await page.evaluate(()=>EditorVNextScene.serialize(ToSampoolV4Workspace.current()));
+  assert.equal(await row('saved',hashes['雨构件']).locator('[data-resource-action="migrate-materials"]').count(),0);
+  assert.equal(await row('saved',hashes['括号／角标']).locator('[data-resource-action="migrate-materials"]').count(),0);
+  await row('saved',photoHash).locator('[data-resource-action="migrate-materials"]').click();
+  await page.waitForFunction(()=>!classicV4Resources.busy&&/迁入共享 1 项/.test(document.querySelector('.v4-resource-message').textContent));
+  assert.equal(await page.evaluate(()=>EditorVNextScene.serialize(ToSampoolV4Workspace.current())),migrationBefore);
+  const migration=await page.evaluate(async database=>{
+    const library=EditorV4ResourceLibrary.create({name:database}),records=await library.publications(),record=records[0];await library.close();
+    const reopened=EditorV4ResourceLibrary.create({name:database}),bundle=await reopened.sharedBundle(record.id);await reopened.close();return{id:record.id,hash:bundle.bundle.hash};
+  },database);assert.ok(migration.hash);
+  await row('saved',photoHash).locator('[data-resource-action="migrate-materials"]').click();
+  await page.waitForFunction(()=>!classicV4Resources.busy&&/已迁入 1 项/.test(document.querySelector('.v4-resource-message').textContent));
+  const removedMigration=await page.evaluate(async({database,id,hash})=>{
+    const library=EditorV4ResourceLibrary.create({name:database});await library.unpublish(id,{expectedRevision:1});await library.close();
+    const reopened=EditorV4ResourceLibrary.create({name:database});const result=await reopened.migrateMaterials(hash),count=(await reopened.publications()).length;await reopened.close();return{removed:result.removed.length,count};
+  },{database,id:migration.id,hash:photoHash});assert.deepEqual(removedMigration,{removed:1,count:0});
+  await row('saved',photoHash).locator('[data-resource-action="take"]').click();
+  await page.waitForFunction(()=>!classicV4Resources.busy&&ToSampoolV4Workspace.current().assets['photo-2']);
+  await page.evaluate(()=>classicV4Changes.undo());assert.equal(await page.evaluate(()=>!!ToSampoolV4Workspace.current().assets['photo-2']),false);
+  await page.evaluate(()=>classicV4Changes.redo());assert.equal(await page.evaluate(()=>!!ToSampoolV4Workspace.current().assets['photo-2']),true);
+  // A new document starts empty; shared collection never automatically adds its resources.
+  await page.evaluate(()=>{ToSampoolV4Workspace.createBlank({width:480,height:300});classicV4View.select(null);classicV4Changes.clear();});
+  assert.equal(await shelf.locator('[data-resource-kind="asset"]').count(),0);assert.equal(await saved().count(),3);
+  page.once('dialog',d=>d.accept());await row('saved',hashes['雨构件']).locator('[data-resource-action="take"]').click();
+  await page.waitForFunction(()=>!classicV4Resources.busy&&ToSampoolV4Workspace.current().modules.rain);
+  assert.equal(await page.evaluate(()=>!!window.RESOURCE_UI_EXECUTED),false,'取用模块不得执行代码');
+  await page.evaluate(()=>classicV4Changes.undo());assert.equal(await page.evaluate(()=>!!ToSampoolV4Workspace.current().modules?.rain),false);
+  const patternHash=hashes['括号／角标'];assert.ok(patternHash);
+  await row('saved',patternHash).locator('[data-resource-action="take"]').click();
+  await page.waitForFunction(()=>!classicV4Resources.busy&&ToSampoolV4Workspace.current().patternResources);
+  const presetId=await page.evaluate(()=>Object.keys(ToSampoolV4Workspace.current().patternResources)[0]);
+  await row('pattern',presetId).locator('[data-resource-action="create"]').click();
+  const canvas=page.locator('#'+await page.evaluate(()=>classicV4View.canvas.id)),box=await canvas.boundingBox();
+  const a={x:box.x+70/480*box.width,y:box.y+60/300*box.height},b={x:box.x+250/480*box.width,y:box.y+190/300*box.height};
+  await page.mouse.move(a.x,a.y);await page.mouse.down();await page.mouse.move(b.x,b.y,{steps:4});await page.mouse.up();
+  const part=await page.evaluate(()=>ToSampoolV4Workspace.current().entities[0].parts[0]);
+  assert.equal(part.recipe.params.armX,27);assert.equal(part.strokeWidth,5);assert.equal(part.strokeAlpha,.8);
+  await page.evaluate(()=>classicV4Changes.undo());assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities.length),0);
+  assert.equal(await page.evaluate(()=>!!ToSampoolV4Workspace.current().patternResources),true);
+  await tab.click();await row('saved',photoHash).locator('[data-resource-action="export"]').click();
+  await page.waitForFunction(()=>!classicV4Resources.busy&&RESOURCE_UI_EXPORTS.length===1);
+  const exported=await page.evaluate(()=>RESOURCE_UI_EXPORTS[0]);
+  await shelf.locator('input[type="file"]').setInputFiles({name:exported.name,mimeType:'application/json',buffer:Buffer.from(exported.data)});
+  await page.waitForFunction(()=>!classicV4Resources.busy&&ToSampoolV4Workspace.current().assets.photo);
+  const before=await page.evaluate(()=>EditorVNextScene.serialize(ToSampoolV4Workspace.current()));
+  await row('saved',photoHash).locator('[data-resource-action="remove"]').click();
+  await page.waitForFunction(()=>!classicV4Resources.busy&&document.querySelectorAll('[data-resource-kind="saved"]').length===2);
+  assert.equal(await page.evaluate(()=>EditorVNextScene.serialize(ToSampoolV4Workspace.current())),before);
+  await shelf.locator('[data-resource-action="restore"]').click();
+  await page.waitForFunction(()=>!classicV4Resources.busy&&document.querySelectorAll('[data-resource-kind="saved"]').length===3);
+  // A missing image is repaired by an explicit package import with matching identity.
+  await page.evaluate(()=>classicV4Changes.run('缺失测试',s=>{s.entities=[{id:'missing',type:'image',assetId:'photo',x:0,y:0,w:16,h:16}];delete s.assets.photo;}));
+  assert.match(await shelf.innerText(),/素材：photo · 缺失/);
+  await shelf.locator('input[type="file"]').setInputFiles({name:exported.name,mimeType:'application/json',buffer:Buffer.from(exported.data)});
+  await page.waitForFunction(()=>!classicV4Resources.busy&&ToSampoolV4Workspace.current().assets.photo);
+  assert.equal(await shelf.locator('.v4-resource-issue').count(),0);
+  // Bad packages keep the Scene and show a recoverable, local error.
+  const baseline=await page.evaluate(()=>EditorVNextScene.serialize(ToSampoolV4Workspace.current()));
+  await shelf.locator('input[type="file"]').setInputFiles({name:'broken.json',mimeType:'application/json',buffer:Buffer.from('{}')});
+  await page.waitForFunction(()=>!classicV4Resources.busy&&document.querySelector('.v4-resource-message').getAttribute('role')==='alert');
+  assert.equal(await page.evaluate(()=>EditorVNextScene.serialize(ToSampoolV4Workspace.current())),baseline);
+  const stale=await page.evaluate(async({database,hash})=>{
+    await classicV4Resources.stop();const library=EditorV4ResourceLibrary.create({name:database});
+    let resume;const delayed={...library,get:async id=>{await new Promise(resolve=>resume=resolve);return library.get(id);}};
+    window.classicV4Resources=EditorClassicV4ResourceController.create({workspace:ToSampoolV4Workspace,changes:classicV4Changes,view:classicV4View,patterns:classicV4Patterns,drawing:classicV4Drawing,inspector:classicV4Inspector,library:delayed});
+    const taking=classicV4Resources.take(hash).then(()=>false,error=>/工程已变化/.test(error.message));
+    ToSampoolV4Workspace.createBlank();resume();const rejected=await taking;
+    const empty=Object.keys(ToSampoolV4Workspace.current().assets||{}).length===0;
+    await classicV4Resources.stop();await new Promise((resolve,reject)=>{const r=indexedDB.deleteDatabase(database);r.onsuccess=resolve;r.onerror=()=>reject(r.error);});
+    return rejected&&empty;
+  },{database,hash:photoHash});assert.equal(stale,true,'取用期间切工程不得污染新工程');
+  assert.deepEqual(errors,[]);console.log('✓ 资源R2界面：收藏／跨工程取用／图样参数绘制／单次撤销／导出导入／移除恢复／缺失重连／篡改失败／模块不执行');
+}finally{await browser.close();}

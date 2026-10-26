@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {webcrypto} from 'node:crypto';
+import vm from 'node:vm';
+const ctx=vm.createContext({TextEncoder,TextDecoder,Buffer,crypto:webcrypto});
+for(const file of ['home-scene-vnext.js','editor/effect-registry-vnext.js','editor/vnext-scene.js','editor/vnext-mask-state.js','editor/v4-element-references.js','editor/v4-element-presets.js','editor/v4-module-instances.js','editor/v4-resource-core.js','editor/v4-resource-library.js','editor/v4-material-sharing.js','editor/vnext-project-package.js'])new vm.Script(readFileSync(new URL('../'+file,import.meta.url),'utf8'),{filename:file}).runInContext(ctx);
+const core=ctx.EditorV4Resources,storage=ctx.EditorV4ResourceLibrary.memoryStorage(),library=ctx.EditorV4ResourceLibrary.create({storage}),plain=v=>JSON.parse(JSON.stringify(v));
+const scene=ctx.EditorVNextScene.blank();
+scene.assets={source:{name:'同名',locator:'data:text/plain,source',width:8,height:8},derived:{name:'同名',locator:'data:text/plain,derived',width:8,height:8,sourceAssetId:'source'},sequence:{frames:[{locator:'data:text/plain,one'},{locator:'data:text/plain,two'}],width:8,height:8}};
+scene.entities=[{id:'image',name:'同名',type:'image',assetId:'derived',x:0,y:0,w:8,h:8}];const element=ctx.EditorV4ElementPresets.add(scene,'image');
+const module=JSON.parse(readFileSync(new URL('../examples/resources/rain-curtain.tosampool-resource.json',import.meta.url),'utf8')).entries.find(e=>e.kind==='module');scene.modules={[module.id]:module.payload.descriptor};
+core.addPattern(scene,{id:'bracket',engineId:'brackets',params:{shape:'square'},name:'括号'});
+const mixed=await core.capture(scene,[{kind:'asset',id:'derived'},{kind:'asset',id:'sequence'},{kind:'element',id:element},{kind:'module',id:module.id},{kind:'pattern',id:'bracket'}]);
+const before=JSON.stringify(scene),hash=await library.put(mixed),first=await library.migrateMaterials(hash);
+assert.equal(first.created.length,3);assert.equal(first.retained.length,2);assert.equal((await library.list()).length,1);assert.equal(JSON.stringify(scene),before);
+for(const publication of first.created){const {bundle}=await library.sharedBundle(publication.id);assert.equal(bundle.roots.length,1);const expected=bundle.roots[0].startsWith('element:')?3:publication.kind==='sequence'?1:2;assert.equal(bundle.entries.length,expected,'每根仅携带自身闭包，不带其他根');await core.verify(bundle);}
+const repeat=await library.migrateMaterials(hash);assert.equal(repeat.created.length,0);assert.equal(repeat.existing.length,3);
+const image=first.created.find(r=>r.kind==='image'),elementRecord=first.created.find(r=>r.kind==='element');assert.ok(first.created.some(r=>r.name.endsWith('(2)')),'重名不覆盖');
+const changed=plain(scene);changed.assets.derived.locator='data:text/plain,new';const update=await core.capture(changed,[{kind:'asset',id:'derived'}]);await library.publish(update,{id:image.id,expectedRevision:1});
+await library.unpublish(elementRecord.id,{expectedRevision:1});const again=await library.migrateMaterials(hash);assert.equal(again.removed.length,1);assert.equal((await library.publication(image.id)).hash,update.hash,'迁入不覆盖后续发布修改');assert.equal(await library.publication(elementRecord.id),null,'移除后不复活');
+await library.remove(hash);await library.put(mixed);assert.equal((await library.migrateMaterials(hash)).removed.length,1,'旧包移除／恢复不清空迁入关系');
+const api=ctx.EditorV4MaterialSharing.create({library}),take=await api.take(ctx.EditorVNextScene.blank(),image.id);assert.equal(take.scene.assets[take.selection.id].locator,update.entries.find(r=>r.id==='derived').payload.asset.locator);
+const otherStorage=ctx.EditorV4ResourceLibrary.memoryStorage(),other=ctx.EditorV4ResourceLibrary.create({storage:otherStorage});await other.put(mixed);
+await assert.rejects(()=>other.migrateMaterials(hash,{guard:()=>{throw Error('工程已变化');}}),/工程已变化/);assert.equal((await other.publications()).length,0);assert.equal((await other.migrateMaterials(hash)).created.length,3,'失败不能留下半份迁入关系');
+const damaged=plain(mixed);damaged.entries[0].hash='sha256:bad';await otherStorage.put('bad',damaged);await assert.rejects(()=>other.migrateMaterials('bad'),/哈希/);assert.equal((await other.publications()).length,3);
+assert.equal(ctx.RESOURCE_EXECUTED,undefined);console.log('✓ RC3-c2a旧素材迁入：多根闭包／同名不覆盖／重复幂等／后续更新与移除不覆盖／原包保留／失败原子性／新共享取用');

@@ -34,12 +34,15 @@
       if (key==='assetId' && typeof value==='string') ids.add(value);
       if (Array.isArray(value)) { for (const item of value) visit(item,''); return; }
       for (const [childKey,child] of Object.entries(value)) {
-        if (childKey==='sourceAssetId') continue;
-        if (childKey==='assetId' && typeof child==='string') { ids.add(child); continue; }
+        if (['sourceAssetId','assets','runtimeAssets','modules','elementPresets','patternResources','patternDefinitions','resourceOrigins','resourcePins'].includes(childKey)) continue;
+        if (/assetid$/i.test(childKey) && typeof child==='string') { ids.add(child); continue; }
         visit(child,childKey);
       }
     }
-    visit(document,''); return ids;
+    visit(document,'');
+    const modules=new Set((document.entities||[]).filter(e=>e.type==='procedural').map(e=>e.moduleId));
+    for(const id of modules)for(const ref of document.modules?.[id]?.manifest?.assets||[]){const assetId=typeof ref==='string'?ref:ref?.id;if(assetId)ids.add(assetId);}
+    return ids;
   }
 
   async function resolve(document, options) {

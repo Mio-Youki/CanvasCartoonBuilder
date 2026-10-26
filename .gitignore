@@ -9,3 +9,12 @@ examples/*-test.html
 node_modules/
 src-tauri/target/
 src-tauri/gen/
+
+# 本机浏览器资料、截图与测试输出不属于产品基线。
+**/.edge*/
+**/.chrome*/
+tests/artifacts/
+docs/**/evidence/
+docs/**/*.png
+docs/**/*.jpg
+docs/**/*.webp

@@ -7,39 +7,51 @@
   const hash = (index, salt, seed) => api.modules.sampling.hash(index, salt, seed | 0, 0);
   const finite = (value, fallback) => Number.isFinite(+value) ? +value : fallback;
   const positive = (value, fallback) => Math.max(1, finite(value, fallback));
-  function rangeBounds(range, width, height) {
-    if (!range || !['rect','ellipse','poly'].includes(range.type)) return { x:0, y:0, w:width, h:height };
-    if (range.type === 'poly' && Array.isArray(range.points) && range.points.length >= 3) {
-      const xs=range.points.map(point=>finite(point[0],0)),ys=range.points.map(point=>finite(point[1],0));
-      return { x:Math.min(...xs), y:Math.min(...ys), w:positive(Math.max(...xs)-Math.min(...xs),1), h:positive(Math.max(...ys)-Math.min(...ys),1) };
+  const sessions=new WeakMap(),keyFrame=frame=>frame?._maskSourceFrame||frame;
+  function create(scene,surfaces,sourceSession){
+    const ownedSources=!sourceSession,maskSources=sourceSession||api.modules.maskSources.create(scene,surfaces),sampler=api.modules.maskSampler.create(scene,surfaces),schedules=new Map(),births=new Map(),layers=api.modules.layerFragments.create(scene,surfaces,maskSources);
+    const stream=api.modules.layerStream.create(scene,surfaces,maskSources,sampler);
+    function remember(key,value){births.set(key,value);while(births.size>8192)births.delete(births.keys().next().value);return value;}
+    function begin(frame,stats,options={}){const key=keyFrame(frame),previous=sessions.get(key);sessions.set(key,{evaluate:(emitter)=>evaluate(emitter,frame,stats,options),drawLayer:layers.draw,drawStream:stream.draw,display:(mask,emitter,current,drawStats)=>sampler.prepare(mask,emitter,current,drawStats,true)});return{end(){if(previous)sessions.set(key,previous);else sessions.delete(key);}};}
+    function evaluate(emitter,frame,stats,options){
+      let schedule=schedules.get(emitter.id);if(!schedule){schedule=api.modules.particleBirths.create(scene,emitter);schedules.set(emitter.id,schedule);}
+      const time=frame.time,frames=new Map(),at=t=>{if(!frames.has(t))frames.set(t,api.modules.frame.create(scene,t,{pixelDivMultiplier:1}));return frames.get(t);},list=[];
+      const events=schedule.candidates(time);if(emitter.particle.mode==='layer'&&emitter.particle.layerEmission==='continuous')stream.retain(emitter,events);
+      for(const event of events){
+        stats.particleBirthCandidates=(stats.particleBirthCandidates||0)+1;
+        const key=emitter.id+'|'+event.id+'|'+(options.maskSourceQuality||'configured');let record;
+        if(births.has(key)){record=births.get(key);stats.particleBirthHits=(stats.particleBirthHits||0)+1;}
+        else{
+          const birthFrame=at(event.birthTime),values=birthFrame.valuesFor(emitter),p=values.particle||emitter.particle||{},actual=api.modules.particleBirths.parameters(values);
+          record=null;
+          if(actual.count===event.count&&actual.life===event.life&&!values.parentHidden&&values.timelineVisible!==false){
+            if(emitter.particle.mode==='layer'&&emitter.particle.layerEmission==='continuous'){
+              const seed=Number.isFinite(+p.seed)?+p.seed:1,picked=stream.pick(emitter,event.birthTime,hash(event.slot,2,seed),hash(event.slot,3,seed),stats);
+              if(picked)record={...event,...picked,matrix:values.worldMatrix.slice(0,4),particle:p,seed};
+            }else{
+            let sourceContext=null,instances=null,range=null;const subStats={};
+            try{
+              if(p.emissionRange?.type==='element'){sourceContext=maskSources.begin(birthFrame,subStats,{...options,_maskSourceObjectSession:null});instances=api.modules.pathInstances.begin(scene,birthFrame,subStats,surfaces);}
+              range=sampler.prepare(p.emissionRange,emitter,birthFrame,stats);
+              const seed=Number.isFinite(+p.seed)?+p.seed:1,position=range.pick(hash(event.slot,2,seed),hash(event.slot,3,seed),hash(event.slot,7,seed),hash(event.slot,8,seed));
+              if(position)record={...event,position,matrix:values.worldMatrix.slice(0,4),particle:p,seed};
+            }finally{
+              range?.release();instances?.release();sourceContext?.end();
+              for(const field of ['maskSourceBuilds','maskSourceHits','maskSourceMs','maskSourcePixels','maskSourceDraws'])if(subStats[field])stats[field]=(stats[field]||0)+subStats[field];
+            }
+            }
+          }
+          remember(key,record);stats.particleBirthBuilds=(stats.particleBirthBuilds||0)+1;
+        }
+        if(!record)continue;
+        const age=time-record.birthTime,M=record.matrix,{dx,dy,scale,opacity,spin}=api.modules.particleBirths.motion(record.particle,record.slot,record.seed,age,record.life);
+        const x=record.position[0]+M[0]*dx+M[2]*dy,y=record.position[1]+M[1]*dx+M[3]*dy;
+        if(opacity>0&&age>=-1e-9&&age<record.life-1e-9)list.push({id:key,birthTime:record.birthTime,age,x,y,matrix:M,scale,opacity,spin,origin:record.position,sampleTime:record.sampleTime});
+        if(list.length>4096)throw Error('存活粒子超过4096预算，请减少数量／寿命时序重叠');
+      }
+      return list;
     }
-    return { x:finite(range.x,0), y:finite(range.y,0), w:positive(range.w,width), h:positive(range.h,height) };
-  }
-  function polygonContains(points, x, y) {
-    let inside=false;
-    for(let index=0,previous=points.length-1;index<points.length;previous=index++){
-      const a=points[index],b=points[previous],cross=(a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/Math.max(.000001,b[1]-a[1])+a[0];
-      if(cross)inside=!inside;
-    }
-    return inside;
-  }
-  function rangeContains(range, x, y, width, height) {
-    if (!range || !['rect','ellipse','poly'].includes(range.type)) return x>=0&&x<=width&&y>=0&&y<=height;
-    let contained=false;
-    if(range.type==='ellipse') { const b=rangeBounds(range,width,height),dx=(x-(b.x+b.w/2))/Math.max(.000001,b.w/2),dy=(y-(b.y+b.h/2))/Math.max(.000001,b.h/2);contained=dx*dx+dy*dy<=1; }
-    else if(range.type==='poly'&&Array.isArray(range.points)&&range.points.length>=3)contained=polygonContains(range.points,x,y);
-    else { const b=rangeBounds(range,width,height);contained=x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h; }
-    return range.invert ? !contained : contained;
-  }
-  function sampleRange(range, index, seed, width, height) {
-    const b=rangeBounds(range,width,height),raw=range||{type:'rect'}, attempts=raw.invert?12:10;
-    for(let attempt=0;attempt<attempts;attempt++){
-      const salt=attempt*17,ux=hash(index,2+salt,seed),uy=hash(index,3+salt,seed);let x,y;
-      if(raw.type==='ellipse'&&!raw.invert){const radius=Math.sqrt(ux),theta=uy*Math.PI*2;x=b.x+b.w/2+Math.cos(theta)*radius*b.w/2;y=b.y+b.h/2+Math.sin(theta)*radius*b.h/2;}
-      else { const base=raw.invert?{x:0,y:0,w:width,h:height}:b;x=base.x+ux*base.w;y=base.y+uy*base.h; }
-      if(rangeContains(raw,x,y,width,height))return {x,y};
-    }
-    return {x:b.x+b.w/2,y:b.y+b.h/2};
+    return Object.freeze({begin,evaluate,drawLayer:layers.draw,drawStream:stream.draw,display:(mask,emitter,frame,stats)=>sampler.prepare(mask,emitter,frame,stats,true),clear(){stream.clear();layers.clear();births.clear();schedules.clear();sampler.clear();if(ownedSources)maskSources.clear();}});
   }
   function sourceFor(scene, emitter) {
     const id = emitter.particle && emitter.particle.sourceId;
@@ -57,20 +69,27 @@
     if (emitter.hidden || frame.valuesFor(emitter).parentHidden || frame.valuesFor(emitter).timelineVisible === false) return;
     const values = frame.valuesFor(emitter), particle = values.particle || emitter.particle || {}, source = sourceFor(scene, Object.assign({}, emitter, { particle }));
     if (!source) throw new Error(`粒子发射器「${emitter.id}」找不到 sourceId`);
-    const rendered = sourceFrames(scene, source, particle, frame, stats, surfaces);
-    const count = clamp(Math.round(+particle.count || 0), 0, 600), life = Math.max(.001, +particle.life || 2), speed = Math.max(0, +particle.speed || 0), direction = (+particle.direction || 0) * Math.PI / 180, spread = Math.max(0, +particle.spread || 0) * Math.PI / 180, gravity = +particle.gravity || 0, wind = +particle.wind || 0, seed = +particle.seed || 1, scaleBase = Math.max(.01, +particle.size || 1), sizeVar = clamp(+particle.sizeVar || 0, 0, 1), baseAlpha = clamp(+particle.alpha || 0, 0, 1), emissionRange=particle.emissionRange, motionRange=particle.motionRange, time = frame.time;
-    ctx.save();
-    if (values.parentMatrix && ctx.transform) ctx.transform(...values.parentMatrix);
-    ctx.globalAlpha *= (values.parentAlpha == null ? 1 : values.parentAlpha) * values.alpha;
-    const pivot=api.modules.frame.pivotFor(values);ctx.translate(values.x + pivot.x, values.y + pivot.y); ctx.rotate(values.rot * Math.PI / 180); ctx.scale(values.scaleX, values.scaleY);ctx.translate(values.w / 2 - pivot.x, values.h / 2 - pivot.y);
-    for (let index = 0; index < count; index++) {
-      const age = (time + index / Math.max(1, count) * life) % life, angle = direction + (hash(index, 1, seed) * 2 - 1) * spread / 2, velocityX = Math.cos(angle) * speed, velocityY = Math.sin(angle) * speed, emission=sampleRange(emissionRange,index,seed,values.w,values.h), startX = emission.x-values.w/2, startY = emission.y-values.h/2, x = startX + velocityX * age + wind * age * age / 2, y = startY + velocityY * age + gravity * age * age / 2, scale = scaleBase * (1 + (hash(index, 4, seed) * 2 - 1) * sizeVar), opacity = baseAlpha * (particle.fade === false ? 1 : 1 - age / life), spin = ((+particle.spin || 0) + (+particle.spinSpeed || 0) * age + (hash(index, 5, seed) * 2 - 1) * (+particle.spinVar || 0)) * Math.PI / 180;
-      if (opacity <= 0) continue;
-      if (motionRange&&!rangeContains(motionRange,x+values.w/2,y+values.h/2,values.w,values.h)) continue;
-      const sprite=rendered.frames[spriteIndex(rendered,age)]||rendered.frames[0];
-      ctx.save(); ctx.globalAlpha *= opacity; ctx.translate(x, y); ctx.rotate(spin); ctx.scale(scale, scale); ctx.drawImage(sprite.capsule, -sprite.capsule.width / 2, -sprite.capsule.height / 2); ctx.restore(); stats.particlesDrawn += 1;
-    }
-    ctx.restore(); for(const sprite of rendered.frames)surfaces.release(sprite.capsule); stats.particleEmitters += 1; stats.particleSpriteBuilds += 1; stats.particleSpriteFrames=(stats.particleSpriteFrames||0)+rendered.frames.length;
+    const active=sessions.get(keyFrame(frame)),temporary=active?null:create(scene,surfaces),session=active||{evaluate:e=>temporary.evaluate(e,frame,stats,{})};
+    let rendered=null,range=null;
+    try{
+      if(emitter.particle.mode==='layer'){
+        const ownerSession=active||temporary;range=ownerSession.display(particle.motionRange,emitter,frame,stats);
+        if(emitter.particle.layerEmission==='continuous')ownerSession.drawStream(ctx,emitter,frame,stats,session.evaluate(emitter),range);
+        else ownerSession.drawLayer(ctx,emitter,frame,stats,range);
+        stats.particleEmitters+=1;return;
+      }
+      const particles=session.evaluate(emitter);stats.particleEmitters+=1;if(!particles.length)return;
+      rendered=sourceFrames(scene,source,particle,frame,stats,surfaces);
+      const ownerSession=active||temporary;range=ownerSession.display(particle.motionRange,emitter,frame,stats);
+      const sourceValues=frame.valuesFor(source),alpha=(values.parentAlpha==null?1:values.parentAlpha)*values.alpha*(sourceValues.parentAlpha==null?1:sourceValues.parentAlpha)*(sourceValues.alpha==null?1:sourceValues.alpha);
+      ctx.save();try{
+        ctx.globalAlpha*=alpha;
+        for(const p of particles){const opacity=p.opacity*range.at(p.x,p.y);if(opacity<=0)continue;const sprite=rendered.frames[spriteIndex(rendered,p.age)]||rendered.frames[0];
+          ctx.save();try{ctx.globalAlpha*=opacity;ctx.translate(p.x,p.y);ctx.transform(p.matrix[0],p.matrix[1],p.matrix[2],p.matrix[3],0,0);ctx.rotate(p.spin);ctx.scale(p.scale,p.scale);ctx.drawImage(sprite.capsule,-sprite.capsule.width/2,-sprite.capsule.height/2);}finally{ctx.restore();}stats.particlesDrawn++;
+        }
+      }finally{ctx.restore();}
+      stats.particleSpriteBuilds+=1;stats.particleSpriteFrames=(stats.particleSpriteFrames||0)+rendered.frames.length;
+    }finally{range?.release();if(rendered)for(const sprite of rendered.frames)surfaces.release(sprite.capsule);temporary?.clear();}
   }
-  api.modules.particles = Object.freeze({ draw, sourceFor });
+  api.modules.particles = Object.freeze({ birthRanges:1,create,draw,sourceFor });
 })(typeof window !== 'undefined' ? window : globalThis);

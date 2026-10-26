@@ -79,3 +79,27 @@ Phase 9 的正式组合入口为 `npm run verify:phase9`。其中动态压力夹
 `tests/runtime-performance.html` 提供可重复的像素压力子基准：M（960×540）与 L（1920×1080）各自运行 Full / Draft，并报告 P95、平均绘制时间、Runtime 实际工作像素、Sampling Motion 帧缓存命中和最大单张离屏面积。它有意使用单张满画布图片隔离像素处理成本，不替代上面的完整 S/M/L 场景夹具。结果必须记录设备/浏览器，不能跨设备直接比较。
 
 2026-09-14 当前 Windows 开发机、Edge 153.0.4234.32：M Full P95 22.2ms / Draft 9.6ms；L Full 21.8ms / Draft 10.9ms。该次运行包含四项 Sampling Motion、共享 wave field、Alpha edge、全局色板与新增空间/距离图缓存，只作为本机后续回归基线。
+
+## 5. 显式场景 GPU 实验接线
+
+`tests/browser/v4-gpu-player-lifecycle.mjs` 覆盖真实 Player 的白名单画面、范围蒙版、Step 控制器／效果参数、暂停来源版本缓存、修改／撤销失效、seek、尺寸重建、独立 Player 隔离、无 WebGL／上下文丢失／不支持完整链的 CPU 回退、清缓存恢复、双 Scene 离屏与上下文复用，以及一次性绘制资源释放。默认场景后端不自动切换。它是正确性与生命周期验收；隔离 GPU timer query、真实 Player 全帧预算、宿主版本／释放、Tauri 和导出自动后端均不能由此代替，详见 [接线合同](V4_SCENE_GPU_EXECUTOR_CONTRACT.md)。
+
+`tests/browser/v4-gpu-player-performance.mjs --write-report` 首轮测真实 Player 的 640×360／1920×1080 单 Scene、动态引用范围、双 Scene 动态范围淡入淡出；分别记录完整调用主线程时间、RAF 节奏、同 WebGL 上下文 query、资源复用和固定时刻画质。断言保证实际走 GPU、两侧上传计数完整、无新增纹理／backing 写入／GL 错误及画质阈值；不以短测性能作为跨设备闸门，不替代长时、整链、编辑器 UI、Tauri 与导出验收。结果及读数限制见 GPU 验证记录。
+
+该基准现在可用 `--canvas-transition` 与显式 GPU 最终转场对照，保存各自报告不覆盖首轮数据。生命周期夹具另覆盖透明四向 wipe／fade／dissolve、转场前后 seek、模拟最终合成失败完整 CPU 重绘、不同工作尺寸及黑场回退。透明画质同时限制直通平均误差与预乘通道最大误差，阈值和原因见 GPU 验证记录；GPU 最终转场默认关闭，正确性通过不等于性能优于 Canvas。
+
+`--profile`／`--profile-api` 增加不重叠主线程阶段／嵌套 GL API 诊断；`--report-tag=...` 保留前后独立报告。基准逐帧断言阶段总和不超过完整调用时间，API 计时不再加入总和。生命周期另断言普通绘制无诊断字段、开启计时画面不变、固定资源不重复完整性查询、不完整 framebuffer 首次使用完整回退 CPU。诊断计时不能代替 GPU 分阶段设备耗时。
+
+`--gpu-stages` 以互不嵌套的 query 计时每次上传／draw，再逐帧合计同类阶段；每类断言 64 有效样本及完整 query 数，整帧 query 在该模式关闭。`--frame-end-validation` 对照两侧与最终合成在 Canvas 输出前检查一次。生命周期验证检查调用数为 1、逐侧／合并策略画面逐像素一致、GL 错误注入后当帧 CPU 重绘，并沿用透明四向转场矩阵。此实验并非真正异步错误验证，不改变默认入口。
+
+`tests/browser/v4-gpu-source-transport.mjs --bitmap-alpha --write-report` 独立对照 7 种来源／Alpha／静态复用方式，640×360 和 1920×1080、每组 64 帧、正反顺序两轮共 28 组。断言上传／draw 有效样本数、query 数、无 GL 错误／disjoint及固定画质。基础模式 6 路线共 24 组独立保留。该夹具不加载 Player，不能代替对象、蒙版、效果链、表面池或 Tauri 验收；准备位图成本单列，不能声称动态快照免成本。
+
+真实 Player 基准 `--trace-surfaces --repetitions=2` 与 `--fixed-surfaces --repetitions=2` 对照通用池／固定角色策略；记录每角色不同身份、来源／上一目标复用次数、固定角色像素和播放新增分配。固定角色断言稳定身份、零复用别名及零播放角色分配；通用池如实记录而非预设稳定结论。生命周期夹具覆盖固定角色不进入 free 池、角色间隔离、尺寸替换不累积、clear 后重建、Step 采样尺寸变化和透明四向转场；默认池路径仍分别验收。短测无明显提速不视为性能通过。
+
+`v4-gpu-player-interleaved-playback.mjs --block-frames=450 --write-report` 同页常驻四个 Player，平衡交错16段、共7200帧，分开记录启动初始化、最初60帧、后续帧、片段恢复帧、RAF 参数间隔与实际回调到达间隔；原始样本随报告保存。逐帧断言 GPU 两侧及最终合成、预热后零新增纹理／角色和零 backing 重设，最终CPU视觉对照及全部上下文释放。该夹具共享短测的 `fixtures/v4-gpu-player-fixture.js`，属于重复转场压力，不替代自然播放、呈现帧率、Tauri、完整整链、休眠恢复或内存峰值验收。
+
+`v4-gpu-player-threshold.mjs --write-report` 验证场景阈值单卡／不均采样两卡，采样格1／3／4、奇偶尺寸、阈值呼吸、Step／seek、独立矩形／椭圆／Alpha／明度／引用及反相范围、透明转场、缓存／修改／撤销、第二卡故障完整CPU回退与非白名单预检。8-bit灰阶及独立穷举的精确彩色亮度临界点逐像素对照，普通结果同时限制平均误差与预乘最大误差，透明最终转场单独隔离量化。真实预算入口增加 `--with-threshold`；多卡阶段query标签尚未扩展，禁止与 `--gpu-stages` 合用，防止误报阶段。
+
+`v4-gpu-player-noise.mjs --write-report`验证真实杂色单卡／三卡链、动态／Step／seek、周期闭合、暂停缓存、查表复用及第三卡故障CPU回退。预乘修复后透明／不透明照片96组逐像素一致，另有算术边界8组、Alpha／明度反相／引用范围；默认即限制预乘最大差≤3、异常点为0、最大Alpha差≤1，`strictTransparentParity:true`覆盖全部矩阵而非原单例。透明GPU最终转场单独记录最多1/255量化差，不放宽旧阈值门禁。`v4-gpu-noise-alpha-diagnostic.mjs`断言杂色、范围后、阈值输入字节一致；仅测试诊断读回，非性能或生产路径。真实预算加`--with-noise --with-threshold`，检查无范围三卡8道、有范围11道／双侧转场23道，预热后范围上传5／10次；首次／Step查表和额外混合成本须记录。四Player短版交错1024帧通过，不替代长稳。详情见[透明字节修复](V4_GPU_ALPHA_BYTES_2026-10-15.md)。
+
+`v4-gpu-player-dispersion.mjs`覆盖格1／3、三类边缘、单／四卡、透明／不透明共24组，严格亮度差24的灰阶图八组、Step／seek与第四卡注错CPU回退。`v4-gpu-player-tint.mjs`覆盖三种原生混合、格1／3、单／五卡、透明／不透明／fade共48组，另有CSS／blink、Step／Linear／seek；实际frame颜色／Alpha变化另断言，未支持混合预检零分配CPU画面一致。均保留最大预乘差≤3、最大Alpha≤1门禁，不以均值掩盖错点。真实预算`--with-tint --with-dispersion --with-noise --with-threshold`统计五卡15／20道及双侧41道、上传1／6／12次；染色按全尺寸overlay而非采样格处理。多卡禁止旧gpu-stages标签，默认后端不改，详见[五卡接线](V4_GPU_TINT_DISPERSION_PLAYER_2026-10-15.md)。

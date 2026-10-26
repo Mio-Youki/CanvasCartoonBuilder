@@ -1,0 +1,75 @@
+#!/usr/bin/env node
+import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { chromium } from 'playwright-core';
+
+const root=resolve(import.meta.dirname,'../..');
+const edge=[process.env.TOSAMPOOL_EDGE_PATH,'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe','C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'].find(path=>path&&existsSync(path));
+if(!edge)throw new Error('找不到 Edge');
+const browser=await chromium.launch({executablePath:edge,headless:true});
+try{
+  const page=await browser.newPage({viewport:{width:1500,height:900}}),errors=[];
+  page.on('pageerror',error=>errors.push(error.stack||String(error)));
+  await page.goto(pathToFileURL(resolve(root,'img2asset-v4-classic.html')).href+'?e2e=1',{waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>window.ToSampoolV4Workspace?.hasDocument);
+  const pixels=await page.evaluate(()=>{
+    const render=(paint,kind)=>{const canvas=document.createElement('canvas');const scene={format:'tosampool-scene/v4',width:40,height:30,background:{color:'#000000',alpha:0},entities:kind==='part'?[{id:'vector',type:'vector',x:0,y:0,w:40,h:30,parts:[{id:'part',type:'rect',x:0,y:0,w:40,h:30,fill:'#000000',fillPaint:paint}]}]:kind==='background'?[]:[{id:'rect',type:'rect',x:0,y:0,w:40,h:30,fill:'#000000',fillPaint:paint}]};if(kind==='background')scene.background={color:'#000000',alpha:1,fillPaint:paint};ToSampoolRuntimeVNext.createRuntime(scene).renderTo(canvas,0);const ctx=canvas.getContext('2d');return{x0:Array.from(ctx.getImageData(2,15,1,1).data),x1:Array.from(ctx.getImageData(37,15,1,1).data),center:Array.from(ctx.getImageData(20,15,1,1).data)};};
+    const linear={type:'linear',angle:0,stops:[{offset:0,color:'#ff0000',alpha:1},{offset:1,color:'#0000ff',alpha:1}]};
+    const radial={type:'radial',cx:.5,cy:.5,radius:.5,stops:[{offset:0,color:'#ffffff',alpha:1},{offset:1,color:'#000000',alpha:1}]};
+    const alphaCanvas=document.createElement('canvas'),alphaScene={format:'tosampool-scene/v4',width:20,height:20,background:{color:'#000000',alpha:0},entities:[{id:'alpha-gradient',type:'rect',x:0,y:0,w:20,h:20,fill:'#ffffff',fillAlpha:.5,fillPaint:{type:'linear',angle:0,stops:[{offset:0,color:'#ffffff',alpha:.5},{offset:1,color:'#ffffff',alpha:.5}]}}]};ToSampoolRuntimeVNext.createRuntime(alphaScene).renderTo(alphaCanvas,0);
+    return{rect:render(linear,'rect'),part:render(linear,'part'),background:render(linear,'background'),radial:render(radial,'rect'),alpha:alphaCanvas.getContext('2d').getImageData(10,10,1,1).data[3]};
+  });
+  for(const kind of ['rect','part','background'])assert.ok(pixels[kind].x0[0]>pixels[kind].x0[2]&&pixels[kind].x1[2]>pixels[kind].x1[0],`${kind} 的线性渐变必须随 X 变化`);
+  assert.ok(pixels.radial.center[0]>pixels.radial.x0[0], '径向渐变中心必须亮于边缘');
+  assert.ok(pixels.alpha>=61&&pixels.alpha<=66,'整体透明度与色标透明度应恰好相乘一次');
+
+  await page.evaluate(()=>{ToSampoolV4Workspace.createBlank({width:80,height:50,loop:4});ToSampoolV4Workspace.mutate(scene=>scene.entities.push({id:'gradient-shape',name:'渐变形状',type:'rect',x:10,y:8,w:50,h:32,fill:'#ff0000',fillAlpha:1}));classicV4View.select('gradient-shape');});
+  const fill=page.locator('#inspector-context .v4-paint-field').filter({hasText:'填充'}).first();
+  await fill.locator('.color-swatch').click();
+  assert.equal(await page.locator('.color-mode-tabs button').count(),3,'填充取色器应共用纯色、线性、径向面板');
+  await page.locator('[data-paint-mode="linear"]').click();
+  await page.waitForFunction(()=>ToSampoolV4Workspace.current().entities[0].fillPaint?.type==='linear');
+  await page.locator('.gradient-angle').fill('45');await page.locator('.gradient-angle').press('Tab');
+  assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities[0].fillPaint.angle),45);
+  await page.locator('[data-paint-mode="radial"]').click();
+  await page.waitForFunction(()=>ToSampoolV4Workspace.current().entities[0].fillPaint?.type==='radial');
+  await page.locator('.gradient-cx').fill('35');await page.locator('.gradient-cx').press('Tab');
+  assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities[0].fillPaint.cx),.35);
+  await page.locator('.color-gradient-preview').click({position:{x:50,y:12}});
+  assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities[0].fillPaint.stops.length),3,'点击渐变条应添加色标');
+  if(process.argv.includes('--screenshot'))await page.screenshot({path:resolve(root,'tests/v4-paint-gradient-preview.png')});
+  await page.locator('.color-pop-close').first().click();
+  await page.locator('[data-toolbar-mode="rect"]').click();
+  assert.equal(await page.locator('#shape-fill-config .color-field').count(),1,'工具栏填充必须复用取色控件');
+  await page.locator('#shape-fill-config .color-swatch').click();
+  await page.locator('[data-paint-mode="linear"]').click();
+  await page.locator('.gradient-overall').fill('45');await page.locator('.gradient-overall').press('Tab');
+  await page.locator('.color-pop-close').first().click();
+  const stage=await page.evaluate(()=>{const box=classicV4View.canvas.getBoundingClientRect();return{x:box.x,y:box.y,w:box.width,h:box.height};});
+  await page.mouse.move(stage.x+stage.w*.13,stage.y+stage.h*.15);await page.mouse.down();await page.mouse.move(stage.x+stage.w*.35,stage.y+stage.h*.40,{steps:5});await page.mouse.up();
+  await page.waitForFunction(()=>ToSampoolV4Workspace.current().entities.some(item=>item.parts?.some(part=>part.fillPaint?.type==='linear')));
+  assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities.flatMap(item=>item.parts||[]).find(part=>part.fillPaint?.type==='linear')?.fillAlpha),.45,'工具栏新图元应保留填充透明度');
+  await page.evaluate(()=>{ToSampoolV4Workspace.mutate(scene=>scene.entities.push({id:'gradient-text',name:'渐变文字',type:'text',text:'TEXT',x:2,y:2,w:30,h:15,fontSize:12,fill:'#00ff00',alpha:1}));ToSampoolV4Workspace.mutate(scene=>EditorVNextTextState.update(scene,'gradient-text',{},document));classicV4View.select('gradient-text');});
+  await page.locator('#inspector-context .global-section').filter({hasText:'文字'}).locator('.color-swatch').click();
+  await page.locator('.color-alpha-input').fill('40');await page.locator('.color-alpha-input').press('Tab');
+  assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities.find(item=>item.id==='gradient-text').fillAlpha),.4,'文字应使用同一取色器的独立填充透明度');
+  await page.locator('[data-paint-mode="radial"]').click();
+  assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities.find(item=>item.id==='gradient-text').fillPaint.type),'radial','文字栅格应支持径向渐变');
+  await page.locator('.color-pop-close').first().click();
+  await page.evaluate(()=>classicV4View.select(null));
+  if(process.argv.includes('--debug-note'))console.log('Scene timeline note:',await page.locator('#tl-context-note').textContent());
+  await page.locator('#inspector-context .global-section').filter({hasText:'背景'}).locator('.color-swatch').first().click();
+  await page.locator('[data-paint-mode="linear"]').click();
+  await page.waitForFunction(()=>ToSampoolV4Workspace.current().timeline.scenes[0].background?.fillPaint?.type==='linear');
+  await page.locator('.color-pop-close').first().click();
+  await page.evaluate(()=>{const source=document.createElement('canvas');source.width=8;source.height=8;source.getContext('2d').fillRect(0,0,8,8);openAssetProcessModal({img:source,frames:1,name:'颜色控件验证'},{discardOnCancel:false});});
+  assert.equal(await page.locator('.asset-process-controls .color-field').count(),1,'去背景取样色也应复用同一取色器');
+  await page.locator('.asset-process-controls .color-swatch').click();
+  assert.equal(await page.locator('.color-pop').evaluate(node=>node.classList.contains('no-alpha')),true,'取样色不是填充，不应附加透明度');
+  await page.locator('.color-pop-close').first().click();
+  await page.locator('.wizard button').filter({hasText:'取消'}).click();
+  assert.deepEqual(errors,[],'颜色和渐变操作不应引入页面异常');
+  console.log('✓ V4 颜色与渐变：矩形、图元、背景、色标和径向中心通过');
+}finally{await browser.close();}

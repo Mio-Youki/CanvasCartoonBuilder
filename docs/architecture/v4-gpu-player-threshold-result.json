@@ -1,0 +1,614 @@
+{
+  "rows": [
+    {
+      "grid": 1,
+      "chain": false,
+      "transparent": false,
+      "t": 0.2,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 1,
+      "passes": 2,
+      "uploads": 2,
+      "allocations": 5
+    },
+    {
+      "grid": 1,
+      "chain": false,
+      "transparent": false,
+      "t": 0.7,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 1,
+      "passes": 2,
+      "uploads": 1,
+      "allocations": 5
+    },
+    {
+      "grid": 1,
+      "chain": false,
+      "transparent": true,
+      "t": 0.2,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 1,
+      "passes": 3,
+      "uploads": 4,
+      "allocations": 5
+    },
+    {
+      "grid": 1,
+      "chain": false,
+      "transparent": true,
+      "t": 0.7,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 1,
+      "passes": 3,
+      "uploads": 3,
+      "allocations": 5
+    },
+    {
+      "grid": 1,
+      "chain": true,
+      "transparent": false,
+      "t": 0.2,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 2,
+      "passes": 6,
+      "uploads": 3,
+      "allocations": 6
+    },
+    {
+      "grid": 1,
+      "chain": true,
+      "transparent": false,
+      "t": 0.7,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 2,
+      "passes": 6,
+      "uploads": 2,
+      "allocations": 6
+    },
+    {
+      "grid": 1,
+      "chain": true,
+      "transparent": true,
+      "t": 0.2,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 2,
+      "passes": 7,
+      "uploads": 5,
+      "allocations": 6
+    },
+    {
+      "grid": 1,
+      "chain": true,
+      "transparent": true,
+      "t": 0.7,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 2,
+      "passes": 7,
+      "uploads": 4,
+      "allocations": 6
+    },
+    {
+      "grid": 3,
+      "chain": false,
+      "transparent": false,
+      "t": 0.2,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 1,
+      "passes": 2,
+      "uploads": 2,
+      "allocations": 5
+    },
+    {
+      "grid": 3,
+      "chain": false,
+      "transparent": false,
+      "t": 0.7,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 1,
+      "passes": 2,
+      "uploads": 1,
+      "allocations": 5
+    },
+    {
+      "grid": 3,
+      "chain": false,
+      "transparent": true,
+      "t": 0.2,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 1,
+      "passes": 3,
+      "uploads": 4,
+      "allocations": 5
+    },
+    {
+      "grid": 3,
+      "chain": false,
+      "transparent": true,
+      "t": 0.7,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 1,
+      "passes": 3,
+      "uploads": 3,
+      "allocations": 5
+    },
+    {
+      "grid": 3,
+      "chain": true,
+      "transparent": false,
+      "t": 0.2,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 2,
+      "passes": 6,
+      "uploads": 3,
+      "allocations": 6
+    },
+    {
+      "grid": 3,
+      "chain": true,
+      "transparent": false,
+      "t": 0.7,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 2,
+      "passes": 6,
+      "uploads": 2,
+      "allocations": 6
+    },
+    {
+      "grid": 3,
+      "chain": true,
+      "transparent": true,
+      "t": 0.2,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 2,
+      "passes": 7,
+      "uploads": 5,
+      "allocations": 6
+    },
+    {
+      "grid": 3,
+      "chain": true,
+      "transparent": true,
+      "t": 0.7,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 2,
+      "passes": 7,
+      "uploads": 4,
+      "allocations": 6
+    },
+    {
+      "grid": 4,
+      "chain": false,
+      "transparent": false,
+      "t": 0.2,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 1,
+      "passes": 2,
+      "uploads": 2,
+      "allocations": 5
+    },
+    {
+      "grid": 4,
+      "chain": false,
+      "transparent": false,
+      "t": 0.7,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 1,
+      "passes": 2,
+      "uploads": 1,
+      "allocations": 5
+    },
+    {
+      "grid": 4,
+      "chain": false,
+      "transparent": true,
+      "t": 0.2,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 1,
+      "passes": 3,
+      "uploads": 4,
+      "allocations": 5
+    },
+    {
+      "grid": 4,
+      "chain": false,
+      "transparent": true,
+      "t": 0.7,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 1,
+      "passes": 3,
+      "uploads": 3,
+      "allocations": 5
+    },
+    {
+      "grid": 4,
+      "chain": true,
+      "transparent": false,
+      "t": 0.2,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 2,
+      "passes": 6,
+      "uploads": 3,
+      "allocations": 6
+    },
+    {
+      "grid": 4,
+      "chain": true,
+      "transparent": false,
+      "t": 0.7,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 2,
+      "passes": 6,
+      "uploads": 2,
+      "allocations": 6
+    },
+    {
+      "grid": 4,
+      "chain": true,
+      "transparent": true,
+      "t": 0.2,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 2,
+      "passes": 7,
+      "uploads": 5,
+      "allocations": 6
+    },
+    {
+      "grid": 4,
+      "chain": true,
+      "transparent": true,
+      "t": 0.7,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 2,
+      "passes": 7,
+      "uploads": 4,
+      "allocations": 6
+    }
+  ],
+  "maskRows": [
+    {
+      "type": "alpha",
+      "mode": "alpha",
+      "rgb": 0.0016,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 1,
+      "backend": "gpu"
+    },
+    {
+      "type": "alpha",
+      "mode": "luma",
+      "rgb": 0.0056,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 1,
+      "backend": "gpu"
+    },
+    {
+      "type": "element",
+      "mode": "alpha",
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu"
+    }
+  ],
+  "timed": [
+    {
+      "t": 1,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 2,
+      "passes": 5
+    },
+    {
+      "t": 5,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 1,
+      "passes": 2
+    },
+    {
+      "t": 1,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0,
+      "backend": "gpu",
+      "effects": 2,
+      "passes": 5
+    }
+  ],
+  "transitions": [
+    {
+      "rgb": 0.0275,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 1,
+      "backend": "gpu",
+      "allocations": 8,
+      "passes": 13,
+      "canvasComposite": {
+        "rgb": 0,
+        "alpha": 0,
+        "alphaMax": 0,
+        "preMax": 0
+      }
+    },
+    {
+      "rgb": 0.2271,
+      "alpha": 0.604,
+      "alphaMax": 1,
+      "preMax": 1,
+      "backend": "gpu",
+      "allocations": 8,
+      "passes": 13,
+      "canvasComposite": {
+        "rgb": 0,
+        "alpha": 0,
+        "alphaMax": 0,
+        "preMax": 0
+      }
+    },
+    {
+      "rgb": 0.0143,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 1,
+      "backend": "gpu",
+      "allocations": 8,
+      "passes": 13,
+      "canvasComposite": {
+        "rgb": 0,
+        "alpha": 0,
+        "alphaMax": 0,
+        "preMax": 0
+      }
+    }
+  ],
+  "fallback": {
+    "rgb": 0,
+    "alpha": 0,
+    "alphaMax": 0,
+    "preMax": 0,
+    "backend": "cpu",
+    "reason": "unsupported-effect:tint-overlay",
+    "allocations": 0
+  },
+  "boundaryRows": [
+    {
+      "pivot": 0,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0
+    },
+    {
+      "pivot": 0.2,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0
+    },
+    {
+      "pivot": 0.25,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0
+    },
+    {
+      "pivot": 0.4,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0
+    },
+    {
+      "pivot": 0.5,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0
+    },
+    {
+      "pivot": 0.75,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0
+    },
+    {
+      "pivot": 0.8,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0
+    },
+    {
+      "pivot": 1,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0
+    }
+  ],
+  "colourBoundaryRows": [
+    {
+      "pivot": 0.2,
+      "colours": 15,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0
+    },
+    {
+      "pivot": 0.25,
+      "colours": 16,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0
+    },
+    {
+      "pivot": 0.4,
+      "colours": 20,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0
+    },
+    {
+      "pivot": 0.5,
+      "colours": 16,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0
+    },
+    {
+      "pivot": 0.8,
+      "colours": 15,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0
+    },
+    {
+      "pivot": 1,
+      "colours": 1,
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0
+    }
+  ],
+  "cache": {
+    "paused": true,
+    "edited": false,
+    "undone": false,
+    "editDiff": {
+      "rgb": 84.7892,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 231
+    },
+    "undoDiff": {
+      "rgb": 0,
+      "alpha": 0,
+      "alphaMax": 0,
+      "preMax": 0
+    }
+  },
+  "failure": {
+    "rgb": 0,
+    "alpha": 0,
+    "alphaMax": 0,
+    "preMax": 0,
+    "backend": "cpu",
+    "reason": "injected-second-card"
+  }
+}

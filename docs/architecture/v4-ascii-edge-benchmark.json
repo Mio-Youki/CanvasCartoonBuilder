@@ -1,0 +1,1076 @@
+[
+  {
+    "mode": "baseline",
+    "device": {
+      "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0"
+    },
+    "runs": [
+      {
+        "width": 640,
+        "height": 360,
+        "mode": "baseline",
+        "backend": "gpu",
+        "wall": {
+          "median": 16.900000035762787,
+          "p95": 34.10000002384186,
+          "max": 37.30000001192093
+        },
+        "complete": {
+          "median": 16.900000035762787,
+          "p95": 34.19999998807907,
+          "max": 37.30000001192093
+        },
+        "raf": {
+          "median": 18.600000023841858,
+          "p95": 34.5,
+          "max": 37.80000001192093
+        },
+        "stages": {
+          "prepareRead": {
+            "median": 4.899999976158142,
+            "p95": 6.100000023841858,
+            "max": 8.200000047683716
+          },
+          "edges": {
+            "median": 9.600000023841858,
+            "p95": 13.799999952316284,
+            "max": 15
+          },
+          "cellSelection": {
+            "median": 1.7999999523162842,
+            "p95": 14,
+            "max": 16.600000023841858
+          },
+          "paint": {
+            "median": 0.7999999523162842,
+            "p95": 1,
+            "max": 1.699999988079071
+          },
+          "fence": {
+            "median": 0,
+            "p95": 0.10000002384185791,
+            "max": 0.10000002384185791
+          }
+        },
+        "differences": [
+          {
+            "material": "photo",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          },
+          {
+            "material": "shapes",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          },
+          {
+            "material": "text",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          },
+          {
+            "material": "alpha",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          }
+        ]
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "mode": "baseline",
+        "backend": "gpu",
+        "wall": {
+          "median": 38.89999997615814,
+          "p95": 46.80000001192093,
+          "max": 50.5
+        },
+        "complete": {
+          "median": 38.89999997615814,
+          "p95": 46.89999997615814,
+          "max": 50.60000002384186
+        },
+        "raf": {
+          "median": 39.19999998807907,
+          "p95": 47.09999996423721,
+          "max": 51
+        },
+        "stages": {
+          "prepareRead": {
+            "median": 7.5,
+            "p95": 8.800000011920929,
+            "max": 10.099999964237213
+          },
+          "edges": {
+            "median": 24.899999976158142,
+            "p95": 31.100000023841858,
+            "max": 35.69999998807907
+          },
+          "cellSelection": {
+            "median": 5.5,
+            "p95": 7,
+            "max": 8.300000011920929
+          },
+          "paint": {
+            "median": 0.6000000238418579,
+            "p95": 0.800000011920929,
+            "max": 1.100000023841858
+          },
+          "fence": {
+            "median": 0,
+            "p95": 0.10000002384185791,
+            "max": 0.19999998807907104
+          }
+        }
+      },
+      {
+        "width": 1920,
+        "height": 1080,
+        "mode": "baseline",
+        "backend": "gpu",
+        "wall": {
+          "median": 92.5,
+          "p95": 116.30000001192093,
+          "max": 128.89999997615814
+        },
+        "complete": {
+          "median": 92.5,
+          "p95": 116.39999997615814,
+          "max": 129
+        },
+        "raf": {
+          "median": 93.89999997615814,
+          "p95": 124.30000001192093,
+          "max": 130.5
+        },
+        "stages": {
+          "prepareRead": {
+            "median": 14.300000011920929,
+            "p95": 16.30000001192093,
+            "max": 18.19999998807907
+          },
+          "edges": {
+            "median": 62.59999996423721,
+            "p95": 82.89999997615814,
+            "max": 92.79999995231628
+          },
+          "cellSelection": {
+            "median": 13.600000023841858,
+            "p95": 19.400000035762787,
+            "max": 28.099999964237213
+          },
+          "paint": {
+            "median": 0.699999988079071,
+            "p95": 1,
+            "max": 1.2999999523162842
+          },
+          "fence": {
+            "median": 0,
+            "p95": 0.10000002384185791,
+            "max": 0.10000002384185791
+          }
+        }
+      }
+    ]
+  },
+  {
+    "mode": "cpu-optimized",
+    "device": {
+      "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0"
+    },
+    "runs": [
+      {
+        "width": 640,
+        "height": 360,
+        "mode": "cpu-optimized",
+        "backend": "gpu",
+        "wall": {
+          "median": 9.199999988079071,
+          "p95": 12.699999988079071,
+          "max": 15.100000023841858
+        },
+        "complete": {
+          "median": 9.199999988079071,
+          "p95": 12.699999988079071,
+          "max": 15.199999988079071
+        },
+        "raf": {
+          "median": 16.69999998807907,
+          "p95": 17,
+          "max": 19.19999998807907
+        },
+        "stages": {
+          "prepareRead": {
+            "median": 4.399999976158142,
+            "p95": 5.200000047683716,
+            "max": 10.400000035762787
+          },
+          "edges": {
+            "median": 2.300000011920929,
+            "p95": 3.800000011920929,
+            "max": 3.900000035762787
+          },
+          "cellSelection": {
+            "median": 1.300000011920929,
+            "p95": 2.200000047683716,
+            "max": 6.400000035762787
+          },
+          "paint": {
+            "median": 0.5,
+            "p95": 0.699999988079071,
+            "max": 0.800000011920929
+          },
+          "fence": {
+            "median": 0,
+            "p95": 0.10000002384185791,
+            "max": 0.10000002384185791
+          }
+        },
+        "differences": [
+          {
+            "material": "photo",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          },
+          {
+            "material": "shapes",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          },
+          {
+            "material": "text",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          },
+          {
+            "material": "alpha",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          }
+        ]
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "mode": "cpu-optimized",
+        "backend": "gpu",
+        "wall": {
+          "median": 24.19999998807907,
+          "p95": 36,
+          "max": 37.30000001192093
+        },
+        "complete": {
+          "median": 24.30000001192093,
+          "p95": 36,
+          "max": 37.40000003576279
+        },
+        "raf": {
+          "median": 24.600000023841858,
+          "p95": 35.39999997615814,
+          "max": 37.90000003576279
+        },
+        "stages": {
+          "prepareRead": {
+            "median": 7.699999988079071,
+            "p95": 9.300000011920929,
+            "max": 10
+          },
+          "edges": {
+            "median": 9.699999988079071,
+            "p95": 17,
+            "max": 17.400000035762787
+          },
+          "cellSelection": {
+            "median": 5.400000035762787,
+            "p95": 8.699999988079071,
+            "max": 10.5
+          },
+          "paint": {
+            "median": 0.699999988079071,
+            "p95": 0.8999999761581421,
+            "max": 1.100000023841858
+          },
+          "fence": {
+            "median": 0,
+            "p95": 0.10000002384185791,
+            "max": 0.20000004768371582
+          }
+        }
+      },
+      {
+        "width": 1920,
+        "height": 1080,
+        "mode": "cpu-optimized",
+        "backend": "gpu",
+        "wall": {
+          "median": 82,
+          "p95": 106.29999995231628,
+          "max": 109
+        },
+        "complete": {
+          "median": 82,
+          "p95": 106.39999997615814,
+          "max": 109
+        },
+        "raf": {
+          "median": 82.79999995231628,
+          "p95": 107.10000002384186,
+          "max": 133.10000002384186
+        },
+        "stages": {
+          "prepareRead": {
+            "median": 15.700000047683716,
+            "p95": 17,
+            "max": 20.19999998807907
+          },
+          "edges": {
+            "median": 41.80000001192093,
+            "p95": 51,
+            "max": 64.89999997615814
+          },
+          "cellSelection": {
+            "median": 22.100000023841858,
+            "p95": 32.39999997615814,
+            "max": 43.40000003576279
+          },
+          "paint": {
+            "median": 0.8999999761581421,
+            "p95": 1.100000023841858,
+            "max": 2.300000011920929
+          },
+          "fence": {
+            "median": 0,
+            "p95": 0.10000002384185791,
+            "max": 0.10000002384185791
+          }
+        }
+      }
+    ]
+  },
+  {
+    "mode": "cpu-complete",
+    "device": {
+      "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0"
+    },
+    "runs": [
+      {
+        "width": 640,
+        "height": 360,
+        "mode": "cpu-complete",
+        "backend": "gpu",
+        "wall": {
+          "median": 8.300000011920929,
+          "p95": 10.5,
+          "max": 14.599999964237213
+        },
+        "complete": {
+          "median": 8.399999976158142,
+          "p95": 10.600000023841858,
+          "max": 14.599999964237213
+        },
+        "raf": {
+          "median": 16.69999998807907,
+          "p95": 16.900000035762787,
+          "max": 17.5
+        },
+        "stages": {
+          "prepareRead": {
+            "median": 4.199999988079071,
+            "p95": 5.699999988079071,
+            "max": 9.199999988079071
+          },
+          "edges": {
+            "median": 2.300000011920929,
+            "p95": 4,
+            "max": 4.199999988079071
+          },
+          "cellSelection": {
+            "median": 0.5,
+            "p95": 0.8999999761581421,
+            "max": 0.9000000357627869
+          },
+          "paint": {
+            "median": 0.5,
+            "p95": 0.7000000476837158,
+            "max": 0.800000011920929
+          },
+          "fence": {
+            "median": 0,
+            "p95": 0.10000002384185791,
+            "max": 0.10000002384185791
+          }
+        },
+        "differences": [
+          {
+            "material": "photo",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          },
+          {
+            "material": "shapes",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          },
+          {
+            "material": "text",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          },
+          {
+            "material": "alpha",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          }
+        ]
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "mode": "cpu-complete",
+        "backend": "gpu",
+        "wall": {
+          "median": 19.5,
+          "p95": 23.700000047683716,
+          "max": 27
+        },
+        "complete": {
+          "median": 19.5,
+          "p95": 23.700000047683716,
+          "max": 27.099999964237213
+        },
+        "raf": {
+          "median": 20,
+          "p95": 24.30000001192093,
+          "max": 27.5
+        },
+        "stages": {
+          "prepareRead": {
+            "median": 7.5,
+            "p95": 8.699999988079071,
+            "max": 14
+          },
+          "edges": {
+            "median": 9.199999988079071,
+            "p95": 12.800000011920929,
+            "max": 13.299999952316284
+          },
+          "cellSelection": {
+            "median": 1.9000000357627869,
+            "p95": 2.5,
+            "max": 4.800000011920929
+          },
+          "paint": {
+            "median": 0.6000000238418579,
+            "p95": 0.8999999761581421,
+            "max": 5.5
+          },
+          "fence": {
+            "median": 0,
+            "p95": 0.10000002384185791,
+            "max": 0.10000002384185791
+          }
+        }
+      },
+      {
+        "width": 1920,
+        "height": 1080,
+        "mode": "cpu-complete",
+        "backend": "gpu",
+        "wall": {
+          "median": 40.89999997615814,
+          "p95": 48.60000002384186,
+          "max": 52.5
+        },
+        "complete": {
+          "median": 40.89999997615814,
+          "p95": 48.60000002384186,
+          "max": 52.5
+        },
+        "raf": {
+          "median": 41.40000003576279,
+          "p95": 49.09999996423721,
+          "max": 53.10000002384186
+        },
+        "stages": {
+          "prepareRead": {
+            "median": 14.400000035762787,
+            "p95": 15.5,
+            "max": 22.200000047683716
+          },
+          "edges": {
+            "median": 20.30000001192093,
+            "p95": 26.899999976158142,
+            "max": 29.399999976158142
+          },
+          "cellSelection": {
+            "median": 4.300000011920929,
+            "p95": 6.399999976158142,
+            "max": 6.600000023841858
+          },
+          "paint": {
+            "median": 0.6000000238418579,
+            "p95": 0.8999999761581421,
+            "max": 1.100000023841858
+          },
+          "fence": {
+            "median": 0,
+            "p95": 0.10000002384185791,
+            "max": 0.10000002384185791
+          }
+        }
+      }
+    ]
+  },
+  {
+    "mode": "gpu-low",
+    "device": {
+      "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0"
+    },
+    "runs": [
+      {
+        "width": 640,
+        "height": 360,
+        "mode": "gpu-low",
+        "backend": "gpu",
+        "wall": {
+          "median": 8.300000011920929,
+          "p95": 10.5,
+          "max": 11.200000047683716
+        },
+        "complete": {
+          "median": 8.300000011920929,
+          "p95": 10.599999964237213,
+          "max": 11.200000047683716
+        },
+        "raf": {
+          "median": 16.69999998807907,
+          "p95": 16.899999976158142,
+          "max": 17.80000001192093
+        },
+        "stages": {
+          "prepareRead": {
+            "median": 4.5,
+            "p95": 5.300000011920929,
+            "max": 6.5
+          },
+          "edges": {
+            "median": 1.4000000357627869,
+            "p95": 1.800000011920929,
+            "max": 2
+          },
+          "cellSelection": {
+            "median": 1.4000000357627869,
+            "p95": 2.199999988079071,
+            "max": 2.300000011920929
+          },
+          "paint": {
+            "median": 0.5,
+            "p95": 0.800000011920929,
+            "max": 1.5999999642372131
+          },
+          "fence": {
+            "median": 0,
+            "p95": 0.10000002384185791,
+            "max": 0.10000002384185791
+          }
+        },
+        "differences": [
+          {
+            "material": "photo",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          },
+          {
+            "material": "shapes",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          },
+          {
+            "material": "text",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          },
+          {
+            "material": "alpha",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          }
+        ]
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "mode": "gpu-low",
+        "backend": "gpu",
+        "wall": {
+          "median": 16.19999998807907,
+          "p95": 20.80000001192093,
+          "max": 24.700000047683716
+        },
+        "complete": {
+          "median": 16.19999998807907,
+          "p95": 20.80000001192093,
+          "max": 24.700000047683716
+        },
+        "raf": {
+          "median": 16.80000001192093,
+          "p95": 21.19999998807907,
+          "max": 25.19999998807907
+        },
+        "stages": {
+          "prepareRead": {
+            "median": 8.599999964237213,
+            "p95": 10.099999964237213,
+            "max": 15.699999988079071
+          },
+          "edges": {
+            "median": 1.5,
+            "p95": 2.099999964237213,
+            "max": 2.300000011920929
+          },
+          "cellSelection": {
+            "median": 5.200000047683716,
+            "p95": 8.5,
+            "max": 9.199999988079071
+          },
+          "paint": {
+            "median": 0.6000000238418579,
+            "p95": 0.8999999761581421,
+            "max": 4.299999952316284
+          },
+          "fence": {
+            "median": 0,
+            "p95": 0.10000002384185791,
+            "max": 0.20000004768371582
+          }
+        }
+      },
+      {
+        "width": 1920,
+        "height": 1080,
+        "mode": "gpu-low",
+        "backend": "gpu",
+        "wall": {
+          "median": 32,
+          "p95": 37,
+          "max": 42.89999997615814
+        },
+        "complete": {
+          "median": 32,
+          "p95": 37.10000002384186,
+          "max": 42.89999997615814
+        },
+        "raf": {
+          "median": 32.40000003576279,
+          "p95": 37.60000002384186,
+          "max": 43.30000001192093
+        },
+        "stages": {
+          "prepareRead": {
+            "median": 17.100000023841858,
+            "p95": 18.80000001192093,
+            "max": 28.799999952316284
+          },
+          "edges": {
+            "median": 1.699999988079071,
+            "p95": 2.200000047683716,
+            "max": 3
+          },
+          "cellSelection": {
+            "median": 12,
+            "p95": 15.399999976158142,
+            "max": 18.899999976158142
+          },
+          "paint": {
+            "median": 0.6000000238418579,
+            "p95": 0.8999999761581421,
+            "max": 1.0999999642372131
+          },
+          "fence": {
+            "median": 0,
+            "p95": 0.09999996423721313,
+            "max": 0.10000002384185791
+          }
+        }
+      }
+    ]
+  },
+  {
+    "mode": "gpu-low-complete",
+    "device": {
+      "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0"
+    },
+    "runs": [
+      {
+        "width": 640,
+        "height": 360,
+        "mode": "gpu-low-complete",
+        "backend": "gpu",
+        "wall": {
+          "median": 6.699999988079071,
+          "p95": 7.799999952316284,
+          "max": 8.199999988079071
+        },
+        "complete": {
+          "median": 6.699999988079071,
+          "p95": 7.899999976158142,
+          "max": 8.199999988079071
+        },
+        "raf": {
+          "median": 16.600000023841858,
+          "p95": 16.80000001192093,
+          "max": 17.19999998807907
+        },
+        "stages": {
+          "prepareRead": {
+            "median": 4,
+            "p95": 4.899999976158142,
+            "max": 5.199999988079071
+          },
+          "edges": {
+            "median": 1.2999999523162842,
+            "p95": 1.5,
+            "max": 1.7999999523162842
+          },
+          "cellSelection": {
+            "median": 0.5,
+            "p95": 0.7000000476837158,
+            "max": 0.800000011920929
+          },
+          "paint": {
+            "median": 0.40000003576278687,
+            "p95": 0.5999999642372131,
+            "max": 0.6000000238418579
+          },
+          "fence": {
+            "median": 0,
+            "p95": 0.10000002384185791,
+            "max": 0.10000002384185791
+          }
+        },
+        "differences": [
+          {
+            "material": "photo",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          },
+          {
+            "material": "shapes",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          },
+          {
+            "material": "text",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          },
+          {
+            "material": "alpha",
+            "meanError": 0,
+            "changedFraction": 0,
+            "alphaMeanError": 0
+          }
+        ]
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "mode": "gpu-low-complete",
+        "backend": "gpu",
+        "wall": {
+          "median": 11.299999952316284,
+          "p95": 12.800000011920929,
+          "max": 13.5
+        },
+        "complete": {
+          "median": 11.299999952316284,
+          "p95": 12.800000011920929,
+          "max": 13.599999964237213
+        },
+        "raf": {
+          "median": 16.69999998807907,
+          "p95": 17,
+          "max": 18.69999998807907
+        },
+        "stages": {
+          "prepareRead": {
+            "median": 6.899999976158142,
+            "p95": 7.700000047683716,
+            "max": 8.100000023841858
+          },
+          "edges": {
+            "median": 1.4000000357627869,
+            "p95": 1.800000011920929,
+            "max": 2
+          },
+          "cellSelection": {
+            "median": 1.9000000357627869,
+            "p95": 2.699999988079071,
+            "max": 3
+          },
+          "paint": {
+            "median": 0.40000003576278687,
+            "p95": 0.7000000476837158,
+            "max": 0.8999999761581421
+          },
+          "fence": {
+            "median": 0,
+            "p95": 0.10000002384185791,
+            "max": 0.10000002384185791
+          }
+        }
+      },
+      {
+        "width": 1920,
+        "height": 1080,
+        "mode": "gpu-low-complete",
+        "backend": "gpu",
+        "wall": {
+          "median": 23.80000001192093,
+          "p95": 27.19999998807907,
+          "max": 34.80000001192093
+        },
+        "complete": {
+          "median": 23.900000035762787,
+          "p95": 27.19999998807907,
+          "max": 34.80000001192093
+        },
+        "raf": {
+          "median": 24.299999952316284,
+          "p95": 27.600000023841858,
+          "max": 36.30000001192093
+        },
+        "stages": {
+          "prepareRead": {
+            "median": 16.700000047683716,
+            "p95": 18.799999952316284,
+            "max": 27
+          },
+          "edges": {
+            "median": 1.600000023841858,
+            "p95": 2.099999964237213,
+            "max": 2.199999988079071
+          },
+          "cellSelection": {
+            "median": 4.400000035762787,
+            "p95": 6,
+            "max": 7.699999988079071
+          },
+          "paint": {
+            "median": 0.5999999642372131,
+            "p95": 0.7999999523162842,
+            "max": 0.800000011920929
+          },
+          "fence": {
+            "median": 0,
+            "p95": 0.10000002384185791,
+            "max": 0.10000002384185791
+          }
+        }
+      }
+    ]
+  },
+  {
+    "mode": "gpu-full",
+    "device": {
+      "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0"
+    },
+    "runs": [
+      {
+        "width": 640,
+        "height": 360,
+        "mode": "gpu-full",
+        "backend": "gpu",
+        "wall": {
+          "median": 9.100000023841858,
+          "p95": 11.600000023841858,
+          "max": 12.5
+        },
+        "complete": {
+          "median": 9.100000023841858,
+          "p95": 11.600000023841858,
+          "max": 12.600000023841858
+        },
+        "raf": {
+          "median": 16.69999998807907,
+          "p95": 16.899999976158142,
+          "max": 17
+        },
+        "stages": {
+          "prepareRead": {
+            "median": 4.800000011920929,
+            "p95": 5.399999976158142,
+            "max": 5.5
+          },
+          "edges": {
+            "median": 1.5999999642372131,
+            "p95": 2.299999952316284,
+            "max": 2.599999964237213
+          },
+          "cellSelection": {
+            "median": 1.5,
+            "p95": 3.199999988079071,
+            "max": 3.400000035762787
+          },
+          "paint": {
+            "median": 0.6000000238418579,
+            "p95": 0.800000011920929,
+            "max": 0.8999999761581421
+          },
+          "fence": {
+            "median": 0,
+            "p95": 0.10000002384185791,
+            "max": 0.10000002384185791
+          }
+        },
+        "differences": [
+          {
+            "material": "photo",
+            "meanError": 2.314697265625,
+            "changedFraction": 0.020244140625,
+            "alphaMeanError": 0
+          },
+          {
+            "material": "shapes",
+            "meanError": 0.23566189236111112,
+            "changedFraction": 0.0036848958333333334,
+            "alphaMeanError": 0
+          },
+          {
+            "material": "text",
+            "meanError": 0.19069010416666668,
+            "changedFraction": 0.0020572916666666665,
+            "alphaMeanError": 0
+          },
+          {
+            "material": "alpha",
+            "meanError": 0.6789312065972222,
+            "changedFraction": 0.0035774739583333335,
+            "alphaMeanError": 0
+          }
+        ]
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "mode": "gpu-full",
+        "backend": "gpu",
+        "wall": {
+          "median": 20.80000001192093,
+          "p95": 24.700000047683716,
+          "max": 29.19999998807907
+        },
+        "complete": {
+          "median": 20.80000001192093,
+          "p95": 24.700000047683716,
+          "max": 29.19999998807907
+        },
+        "raf": {
+          "median": 21.399999976158142,
+          "p95": 25.5,
+          "max": 29.599999964237213
+        },
+        "stages": {
+          "prepareRead": {
+            "median": 13.300000011920929,
+            "p95": 14.400000035762787,
+            "max": 20.69999998807907
+          },
+          "edges": {
+            "median": 1.4000000357627869,
+            "p95": 1.899999976158142,
+            "max": 2.099999964237213
+          },
+          "cellSelection": {
+            "median": 5.200000047683716,
+            "p95": 7.300000011920929,
+            "max": 8.899999976158142
+          },
+          "paint": {
+            "median": 0.6000000238418579,
+            "p95": 0.7000000476837158,
+            "max": 0.9000000357627869
+          },
+          "fence": {
+            "median": 0,
+            "p95": 0.10000002384185791,
+            "max": 0.10000002384185791
+          }
+        }
+      },
+      {
+        "width": 1920,
+        "height": 1080,
+        "mode": "gpu-full",
+        "backend": "gpu",
+        "wall": {
+          "median": 43.30000001192093,
+          "p95": 50.30000001192093,
+          "max": 72.5
+        },
+        "complete": {
+          "median": 43.30000001192093,
+          "p95": 50.30000001192093,
+          "max": 72.59999996423721
+        },
+        "raf": {
+          "median": 43.799999952316284,
+          "p95": 51.69999998807907,
+          "max": 73
+        },
+        "stages": {
+          "prepareRead": {
+            "median": 28.30000001192093,
+            "p95": 29.5,
+            "max": 29.900000035762787
+          },
+          "edges": {
+            "median": 1.5,
+            "p95": 2,
+            "max": 10
+          },
+          "cellSelection": {
+            "median": 12.099999964237213,
+            "p95": 18.19999998807907,
+            "max": 33.89999997615814
+          },
+          "paint": {
+            "median": 0.699999988079071,
+            "p95": 0.8999999761581421,
+            "max": 3.399999976158142
+          },
+          "fence": {
+            "median": 0,
+            "p95": 0.09999996423721313,
+            "max": 0.10000002384185791
+          }
+        }
+      }
+    ]
+  }
+]

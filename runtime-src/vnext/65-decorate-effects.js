@@ -5,15 +5,20 @@
   const api = global.ToSampoolRuntimeVNext;
   const active = (group, id) => group && group[id] && group[id].enabled ? group[id] : null;
   const alpha = value => Math.max(0, Math.min(1, Number.isFinite(+value) ? +value : 1));
-  const blend = value => ({normal:'source-over',screen:'screen',multiply:'multiply',lighter:'lighter'})[value || 'normal'] || 'source-over';
+  const blend = value => api.modules.blend.toCanvas(value);
   function animated(id,config,time){
-    const motion=config&&config.motion;if(!motion||!motion.enabled)return config;const next=Object.assign({},config),period=Math.max(.001,+motion.period||1),phase=((time/period)%1+1)%1;
-    if(id==='tint-overlay'&&(motion.type==='fade'||motion.type==='blink')){const amount=alpha(motion.amount),wave=motion.type==='blink'?(Math.floor(phase*Math.max(2,Math.round(+motion.steps||2)))%2):((Math.sin(phase*Math.PI*2)+1)/2);next.alpha=alpha((+config.alpha||0)*(1-amount*wave));}
+    const motion=config&&config.motion;if(!motion||!motion.enabled)return config;const next=Object.assign({},config);
+    if(id==='tint-overlay'&&(motion.type==='fade'||motion.type==='blink')){const amount=alpha(motion.amount),spec=motion.type==='blink'?{...motion,curve:'step'}:motion,wave=(api.modules.motion.oscillate(spec,time,{stepped:motion.type==='blink',frames:2})+1)/2;next.alpha=alpha((+config.alpha||0)*(1-amount*wave));}
     if(id==='texture-overlay'&&['pattern-drift','pattern-step','pattern-random','pattern-pulse','texture-drift','random-hold','noise-snow'].includes(motion.type))next._patternTime=time;
+    if(id==='grain-overlay'&&motion.type==='grain-refresh')next._grainTime=time;
     return next;
   }
   function tintedSurface(source, surfaces, color, opacity, dx, dy) {
     const target = surfaces.acquire(source.width, source.height), ctx = target.getContext('2d');
+    // Outline/sample outputs leave nearest-neighbour state on pooled surfaces.
+    // Projection offsets can be fractional: restore the first-draw filtering
+    // contract before copying alpha, independently of the previous pool user.
+    ctx.imageSmoothingEnabled = true;
     ctx.clearRect(0, 0, target.width, target.height);
     ctx.drawImage(source, dx || 0, dy || 0);
     ctx.globalCompositeOperation = 'source-in'; ctx.globalAlpha = alpha(opacity); ctx.fillStyle = color || '#000000'; ctx.fillRect(0, 0, target.width, target.height);
@@ -53,7 +58,7 @@
     const tint = tintedSurface(source, surfaces, config.color, config.alpha, 0, 0);
     const output = surfaces.acquire(source.width, source.height), ctx = output.getContext('2d');
     ctx.clearRect(0, 0, output.width, output.height); ctx.drawImage(source, 0, 0);
-    ctx.globalCompositeOperation = ['normal', 'screen', 'multiply', 'lighter'].includes(config.blend) ? config.blend : 'source-over';
+    ctx.globalCompositeOperation = blend(config.blend);
     ctx.drawImage(tint, 0, 0); ctx.globalCompositeOperation = 'source-over'; surfaces.release(tint); return output;
   }
   function textureAlpha(source, config, surfaces) {
@@ -64,8 +69,39 @@
     ctx.clearRect(0, 0, texture.width, texture.height);ctx.globalAlpha=alpha(config.alpha);if(stamp)ctx.drawImage(stamp,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation = 'destination-in'; ctx.drawImage(source, 0, 0); ctx.globalCompositeOperation = 'source-over'; return texture;
   }
   function textureOverlay(source, config, surfaces) {
-    const texture = textureAlpha(source, config, surfaces), output = surfaces.acquire(source.width, source.height), ctx = output.getContext('2d');
-    ctx.clearRect(0, 0, output.width, output.height); ctx.drawImage(source, 0, 0); ctx.globalCompositeOperation = ['normal', 'screen', 'multiply', 'lighter'].includes(config.blend) ? config.blend : 'source-over'; ctx.drawImage(texture, 0, 0); ctx.globalCompositeOperation = 'source-over'; surfaces.release(texture); return output;
+    const texture = textureAlpha(source, config, surfaces);
+    if (config.blend === 'hard-mix') {
+      const output = api.modules.hardMix.composite(source, texture, surfaces);
+      surfaces.release(texture);
+      return output;
+    }
+    const output = surfaces.acquire(source.width, source.height), ctx = output.getContext('2d');
+    ctx.clearRect(0, 0, output.width, output.height); ctx.drawImage(source, 0, 0); ctx.globalCompositeOperation = blend(config.blend); ctx.drawImage(texture, 0, 0); ctx.globalCompositeOperation = 'source-over'; surfaces.release(texture); return output;
+  }
+  function grainOverlay(source, config, surfaces) {
+    const amount = alpha(config.amount == null ? .15 : config.amount);
+    if (amount <= 0) return source;
+    const builds = api.modules.grain.stats().builds;
+    const stamp = api.modules.grain.frame(source.width, source.height, config, config._grainTime == null ? 0 : config._grainTime);
+    if (!stamp) return source;
+    if (surfaces.notePixels && api.modules.grain.stats().builds !== builds) surfaces.notePixels(stamp.width, stamp.height, 1);
+    const layer = surfaces.acquire(source.width, source.height), layerCtx = layer.getContext('2d');
+    layerCtx.clearRect(0, 0, layer.width, layer.height);
+    layerCtx.imageSmoothingEnabled = false;
+    layerCtx.globalAlpha = amount;
+    layerCtx.drawImage(stamp, 0, 0, layer.width, layer.height);
+    layerCtx.globalAlpha = 1;
+    layerCtx.globalCompositeOperation = 'destination-in';
+    layerCtx.drawImage(source, 0, 0);
+    layerCtx.globalCompositeOperation = 'source-over';
+    const output = surfaces.acquire(source.width, source.height), ctx = output.getContext('2d');
+    ctx.clearRect(0, 0, output.width, output.height);
+    ctx.drawImage(source, 0, 0);
+    ctx.globalCompositeOperation = blend(config.blend);
+    ctx.drawImage(layer, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    surfaces.release(layer);
+    return output;
   }
   /* A glow is not a stack of full outlines: that would add their alpha and
      make the band nearest the edge much brighter than its declared opacity.
@@ -105,13 +141,14 @@
     const output=surfaces.acquire(back.width,back.height),ctx=output.getContext('2d');
     ctx.clearRect(0,0,output.width,output.height);ctx.drawImage(back,0,0);ctx.drawImage(front,0,0);return output;
   }
-  function apply(source, group, surfaces, frame) {
+  function apply(source, group, surfaces, frame, samplingSize) {
     let current = source;
-    const handlers = { projection, outline, 'tint-overlay': tintOverlay, 'texture-overlay': textureOverlay, 'inner-light': innerLight, 'outer-light': outerLight };
-    for (const id of ['projection', 'outline', 'tint-overlay', 'texture-overlay', 'inner-light', 'outer-light']) {
+    const handlers = { projection, outline, 'tint-overlay': tintOverlay, 'texture-overlay': textureOverlay, 'inner-light': innerLight, 'outer-light': outerLight, 'grain-overlay': grainOverlay };
+    for (const id of ['projection', 'outline', 'tint-overlay', 'texture-overlay', 'inner-light', 'outer-light', 'grain-overlay']) {
       const config = active(group, id); if (!config) continue;
       const handler = handlers[id]; if (!handler) throw new Error(`Runtime vNext 尚未实现加样效果：${id}`);
       const resolved=animated(id,config,frame&&frame.time||0);
+      if(id==='texture-overlay')resolved._samplingSize=Math.max(1,Math.round(+samplingSize||1));
       // By default the edge is derived from the object's own alpha, so a hard
       // projection remains behind it.  The explicit flag preserves the older
       // combined-alpha look for artwork that intentionally outlines its shadow.
@@ -131,5 +168,5 @@
     const outer = active(group, 'outer-light'); if (outer) amount = Math.max(amount, Math.ceil(Math.max(1, +outer.size || 1)) + 2);
     return amount;
   }
-  api.modules.decorate = Object.freeze({ apply, padding });
+  api.modules.decorate = Object.freeze({ apply, padding, animated });
 })(typeof window !== 'undefined' ? window : globalThis);

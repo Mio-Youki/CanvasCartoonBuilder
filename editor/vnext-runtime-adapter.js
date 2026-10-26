@@ -18,11 +18,11 @@
     if (!global.EditorVNextScene) throw new Error('无法创建 vNext 预览：EditorVNextScene 未加载');
     return runtime().createRuntime(global.EditorVNextScene.hydrate(document, runtimeAssets));
   }
-  function renderTo(canvas, document, runtimeAssets, time, options) { return create(document, runtimeAssets).renderTo(canvas, time || 0,options); }
+  function renderTo(canvas, document, runtimeAssets, time, options) { const player=create(document,runtimeAssets);try{return player.renderTo(canvas,time||0,options);}finally{player.dispose?.();} }
   async function createResolved(document, options) {
     if (!global.EditorVNextAssetLoader) throw new Error('无法创建 vNext 预览：EditorVNextAssetLoader 未加载');
     return create(document, await global.EditorVNextAssetLoader.resolve(document, options));
   }
-  async function renderResolvedTo(canvas, document, options, time, preview) { return (await createResolved(document, options)).renderTo(canvas, time || 0,preview); }
+  async function renderResolvedTo(canvas, document, options, time, preview) { const player=await createResolved(document,options);try{return await player.renderTo(canvas,time||0,preview);}finally{player.dispose?.();} }
   global.EditorVNextRuntimeAdapter = Object.freeze({ issue, create, renderTo, createResolved, renderResolvedTo });
 })(typeof window !== 'undefined' ? window : globalThis);

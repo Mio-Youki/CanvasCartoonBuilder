@@ -14,6 +14,11 @@
     if (!sample || typeof sample !== 'object') return sample || {};
     const group = sample, controllers = Object.assign({}, group.controllers || {}), uneven = group['uneven-sampling'];
     const halftone = group.halftone;
+    if(group['color-map']){
+      const map=group['color-map'];delete map.motion;
+      map.mode=map.mode==='gradient'?'gradient':'discrete';
+      map.colors=2**Math.max(1,Math.min(6,Math.round(Math.log2(Math.max(2,+map.colors||16)))));
+    }
     // v4.2 gives halftone one unambiguous scale: sampling-grid × size.
     // Earlier drafts stored a raw point radius plus a separate spacing; the
     // spacing is the closest equivalent of the new unit multiplier.
@@ -42,6 +47,14 @@
   }
   function normalize(document) {
     const scene = copy(document) || blank();
+    global.EditorVNextAssetState?.validateLibrary(scene);
+    if(scene.elementPresets!=null){if(!global.EditorV4ElementPresets)throw Error('当前编辑器不支持元素预设');global.EditorV4ElementPresets.validateScene(scene);}
+    if(scene.materialShares!=null){if(!global.EditorV4MaterialSharing)throw Error('当前编辑器不支持素材共享关系');global.EditorV4MaterialSharing.validateScene(scene);}
+    global.ToSampoolRuntimeVNext?.modules.patternProviders?.validateScene(scene);
+    for(const preset of Object.values(scene.patternResources||{}))if(preset?.mode==='path'){
+      if(!global.EditorV4PathPatternPresets)throw Error('当前编辑器不支持路径图样预设');
+      global.EditorV4PathPatternPresets.normalize(preset);
+    }
     for (const entity of scene.entities || []) if (entity && entity.effects && entity.effects.sample) normalizeSample(entity.effects.sample);
     if (scene.sceneEffects && scene.sceneEffects.sample) {
       normalizeSample(scene.sceneEffects.sample);
@@ -50,6 +63,7 @@
       // an object contour would be misleading, so edge protection is object-only.
       if (uneven && uneven.edge) uneven.edge = Object.assign({}, uneven.edge, { mode:'off' });
     }
+    global.ToSampoolRuntimeVNext?.modules.maskContract?.stripSceneTiming(scene);
     return scene;
   }
   function blank(options) {
@@ -57,6 +71,10 @@
     return { format: FORMAT, width: Math.max(1, +options.width || 320), height: Math.max(1, +options.height || 180), loop: Math.max(.001, +options.loop || 4), background: { color: '#ffffff', alpha: 1, layers: [] }, assets: {}, entities: [], timeline: { tracks: {} }, sceneEffects: { pipeline: ['overlay', 'sample'], overlay: {}, sample: {} } };
   }
   function serialize(scene, space) { const document = normalize(scene); document.format = FORMAT; delete document.runtimeAssets; return JSON.stringify(document, null, space == null ? 2 : space); }
+  function preparePortable(scene){
+    const document=normalize(scene),snapshots=global.ToSampoolRuntimeVNext?.modules.patternSnapshots;
+    return snapshots?snapshots.prepareScene(document):document;
+  }
   function hydrate(document, runtimeAssets) {
     const scene = normalize(document);
     // `_moduleScope` is deliberately transient: it must never be written to a
@@ -68,5 +86,5 @@
     return scene;
   }
   function assetRef(locator, extra) { return Object.assign({ locator: String(locator || '') }, extra || {}); }
-  global.EditorVNextScene = Object.freeze({ FORMAT, blank, serialize, hydrate, normalize, normalizeSample, assetRef });
+  global.EditorVNextScene = Object.freeze({ FORMAT, blank, serialize,preparePortable, hydrate, normalize, normalizeSample, assetRef });
 })(typeof window !== 'undefined' ? window : globalThis);

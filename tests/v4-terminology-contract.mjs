@@ -41,6 +41,9 @@ assert.equal(param(effect('halftone'),'rowOffset').label,'错列偏移');
 assert.equal(param(effect('uneven-sampling'),'coarseness').label,'最大采样');
 assert.equal(param(effect('inner-light'),'size').label,'光效范围');
 assert.equal(param(effect('outer-light'),'size').label,'光效范围');
+for(const [key,label] of Object.entries({size:'相对尺寸',exposure:'亮度',attenuation:'对比',edgeSensitivity:'检测灵敏度',edgeCoverage:'显示阈值'}))assert.equal(param(effect('ascii-mapping'),key).label,label);
+assert.equal(param(effect('ascii-mapping'),'size').integer,true);assert.equal(param(effect('ascii-mapping'),'size').step,1);
+assert.equal(param(effect('ascii-mapping'),'edgeCharacters').default,'—|/\\');
 
 for(const definition of effects){
   for(const entry of definition.params||[])if(entry.key==='alpha')assert.equal(entry.label,'透明度',`${definition.id}.alpha 必须统一为透明度`);

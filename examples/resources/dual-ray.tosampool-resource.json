@@ -1,0 +1,305 @@
+{
+  "format": "tosampool-resource-package/v1",
+  "version": 1,
+  "roots": [
+    "pattern:proposal.dual-ray-v2@1"
+  ],
+  "entries": [
+    {
+      "format": "tosampool-resource/v1",
+      "kind": "pattern",
+      "id": "proposal.dual-ray-v2",
+      "version": 1,
+      "name": "双色放射",
+      "payload": {
+        "preset": {
+          "mode": "path",
+          "name": "双色放射",
+          "engineId": "proposal.dual-ray",
+          "engineVersion": 2,
+          "carrier": "rect",
+          "params": {
+            "carrier": "rect",
+            "pairs": 12,
+            "colorA": "#e6dec8",
+            "alphaA": 1,
+            "colorB": "#9c9888",
+            "alphaB": 1,
+            "centerX": 0.62,
+            "centerY": 0.58,
+            "angle": 0,
+            "ratio": 0.5,
+            "motion": true,
+            "period": 12,
+            "direction": "clockwise",
+            "curve": "linear",
+            "stepped": false,
+            "periodFrames": 8
+          },
+          "definition": {
+            "format": "tosampool-pattern-generator/v1",
+            "id": "proposal.dual-ray",
+            "version": 2,
+            "name": "双色放射",
+            "implementation": "dual-ray-v2",
+            "carriers": [
+              "rect",
+              "ellipse",
+              "poly"
+            ],
+            "parameters": [
+              {
+                "key": "carrier",
+                "label": "载体",
+                "type": "select",
+                "default": "rect",
+                "timing": "No",
+                "options": [
+                  "rect",
+                  "ellipse",
+                  "regular",
+                  "free"
+                ],
+                "labels": [
+                  "矩形",
+                  "椭圆",
+                  "正多边形",
+                  "自由多边形"
+                ]
+              },
+              {
+                "key": "pairs",
+                "label": "色块对数",
+                "type": "number",
+                "default": 12,
+                "min": 2,
+                "max": 128,
+                "step": 1,
+                "integer": true,
+                "timing": "Step"
+              },
+              {
+                "key": "colorA",
+                "label": "颜色一",
+                "type": "color",
+                "default": "#e6dec8",
+                "timing": "Linear"
+              },
+              {
+                "key": "alphaA",
+                "label": "颜色一透明度",
+                "type": "number",
+                "default": 1,
+                "min": 0,
+                "max": 1,
+                "step": 0.01,
+                "timing": "Linear"
+              },
+              {
+                "key": "colorB",
+                "label": "颜色二",
+                "type": "color",
+                "default": "#9c9888",
+                "timing": "Linear"
+              },
+              {
+                "key": "alphaB",
+                "label": "颜色二透明度",
+                "type": "number",
+                "default": 1,
+                "min": 0,
+                "max": 1,
+                "step": 0.01,
+                "timing": "Linear"
+              },
+              {
+                "key": "centerX",
+                "label": "中心 X",
+                "type": "number",
+                "default": 0.62,
+                "min": -0.5,
+                "max": 1.5,
+                "step": 0.01,
+                "timing": "Linear"
+              },
+              {
+                "key": "centerY",
+                "label": "中心 Y",
+                "type": "number",
+                "default": 0.58,
+                "min": -0.5,
+                "max": 1.5,
+                "step": 0.01,
+                "timing": "Linear"
+              },
+              {
+                "key": "angle",
+                "label": "起始角度",
+                "type": "number",
+                "default": 0,
+                "min": -720,
+                "max": 720,
+                "step": 0.1,
+                "timing": "Linear",
+                "interpolation": "angle-direct"
+              },
+              {
+                "key": "ratio",
+                "label": "色块占比",
+                "type": "number",
+                "default": 0.5,
+                "min": 0.05,
+                "max": 0.95,
+                "step": 0.01,
+                "timing": "Linear"
+              },
+              {
+                "key": "motion",
+                "label": "动态 · 旋转",
+                "type": "boolean",
+                "default": true,
+                "timing": "Step"
+              },
+              {
+                "key": "period",
+                "label": "周期时间",
+                "type": "number",
+                "default": 12,
+                "min": 0.25,
+                "max": 120,
+                "step": 0.25,
+                "timing": "Step",
+                "when": "motion"
+              },
+              {
+                "key": "direction",
+                "label": "方向",
+                "type": "select",
+                "default": "clockwise",
+                "timing": "Step",
+                "options": [
+                  "clockwise",
+                  "counterclockwise"
+                ],
+                "labels": [
+                  "顺时针",
+                  "逆时针"
+                ],
+                "when": "motion"
+              },
+              {
+                "key": "curve",
+                "label": "运动节奏",
+                "type": "select",
+                "default": "linear",
+                "timing": "Step",
+                "options": [
+                  "linear",
+                  "smooth",
+                  "ease-in",
+                  "ease-out"
+                ],
+                "labels": [
+                  "均匀",
+                  "柔和",
+                  "加速",
+                  "减速"
+                ],
+                "when": "motion"
+              },
+              {
+                "key": "stepped",
+                "label": "逐帧",
+                "type": "boolean",
+                "default": false,
+                "timing": "Step",
+                "when": "motion"
+              },
+              {
+                "key": "periodFrames",
+                "label": "周期帧数",
+                "type": "number",
+                "default": 8,
+                "min": 1,
+                "max": 10000,
+                "step": 1,
+                "integer": true,
+                "timing": "Step",
+                "when": "stepped"
+              }
+            ],
+            "controls": [
+              {
+                "component": "field",
+                "key": "carrier"
+              },
+              {
+                "component": "field",
+                "key": "pairs"
+              },
+              {
+                "component": "color-alpha",
+                "key": "colorA",
+                "alphaKey": "alphaA"
+              },
+              {
+                "component": "color-alpha",
+                "key": "colorB",
+                "alphaKey": "alphaB"
+              },
+              {
+                "component": "field",
+                "key": "centerX"
+              },
+              {
+                "component": "field",
+                "key": "centerY"
+              },
+              {
+                "component": "field",
+                "key": "angle"
+              },
+              {
+                "component": "field",
+                "key": "ratio"
+              },
+              {
+                "component": "field",
+                "key": "motion"
+              },
+              {
+                "component": "field",
+                "key": "period"
+              },
+              {
+                "component": "field",
+                "key": "direction"
+              },
+              {
+                "component": "field",
+                "key": "curve"
+              },
+              {
+                "component": "field",
+                "key": "stepped"
+              },
+              {
+                "component": "field",
+                "key": "periodFrames"
+              }
+            ],
+            "output": "carrier-clipped-paint",
+            "dependencies": [],
+            "budget": {
+              "layers": 256,
+              "commands": 1024
+            }
+          }
+        }
+      },
+      "dependencies": [],
+      "hash": "sha256:64590efbee771fc2de7d4e0aa0d63de9d6fd311c11a7be635913aaa143d57699"
+    }
+  ],
+  "hash": "sha256:c008799c535b88781de0e81f3700bfe56cefea82a4d6bfbb632c8403bbfdd7c5"
+}

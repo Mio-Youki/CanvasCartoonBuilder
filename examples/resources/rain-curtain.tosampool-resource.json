@@ -1,0 +1,80 @@
+{
+  "format": "tosampool-resource-package/v1",
+  "version": 1,
+  "roots": [
+    "module:example.rain-curtain@1"
+  ],
+  "entries": [
+    {
+      "format": "tosampool-resource/v1",
+      "kind": "module",
+      "id": "example.rain-curtain",
+      "version": 1,
+      "name": "雨幕",
+      "payload": {
+        "descriptor": {
+          "id": "example.rain-curtain",
+          "version": 1,
+          "manifest": {
+            "format": "tosampool-scene-module/v1",
+            "id": "example.rain-curtain",
+            "version": 1,
+            "title": "雨幕",
+            "purpose": "可复用的轻量雨幕；每个实例独立控制雨量、周期和颜色。",
+            "recommendedCanvas": {
+              "width": 480,
+              "height": 270
+            },
+            "timeDependent": true,
+            "assets": [],
+            "parameters": [
+              {
+                "key": "amount",
+                "label": "雨量",
+                "type": "number",
+                "default": 60,
+                "min": 0,
+                "max": 240,
+                "integer": true,
+                "step": 1,
+                "timing": "step"
+              },
+              {
+                "key": "period",
+                "label": "周期时间",
+                "type": "number",
+                "default": 4,
+                "min": 0.2,
+                "max": 60,
+                "step": 0.1,
+                "timing": "step"
+              },
+              {
+                "key": "color",
+                "label": "雨色",
+                "type": "color",
+                "default": "#77bbff",
+                "timing": "step"
+              },
+              {
+                "key": "seed",
+                "label": "随机种子",
+                "type": "number",
+                "default": 7,
+                "min": 0,
+                "max": 65535,
+                "integer": true,
+                "step": 1,
+                "timing": "step"
+              }
+            ]
+          },
+          "locator": "data:text/javascript;base64,LyogVHJ1c3RlZCBkZW1vIG1vZHVsZS4gRGV0ZXJtaW5pc3RpYyByZWN0YW5nbGVzLCBubyBleHRlcm5hbCBhc3NldHMgb3Igc2VydmljZXMuICovCihmdW5jdGlvbiAoKSB7CiAgJ3VzZSBzdHJpY3QnOwogIGNvbnN0IG1hbmlmZXN0ID0gewogICAgZm9ybWF0Oid0b3NhbXBvb2wtc2NlbmUtbW9kdWxlL3YxJywgaWQ6J2V4YW1wbGUucmFpbi1jdXJ0YWluJywgdmVyc2lvbjoxLAogICAgdGl0bGU6J+mbqOW5lScsIHB1cnBvc2U6J+WPr+WkjeeUqOeahOi9u+mHj+mbqOW5le+8m+avj+S4quWunuS+i+eLrOeri+aOp+WItumbqOmHj+OAgeWRqOacn+WSjOminOiJsuOAgicsCiAgICByZWNvbW1lbmRlZENhbnZhczp7d2lkdGg6NDgwLGhlaWdodDoyNzB9LCB0aW1lRGVwZW5kZW50OnRydWUsIGFzc2V0czpbXSwKICAgIHBhcmFtZXRlcnM6WwogICAgICB7a2V5OidhbW91bnQnLGxhYmVsOifpm6jph48nLHR5cGU6J251bWJlcicsZGVmYXVsdDo2MCxtaW46MCxtYXg6MjQwLGludGVnZXI6dHJ1ZSxzdGVwOjEsdGltaW5nOidzdGVwJ30sCiAgICAgIHtrZXk6J3BlcmlvZCcsbGFiZWw6J+WRqOacn+aXtumXtCcsdHlwZTonbnVtYmVyJyxkZWZhdWx0OjQsbWluOi4yLG1heDo2MCxzdGVwOi4xLHRpbWluZzonc3RlcCd9LAogICAgICB7a2V5Oidjb2xvcicsbGFiZWw6J+mbqOiJsicsdHlwZTonY29sb3InLGRlZmF1bHQ6JyM3N2JiZmYnLHRpbWluZzonc3RlcCd9LAogICAgICB7a2V5OidzZWVkJyxsYWJlbDon6ZqP5py656eN5a2QJyx0eXBlOidudW1iZXInLGRlZmF1bHQ6NyxtaW46MCxtYXg6NjU1MzUsaW50ZWdlcjp0cnVlLHN0ZXA6MSx0aW1pbmc6J3N0ZXAnfQogICAgXQogIH07CiAgZnVuY3Rpb24gcmFuZG9tKGluZGV4LHNlZWQpIHsKICAgIGxldCBuPU1hdGguaW11bChpbmRleCsxLDM3NDc2MTM5MyleTWF0aC5pbXVsKHNlZWQrMSw2NjgyNjUyNjMpOwogICAgbj1NYXRoLmltdWwobl4obj4+PjEzKSwxMjc0MTI2MTc3KTtyZXR1cm4gKChuXihuPj4+MTYpKT4+PjApLzQyOTQ5NjcyOTY7CiAgfQogIFRvU2FtcG9vbFJ1bnRpbWVWTmV4dC5tb2R1bGVzLnNjZW5lTW9kdWxlcy5yZWdpc3Rlcih7bWFuaWZlc3QsCiAgICByZW5kZXIoe2N0eCx3aWR0aCxoZWlnaHQscGFyYW1zLHRpbWV9KSB7CiAgICAgIGNvbnN0IHByb2dyZXNzPSgodGltZS9wYXJhbXMucGVyaW9kKSUxKzEpJTE7CiAgICAgIGN0eC5maWxsU3R5bGU9cGFyYW1zLmNvbG9yOwogICAgICBmb3IobGV0IGk9MDtpPHBhcmFtcy5hbW91bnQ7aSsrKSB7CiAgICAgICAgY29uc3QgeD1yYW5kb20oaSxwYXJhbXMuc2VlZCkqd2lkdGgtd2lkdGgvMjsKICAgICAgICBjb25zdCB5PSgocmFuZG9tKGkrMjU2LHBhcmFtcy5zZWVkKStwcm9ncmVzcyklMSkqaGVpZ2h0LWhlaWdodC8yOwogICAgICAgIGNvbnN0IGxlbmd0aD0zK01hdGguZmxvb3IocmFuZG9tKGkrNTEyLHBhcmFtcy5zZWVkKSo2KTsKICAgICAgICBjdHguZmlsbFJlY3QoTWF0aC5yb3VuZCh4KSxNYXRoLnJvdW5kKHkpLDEsTWF0aC5taW4obGVuZ3RoLGhlaWdodC8yLXkpKTsKICAgICAgICBpZih5K2xlbmd0aD5oZWlnaHQvMiljdHguZmlsbFJlY3QoTWF0aC5yb3VuZCh4KSwtaGVpZ2h0LzIsMSx5K2xlbmd0aC1oZWlnaHQvMik7CiAgICAgIH0KICAgIH0KICB9KTsKfSkoKTsK"
+        }
+      },
+      "dependencies": [],
+      "hash": "sha256:2dca1a5fa8d63a0e4f8397d9924509cb3a84d66bdc39c3f4442290f583704c78"
+    }
+  ],
+  "hash": "sha256:4edb60d93c47700dfc0cc89af12ff96d228c155536de161a236350b08673e9a4"
+}

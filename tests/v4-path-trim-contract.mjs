@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import {readFileSync} from 'node:fs';
+const c=vm.createContext({});for(const file of ['home-scene-vnext.js','editor/classic-v4-stroke-style-control.js','editor/classic-v4-formation-parameters.js'])vm.runInContext(readFileSync(new URL('../'+file,import.meta.url),'utf8'),c);
+const rt=c.ToSampoolRuntimeVNext,plain=v=>JSON.parse(JSON.stringify(v)),line={type:'stroke',points:[[0,0],[100,0]],pathRevealEnabled:true,strokeTrimStart:20,strokeCompletion:60};
+assert.deepEqual(plain(rt.modules.pathStroke.reveal(line).points),[[20,0],[60,0]]);assert.equal(rt.modules.pathStroke.reveal({...line,strokeCompletion:10}).points.length,0);
+assert.deepEqual(plain(rt.modules.pathStroke.reveal({...line,strokeReverse:true}).points),[[40,0],[80,0]]);
+const shape={type:'rect',x:0,y:0,w:100,h:100,pathRevealEnabled:true,strokeTrimStart:75,strokeCompletion:25},g=rt.modules.pathGeometry.full(shape),visible=rt.modules.pathGeometry.visible(shape,g.stroke,true);assert.equal(rt.modules.pathStroke.pathLengths(visible.points).total,200);
+assert.equal(rt.modules.pathStroke.trimInterval({...shape,strokeCompletion:75},true).amount,0);assert.equal(rt.modules.pathStroke.progress({...line,pathRevealEnabled:false}).strokeTrimStart,0);
+assert.equal(c.EditorClassicV4StrokeStyle.labels.pathRevealEnabled,'路径截取');assert.equal(c.EditorClassicV4StrokeStyle.labels.strokeTrimStart,'截取起点');assert.equal(c.EditorClassicV4StrokeStyle.labels.strokeCompletion,'截取终点');assert.equal(c.EditorClassicV4FormationParameters.parameter('path','strokeTrimStart').timing,'Linear');
+console.log('✓ path trim names, default/forward/reverse/open-empty/closed-wrap and shared Linear binding');

@@ -10,6 +10,8 @@
     seen = seen || new WeakSet(); if (seen.has(value)) return false; seen.add(value);
     if (value.motion && value.motion.enabled) return true;
     if (value.anim && value.anim !== 'none') return true;
+    if (value.recipe?.definition?.format === 'tosampool-pattern-generator/v1' && value.recipe.params?.motion === true) return true;
+    if (value.definition?.format==='tosampool-pattern-generator/v1'&&value.enabled&&value.params?.motion===true)return true;
     for (const child of Object.values(value)) if (child && typeof child === 'object' && hasEnabledMotion(child, seen)) return true;
     return false;
   }
@@ -23,10 +25,6 @@
     return list.length - 1;
   }
 
-  // A `scene-background:<scene-id>` track is local to one top-level Scene.
-  // Its f range is always 0..1 inside that Scene, not inside the whole loop.
-  // Treating it as a global track made a newly inserted late Scene reuse the
-  // first canvas frame until another invalidation happened.
   function sceneSegmentAt(scene, rel) {
     const list = scene && scene.timeline && Array.isArray(scene.timeline.scenes) && scene.timeline.scenes.length
       ? scene.timeline.scenes : [{ id:'scene-0', f:[0,1] }];
@@ -35,12 +33,19 @@
     return { index, segment, local:Math.max(0, Math.min(1, (rel - start) / Math.max(.000001, end - start))) };
   }
 
-  function trackPosition(scene, key, rel) {
-    if (!String(key || '').startsWith('scene-background:')) return rel;
-    const current = sceneSegmentAt(scene, rel), id = String(key).slice('scene-background:'.length);
-    // A track belonging to another Scene must still contribute a stable
-    // signature, but it must never decide the current Scene's frame.
-    return current.segment && String(current.segment.id || current.index) === id ? current.local : -1;
+  function textCursorMoves(entity, scene, rel) {
+    if (entity.type !== 'text') return false;
+    const timeline = global.ToSampoolRuntimeVNext && global.ToSampoolRuntimeVNext.modules.timeline;
+    let values = entity;
+    if (timeline) values = timeline.valuesFor(scene, entity.id, entity, rel);
+    else {
+      const track = scene.timeline && scene.timeline.tracks && scene.timeline.tracks[entity.id],
+        segments = track && track.segments || [], segment = segments[segmentIndex(segments,rel)], patch = segment && segment.values || {};
+      values = Object.assign({},entity,patch,{textCursor:Object.assign({},entity.textCursor,patch.textCursor)});
+      for (const key of ['enabled','period']) if (own(patch,'textCursor.'+key)) values.textCursor[key] = patch['textCursor.'+key];
+    }
+    return !!(values.textCursor && values.textCursor.enabled && +values.textCursor.period !== 0 &&
+      values.textCompletion != null && +values.textCompletion < 100);
   }
 
   function profile(scene, time) {
@@ -52,6 +57,11 @@
       return Array.isArray(frames) && frames.length > 1 && +asset.fps > 0;
     };
     for (const entity of value.entities || []) {
+      if((entity.parts||[]).some(p=>p.recipe?.definition?.format==='tosampool-pattern-generator/v1'||p.extensions?.attached?.some(id=>p.extensions[id]?.definition))){
+        const evaluated=global.ToSampoolRuntimeVNext?.modules.timeline.valuesFor(value,entity.id,entity,rel);
+        if(hasEnabledMotion(evaluated)){continuous=true;break;}
+      }
+      if (textCursorMoves(entity,value,rel)) { continuous = true; break; }
       const builtins=global.ToSampoolRuntimeVNext&&global.ToSampoolRuntimeVNext.modules&&global.ToSampoolRuntimeVNext.modules.builtins;
       const sceneModules=global.ToSampoolRuntimeVNext&&global.ToSampoolRuntimeVNext.modules&&global.ToSampoolRuntimeVNext.modules.sceneModules;
       if (entity.type === 'builtin' && builtins && builtins.timeDependent(entity)) { continuous = true; break; }
@@ -74,8 +84,9 @@
     // local background track yet; it must still redraw immediately on seek.
     const signatures = [`scene:${activeScene.segment && (activeScene.segment.id || activeScene.index)}`];
     for (const [key, track] of Object.entries(value.timeline && value.timeline.tracks || {})) {
+      if(String(key).startsWith('scene-background:'))continue;
       const segments = track && track.segments || [];
-      const position = trackPosition(value, key, rel), index = position < 0 ? -1 : segmentIndex(segments, position), segment = index < 0 ? {} : segments[index] || {};
+      const index = segmentIndex(segments, rel), segment = index < 0 ? {} : segments[index] || {};
       if (segment.type === 'linear') continuous = true;
       signatures.push(`${key}:${index}`);
     }
@@ -98,5 +109,5 @@
     return Object.freeze({ invalidate, shouldRender, rendered, deferred, snapshot, profile });
   }
 
-  global.EditorVNextPreviewScheduler = Object.freeze({ create, profile, segmentIndex, sceneSegmentAt, trackPosition, hasEnabledMotion });
+  global.EditorVNextPreviewScheduler = Object.freeze({ create, profile, segmentIndex, sceneSegmentAt, hasEnabledMotion });
 })(typeof window !== 'undefined' ? window : globalThis);

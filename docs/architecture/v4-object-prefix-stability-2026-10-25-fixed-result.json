@@ -1,0 +1,637 @@
+{
+  "browser": "156.0.4314.42",
+  "result": [
+    {
+      "variant": "combined",
+      "comparisons": [
+        {
+          "draw": 2,
+          "stages": {
+            "content": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "masks": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "decorate": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "sampling": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "final": {
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            }
+          }
+        },
+        {
+          "draw": 3,
+          "stages": {
+            "content": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "masks": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "decorate": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "sampling": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "final": {
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            }
+          }
+        },
+        {
+          "draw": 4,
+          "stages": {
+            "content": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "masks": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "decorate": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "sampling": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "final": {
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "variant": "projection",
+      "comparisons": [
+        {
+          "draw": 2,
+          "stages": {
+            "content": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "masks": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "decorate": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "sampling": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "final": {
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            }
+          }
+        },
+        {
+          "draw": 3,
+          "stages": {
+            "content": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "masks": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "decorate": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "sampling": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "final": {
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            }
+          }
+        },
+        {
+          "draw": 4,
+          "stages": {
+            "content": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "masks": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "decorate": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "sampling": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "final": {
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "variant": "outline",
+      "comparisons": [
+        {
+          "draw": 2,
+          "stages": {
+            "content": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "masks": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "decorate": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "sampling": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "final": {
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            }
+          }
+        },
+        {
+          "draw": 3,
+          "stages": {
+            "content": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "masks": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "decorate": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "sampling": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "final": {
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            }
+          }
+        },
+        {
+          "draw": 4,
+          "stages": {
+            "content": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "masks": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "decorate": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "sampling": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "final": {
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "variant": "integer-projection",
+      "comparisons": [
+        {
+          "draw": 2,
+          "stages": {
+            "content": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "masks": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "decorate": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "sampling": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "final": {
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            }
+          }
+        },
+        {
+          "draw": 3,
+          "stages": {
+            "content": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "masks": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "decorate": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "sampling": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "final": {
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            }
+          }
+        },
+        {
+          "draw": 4,
+          "stages": {
+            "content": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "masks": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "decorate": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "sampling": {
+              "input": {
+                "preMax": 0,
+                "alphaMax": 0
+              },
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            },
+            "final": {
+              "output": {
+                "preMax": 0,
+                "alphaMax": 0
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

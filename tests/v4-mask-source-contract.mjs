@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import {readFileSync} from 'node:fs';
+const c=vm.createContext({});for(const file of ['home-scene-vnext.js','editor/vnext-scene.js'])vm.runInContext(readFileSync(new URL('../'+file,import.meta.url),'utf8'),c);
+const rt=c.ToSampoolRuntimeVNext,m=rt.modules.maskContract,copy=v=>JSON.parse(JSON.stringify(v));
+const mask={type:'rect',x:1,y:2,w:8,h:9},base={id:'a',effects:{mask},particle:{count:4,emissionRange:mask}},track={segments:[{f:[0,.5],values:{'effects.mask.x':99,'particle.emissionRange.x':88,'particle.count':8,x:7}},{f:[.5,1],type:'linear',linearKeys:['effects.mask.x','x'],from:{'effects.mask.x':9,x:0},to:{'effects.mask.x':18,x:10}}]};
+const original=JSON.stringify(track),clean=m.withoutTiming(track);assert.equal(clean.segments.length,2);assert.equal(clean.segments[0].values.x,7);assert.equal(clean.segments[0].values['particle.count'],8);assert.equal(clean.segments[0].values['effects.mask.x'],undefined);assert.deepEqual(Array.from(clean.segments[1].linearKeys),['x']);assert.equal(JSON.stringify(track),original);assert.equal(m.withoutTiming(track),clean);
+let scene={timeline:{tracks:{a:track}}},value=rt.modules.timeline.valuesFor(scene,'a',base,.2);assert.equal(value.effects.mask.x,1);assert.equal(value.particle.emissionRange.x,1);assert.equal(value.particle.count,8);
+const nested={segments:[{f:[0,1],values:{effects:{mask:{type:'ellipse'},decorate:{}}}}]};value=rt.modules.timeline.valuesFor({timeline:{tracks:{a:nested}}},'a',base,.2);assert.equal(value.effects.mask,mask,'整对象覆层也不能绕过No');
+const effectTrack={segments:[{f:[0,1],values:{'mask.x':123,alpha:.25}}]},effect=rt.modules.timeline.effectValuesFor({timeline:{tracks:{'effect:scene:overlay:tint-overlay':effectTrack}}},'scene','overlay','tint-overlay',{mask,alpha:1},.4);assert.equal(effect.mask.x,1);assert.equal(effect.alpha,.25);
+const portable=c.EditorVNextScene.normalize({format:'tosampool-scene/v4',entities:[],timeline:{tracks:{a:copy(track)}}});assert.equal(portable.timeline.tracks.a.segments[0].values['effects.mask.x'],undefined);assert.equal(portable.timeline.tracks.a.segments.length,2);
+const group={id:'g',type:'group'},child={id:'child',type:'rect',parentId:'g',effects:{mask:{type:'element',targetId:'g'}}};assert.throws(()=>m.validateReferences({entities:[group,child]}),/循环/);
+assert.throws(()=>m.validateReferences({entities:[{id:'a',effects:{mask:{type:'element',targetId:'b'}}},{id:'b',effects:{mask:{type:'element',targetId:'a'}}}]}),/循环/);
+assert.throws(()=>m.validateReferences({entities:[{id:'a',effects:{mask:{type:'element',targetId:'missing'}}}]}),/不存在/);
+assert.throws(()=>rt.createRuntime({format:'tosampool-scene/v4',entities:[group,child]}),/循环/);
+assert.equal(m.validateReferences({entities:[group,{id:'child',parentId:'g',type:'rect'},{id:'a',effects:{mask:{type:'element',targetId:'g',mode:'luma'}}}]}),true);
+console.log('✓ mask source contract: No filters plus base restoration, unrelated fields/cuts retained, portable cleanup, group/member and indirect render cycle rejection');

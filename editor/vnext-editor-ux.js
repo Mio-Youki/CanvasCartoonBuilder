@@ -18,7 +18,7 @@
   function decorateAssets() {
     if (decorating) return; decorating = true;
     try {
-      const scene = api.scene(), assets = Object.entries(scene.assets || {}); assetRoot.innerHTML = '';
+      const scene = api.scene(), assets = Object.entries(scene.assets || {}).filter(([,asset]) => !(asset && (asset.internal || asset.generated === 'text-raster'))); assetRoot.innerHTML = '';
       if (!assets.length) { assetRoot.innerHTML = '<div class="asset-empty">尚无素材<br>点击右上 <b>+</b> 导入图片。</div>'; return; }
       for (const [id, asset] of assets) {
         const card = document.createElement('div'); card.className = 'lib-item'; card.draggable = true; card.dataset.assetId = id;

@@ -1,0 +1,7070 @@
+{
+  "date": "2026-10-25",
+  "browser": "156.0.4314.42",
+  "os": "win32",
+  "headless": true,
+  "viewport": [
+    1600,
+    1000
+  ],
+  "runtimeSha256": "065752ca337622394505f5d827fafa7b2fc804de61c1f315ff820e936e7ff78a",
+  "method": "Real editor transactions/view/workspace; full quality; 4 warmup + 24 samples; Runtime synchronous time, not device GPU time",
+  "errors": [],
+  "visual": [
+    {
+      "kind": "base",
+      "preMax": 0,
+      "alphaMax": 0,
+      "scene": "cpu",
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 2,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 3816192,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 234416,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "parts-mask",
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 2,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 3955968,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 243152,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 34,
+              "y": 58,
+              "w": 668,
+              "h": 364
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "step-linear-seek",
+      "t": 0.3,
+      "preMax": 0,
+      "alphaMax": 0,
+      "evaluatedX": 60,
+      "evaluatedRot": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 3979072,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 244596,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 73,
+              "y": 63,
+              "w": 654,
+              "h": 374
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "step-linear-seek",
+      "t": 1.8,
+      "preMax": 0,
+      "alphaMax": 0,
+      "evaluatedX": 76,
+      "evaluatedRot": 4.799999999999999,
+      "object": {
+        "contexts": 1,
+        "allocations": 9,
+        "disposals": 0,
+        "surfaceRebuilds": 2,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4724960,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 291214,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": true,
+        "surfacePrepareMs": 15.400000035762787,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 75,
+              "y": 36,
+              "w": 682,
+              "h": 427
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "step-linear-seek",
+      "t": 3.5,
+      "preMax": 0,
+      "alphaMax": 0,
+      "evaluatedX": 100,
+      "evaluatedRot": 12,
+      "object": {
+        "contexts": 1,
+        "allocations": 13,
+        "disposals": 0,
+        "surfaceRebuilds": 3,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 6060832,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 374706,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": true,
+        "surfacePrepareMs": 4.300000011920929,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 75,
+              "y": -7,
+              "w": 729,
+              "h": 514
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "step-linear-seek",
+      "t": 0.3,
+      "preMax": 0,
+      "alphaMax": 0,
+      "evaluatedX": 60,
+      "evaluatedRot": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 17,
+        "disposals": 0,
+        "surfaceRebuilds": 4,
+        "sourceUploads": 6,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 3979072,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 244596,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": true,
+        "surfacePrepareMs": 5.699999988079071,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 73,
+              "y": 63,
+              "w": 654,
+              "h": 374
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    }
+  ],
+  "samplingVisual": [
+    {
+      "kind": "noise-mono",
+      "t": 0.2,
+      "signature": 3661948575,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 7,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 2,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 7,
+        "liveSurfaceTextures": 5,
+        "programCount": 3,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 3902336,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 234416,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "noise-mono",
+      "t": 0.8,
+      "signature": 712899391,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 7,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 7,
+        "liveSurfaceTextures": 5,
+        "programCount": 3,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 3902336,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 234416,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "noise-mono",
+      "t": 0.2,
+      "signature": 3661948575,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 7,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 7,
+        "liveSurfaceTextures": 5,
+        "programCount": 3,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 3902336,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 234416,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "noise-rgb",
+      "t": 0.2,
+      "signature": 2616509096,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 7,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 7,
+        "liveSurfaceTextures": 5,
+        "programCount": 3,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 3943552,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 234416,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "noise-rgb",
+      "t": 0.8,
+      "signature": 1171328029,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 7,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 7,
+        "liveSurfaceTextures": 5,
+        "programCount": 3,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 3943552,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 234416,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "noise-rgb",
+      "t": 0.2,
+      "signature": 2616509096,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 7,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 7,
+        "liveSurfaceTextures": 5,
+        "programCount": 3,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 3943552,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 234416,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "dispersion-all",
+      "t": 0.2,
+      "signature": 3760448787,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 7,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 7,
+        "liveSurfaceTextures": 4,
+        "programCount": 3,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4017920,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "dispersion-all",
+      "t": 0.8,
+      "signature": 3760448787,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 7,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 7,
+        "liveSurfaceTextures": 4,
+        "programCount": 3,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4017920,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "dispersion-all",
+      "t": 0.2,
+      "signature": 3760448787,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 7,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 7,
+        "liveSurfaceTextures": 4,
+        "programCount": 3,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4017920,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "dispersion-contour",
+      "t": 0.2,
+      "signature": 1783353188,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 7,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 7,
+        "liveSurfaceTextures": 4,
+        "programCount": 3,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4017920,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "dispersion-contour",
+      "t": 0.8,
+      "signature": 1783353188,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 7,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 7,
+        "liveSurfaceTextures": 4,
+        "programCount": 3,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4017920,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "dispersion-contour",
+      "t": 0.2,
+      "signature": 1783353188,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 7,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 7,
+        "liveSurfaceTextures": 4,
+        "programCount": 3,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4017920,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "dispersion-contrast",
+      "t": 0.2,
+      "signature": 15224863,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 7,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 7,
+        "liveSurfaceTextures": 4,
+        "programCount": 3,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4017920,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "dispersion-contrast",
+      "t": 0.8,
+      "signature": 15224863,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 7,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 7,
+        "liveSurfaceTextures": 4,
+        "programCount": 3,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4017920,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "dispersion-contrast",
+      "t": 0.2,
+      "signature": 15224863,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 7,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 7,
+        "liveSurfaceTextures": 4,
+        "programCount": 3,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4017920,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "noise-threshold",
+      "t": 0.2,
+      "signature": 2904907785,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 8,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 8,
+        "liveSurfaceTextures": 6,
+        "programCount": 4,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4881216,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 234416,
+        "uploads": 1,
+        "passes": 5,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither",
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "noise-threshold",
+      "t": 0.8,
+      "signature": 335677359,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 8,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 8,
+        "liveSurfaceTextures": 6,
+        "programCount": 4,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4881216,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 234416,
+        "uploads": 1,
+        "passes": 5,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither",
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "noise-threshold",
+      "t": 0.2,
+      "signature": 2904907785,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 8,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 8,
+        "liveSurfaceTextures": 6,
+        "programCount": 4,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4881216,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 234416,
+        "uploads": 1,
+        "passes": 5,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither",
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "noise-dispersion",
+      "t": 0.2,
+      "signature": 1330741922,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 10,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 10,
+        "liveSurfaceTextures": 6,
+        "programCount": 5,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 5116224,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 5,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither",
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "noise-dispersion",
+      "t": 0.8,
+      "signature": 1826321939,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 10,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 10,
+        "liveSurfaceTextures": 6,
+        "programCount": 5,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 5116224,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 5,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither",
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "noise-dispersion",
+      "t": 0.2,
+      "signature": 1330741922,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 10,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 10,
+        "liveSurfaceTextures": 6,
+        "programCount": 5,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 5116224,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 5,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither",
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "threshold-dispersion",
+      "t": 0.2,
+      "signature": 2797190733,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 8,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 8,
+        "liveSurfaceTextures": 5,
+        "programCount": 4,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4988096,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 5,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold",
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "threshold-dispersion",
+      "t": 0.8,
+      "signature": 1823003651,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 8,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 8,
+        "liveSurfaceTextures": 5,
+        "programCount": 4,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4988096,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 5,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold",
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "threshold-dispersion",
+      "t": 0.2,
+      "signature": 2797190733,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 8,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 8,
+        "liveSurfaceTextures": 5,
+        "programCount": 4,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4988096,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 5,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold",
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "chain",
+      "t": 0.2,
+      "signature": 3819230864,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 11,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 11,
+        "liveSurfaceTextures": 7,
+        "programCount": 5,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 6086400,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 8,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither",
+              "threshold",
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "chain",
+      "t": 0.8,
+      "signature": 1131210294,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 11,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 11,
+        "liveSurfaceTextures": 7,
+        "programCount": 5,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 6086400,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 8,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither",
+              "threshold",
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "chain",
+      "t": 0.2,
+      "signature": 3819230864,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 11,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 11,
+        "liveSurfaceTextures": 7,
+        "programCount": 5,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 6086400,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 8,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither",
+              "threshold",
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "decorated-chain",
+      "t": 0.2,
+      "signature": 1395215732,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 11,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 11,
+        "liveSurfaceTextures": 7,
+        "programCount": 5,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 6335520,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 252884,
+        "uploads": 1,
+        "passes": 8,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither",
+              "threshold",
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 49,
+              "y": 49,
+              "w": 662,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "decorated-chain",
+      "t": 0.8,
+      "signature": 4124983276,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 11,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 11,
+        "liveSurfaceTextures": 7,
+        "programCount": 5,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 6335520,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 252884,
+        "uploads": 1,
+        "passes": 8,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither",
+              "threshold",
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 49,
+              "y": 49,
+              "w": 662,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "decorated-chain",
+      "t": 0.2,
+      "signature": 1395215732,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 11,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 11,
+        "liveSurfaceTextures": 7,
+        "programCount": 5,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 6335520,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 252884,
+        "uploads": 1,
+        "passes": 8,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither",
+              "threshold",
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 49,
+              "y": 49,
+              "w": 662,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "step-chain",
+      "t": 0.2,
+      "signature": 773627565,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 11,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 11,
+        "liveSurfaceTextures": 7,
+        "programCount": 5,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 5890560,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 234416,
+        "uploads": 1,
+        "passes": 8,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither",
+              "threshold",
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "step-chain",
+      "t": 2.4,
+      "signature": 369163766,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 18,
+        "disposals": 0,
+        "surfaceRebuilds": 2,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 2,
+        "noiseByteMapBuilds": 2,
+        "liveTextures": 11,
+        "liveSurfaceTextures": 7,
+        "programCount": 5,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 6193248,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 248724,
+        "uploads": 4,
+        "passes": 8,
+        "initialized": false,
+        "surfacesRebuilt": true,
+        "surfacePrepareMs": 2.900000035762787,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither",
+              "threshold",
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 51,
+              "y": 51,
+              "w": 658,
+              "h": 378
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "step-chain",
+      "t": 0.2,
+      "signature": 773627565,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 25,
+        "disposals": 0,
+        "surfaceRebuilds": 3,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 3,
+        "noiseByteMapBuilds": 3,
+        "liveTextures": 11,
+        "liveSurfaceTextures": 7,
+        "programCount": 5,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 5890560,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 234416,
+        "uploads": 4,
+        "passes": 8,
+        "initialized": false,
+        "surfacesRebuilt": true,
+        "surfacePrepareMs": 2.100000023841858,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither",
+              "threshold",
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    }
+  ],
+  "prefixControl": {
+    "cpuFreshVsSteady": {
+      "preMax": 0,
+      "alphaMax": 0
+    },
+    "pilotVsCpuSteady": {
+      "preMax": 0,
+      "alphaMax": 0
+    },
+    "object": {
+      "contexts": 1,
+      "allocations": 5,
+      "disposals": 0,
+      "surfaceRebuilds": 1,
+      "sourceUploads": 2,
+      "maskUploads": 0,
+      "cacheHits": 0,
+      "noiseTableBuilds": 0,
+      "noiseByteMapBuilds": 0,
+      "liveTextures": 5,
+      "liveSurfaceTextures": 4,
+      "programCount": 2,
+      "nearestCalibrationBytes": 0,
+      "contextLost": false,
+      "textureBytes": 4258368,
+      "requested": "gpu-object-pilot",
+      "attempted": 1,
+      "handled": 1,
+      "cpu": 0,
+      "sourcePixels": 262052,
+      "uploads": 1,
+      "passes": 2,
+      "initialized": false,
+      "surfacesRebuilt": false,
+      "surfacePrepareMs": 0,
+      "rows": [
+        {
+          "ownerId": "large",
+          "backend": "gpu-object-sampling",
+          "effects": [
+            "threshold"
+          ],
+          "reason": null,
+          "bounds": {
+            "x": 25,
+            "y": 49,
+            "w": 686,
+            "h": 382
+          }
+        }
+      ],
+      "truncated": 0,
+      "budget": {
+        "minPixels": 131072,
+        "maxPixels": 1048576,
+        "maxExtent": 4096,
+        "maxObjects": 1,
+        "maxTextureBytes": 25165824
+      },
+      "reason": null
+    }
+  },
+  "prefixVisual": [
+    {
+      "kind": "projection",
+      "t": 0.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4258368,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 262052,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 25,
+              "y": 49,
+              "w": 686,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "projection",
+      "t": 1.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4258368,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 262052,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 25,
+              "y": 49,
+              "w": 686,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "projection",
+      "t": 0.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4258368,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 262052,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 25,
+              "y": 49,
+              "w": 686,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "outline",
+      "t": 0.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4089088,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 251472,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 30,
+              "y": 54,
+              "w": 676,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "outline",
+      "t": 1.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4089088,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 251472,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 30,
+              "y": 54,
+              "w": 676,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "outline",
+      "t": 0.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4089088,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 251472,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 30,
+              "y": 54,
+              "w": 676,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "combined",
+      "t": 0.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4258368,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 262052,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 25,
+              "y": 49,
+              "w": 686,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "combined",
+      "t": 1.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4258368,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 262052,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 25,
+              "y": 49,
+              "w": 686,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "combined",
+      "t": 0.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4258368,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 262052,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 25,
+              "y": 49,
+              "w": 686,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "include-projection",
+      "t": 0.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4258368,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 262052,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 25,
+              "y": 49,
+              "w": 686,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "include-projection",
+      "t": 1.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4258368,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 262052,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 25,
+              "y": 49,
+              "w": 686,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "include-projection",
+      "t": 0.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4258368,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 262052,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 25,
+              "y": 49,
+              "w": 686,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "wide-outline",
+      "t": 0.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4500736,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 277200,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 18,
+              "y": 42,
+              "w": 700,
+              "h": 396
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "wide-outline",
+      "t": 1.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4500736,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 277200,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 18,
+              "y": 42,
+              "w": 700,
+              "h": 396
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "wide-outline",
+      "t": 0.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4500736,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 277200,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 18,
+              "y": 42,
+              "w": 700,
+              "h": 396
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "decorate-before-mask",
+      "t": 0.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4258368,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 262052,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 25,
+              "y": 49,
+              "w": 686,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "decorate-before-mask",
+      "t": 1.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4258368,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 262052,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 25,
+              "y": 49,
+              "w": 686,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "decorate-before-mask",
+      "t": 0.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4258368,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 262052,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 25,
+              "y": 49,
+              "w": 686,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "transparent-parent",
+      "t": 0.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4258368,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 262052,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 35,
+              "y": 59,
+              "w": 686,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "transparent-parent",
+      "t": 1.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4258368,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 262052,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 35,
+              "y": 59,
+              "w": 686,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "transparent-parent",
+      "t": 0.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4258368,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 262052,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 35,
+              "y": 59,
+              "w": 686,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "screen-blend",
+      "t": 0.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4258368,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 262052,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 25,
+              "y": 49,
+              "w": 686,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "screen-blend",
+      "t": 1.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4258368,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 262052,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 25,
+              "y": 49,
+              "w": 686,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "screen-blend",
+      "t": 0.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4258368,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 262052,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 25,
+              "y": 49,
+              "w": 686,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "transformed",
+      "t": 0.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 3,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 5901440,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 364744,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 9,
+              "y": -16,
+              "w": 718,
+              "h": 508
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "transformed",
+      "t": 1.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 4,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 5901440,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 364744,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 9,
+              "y": -16,
+              "w": 718,
+              "h": 508
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    },
+    {
+      "kind": "transformed",
+      "t": 0.2,
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 5,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 5901440,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 364744,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 9,
+              "y": -16,
+              "w": 718,
+              "h": 508
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      }
+    }
+  ],
+  "frameBudget": {
+    "preMax": 0,
+    "alphaMax": 0,
+    "object": {
+      "contexts": 1,
+      "allocations": 5,
+      "disposals": 0,
+      "surfaceRebuilds": 1,
+      "sourceUploads": 2,
+      "maskUploads": 0,
+      "cacheHits": 0,
+      "noiseTableBuilds": 0,
+      "noiseByteMapBuilds": 0,
+      "liveTextures": 5,
+      "liveSurfaceTextures": 4,
+      "programCount": 2,
+      "nearestCalibrationBytes": 0,
+      "contextLost": false,
+      "textureBytes": 3816192,
+      "requested": "gpu-object-pilot",
+      "attempted": 1,
+      "handled": 1,
+      "cpu": 1,
+      "sourcePixels": 234416,
+      "uploads": 1,
+      "passes": 2,
+      "initialized": false,
+      "surfacesRebuilt": false,
+      "surfacePrepareMs": 0,
+      "rows": [
+        {
+          "ownerId": "large",
+          "backend": "gpu-object-sampling",
+          "effects": [
+            "threshold"
+          ],
+          "reason": null,
+          "bounds": {
+            "x": 58,
+            "y": 58,
+            "w": 644,
+            "h": 364
+          }
+        },
+        {
+          "ownerId": "second",
+          "backend": "cpu",
+          "effects": [
+            "threshold"
+          ],
+          "reason": "object-frame-budget-used",
+          "bounds": {
+            "x": 308,
+            "y": 268,
+            "w": 504,
+            "h": 304
+          },
+          "diagnostic": {
+            "code": "object-frame-budget-used",
+            "reason": "object-frame-budget-used",
+            "scope": "object",
+            "ownerId": "second",
+            "effectId": "threshold",
+            "detail": null,
+            "category": "host-budget",
+            "retryable": true,
+            "recovery": "reevaluate-next-frame"
+          }
+        }
+      ],
+      "truncated": 0,
+      "budget": {
+        "minPixels": 131072,
+        "maxPixels": 1048576,
+        "maxExtent": 4096,
+        "maxObjects": 1,
+        "maxTextureBytes": 25165824
+      },
+      "reason": null
+    }
+  },
+  "rejected": [
+    {
+      "kind": "grid",
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 0,
+        "allocations": 0,
+        "disposals": 0,
+        "surfaceRebuilds": 0,
+        "sourceUploads": 0,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 0,
+        "liveSurfaceTextures": 0,
+        "programCount": 0,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 0,
+        "requested": "gpu-object-pilot",
+        "attempted": 0,
+        "handled": 0,
+        "cpu": 1,
+        "sourcePixels": 0,
+        "uploads": 0,
+        "passes": 0,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "cpu",
+            "effects": [
+              "threshold"
+            ],
+            "reason": "unsupported-object-pilot-grid",
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            },
+            "diagnostic": {
+              "code": "unsupported-object-pilot-grid",
+              "reason": "unsupported-object-pilot-grid",
+              "scope": "object",
+              "ownerId": "large",
+              "effectId": "threshold",
+              "detail": null,
+              "category": "unsupported-semantics",
+              "retryable": true,
+              "recovery": "reevaluate-next-frame"
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": "unsupported-object-pilot-grid"
+      },
+      "live": 0
+    },
+    {
+      "kind": "chain",
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 0,
+        "allocations": 0,
+        "disposals": 0,
+        "surfaceRebuilds": 0,
+        "sourceUploads": 0,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 0,
+        "liveSurfaceTextures": 0,
+        "programCount": 0,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 0,
+        "requested": "gpu-object-pilot",
+        "attempted": 0,
+        "handled": 0,
+        "cpu": 1,
+        "sourcePixels": 0,
+        "uploads": 0,
+        "passes": 0,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "cpu",
+            "effects": [
+              "threshold"
+            ],
+            "reason": "unsupported-object-sampling-chain",
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            },
+            "diagnostic": {
+              "code": "unsupported-object-sampling-chain",
+              "reason": "unsupported-object-sampling-chain",
+              "scope": "object",
+              "ownerId": "large",
+              "effectId": "threshold",
+              "detail": null,
+              "category": "unsupported-semantics",
+              "retryable": true,
+              "recovery": "reevaluate-next-frame"
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": "unsupported-object-sampling-chain"
+      },
+      "live": 0
+    },
+    {
+      "kind": "order",
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 0,
+        "allocations": 0,
+        "disposals": 0,
+        "surfaceRebuilds": 0,
+        "sourceUploads": 0,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 0,
+        "liveSurfaceTextures": 0,
+        "programCount": 0,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 0,
+        "requested": "gpu-object-pilot",
+        "attempted": 0,
+        "handled": 0,
+        "cpu": 1,
+        "sourcePixels": 0,
+        "uploads": 0,
+        "passes": 0,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "cpu",
+            "effects": [
+              "threshold"
+            ],
+            "reason": "unsupported-object-sample-order",
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            },
+            "diagnostic": {
+              "code": "unsupported-object-sample-order",
+              "reason": "unsupported-object-sample-order",
+              "scope": "object",
+              "ownerId": "large",
+              "effectId": "threshold",
+              "detail": null,
+              "category": "unsupported-semantics",
+              "retryable": true,
+              "recovery": "reevaluate-next-frame"
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": "unsupported-object-sample-order"
+      },
+      "live": 0
+    },
+    {
+      "kind": "small",
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 0,
+        "allocations": 0,
+        "disposals": 0,
+        "surfaceRebuilds": 0,
+        "sourceUploads": 0,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 0,
+        "liveSurfaceTextures": 0,
+        "programCount": 0,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 0,
+        "requested": "gpu-object-pilot",
+        "attempted": 0,
+        "handled": 0,
+        "cpu": 1,
+        "sourcePixels": 0,
+        "uploads": 0,
+        "passes": 0,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "cpu",
+            "effects": [
+              "threshold"
+            ],
+            "reason": "object-budget-too-small",
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 68,
+              "h": 68
+            },
+            "diagnostic": {
+              "code": "object-budget-too-small",
+              "reason": "object-budget-too-small",
+              "scope": "object",
+              "ownerId": "large",
+              "effectId": "threshold",
+              "detail": null,
+              "category": "host-budget",
+              "retryable": true,
+              "recovery": "reevaluate-next-frame"
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": "object-budget-too-small"
+      },
+      "live": 0
+    },
+    {
+      "kind": "large",
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 0,
+        "allocations": 0,
+        "disposals": 0,
+        "surfaceRebuilds": 0,
+        "sourceUploads": 0,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 0,
+        "liveSurfaceTextures": 0,
+        "programCount": 0,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 0,
+        "requested": "gpu-object-pilot",
+        "attempted": 0,
+        "handled": 0,
+        "cpu": 1,
+        "sourcePixels": 0,
+        "uploads": 0,
+        "passes": 0,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "cpu",
+            "effects": [
+              "threshold"
+            ],
+            "reason": "object-budget-too-large",
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 1504,
+              "h": 904
+            },
+            "diagnostic": {
+              "code": "object-budget-too-large",
+              "reason": "object-budget-too-large",
+              "scope": "object",
+              "ownerId": "large",
+              "effectId": "threshold",
+              "detail": null,
+              "category": "host-budget",
+              "retryable": true,
+              "recovery": "reevaluate-next-frame"
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": "object-budget-too-large"
+      },
+      "live": 0
+    },
+    {
+      "kind": "transition",
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 0,
+        "allocations": 0,
+        "disposals": 0,
+        "surfaceRebuilds": 0,
+        "sourceUploads": 0,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 0,
+        "liveSurfaceTextures": 0,
+        "programCount": 0,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 0,
+        "requested": "gpu-object-pilot",
+        "attempted": 0,
+        "handled": 0,
+        "cpu": 1,
+        "sourcePixels": 0,
+        "uploads": 0,
+        "passes": 0,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "cpu",
+            "effects": [
+              "threshold"
+            ],
+            "reason": "unsupported-object-scene-transition",
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            },
+            "diagnostic": {
+              "code": "unsupported-object-scene-transition",
+              "reason": "unsupported-object-scene-transition",
+              "scope": "object",
+              "ownerId": "large",
+              "effectId": "threshold",
+              "detail": null,
+              "category": "unsupported-semantics",
+              "retryable": true,
+              "recovery": "reevaluate-next-frame"
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": "unsupported-object-scene-transition"
+      },
+      "live": 0
+    },
+    {
+      "kind": "decorate",
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 0,
+        "allocations": 0,
+        "disposals": 0,
+        "surfaceRebuilds": 0,
+        "sourceUploads": 0,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 0,
+        "liveSurfaceTextures": 0,
+        "programCount": 0,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 0,
+        "requested": "gpu-object-pilot",
+        "attempted": 0,
+        "handled": 0,
+        "cpu": 1,
+        "sourcePixels": 0,
+        "uploads": 0,
+        "passes": 0,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "cpu",
+            "effects": [
+              "threshold"
+            ],
+            "reason": "unsupported-object-decorate-prefix",
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            },
+            "diagnostic": {
+              "code": "unsupported-object-decorate-prefix",
+              "reason": "unsupported-object-decorate-prefix",
+              "scope": "object",
+              "ownerId": "large",
+              "effectId": "threshold",
+              "detail": null,
+              "category": "unsupported-semantics",
+              "retryable": true,
+              "recovery": "reevaluate-next-frame"
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": "unsupported-object-decorate-prefix"
+      },
+      "live": 0
+    },
+    {
+      "kind": "formation",
+      "preMax": 0,
+      "alphaMax": 0,
+      "object": {
+        "contexts": 0,
+        "allocations": 0,
+        "disposals": 0,
+        "surfaceRebuilds": 0,
+        "sourceUploads": 0,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 0,
+        "liveSurfaceTextures": 0,
+        "programCount": 0,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 0,
+        "requested": "gpu-object-pilot",
+        "attempted": 0,
+        "handled": 0,
+        "cpu": 1,
+        "sourcePixels": 0,
+        "uploads": 0,
+        "passes": 0,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "cpu",
+            "effects": [
+              "threshold"
+            ],
+            "reason": "unsupported-object-formation-prefix",
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            },
+            "diagnostic": {
+              "code": "unsupported-object-formation-prefix",
+              "reason": "unsupported-object-formation-prefix",
+              "scope": "object",
+              "ownerId": "large",
+              "effectId": "threshold",
+              "detail": null,
+              "category": "unsupported-semantics",
+              "retryable": true,
+              "recovery": "reevaluate-next-frame"
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": "unsupported-object-formation-prefix"
+      },
+      "live": 0
+    }
+  ],
+  "edited": {
+    "preMax": 0,
+    "alphaMax": 0,
+    "newContexts": 0
+  },
+  "undoReleased": 0,
+  "redoReleased": 0,
+  "undo": {
+    "preMax": 0,
+    "alphaMax": 0
+  },
+  "redo": {
+    "preMax": 0,
+    "alphaMax": 0
+  },
+  "drawFailure": {
+    "preMax": 0,
+    "alphaMax": 0,
+    "object": {
+      "contexts": 1,
+      "allocations": 5,
+      "disposals": 1,
+      "surfaceRebuilds": 1,
+      "sourceUploads": 3,
+      "maskUploads": 0,
+      "cacheHits": 0,
+      "noiseTableBuilds": 0,
+      "noiseByteMapBuilds": 0,
+      "liveTextures": 0,
+      "liveSurfaceTextures": 0,
+      "programCount": 0,
+      "nearestCalibrationBytes": 0,
+      "contextLost": false,
+      "textureBytes": 0,
+      "requested": "gpu-object-pilot",
+      "attempted": 1,
+      "handled": 0,
+      "cpu": 1,
+      "sourcePixels": 0,
+      "uploads": 0,
+      "passes": 0,
+      "initialized": false,
+      "surfacesRebuilt": false,
+      "surfacePrepareMs": 0,
+      "rows": [
+        {
+          "ownerId": "large",
+          "backend": "cpu",
+          "effects": [
+            "threshold"
+          ],
+          "reason": "injected-object-draw",
+          "bounds": {
+            "x": 65,
+            "y": 49,
+            "w": 686,
+            "h": 382
+          },
+          "diagnostic": {
+            "code": "injected-object-draw",
+            "reason": "injected-object-draw",
+            "scope": "object",
+            "ownerId": "large",
+            "effectId": "threshold",
+            "detail": null,
+            "category": "device-or-execution",
+            "retryable": false,
+            "recovery": "clear-caches-or-recreate-player"
+          }
+        }
+      ],
+      "truncated": 0,
+      "budget": {
+        "minPixels": 131072,
+        "maxPixels": 1048576,
+        "maxExtent": 4096,
+        "maxObjects": 1,
+        "maxTextureBytes": 25165824
+      },
+      "reason": "injected-object-draw"
+    },
+    "live": 0
+  },
+  "chainFailure": {
+    "preMax": 0,
+    "alphaMax": 0,
+    "calls": 4,
+    "object": {
+      "contexts": 1,
+      "allocations": 11,
+      "disposals": 1,
+      "surfaceRebuilds": 1,
+      "sourceUploads": 3,
+      "maskUploads": 0,
+      "cacheHits": 0,
+      "noiseTableBuilds": 1,
+      "noiseByteMapBuilds": 1,
+      "liveTextures": 0,
+      "liveSurfaceTextures": 0,
+      "programCount": 0,
+      "nearestCalibrationBytes": 0,
+      "contextLost": false,
+      "textureBytes": 0,
+      "requested": "gpu-object-pilot",
+      "attempted": 1,
+      "handled": 0,
+      "cpu": 1,
+      "sourcePixels": 0,
+      "uploads": 0,
+      "passes": 0,
+      "initialized": false,
+      "surfacesRebuilt": false,
+      "surfacePrepareMs": 0,
+      "rows": [
+        {
+          "ownerId": "large",
+          "backend": "cpu",
+          "effects": [
+            "noise-dither",
+            "threshold",
+            "edge-dispersion"
+          ],
+          "reason": "injected-object-chain-draw",
+          "bounds": {
+            "x": 54,
+            "y": 54,
+            "w": 652,
+            "h": 372
+          },
+          "diagnostic": {
+            "code": "injected-object-chain-draw",
+            "reason": "injected-object-chain-draw",
+            "scope": "object",
+            "ownerId": "large",
+            "effectId": null,
+            "detail": null,
+            "category": "device-or-execution",
+            "retryable": false,
+            "recovery": "clear-caches-or-recreate-player"
+          }
+        }
+      ],
+      "truncated": 0,
+      "budget": {
+        "minPixels": 131072,
+        "maxPixels": 1048576,
+        "maxExtent": 4096,
+        "maxObjects": 1,
+        "maxTextureBytes": 25165824
+      },
+      "reason": "injected-object-chain-draw"
+    },
+    "live": 0
+  },
+  "contextLoss": {
+    "preMax": 0,
+    "alphaMax": 0,
+    "object": {
+      "contexts": 1,
+      "allocations": 5,
+      "disposals": 0,
+      "surfaceRebuilds": 1,
+      "sourceUploads": 1,
+      "maskUploads": 0,
+      "cacheHits": 0,
+      "noiseTableBuilds": 0,
+      "noiseByteMapBuilds": 0,
+      "liveTextures": 5,
+      "liveSurfaceTextures": 4,
+      "programCount": 2,
+      "nearestCalibrationBytes": 0,
+      "contextLost": true,
+      "textureBytes": 4258368,
+      "requested": "gpu-object-pilot",
+      "attempted": 1,
+      "handled": 0,
+      "cpu": 1,
+      "sourcePixels": 0,
+      "uploads": 0,
+      "passes": 0,
+      "initialized": false,
+      "surfacesRebuilt": false,
+      "surfacePrepareMs": 0,
+      "rows": [
+        {
+          "ownerId": "large",
+          "backend": "cpu",
+          "effects": [
+            "threshold"
+          ],
+          "reason": "webgl-context-lost",
+          "bounds": {
+            "x": 65,
+            "y": 49,
+            "w": 686,
+            "h": 382
+          },
+          "diagnostic": {
+            "code": "webgl-context-lost",
+            "reason": "webgl-context-lost",
+            "scope": "object",
+            "ownerId": "large",
+            "effectId": "threshold",
+            "detail": null,
+            "category": "device-or-execution",
+            "retryable": false,
+            "recovery": "clear-caches-or-recreate-player"
+          }
+        }
+      ],
+      "truncated": 0,
+      "budget": {
+        "minPixels": 131072,
+        "maxPixels": 1048576,
+        "maxExtent": 4096,
+        "maxObjects": 1,
+        "maxTextureBytes": 25165824
+      },
+      "reason": "webgl-context-lost"
+    }
+  },
+  "unavailable": {
+    "preMax": 0,
+    "alphaMax": 0,
+    "object": {
+      "contexts": 0,
+      "allocations": 0,
+      "disposals": 0,
+      "surfaceRebuilds": 0,
+      "sourceUploads": 0,
+      "maskUploads": 0,
+      "cacheHits": 0,
+      "noiseTableBuilds": 0,
+      "noiseByteMapBuilds": 0,
+      "liveTextures": 0,
+      "liveSurfaceTextures": 0,
+      "programCount": 0,
+      "nearestCalibrationBytes": 0,
+      "contextLost": false,
+      "textureBytes": 0,
+      "requested": "gpu-object-pilot",
+      "attempted": 1,
+      "handled": 0,
+      "cpu": 1,
+      "sourcePixels": 0,
+      "uploads": 0,
+      "passes": 0,
+      "initialized": false,
+      "surfacesRebuilt": false,
+      "surfacePrepareMs": 0,
+      "rows": [
+        {
+          "ownerId": "large",
+          "backend": "cpu",
+          "effects": [
+            "threshold"
+          ],
+          "reason": "webgl2-unavailable",
+          "bounds": {
+            "x": 65,
+            "y": 49,
+            "w": 686,
+            "h": 382
+          },
+          "diagnostic": {
+            "code": "webgl2-unavailable",
+            "reason": "webgl2-unavailable",
+            "scope": "object",
+            "ownerId": "large",
+            "effectId": "threshold",
+            "detail": null,
+            "category": "device-or-execution",
+            "retryable": false,
+            "recovery": "clear-caches-or-recreate-player"
+          }
+        }
+      ],
+      "truncated": 0,
+      "budget": {
+        "minPixels": 131072,
+        "maxPixels": 1048576,
+        "maxExtent": 4096,
+        "maxObjects": 1,
+        "maxTextureBytes": 25165824
+      },
+      "reason": "webgl2-unavailable"
+    }
+  },
+  "performanceRows": [
+    {
+      "kind": "base",
+      "policy": "cpu",
+      "samples": 24,
+      "warmup": 4,
+      "initial": {
+        "editorRenderMs": 29.5,
+        "playerPrepareMs": 10.5,
+        "runtimeCallMs": 18.5,
+        "playerCreated": true,
+        "objectInitialized": false
+      },
+      "p50": 10.199999988079071,
+      "p95": 12.199999988079071,
+      "max": 13.699999988079071,
+      "editorP95": 12.199999988079071,
+      "playerPrepareP95": 0.10000002384185791,
+      "raw": [
+        {
+          "editorRenderMs": 12.199999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 12.199999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 11.699999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 11.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 13.800000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 13.699999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 12,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 11.900000035762787,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 11.300000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 11.199999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 9.699999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 9.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 10.299999952316284,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 10.099999964237213,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 10,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 9.800000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 11.299999952316284,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 11.199999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 10.199999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 10.199999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 10.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 10.300000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 10,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 10,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 10.899999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 10.799999952316284,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 9.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 9.400000035762787,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 10.600000023841858,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 10.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 10.200000047683716,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 10.100000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 10.400000035762787,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 10.400000035762787,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 10.200000047683716,
+          "playerPrepareMs": 0.10000002384185791,
+          "runtimeCallMs": 10.100000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 11.400000035762787,
+          "playerPrepareMs": 0.10000002384185791,
+          "runtimeCallMs": 11.300000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 10.299999952316284,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 10.199999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 9.599999964237213,
+          "playerPrepareMs": 0.10000002384185791,
+          "runtimeCallMs": 9.199999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 9.600000023841858,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 9.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 9.900000035762787,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 9.699999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 10.900000035762787,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 10.600000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        }
+      ],
+      "stats": null,
+      "preMax": 0,
+      "alphaMax": 0
+    },
+    {
+      "kind": "base",
+      "policy": "gpu-object-pilot",
+      "samples": 24,
+      "warmup": 4,
+      "initial": {
+        "editorRenderMs": 29,
+        "playerPrepareMs": 9.100000023841858,
+        "runtimeCallMs": 18.799999952316284,
+        "playerCreated": true,
+        "objectInitialized": true
+      },
+      "p50": 1.800000011920929,
+      "p95": 2.199999988079071,
+      "max": 2.200000047683716,
+      "editorP95": 2.5,
+      "playerPrepareP95": 0.10000002384185791,
+      "raw": [
+        {
+          "editorRenderMs": 2.199999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.899999976158142,
+          "playerPrepareMs": 0.10000002384185791,
+          "runtimeCallMs": 1.699999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.899999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.600000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.199999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.5,
+          "playerPrepareMs": 0.10000002384185791,
+          "runtimeCallMs": 2.199999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.200000047683716,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.200000047683716,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.5999999642372131,
+          "playerPrepareMs": 0.09999996423721313,
+          "runtimeCallMs": 1.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.800000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.7000000476837158,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.699999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.600000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.699999988079071,
+          "playerPrepareMs": 0.10000002384185791,
+          "runtimeCallMs": 1.5999999642372131,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.300000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.100000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.7000000476837158,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.899999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.7999999523162842,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.899999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.800000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.9000000357627869,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.699999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.099999964237213,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.7999999523162842,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.7999999523162842,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.899999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.100000023841858,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.899999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.7999999523162842,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.099999964237213,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.899999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.199999988079071,
+          "playerPrepareMs": 0.10000002384185791,
+          "runtimeCallMs": 2,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.199999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.9000000357627869,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.800000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        }
+      ],
+      "stats": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 30,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 3816192,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 234416,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      },
+      "preMax": 0,
+      "alphaMax": 0
+    },
+    {
+      "kind": "decorated",
+      "policy": "cpu",
+      "samples": 24,
+      "warmup": 4,
+      "initial": {
+        "editorRenderMs": 31.299999952316284,
+        "playerPrepareMs": 9.400000035762787,
+        "runtimeCallMs": 21.299999952316284,
+        "playerCreated": true,
+        "objectInitialized": false
+      },
+      "p50": 17.19999998807907,
+      "p95": 23.799999952316284,
+      "max": 24.100000023841858,
+      "editorP95": 24,
+      "playerPrepareP95": 0,
+      "raw": [
+        {
+          "editorRenderMs": 17.200000047683716,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 17.100000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 17,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 16.900000035762787,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 17.299999952316284,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 17.19999998807907,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 17.600000023841858,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 17.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 16.900000035762787,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 16.80000001192093,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 15.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 15.299999952316284,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 15.800000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 15.800000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 17.399999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 17.30000001192093,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 16.19999998807907,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 15.899999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 17.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 17.399999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 16.899999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 16.80000001192093,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 17.900000035762787,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 17.700000047683716,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 16.799999952316284,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 16.69999998807907,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 16.30000001192093,
+          "playerPrepareMs": 0.10000002384185791,
+          "runtimeCallMs": 16.19999998807907,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 16.69999998807907,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 16.599999964237213,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 15.799999952316284,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 15.599999964237213,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 17.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 17.30000001192093,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 18.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 18.399999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 24.19999998807907,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 24.100000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 22.599999964237213,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 22.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 21.69999998807907,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 21.600000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 24,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 23.799999952316284,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 23.19999998807907,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 22.899999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 23,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 22.899999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        }
+      ],
+      "stats": null,
+      "preMax": 0,
+      "alphaMax": 0
+    },
+    {
+      "kind": "decorated",
+      "policy": "gpu-object-pilot",
+      "samples": 24,
+      "warmup": 4,
+      "initial": {
+        "editorRenderMs": 41.10000002384186,
+        "playerPrepareMs": 9.599999964237213,
+        "runtimeCallMs": 30.80000001192093,
+        "playerCreated": true,
+        "objectInitialized": true
+      },
+      "p50": 3.800000011920929,
+      "p95": 4.599999964237213,
+      "max": 4.900000035762787,
+      "editorP95": 4.800000011920929,
+      "playerPrepareP95": 0,
+      "raw": [
+        {
+          "editorRenderMs": 5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 4.900000035762787,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 4.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 4.299999952316284,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 4.300000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 4.300000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 4.800000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 4.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 4.599999964237213,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 4.300000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 4.699999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 4.599999964237213,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 4.200000047683716,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 4,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 4.199999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 4.100000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 4.100000023841858,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 3.899999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3.5,
+          "playerPrepareMs": 0.09999996423721313,
+          "runtimeCallMs": 3.300000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 4,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 3.800000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3.700000047683716,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 3.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3.800000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 3.800000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3.700000047683716,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 3.600000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3.300000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 3.199999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 4.099999964237213,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 4,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3.700000047683716,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 3.600000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 4.100000023841858,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 3.800000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 3.399999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3.600000023841858,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 3.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 3.400000035762787,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3.399999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 3.300000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 4.199999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 3.899999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 4.199999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 4,
+          "playerCreated": false,
+          "objectInitialized": false
+        }
+      ],
+      "stats": {
+        "contexts": 1,
+        "allocations": 5,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 30,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 5,
+        "liveSurfaceTextures": 4,
+        "programCount": 2,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4258368,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 262052,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "threshold"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 25,
+              "y": 49,
+              "w": 686,
+              "h": 382
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      },
+      "preMax": 0,
+      "alphaMax": 0
+    },
+    {
+      "kind": "noise-rgb",
+      "policy": "cpu",
+      "samples": 24,
+      "warmup": 4,
+      "initial": {
+        "editorRenderMs": 44.200000047683716,
+        "playerPrepareMs": 9.300000011920929,
+        "runtimeCallMs": 34.30000001192093,
+        "playerCreated": true,
+        "objectInitialized": false
+      },
+      "p50": 19.19999998807907,
+      "p95": 27.400000035762787,
+      "max": 27.5,
+      "editorP95": 27.600000023841858,
+      "playerPrepareP95": 0.09999996423721313,
+      "raw": [
+        {
+          "editorRenderMs": 19.80000001192093,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 19.700000047683716,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 19.899999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 19.69999998807907,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 19.099999964237213,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 19,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 19.799999952316284,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 19.69999998807907,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 18.400000035762787,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 18.19999998807907,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 18.599999964237213,
+          "playerPrepareMs": 0.09999996423721313,
+          "runtimeCallMs": 18.400000035762787,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 18.69999998807907,
+          "playerPrepareMs": 0.09999996423721313,
+          "runtimeCallMs": 18.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 19.30000001192093,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 19.19999998807907,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 19.899999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 19.80000001192093,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 19.899999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 19.899999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 19.600000023841858,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 19.400000035762787,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 18.600000023841858,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 18.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 18,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 17.899999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 18.69999998807907,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 18.600000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 19.399999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 19.299999952316284,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 19.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 19.30000001192093,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 19.600000023841858,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 19.400000035762787,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 18.600000023841858,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 18.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 18.899999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 18.69999998807907,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 18.30000001192093,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 18.19999998807907,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 18,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 17.700000047683716,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 19.69999998807907,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 19.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 27.600000023841858,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 27.400000035762787,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 27.600000023841858,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 27.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        }
+      ],
+      "stats": null,
+      "preMax": 0,
+      "alphaMax": 0
+    },
+    {
+      "kind": "noise-rgb",
+      "policy": "gpu-object-pilot",
+      "samples": 24,
+      "warmup": 4,
+      "initial": {
+        "editorRenderMs": 59.30000001192093,
+        "playerPrepareMs": 8.5,
+        "runtimeCallMs": 50.30000001192093,
+        "playerCreated": true,
+        "objectInitialized": true
+      },
+      "p50": 1.899999976158142,
+      "p95": 2.799999952316284,
+      "max": 2.800000011920929,
+      "editorP95": 3,
+      "playerPrepareP95": 0.10000002384185791,
+      "raw": [
+        {
+          "editorRenderMs": 2.699999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2,
+          "playerPrepareMs": 0.10000002384185791,
+          "runtimeCallMs": 1.899999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.600000023841858,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.600000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.399999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.399999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.699999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.5999999642372131,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.800000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.699999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.7999999523162842,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.699999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.200000047683716,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.899999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.600000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.800000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.600000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3.099999964237213,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.799999952316284,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.300000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.800000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.399999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.199999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.199999988079071,
+          "playerPrepareMs": 0.10000002384185791,
+          "runtimeCallMs": 1.899999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.400000035762787,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.199999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.299999952316284,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.100000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.699999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.400000035762787,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.800000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.699999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.5999999642372131,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.800000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.699999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.600000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.899999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.800000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        }
+      ],
+      "stats": {
+        "contexts": 1,
+        "allocations": 7,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 30,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 7,
+        "liveSurfaceTextures": 5,
+        "programCount": 3,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 3943552,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 234416,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 58,
+              "y": 58,
+              "w": 644,
+              "h": 364
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      },
+      "preMax": 0,
+      "alphaMax": 0
+    },
+    {
+      "kind": "dispersion-all",
+      "policy": "cpu",
+      "samples": 24,
+      "warmup": 4,
+      "initial": {
+        "editorRenderMs": 86.80000001192093,
+        "playerPrepareMs": 9.699999988079071,
+        "runtimeCallMs": 76.40000003576279,
+        "playerCreated": true,
+        "objectInitialized": false
+      },
+      "p50": 49.40000003576279,
+      "p95": 54.80000001192093,
+      "max": 68.70000004768372,
+      "editorP95": 55,
+      "playerPrepareP95": 0,
+      "raw": [
+        {
+          "editorRenderMs": 51.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 51.40000003576279,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 52.90000003576279,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 52.69999998807907,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 49.59999996423721,
+          "playerPrepareMs": 0.09999996423721313,
+          "runtimeCallMs": 49.40000003576279,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 47.10000002384186,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 46.89999997615814,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 52.19999998807907,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 52.10000002384186,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 51.80000001192093,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 51.69999998807907,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 46.19999998807907,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 46,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 47.60000002384186,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 47.40000003576279,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 47.39999997615814,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 47.19999998807907,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 53.59999996423721,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 53.39999997615814,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 48.799999952316284,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 48.69999998807907,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 47.90000003576279,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 47.700000047683716,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 51.69999998807907,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 51.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 51.69999998807907,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 51.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 47.09999996423721,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 46.80000001192093,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 48.39999997615814,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 48.200000047683716,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 47.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 47.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 72.89999997615814,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 68.70000004768372,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 50.700000047683716,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 50.60000002384186,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 47.60000002384186,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 47.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 47.89999997615814,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 47.69999998807907,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 54.19999998807907,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 54.10000002384186,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 54.80000001192093,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 54.60000002384186,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 55,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 54.80000001192093,
+          "playerCreated": false,
+          "objectInitialized": false
+        }
+      ],
+      "stats": null,
+      "preMax": 0,
+      "alphaMax": 0
+    },
+    {
+      "kind": "dispersion-all",
+      "policy": "gpu-object-pilot",
+      "samples": 24,
+      "warmup": 4,
+      "initial": {
+        "editorRenderMs": 51.89999997615814,
+        "playerPrepareMs": 10.100000023841858,
+        "runtimeCallMs": 41.299999952316284,
+        "playerCreated": true,
+        "objectInitialized": true
+      },
+      "p50": 2.100000023841858,
+      "p95": 2.900000035762787,
+      "max": 3.099999964237213,
+      "editorP95": 3.100000023841858,
+      "playerPrepareP95": 0.10000002384185791,
+      "raw": [
+        {
+          "editorRenderMs": 2.100000023841858,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.7999999523162842,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.300000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.100000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.100000023841858,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.099999964237213,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.899999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.800000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.600000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.699999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3.100000023841858,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.900000035762787,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.300000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.100000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3.300000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 3.099999964237213,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.800000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.599999964237213,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.399999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.100000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.599999964237213,
+          "playerPrepareMs": 0.10000002384185791,
+          "runtimeCallMs": 2.300000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3.099999964237213,
+          "playerPrepareMs": 0.10000002384185791,
+          "runtimeCallMs": 2.899999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.800000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.800000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.9000000357627869,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.800000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.800000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.7000000476837158,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.099999964237213,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.9000000357627869,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.899999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.7999999523162842,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.400000035762787,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.300000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 1.899999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 1.7999999523162842,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.300000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.200000047683716,
+          "playerCreated": false,
+          "objectInitialized": false
+        }
+      ],
+      "stats": {
+        "contexts": 1,
+        "allocations": 7,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 30,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 0,
+        "noiseByteMapBuilds": 0,
+        "liveTextures": 7,
+        "liveSurfaceTextures": 4,
+        "programCount": 3,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 4017920,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 2,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      },
+      "preMax": 0,
+      "alphaMax": 0
+    },
+    {
+      "kind": "chain",
+      "policy": "cpu",
+      "samples": 24,
+      "warmup": 4,
+      "initial": {
+        "editorRenderMs": 140.60000002384186,
+        "playerPrepareMs": 10.400000035762787,
+        "runtimeCallMs": 129.5,
+        "playerCreated": true,
+        "objectInitialized": false
+      },
+      "p50": 121.30000001192093,
+      "p95": 147.19999998807907,
+      "max": 181.39999997615814,
+      "editorP95": 147.39999997615814,
+      "playerPrepareP95": 0.10000002384185791,
+      "raw": [
+        {
+          "editorRenderMs": 142.39999997615814,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 142.10000002384186,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 120.10000002384186,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 119.89999997615814,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 147.39999997615814,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 147.19999998807907,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 112.90000003576279,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 112.69999998807907,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 121.69999998807907,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 121.30000001192093,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 114,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 113.69999998807907,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 118.69999998807907,
+          "playerPrepareMs": 0.10000002384185791,
+          "runtimeCallMs": 118.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 144.5999999642372,
+          "playerPrepareMs": 0.10000002384185791,
+          "runtimeCallMs": 144.30000001192093,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 122.80000001192093,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 122.59999996423721,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 143.60000002384186,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 142.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 138.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 138.19999998807907,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 181.80000001192093,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 181.39999997615814,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 107.59999996423721,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 107.40000003576279,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 137.29999995231628,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 136.0999999642372,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 106.09999996423721,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 105.90000003576279,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 142.19999998807907,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 141.89999997615814,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 106.29999995231628,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 106.09999996423721,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 136,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 135.79999995231628,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 113.69999998807907,
+          "playerPrepareMs": 0.10000002384185791,
+          "runtimeCallMs": 113.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 123.80000001192093,
+          "playerPrepareMs": 0.10000002384185791,
+          "runtimeCallMs": 122,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 113.09999996423721,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 112.90000003576279,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 111.19999998807907,
+          "playerPrepareMs": 0.10000002384185791,
+          "runtimeCallMs": 110.89999997615814,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 118.19999998807907,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 117.30000001192093,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 139.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 139.39999997615814,
+          "playerCreated": false,
+          "objectInitialized": false
+        }
+      ],
+      "stats": null,
+      "preMax": 0,
+      "alphaMax": 0
+    },
+    {
+      "kind": "chain",
+      "policy": "gpu-object-pilot",
+      "samples": 24,
+      "warmup": 4,
+      "initial": {
+        "editorRenderMs": 102,
+        "playerPrepareMs": 10.700000047683716,
+        "runtimeCallMs": 90.69999998807907,
+        "playerCreated": true,
+        "objectInitialized": true
+      },
+      "p50": 2.400000035762787,
+      "p95": 3.300000011920929,
+      "max": 4.599999964237213,
+      "editorP95": 3.399999976158142,
+      "playerPrepareP95": 0.10000002384185791,
+      "raw": [
+        {
+          "editorRenderMs": 2.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.400000035762787,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.800000011920929,
+          "playerPrepareMs": 0.09999996423721313,
+          "runtimeCallMs": 2.600000023841858,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.899999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.699999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3.399999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 3.300000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.399999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.400000035762787,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.199999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.299999952316284,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.299999952316284,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.299999952316284,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.5,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.5,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3.100000023841858,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.899999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.300000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.200000047683716,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.699999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.300000011920929,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.300000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.599999964237213,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.300000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.400000035762787,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.300000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.199999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.199999988079071,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3.199999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.900000035762787,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.400000035762787,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.300000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.5,
+          "playerPrepareMs": 0.10000002384185791,
+          "runtimeCallMs": 2.399999976158142,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.699999988079071,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.599999964237213,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.900000035762787,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.599999964237213,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 4.699999988079071,
+          "playerPrepareMs": 0.10000002384185791,
+          "runtimeCallMs": 4.599999964237213,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 3.299999952316284,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 3.099999964237213,
+          "playerCreated": false,
+          "objectInitialized": false
+        },
+        {
+          "editorRenderMs": 2.899999976158142,
+          "playerPrepareMs": 0,
+          "runtimeCallMs": 2.800000011920929,
+          "playerCreated": false,
+          "objectInitialized": false
+        }
+      ],
+      "stats": {
+        "contexts": 1,
+        "allocations": 11,
+        "disposals": 0,
+        "surfaceRebuilds": 1,
+        "sourceUploads": 30,
+        "maskUploads": 0,
+        "cacheHits": 0,
+        "noiseTableBuilds": 1,
+        "noiseByteMapBuilds": 1,
+        "liveTextures": 11,
+        "liveSurfaceTextures": 7,
+        "programCount": 5,
+        "nearestCalibrationBytes": 0,
+        "contextLost": false,
+        "textureBytes": 6086400,
+        "requested": "gpu-object-pilot",
+        "attempted": 1,
+        "handled": 1,
+        "cpu": 0,
+        "sourcePixels": 242544,
+        "uploads": 1,
+        "passes": 8,
+        "initialized": false,
+        "surfacesRebuilt": false,
+        "surfacePrepareMs": 0,
+        "rows": [
+          {
+            "ownerId": "large",
+            "backend": "gpu-object-sampling",
+            "effects": [
+              "noise-dither",
+              "threshold",
+              "edge-dispersion"
+            ],
+            "reason": null,
+            "bounds": {
+              "x": 54,
+              "y": 54,
+              "w": 652,
+              "h": 372
+            }
+          }
+        ],
+        "truncated": 0,
+        "budget": {
+          "minPixels": 131072,
+          "maxPixels": 1048576,
+          "maxExtent": 4096,
+          "maxObjects": 1,
+          "maxTextureBytes": 25165824
+        },
+        "reason": null
+      },
+      "preMax": 0,
+      "alphaMax": 0
+    }
+  ],
+  "liveTextures": 0,
+  "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+}

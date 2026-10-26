@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ToSampool · Inspector 输入组件小样</title>
+  <link rel="stylesheet" href="inspector-input-kit.css">
+  <style>
+    :root{color-scheme:dark;--screen:#0d1518;--ink:#eee9db;font:14px "Microsoft YaHei UI",sans-serif}*{box-sizing:border-box}
+    body{margin:0;background:#181f22;color:var(--ink)}a{color:#81c9bd}.mast{padding:20px 24px;border-bottom:3px solid #5d4e3a;background:#d7c4a0;color:#211c16}.mast h1{margin:0;font-size:23px}.mast p{margin:5px 0 0;font-size:13px}.mast a{float:right;color:#211c16}
+    main{padding:22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,320px));align-items:start;gap:17px}.specimen{min-height:248px;padding:12px;border:6px solid #c7b591;background:var(--screen);box-shadow:inset 0 0 0 2px #3a494a,0 5px 0 #0c0f10}.spec-head{display:flex;align-items:center;gap:9px;margin-bottom:12px;border-bottom:1px solid #465250;padding-bottom:7px}.spec-head h2{margin:0;font-size:15px}.spec-head .index{color:#81c9bd;font:700 13px Consolas,monospace}.spec-head small{margin-left:auto;color:#a6b6b2;font:11px Consolas,monospace}.group-head{display:flex;justify-content:space-between;gap:8px;color:#81c9bd;font-weight:700;font-size:13px;margin-bottom:9px}.group-head span:last-child{color:#889b97;font:10px Consolas,monospace}.ik-host{min-height:75px}.data-line{display:flex;justify-content:space-between;gap:8px;border-top:1px solid #45514e;margin-top:14px;padding-top:8px;color:#a8b7b2;font:11px Consolas,monospace}.data-line strong{color:#eee9db;text-align:right}.note{line-height:1.5;color:#a8b7b2;font-size:12px}
+    @media(max-width:690px){main{grid-template-columns:minmax(0,1fr)}.specimen{width:100%}}
+  </style>
+</head>
+<body>
+  <header class="mast"><a href="inspector-atlas.html">Inspector 全量图鉴 →</a><h1>Inspector 输入组件小样</h1><p>单一组件实现 · 12 种输入形态 · 数值和分支可直接操作</p></header>
+  <main>
+    <article class="specimen" id="scalar"><header class="spec-head"><span class="index">01</span><h2>精确数值</h2><small>SCALAR</small></header><div class="group-head"><span>画布尺寸</span><span>INTEGER</span></div><div class="data-line"><span>OUTPUT / WIDTH</span><strong></strong></div></article>
+    <article class="specimen" id="range"><header class="spec-head"><span class="index">02</span><h2>滑杆＋数值</h2><small>RANGE</small></header><div class="group-head"><span>不均采样</span><span>LIVE</span></div><div class="data-line"><span>OUTPUT / AMOUNT</span><strong></strong></div></article>
+    <article class="specimen" id="range-continuous"><header class="spec-head"><span class="index">03</span><h2>连续滑杆＋数值</h2><small>CONTINUOUS RANGE</small></header><div class="group-head"><span>投影距离</span><span>RANGE 0—80 · STEP 0.5</span></div><div class="data-line"><span>OUTPUT / DISTANCE</span><strong></strong></div></article>
+    <article class="specimen" id="pair"><header class="spec-head"><span class="index">04</span><h2>成对数值</h2><small>PAIR</small></header><div class="group-head"><span>位置与大小</span><span>X/Y · W/H</span></div><div class="data-line"><span>OUTPUT / POSITION</span><strong></strong></div></article>
+    <article class="specimen" id="angle"><header class="spec-head"><span class="index">05</span><h2>角度／方向</h2><small>ANGLE</small></header><div class="group-head"><span>方向</span><span>CONTINUOUS</span></div><div class="data-line"><span>OUTPUT / DIRECTION</span><strong></strong></div></article>
+    <article class="specimen" id="choice"><header class="spec-head"><span class="index">06</span><h2>枚举选择</h2><small>CHOICE</small></header><div class="group-head"><span>过渡</span><span>ONE OF N</span></div><div class="data-line"><span>OUTPUT / MODE</span><strong></strong></div></article>
+    <article class="specimen" id="toggle"><header class="spec-head"><span class="index">07</span><h2>双态开关</h2><small>TOGGLE</small></header><div class="group-head"><span>网点映射</span><span>PROGRESSIVE</span></div><div class="data-line"><span>OUTPUT / DUOTONE</span><strong></strong></div></article>
+    <article class="specimen" id="color"><header class="spec-head"><span class="index">08</span><h2>颜色＋透明度</h2><small>COLOR</small></header><div class="group-head"><span>染色叠加</span><span>COLOR/ALPHA</span></div><div class="data-line"><span>OUTPUT / COLOR</span><strong></strong></div></article>
+    <article class="specimen" id="reference"><header class="spec-head"><span class="index">09</span><h2>素材／对象引用</h2><small>REFERENCE</small></header><div class="group-head"><span>蒙版来源</span><span>OBJECT</span></div><div class="data-line"><span>OUTPUT / TARGET</span><strong></strong></div></article>
+    <article class="specimen" id="text"><header class="spec-head"><span class="index">10</span><h2>文本</h2><small>MULTILINE</small></header><div class="group-head"><span>位图文字</span><span>CONTENT</span></div><div class="data-line"><span>OUTPUT / CHARACTERS</span><strong></strong></div></article>
+    <article class="specimen" id="spatial"><header class="spec-head"><span class="index">11</span><h2>画布空间编辑</h2><small>SPATIAL</small></header><div class="group-head"><span>旋转中心</span><span>CANVAS TARGET</span></div><div class="data-line"><span>OUTPUT / PIVOT</span><strong></strong></div></article>
+    <article class="specimen" id="pattern"><header class="spec-head"><span class="index">12</span><h2>图样预览编辑</h2><small>PATTERN</small></header><div class="group-head"><span>纹理叠加</span><span>PREVIEW</span></div><div class="data-line"><span>OUTPUT / PATTERN</span><strong></strong></div></article>
+  </main>
+  <script src="inspector-input-kit.js"></script><script src="inspector-input-lab-mount.js"></script>
+</body>
+</html>

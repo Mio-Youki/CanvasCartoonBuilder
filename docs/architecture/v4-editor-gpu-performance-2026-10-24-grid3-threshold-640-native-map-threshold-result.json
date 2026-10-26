@@ -1,0 +1,644 @@
+{
+  "date": "2026-10-24",
+  "quick": false,
+  "environment": {
+    "browser": "156.0.4314.42",
+    "os": "win32",
+    "viewport": [
+      1600,
+      1000
+    ],
+    "deviceScaleFactor": 1,
+    "headless": true,
+    "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+  },
+  "source": {
+    "photo": "examples/assets/karsten.jpg",
+    "photoSha256": "b20837c8ac5f32639afd905a9c9f362f69a2bd4465d55de0d1175ae3a539a661",
+    "runtimeSha256": "c3c94ca8fee3ee89f6dfd4979a0aaf7ad491a2a3a7b62c5f945c40d0d2b84571",
+    "viewSha256": "495d02c7e1160ab272c081470241072d7edb132728fbc490da567c768b24e730"
+  },
+  "method": {
+    "samples": 32,
+    "warmup": 8,
+    "grid": 3,
+    "diagnostic": true,
+    "diagnosticCase": "threshold",
+    "visualReadback": "isolated-copy",
+    "deviceTiming": "not-collected; GPU submission is not GPU execution",
+    "singleRun": true
+  },
+  "gates": {
+    "visual": true,
+    "resources": true,
+    "pageErrors": true
+  },
+  "errors": [],
+  "limitations": [
+    "Non-divisible Canvas nearest-neighbor rounding remains a known visual blocker; aligned-grid results are not general acceptance."
+  ],
+  "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "extensions": {
+    "timerQuery": true
+  },
+  "rows": [
+    {
+      "size": [
+        640,
+        360
+      ],
+      "mode": "threshold",
+      "dynamic": false,
+      "requested": "gpu-experimental",
+      "actual": "gpu",
+      "reason": null,
+      "initial": {
+        "editorRenderMs": 540.6999999880791,
+        "playerPrepareMs": 44.39999997615814,
+        "runtimeCallMs": 489.5,
+        "playerCreated": true,
+        "backend": "gpu",
+        "initialized": true
+      },
+      "warmup": 8,
+      "samples": 32,
+      "editorRenderMs": {
+        "samples": 32,
+        "p50": 4.199999988079071,
+        "p95": 5.300000011920929,
+        "max": 6.599999964237213
+      },
+      "runtimeCallMs": {
+        "samples": 32,
+        "p50": 3.900000035762787,
+        "p95": 5,
+        "max": 6
+      },
+      "prepareMs": {
+        "samples": 32,
+        "p50": 0,
+        "p95": 0.19999998807907104,
+        "max": 0.30000001192092896
+      },
+      "outerViewCallMs": {
+        "samples": 32,
+        "p50": 4.5,
+        "p95": 5.600000023841858,
+        "max": 6.799999952316284
+      },
+      "actualRafArrivalGapMs": {
+        "samples": 31,
+        "p50": 16.69999998807907,
+        "p95": 17.099999964237213,
+        "max": 17.200000047683716
+      },
+      "rafTimestampGapMs": {
+        "samples": 31,
+        "p50": 16.699999999999818,
+        "p95": 16.90000000000009,
+        "max": 17
+      },
+      "deviceGpuMs": null,
+      "deviceTiming": "not-collected",
+      "initializationsDuringSamples": [],
+      "extraTextureAllocations": 0,
+      "uploads": 1,
+      "passes": 2,
+      "textureBytes": 2124416,
+      "workPixels": 0,
+      "pixelPasses": 0,
+      "sourcePaintStates": [
+        {
+          "smoothing": false,
+          "quality": "low",
+          "alpha": 1,
+          "matrix": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "smoothing": true,
+          "quality": "low",
+          "alpha": 0.85,
+          "matrix": [
+            1,
+            0,
+            0,
+            1,
+            320,
+            180
+          ]
+        }
+      ],
+      "fixedTime": 0.9000000000000004,
+      "raw": [
+        {
+          "editor": 6.599999964237213,
+          "runtime": 6,
+          "prepare": 0.10000002384185791,
+          "outer": 6.799999952316284
+        },
+        {
+          "editor": 4.699999988079071,
+          "runtime": 4.5,
+          "prepare": 0,
+          "outer": 5
+        },
+        {
+          "editor": 4.399999976158142,
+          "runtime": 3.799999952316284,
+          "prepare": 0,
+          "outer": 4.900000035762787
+        },
+        {
+          "editor": 4,
+          "runtime": 3.900000035762787,
+          "prepare": 0,
+          "outer": 4.299999952316284
+        },
+        {
+          "editor": 4.400000035762787,
+          "runtime": 4,
+          "prepare": 0,
+          "outer": 4.700000047683716
+        },
+        {
+          "editor": 4.600000023841858,
+          "runtime": 4.299999952316284,
+          "prepare": 0,
+          "outer": 4.800000011920929
+        },
+        {
+          "editor": 4.200000047683716,
+          "runtime": 4,
+          "prepare": 0,
+          "outer": 4.5
+        },
+        {
+          "editor": 5.300000011920929,
+          "runtime": 4.5,
+          "prepare": 0.30000001192092896,
+          "outer": 5.600000023841858
+        },
+        {
+          "editor": 4.199999988079071,
+          "runtime": 3.800000011920929,
+          "prepare": 0.19999998807907104,
+          "outer": 4.399999976158142
+        },
+        {
+          "editor": 3.800000011920929,
+          "runtime": 3.700000047683716,
+          "prepare": 0,
+          "outer": 4.099999964237213
+        },
+        {
+          "editor": 4.199999988079071,
+          "runtime": 3.900000035762787,
+          "prepare": 0,
+          "outer": 4.5
+        },
+        {
+          "editor": 3.900000035762787,
+          "runtime": 3.600000023841858,
+          "prepare": 0,
+          "outer": 4.100000023841858
+        },
+        {
+          "editor": 4.299999952316284,
+          "runtime": 4.099999964237213,
+          "prepare": 0,
+          "outer": 4.599999964237213
+        },
+        {
+          "editor": 4.300000011920929,
+          "runtime": 4.099999964237213,
+          "prepare": 0,
+          "outer": 4.699999988079071
+        },
+        {
+          "editor": 4.400000035762787,
+          "runtime": 4.099999964237213,
+          "prepare": 0.10000002384185791,
+          "outer": 4.600000023841858
+        },
+        {
+          "editor": 3.600000023841858,
+          "runtime": 3.5,
+          "prepare": 0,
+          "outer": 3.899999976158142
+        },
+        {
+          "editor": 3.5,
+          "runtime": 3.300000011920929,
+          "prepare": 0,
+          "outer": 3.699999988079071
+        },
+        {
+          "editor": 4.100000023841858,
+          "runtime": 3.800000011920929,
+          "prepare": 0.09999996423721313,
+          "outer": 4.300000011920929
+        },
+        {
+          "editor": 3.400000035762787,
+          "runtime": 3.199999988079071,
+          "prepare": 0,
+          "outer": 3.600000023841858
+        },
+        {
+          "editor": 3.699999988079071,
+          "runtime": 3.600000023841858,
+          "prepare": 0,
+          "outer": 4
+        },
+        {
+          "editor": 4.5,
+          "runtime": 4.100000023841858,
+          "prepare": 0,
+          "outer": 4.700000047683716
+        },
+        {
+          "editor": 5.199999988079071,
+          "runtime": 5,
+          "prepare": 0,
+          "outer": 5.5
+        },
+        {
+          "editor": 3.5,
+          "runtime": 3.300000011920929,
+          "prepare": 0.09999996423721313,
+          "outer": 3.800000011920929
+        },
+        {
+          "editor": 3.599999964237213,
+          "runtime": 3.400000035762787,
+          "prepare": 0,
+          "outer": 3.900000035762787
+        },
+        {
+          "editor": 5.099999964237213,
+          "runtime": 4.600000023841858,
+          "prepare": 0,
+          "outer": 5.300000011920929
+        },
+        {
+          "editor": 4.5,
+          "runtime": 4.300000011920929,
+          "prepare": 0,
+          "outer": 5.099999964237213
+        },
+        {
+          "editor": 4.699999988079071,
+          "runtime": 4.5,
+          "prepare": 0.09999996423721313,
+          "outer": 5
+        },
+        {
+          "editor": 3.699999988079071,
+          "runtime": 3.5,
+          "prepare": 0,
+          "outer": 4
+        },
+        {
+          "editor": 4,
+          "runtime": 3.800000011920929,
+          "prepare": 0,
+          "outer": 4.299999952316284
+        },
+        {
+          "editor": 4.199999988079071,
+          "runtime": 3.800000011920929,
+          "prepare": 0.09999996423721313,
+          "outer": 4.600000023841858
+        },
+        {
+          "editor": 4.399999976158142,
+          "runtime": 3.900000035762787,
+          "prepare": 0,
+          "outer": 4.600000023841858
+        },
+        {
+          "editor": 3.799999952316284,
+          "runtime": 3.599999964237213,
+          "prepare": 0,
+          "outer": 4.399999976158142
+        }
+      ],
+      "liveTexturesAfterRelease": 0
+    },
+    {
+      "size": [
+        640,
+        360
+      ],
+      "mode": "threshold",
+      "dynamic": false,
+      "requested": "cpu",
+      "actual": "cpu",
+      "reason": null,
+      "initial": {
+        "editorRenderMs": 438.9000000357628,
+        "playerPrepareMs": 17.399999976158142,
+        "runtimeCallMs": 420.5,
+        "playerCreated": true,
+        "backend": "cpu",
+        "initialized": false
+      },
+      "warmup": 8,
+      "samples": 32,
+      "editorRenderMs": {
+        "samples": 32,
+        "p50": 8,
+        "p95": 9.199999988079071,
+        "max": 9.400000035762787
+      },
+      "runtimeCallMs": {
+        "samples": 32,
+        "p50": 7.600000023841858,
+        "p95": 8.899999976158142,
+        "max": 9.300000011920929
+      },
+      "prepareMs": {
+        "samples": 32,
+        "p50": 0,
+        "p95": 0.09999996423721313,
+        "max": 0.10000002384185791
+      },
+      "outerViewCallMs": {
+        "samples": 32,
+        "p50": 8.299999952316284,
+        "p95": 9.399999976158142,
+        "max": 9.600000023841858
+      },
+      "actualRafArrivalGapMs": {
+        "samples": 31,
+        "p50": 16.600000023841858,
+        "p95": 17.100000023841858,
+        "max": 18.19999998807907
+      },
+      "rafTimestampGapMs": {
+        "samples": 31,
+        "p50": 16.699999999999818,
+        "p95": 16.799999999999727,
+        "max": 17.5
+      },
+      "deviceGpuMs": null,
+      "deviceTiming": "not-collected",
+      "initializationsDuringSamples": [],
+      "extraTextureAllocations": 0,
+      "uploads": 0,
+      "passes": 0,
+      "textureBytes": 0,
+      "workPixels": 25680,
+      "pixelPasses": 1,
+      "sourcePaintStates": [
+        {
+          "smoothing": false,
+          "quality": "low",
+          "alpha": 1,
+          "matrix": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "smoothing": true,
+          "quality": "low",
+          "alpha": 0.85,
+          "matrix": [
+            1,
+            0,
+            0,
+            1,
+            320,
+            180
+          ]
+        }
+      ],
+      "fixedTime": 0.9000000000000004,
+      "raw": [
+        {
+          "editor": 7.5,
+          "runtime": 7.399999976158142,
+          "prepare": 0,
+          "outer": 7.700000047683716
+        },
+        {
+          "editor": 7.5,
+          "runtime": 7.199999988079071,
+          "prepare": 0,
+          "outer": 7.699999988079071
+        },
+        {
+          "editor": 8.5,
+          "runtime": 8.199999988079071,
+          "prepare": 0,
+          "outer": 8.699999988079071
+        },
+        {
+          "editor": 9,
+          "runtime": 8.800000011920929,
+          "prepare": 0,
+          "outer": 9.300000011920929
+        },
+        {
+          "editor": 7.5,
+          "runtime": 7.099999964237213,
+          "prepare": 0,
+          "outer": 7.699999988079071
+        },
+        {
+          "editor": 8.300000011920929,
+          "runtime": 8,
+          "prepare": 0,
+          "outer": 8.399999976158142
+        },
+        {
+          "editor": 8.099999964237213,
+          "runtime": 7.800000011920929,
+          "prepare": 0,
+          "outer": 8.299999952316284
+        },
+        {
+          "editor": 7.5,
+          "runtime": 7.5,
+          "prepare": 0,
+          "outer": 7.899999976158142
+        },
+        {
+          "editor": 7.699999988079071,
+          "runtime": 7.599999964237213,
+          "prepare": 0,
+          "outer": 7.900000035762787
+        },
+        {
+          "editor": 9.199999988079071,
+          "runtime": 8.899999976158142,
+          "prepare": 0,
+          "outer": 9.399999976158142
+        },
+        {
+          "editor": 7.600000023841858,
+          "runtime": 7.5,
+          "prepare": 0,
+          "outer": 7.899999976158142
+        },
+        {
+          "editor": 8.699999988079071,
+          "runtime": 8.399999976158142,
+          "prepare": 0,
+          "outer": 8.899999976158142
+        },
+        {
+          "editor": 8.599999964237213,
+          "runtime": 8.5,
+          "prepare": 0,
+          "outer": 9.399999976158142
+        },
+        {
+          "editor": 8.799999952316284,
+          "runtime": 8.5,
+          "prepare": 0,
+          "outer": 9
+        },
+        {
+          "editor": 7.5,
+          "runtime": 7.399999976158142,
+          "prepare": 0,
+          "outer": 7.800000011920929
+        },
+        {
+          "editor": 7.399999976158142,
+          "runtime": 7.300000011920929,
+          "prepare": 0,
+          "outer": 7.899999976158142
+        },
+        {
+          "editor": 8,
+          "runtime": 7.699999988079071,
+          "prepare": 0,
+          "outer": 8.399999976158142
+        },
+        {
+          "editor": 7.799999952316284,
+          "runtime": 7.599999964237213,
+          "prepare": 0,
+          "outer": 8.099999964237213
+        },
+        {
+          "editor": 7.5,
+          "runtime": 7.300000011920929,
+          "prepare": 0,
+          "outer": 8
+        },
+        {
+          "editor": 8.199999988079071,
+          "runtime": 8,
+          "prepare": 0,
+          "outer": 8.5
+        },
+        {
+          "editor": 8.199999988079071,
+          "runtime": 7.899999976158142,
+          "prepare": 0.10000002384185791,
+          "outer": 8.5
+        },
+        {
+          "editor": 7.800000011920929,
+          "runtime": 7.600000023841858,
+          "prepare": 0,
+          "outer": 8.099999964237213
+        },
+        {
+          "editor": 7.799999952316284,
+          "runtime": 7.400000035762787,
+          "prepare": 0.09999996423721313,
+          "outer": 8
+        },
+        {
+          "editor": 8.699999988079071,
+          "runtime": 7.900000035762787,
+          "prepare": 0,
+          "outer": 8.900000035762787
+        },
+        {
+          "editor": 8.300000011920929,
+          "runtime": 7.900000035762787,
+          "prepare": 0,
+          "outer": 8.699999988079071
+        },
+        {
+          "editor": 8.199999988079071,
+          "runtime": 7.700000047683716,
+          "prepare": 0,
+          "outer": 8.399999976158142
+        },
+        {
+          "editor": 7.700000047683716,
+          "runtime": 7.5,
+          "prepare": 0,
+          "outer": 7.900000035762787
+        },
+        {
+          "editor": 7.600000023841858,
+          "runtime": 7.399999976158142,
+          "prepare": 0,
+          "outer": 7.900000035762787
+        },
+        {
+          "editor": 8.099999964237213,
+          "runtime": 7.5,
+          "prepare": 0,
+          "outer": 8.300000011920929
+        },
+        {
+          "editor": 9.400000035762787,
+          "runtime": 9.300000011920929,
+          "prepare": 0,
+          "outer": 9.600000023841858
+        },
+        {
+          "editor": 8.100000023841858,
+          "runtime": 7.800000011920929,
+          "prepare": 0,
+          "outer": 8.399999976158142
+        },
+        {
+          "editor": 7.199999988079071,
+          "runtime": 6.899999976158142,
+          "prepare": 0,
+          "outer": 7.399999976158142
+        }
+      ],
+      "liveTexturesAfterRelease": 0
+    }
+  ],
+  "visual": [
+    {
+      "size": [
+        640,
+        360
+      ],
+      "mode": "threshold",
+      "dynamic": false,
+      "preMax": 0,
+      "alphaMax": 0,
+      "channelsOver2": 0,
+      "first": []
+    }
+  ],
+  "scheduling": [],
+  "liveTexturesAtEnd": 0,
+  "policy": "full; no source version cache; default Canvas final transitions",
+  "forcedMode": "paused direct editor view.render, one request per RAF; not native playback FPS"
+}

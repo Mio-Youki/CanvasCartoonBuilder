@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+const context=vm.createContext({});vm.runInContext(readFileSync(new URL('../editor/effect-review-state.js',import.meta.url),'utf8'),context);
+const candidate={id:'test',version:1,name:'图样',parameters:[{key:'color',label:'颜色'}],paint(){},normalize(){}};
+const values=new Map(),storage={getItem:k=>values.get(k),setItem:(k,v)=>values.set(k,v)};
+const create=c=>context.ToSampoolEffectReviewState.create(c||candidate,storage),r=create();
+assert.equal(r.changed(),false);r.setPreview({base:{color:'#ffffff'}});assert.equal(r.changed(),false);assert.equal(r.confirm().review.confirmation.decision,'approve-proposal');
+r.setLabel('color','主色');assert.equal(r.data.confirmation,null);r.setNote('color','更柔和');r.setName('放射');assert.equal(r.confirm().review.confirmation.decision,'request-changes');
+const restored=create();assert.equal(restored.data.labels.color,'主色');assert.equal(restored.preview.base.color,'#ffffff');assert.equal(restored.record().subject.id,'test');
+restored.reset();assert.equal(restored.changed(),false);assert.equal(restored.preview.base.color,'#ffffff');
+assert.equal(create({...candidate,version:2}).changed(),false);assert.equal(create({...candidate,paint(){return 1;}}).changed(),false);
+const failed=context.ToSampoolEffectReviewState.create(candidate,{getItem(){return null;},setItem(){throw Error('quota');}});assert.throws(()=>failed.confirm(),/未能保存/);assert.equal(failed.data.confirmation,null);
+r.setName('');assert.throws(()=>r.confirm(),/名称不能为空/);assert.throws(()=>r.setLabel('missing','bad'),/未知参数/);
+console.log('✓ 审阅状态：元数据与试验分离／确认失效／重开／版本隔离／重置不改参数／保存失败不伪确认');

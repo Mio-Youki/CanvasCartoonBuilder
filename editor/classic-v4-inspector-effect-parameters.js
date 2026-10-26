@@ -26,9 +26,10 @@
   function plan(card,definition,values) {
     const special=card.id==='uneven-sampling'?'uneven':card.id==='texture-overlay'?'texture':null;
     const params=(definition.params||[]).filter(param=>{
+      if(param.internal)return false;
       if(!visible(param,values))return false;
       // Color controls own their alpha; do not show an accidental duplicate field.
-      return !(param.key==='alpha'&&(definition.params||[]).some(entry=>entry.type==='color'));
+      return !((definition.params||[]).some(entry=>entry.type==='color'&&visible(entry,values)&&(entry.alphaKey||'alpha')===param.key));
     });
     return Object.freeze({special,params:Object.freeze(params)});
   }

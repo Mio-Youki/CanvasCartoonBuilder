@@ -1,0 +1,16 @@
+/* Shared timing presentation: same states in Inspector and review surfaces. */
+.v4-timed-field { position:relative; padding-right:28px; }
+.v4-timed-field > .v4-parameter-clock { position:absolute; right:0; top:50%; transform:translateY(-50%); }
+button.v4-parameter-clock { box-sizing:border-box; width:24px; height:24px; min-height:24px; padding:0; margin:0; border:1px solid transparent; border-radius:3px; background:transparent; color:var(--dim,#a9afba); font:16px/1 monospace; opacity:0; transition:opacity 100ms; }
+.v4-timed-field:hover > .v4-parameter-clock,.v4-timed-field:focus-within > .v4-parameter-clock,.v4-parameter-clock:focus-visible,button.v4-parameter-clock:not([data-timing-state="off"]) { opacity:1; }
+button.v4-parameter-clock[data-timing-state="armed"] { color:var(--yellow,var(--accent,#ffda55)); border-color:currentColor; }
+button.v4-parameter-clock[data-timing-state="set"],button.v4-parameter-clock[data-timing-state="partial"] { color:#17191d; background:var(--yellow,var(--accent,#ffda55)); border-color:transparent; }
+button.v4-parameter-clock[data-timing-state="elsewhere"] { opacity:.55; border-bottom-color:currentColor; }
+button.v4-parameter-clock:disabled { cursor:default; }
+.v4-parameter-clock svg { display:block; width:16px; height:16px; margin:auto; }
+.color-timing-controls { display:flex; gap:10px; margin-top:8px; border-top:1px solid var(--line,#4b5260); padding-top:6px; }
+.color-timing-controls:empty { display:none; }
+.color-timing-controls > span { display:flex; align-items:center; gap:5px; flex:1; font-size:11px; }
+.color-timing-controls button.v4-parameter-clock { opacity:1; margin-left:auto; }
+@media (hover:none) { button.v4-parameter-clock { opacity:1; } }
+@media (prefers-reduced-motion:reduce) { button.v4-parameter-clock { transition:none; } }

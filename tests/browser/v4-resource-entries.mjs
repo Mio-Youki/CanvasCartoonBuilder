@@ -1,0 +1,46 @@
+import assert from 'node:assert/strict';
+import {existsSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {chromium} from 'playwright-core';
+const root=resolve(import.meta.dirname,'../..'),edge=['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(existsSync);
+const browser=await chromium.launch({executablePath:edge,headless:true});
+try{
+  const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(String(e)));
+  await page.goto(pathToFileURL(resolve(root,'img2asset-v4-classic.html')).href);await page.waitForFunction(()=>window.classicV4ResourceEntries);
+  await page.evaluate(()=>{if(state.playing)togglePlay();ToSampoolV4Workspace.createBlank({width:160,height:96});classicV4Changes.clear();});
+  const pattern=page.locator('#v4-pattern-cards'),bake=page.locator('#v4-material-baking');
+  await page.locator('[data-library-tab="patterns"]').click();
+  await pattern.locator('[data-pattern-import]').setInputFiles(resolve(root,'examples/resources/folded-frame.tosampool-pattern.json'));await page.evaluate(()=>classicV4ResourceEntries.settled());
+  const provider=pattern.locator('[data-pattern-maintenance] [data-pattern-provider]');await pattern.locator('[data-pattern-maintenance] summary').click();await provider.waitFor();assert.match(await provider.innerText(),/折线框标/);
+  const preset=pattern.locator('[data-pattern-resource-id]').first();await preset.locator('.asset-card-action.add').click();
+  const stage=page.locator('#v4-classic-stage'),rect=await stage.boundingBox();await page.mouse.move(rect.x+20,rect.y+20);await page.mouse.down();await page.mouse.move(rect.x+100,rect.y+70,{steps:4});await page.mouse.up();
+  await page.waitForFunction(()=>ToSampoolV4Workspace.current().entities.length===1);
+  assert.equal(await page.locator('#v4-pattern-management').count(),0,'旧管理列表已移除');
+  await pattern.locator('[data-pattern-action="save"]').click();await page.evaluate(()=>classicV4ResourceEntries.settled());assert.equal(await page.evaluate(()=>Object.keys(ToSampoolV4Workspace.current().patternResources).length),2,'保存进入项目，而非旧收藏包');
+  await pattern.locator('[data-pattern-maintenance] summary').click();await provider.locator('[data-pattern-action="uninstall"]').click();await page.evaluate(()=>classicV4ResourceEntries.settled());
+  assert.equal(await page.evaluate(()=>Object.keys(ToSampoolV4Workspace.current().patternDefinitions||{}).length),0);
+  await page.evaluate(()=>classicV4Changes.undo());assert.equal(await provider.count(),1);
+  await pattern.locator('[data-pattern-maintenance] summary').click();await provider.locator('[data-pattern-action="upgrade"]').click();await page.evaluate(()=>classicV4ResourceEntries.settled());
+  // A mismatched package is rejected before modifying the project.
+  const snapshot=await page.evaluate(()=>EditorVNextScene.serialize(ToSampoolV4Workspace.current()));
+  await pattern.locator('[data-pattern-import]').setInputFiles(resolve(root,'examples/resources/rain-curtain.tosampool-resource.json'));await page.evaluate(()=>classicV4ResourceEntries.settled());
+  assert.equal(await page.evaluate(()=>EditorVNextScene.serialize(ToSampoolV4Workspace.current())),snapshot);assert.match(await pattern.locator('[role="alert"]').innerText(),/只接收/);
+  await page.locator('[data-library-tab="assets"]').click();assert.equal(await page.locator('#v4-module-management').count(),0);
+  page.once('dialog',d=>d.accept());await page.locator('#file').setInputFiles(resolve(root,'examples/resources/rain-curtain.tosampool-resource.json'));await page.locator('[data-element-preset-id]').waitFor();
+  const moduleCard=page.locator('[data-element-preset-id]');assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities.length),1,'导入不增加画布对象');
+  await moduleCard.locator('[data-material-action="place"]').click();await bake.waitFor();
+  assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities.filter(e=>e.type==='procedural').length),1);
+  const savedHash=await page.evaluate(()=>classicV4Resources.collect([{kind:'module',id:'example.rain-curtain',version:1}]));
+  await page.evaluate(hash=>classicV4Resources.remove(hash),savedHash);await page.evaluate(()=>classicV4Resources.restore());
+  await page.locator('[data-material-scope-switch]').click();assert.equal(await bake.isVisible(),false);
+  await page.locator('[data-material-scope-switch]').click();assert.equal(await bake.isVisible(),true);
+  const oldScope=await page.evaluate(()=>ToSampoolV4Workspace.moduleScope);
+  await page.evaluate(()=>{ToSampoolV4Workspace.createBlank({width:160,height:96});classicV4View.select(null);});
+  assert.equal(await moduleCard.count(),0);assert.equal(await bake.isVisible(),false);assert.notEqual(await page.evaluate(()=>ToSampoolV4Workspace.moduleScope),oldScope);
+  page.once('dialog',d=>d.accept());await page.evaluate(hash=>classicV4Resources.take(hash),savedHash);await moduleCard.waitFor();assert.equal(await page.evaluate(()=>ToSampoolV4Workspace.current().entities.length),0);
+  await page.reload();await page.waitForFunction(()=>window.classicV4ResourceEntries);
+  assert.equal(await page.locator('[data-library-tab="collection"]').count(),0,'收藏入口已退役');
+  const stale=await page.evaluate(async()=>{let resume;const text=new Promise(resolve=>resume=resolve),job=classicV4Resources.importFile({size:2,text:()=>text},'module').then(()=>false,error=>/工程已变化/.test(error.message));ToSampoolV4Workspace.createBlank();resume('{}');return await job;});assert.equal(stale,true);assert.equal(await page.evaluate(()=>Object.keys(ToSampoolV4Workspace.current().modules||{}).length),0);
+  assert.deepEqual(errors,[]);console.log('✓ RC3-c2b新入口：图样导入／新建／保存／版本停用撤销／错误包不写入；构件导入不执行／显式授信／保存跨工程取用不继承授信；范围同步及刷新持久化');
+}finally{await browser.close();}

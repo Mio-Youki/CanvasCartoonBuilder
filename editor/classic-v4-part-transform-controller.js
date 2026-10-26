@@ -50,7 +50,8 @@
     for(const button of [mirrorH,mirrorV])button.addEventListener('pointerdown',event=>{event.preventDefault();event.stopPropagation();});mirrorH.addEventListener('click',event=>mirror('h',event));mirrorV.addEventListener('click',event=>mirror('v',event));
     const keydown=event=>{if(event.key==='Escape'&&cancel()){event.__classicV4TransformHandled=true;event.preventDefault();event.stopPropagation();}};global.addEventListener('pointermove',move);global.addEventListener('pointerup',finish);global.addEventListener('pointercancel',finish);global.addEventListener('keydown',keydown,true);
     const unsubscribeWorkspace=workspace.subscribe(refresh),unsubscribeSelection=view.subscribeSelection(refresh),resize=global.ResizeObserver?new ResizeObserver(refresh):null;if(resize)resize.observe(wrap);refresh();
-    function stop(){stopped=true;cancel();unsubscribeWorkspace();unsubscribeSelection();if(resize)resize.disconnect();global.removeEventListener('pointermove',move);global.removeEventListener('pointerup',finish);global.removeEventListener('pointercancel',finish);global.removeEventListener('keydown',keydown,true);layer.remove();}
+    const syncPreview=target=>{layer.style.visibility=target?'hidden':'';};syncPreview(view.maskPreview);const unsubscribePreview=view.subscribeMaskPreview?view.subscribeMaskPreview(syncPreview):()=>{};
+    function stop(){stopped=true;cancel();unsubscribeWorkspace();unsubscribeSelection();unsubscribePreview();if(resize)resize.disconnect();global.removeEventListener('pointermove',move);global.removeEventListener('pointerup',finish);global.removeEventListener('pointercancel',finish);global.removeEventListener('keydown',keydown,true);layer.remove();}
     return Object.freeze({refresh,cancel,stop,get activeGesture(){return gesture&&gesture.kind;},layer,box:frameBox});
   }
   global.EditorClassicV4PartTransformController=Object.freeze({version:1,create,boxOf,localMatrix});

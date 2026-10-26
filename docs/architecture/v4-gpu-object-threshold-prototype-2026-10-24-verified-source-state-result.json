@@ -1,0 +1,1168 @@
+{
+  "date": "2026-10-24",
+  "browser": "156.0.4314.42",
+  "headless": true,
+  "os": "win32",
+  "runtimeSha256": "4727b4840eeb40225fec100f731e1a271072f98b3c9e663129898412811721f0",
+  "freshReference": false,
+  "resetSourceSmoothing": false,
+  "method": "Independent capsule prototype, not editor integration; 4 warmup + 24 samples; CPU content through Canvas output included, final placement excluded",
+  "errors": [],
+  "visual": [
+    {
+      "kind": "image",
+      "grid": 1,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "image",
+      "grid": 1,
+      "time": 5,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "image",
+      "grid": 1,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "image",
+      "grid": 3,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "image",
+      "grid": 3,
+      "time": 5,
+      "cpuSourceSmoothing": false,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "image",
+      "grid": 3,
+      "time": 0.2,
+      "cpuSourceSmoothing": false,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "vector",
+      "grid": 1,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 110,
+        "y": 88,
+        "w": 452,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "vector",
+      "grid": 1,
+      "time": 5,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 110,
+        "y": 88,
+        "w": 452,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "vector",
+      "grid": 1,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 110,
+        "y": 88,
+        "w": 452,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "vector",
+      "grid": 3,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 110,
+        "y": 88,
+        "w": 452,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "vector",
+      "grid": 3,
+      "time": 5,
+      "cpuSourceSmoothing": false,
+      "bounds": {
+        "x": 110,
+        "y": 88,
+        "w": 452,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "vector",
+      "grid": 3,
+      "time": 0.2,
+      "cpuSourceSmoothing": false,
+      "bounds": {
+        "x": 110,
+        "y": 88,
+        "w": 452,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "transformed",
+      "grid": 1,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 131,
+        "y": 30,
+        "w": 438,
+        "h": 357
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "transformed",
+      "grid": 1,
+      "time": 5,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 131,
+        "y": 30,
+        "w": 438,
+        "h": 357
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "transformed",
+      "grid": 1,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 131,
+        "y": 30,
+        "w": 438,
+        "h": 357
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "transformed",
+      "grid": 3,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 131,
+        "y": 30,
+        "w": 438,
+        "h": 357
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "transformed",
+      "grid": 3,
+      "time": 5,
+      "cpuSourceSmoothing": false,
+      "bounds": {
+        "x": 131,
+        "y": 30,
+        "w": 438,
+        "h": 357
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "transformed",
+      "grid": 3,
+      "time": 0.2,
+      "cpuSourceSmoothing": false,
+      "bounds": {
+        "x": 131,
+        "y": 30,
+        "w": 438,
+        "h": 357
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "mask",
+      "grid": 1,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "mask",
+      "grid": 1,
+      "time": 5,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "mask",
+      "grid": 1,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "mask",
+      "grid": 3,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "mask",
+      "grid": 3,
+      "time": 5,
+      "cpuSourceSmoothing": false,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "mask",
+      "grid": 3,
+      "time": 0.2,
+      "cpuSourceSmoothing": false,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "follow-mask",
+      "grid": 1,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 138,
+        "y": 95,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "follow-mask",
+      "grid": 1,
+      "time": 5,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "follow-mask",
+      "grid": 1,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 138,
+        "y": 95,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "follow-mask",
+      "grid": 3,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 138,
+        "y": 95,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "follow-mask",
+      "grid": 3,
+      "time": 5,
+      "cpuSourceSmoothing": false,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "follow-mask",
+      "grid": 3,
+      "time": 0.2,
+      "cpuSourceSmoothing": false,
+      "bounds": {
+        "x": 138,
+        "y": 95,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "decorated",
+      "grid": 1,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 129,
+        "y": 79,
+        "w": 442,
+        "h": 259
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "decorated",
+      "grid": 1,
+      "time": 5,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 129,
+        "y": 79,
+        "w": 442,
+        "h": 259
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "decorated",
+      "grid": 1,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 129,
+        "y": 79,
+        "w": 442,
+        "h": 259
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "decorated",
+      "grid": 3,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 129,
+        "y": 79,
+        "w": 442,
+        "h": 259
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "decorated",
+      "grid": 3,
+      "time": 5,
+      "cpuSourceSmoothing": false,
+      "bounds": {
+        "x": 129,
+        "y": 79,
+        "w": 442,
+        "h": 259
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "decorated",
+      "grid": 3,
+      "time": 0.2,
+      "cpuSourceSmoothing": false,
+      "bounds": {
+        "x": 129,
+        "y": 79,
+        "w": 442,
+        "h": 259
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "parent-blend",
+      "grid": 1,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 157,
+        "y": 95,
+        "w": 450,
+        "h": 291
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "parent-blend",
+      "grid": 1,
+      "time": 5,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 157,
+        "y": 95,
+        "w": 450,
+        "h": 291
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "parent-blend",
+      "grid": 1,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 157,
+        "y": 95,
+        "w": 450,
+        "h": 291
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "parent-blend",
+      "grid": 3,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 157,
+        "y": 95,
+        "w": 450,
+        "h": 291
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "parent-blend",
+      "grid": 3,
+      "time": 5,
+      "cpuSourceSmoothing": false,
+      "bounds": {
+        "x": 157,
+        "y": 95,
+        "w": 450,
+        "h": 291
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "parent-blend",
+      "grid": 3,
+      "time": 0.2,
+      "cpuSourceSmoothing": false,
+      "bounds": {
+        "x": 157,
+        "y": 95,
+        "w": 450,
+        "h": 291
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "timed",
+      "grid": 1,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "timed",
+      "grid": 1,
+      "time": 5,
+      "cpuSourceSmoothing": false,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 2
+    },
+    {
+      "kind": "timed",
+      "grid": 1,
+      "time": 0.2,
+      "cpuSourceSmoothing": false,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 3
+    },
+    {
+      "kind": "timed",
+      "grid": 3,
+      "time": 0.2,
+      "cpuSourceSmoothing": true,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 1
+    },
+    {
+      "kind": "timed",
+      "grid": 3,
+      "time": 5,
+      "cpuSourceSmoothing": false,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 2
+    },
+    {
+      "kind": "timed",
+      "grid": 3,
+      "time": 0.2,
+      "cpuSourceSmoothing": false,
+      "bounds": {
+        "x": 138,
+        "y": 88,
+        "w": 424,
+        "h": 241
+      },
+      "capsule": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "final": {
+        "preMax": 0,
+        "alphaMax": 0
+      },
+      "contexts": 3
+    }
+  ],
+  "rejected": [
+    {
+      "change": "sample-first",
+      "reason": "prototype-sample-not-last",
+      "allocations": 0
+    },
+    {
+      "change": "extra-effect",
+      "reason": "prototype-unsupported-sampling",
+      "allocations": 0
+    },
+    {
+      "change": "alpha-mode",
+      "reason": "prototype-grid-alpha",
+      "allocations": 0
+    }
+  ],
+  "performanceRows": [
+    {
+      "w": 640,
+      "h": 360,
+      "capsuleSize": {
+        "width": 644,
+        "height": 364,
+        "pixels": 234416
+      },
+      "mode": "cpu",
+      "initial": {
+        "capsuleCallMs": 14.200000047683716,
+        "kernelCallMs": null
+      },
+      "warmup": 4,
+      "samples": 24,
+      "p50": 13,
+      "p95": 13.900000035762787,
+      "max": 15,
+      "extraAllocations": 0,
+      "textureBytes": 0,
+      "explicitArtworkReadbackBytes": null,
+      "deviceGpuMs": null
+    },
+    {
+      "w": 640,
+      "h": 360,
+      "capsuleSize": {
+        "width": 644,
+        "height": 364,
+        "pixels": 234416
+      },
+      "mode": "gpu",
+      "initial": {
+        "capsuleCallMs": 37.69999998807907,
+        "kernelCallMs": 37
+      },
+      "warmup": 4,
+      "samples": 24,
+      "p50": 1.800000011920929,
+      "p95": 2.100000023841858,
+      "max": 2.400000035762787,
+      "extraAllocations": 0,
+      "textureBytes": 3816192,
+      "explicitArtworkReadbackBytes": 0,
+      "deviceGpuMs": null
+    },
+    {
+      "w": 1280,
+      "h": 720,
+      "capsuleSize": {
+        "width": 1284,
+        "height": 724,
+        "pixels": 929616
+      },
+      "mode": "cpu",
+      "initial": {
+        "capsuleCallMs": 44.19999998807907,
+        "kernelCallMs": null
+      },
+      "warmup": 4,
+      "samples": 24,
+      "p50": 39.10000002384186,
+      "p95": 50.69999998807907,
+      "max": 53.5,
+      "extraAllocations": 0,
+      "textureBytes": 0,
+      "explicitArtworkReadbackBytes": null,
+      "deviceGpuMs": null
+    },
+    {
+      "w": 1280,
+      "h": 720,
+      "capsuleSize": {
+        "width": 1284,
+        "height": 724,
+        "pixels": 929616
+      },
+      "mode": "gpu",
+      "initial": {
+        "capsuleCallMs": 60.89999997615814,
+        "kernelCallMs": 60.5
+      },
+      "warmup": 4,
+      "samples": 24,
+      "p50": 2.5,
+      "p95": 3.5,
+      "max": 3.700000047683716,
+      "extraAllocations": 0,
+      "textureBytes": 14939392,
+      "explicitArtworkReadbackBytes": 0,
+      "deviceGpuMs": null
+    }
+  ],
+  "releases": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "cpuPlayerRepeat": [
+    {
+      "kind": "image",
+      "preMax": 0,
+      "alphaMax": 0
+    },
+    {
+      "kind": "decorated",
+      "preMax": 0,
+      "alphaMax": 0
+    }
+  ],
+  "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "objectRegistryCapability": null
+}

@@ -10,7 +10,7 @@ if(!edge)throw new Error('找不到 Edge；请设置 TOSAMPOOL_EDGE_PATH');
 const browser=await chromium.launch({executablePath:edge,headless:true});
 try{
   const page=await browser.newPage(),errors=[];
-  page.on('pageerror',error=>errors.push(String(error)));
+  page.on('pageerror',error=>errors.push(error&&error.stack||String(error)));
   await page.goto(pathToFileURL(resolve(root,'img2asset-v4-classic.html')).href+'?e2e=1',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>window.ToSampoolV4Workspace?.hasDocument);
   const modules=await page.evaluate(()=>({

@@ -30,7 +30,7 @@ const imported=await controller.importFiles([{ name:'lake.png' }], { prepare:fil
 assert.equal(imported[0].assetId, 'lake'); assert.equal(controller.selected().id, 'lake'); assert.equal(controller.list().length, 1);
 const image=controller.addSelectedToScene({ x:20, y:30, w:192, h:108 }); assert.equal(image.entityId, 'image-lake');
 const background=controller.openBackground({ layout:'tile' }); assert.equal(background.layerId, 'background-lake');
-assert.equal(controller.removeSelected(), false, '正在被场景引用的素材不得删除');
+assert.equal(controller.removeSelected(), true, '移出素材库不得删除正在使用的图片数据');assert.equal(controller.list().length,0);assert.equal(workspace.current().assets.lake.libraryHidden,true);
 assert.equal(JSON.stringify(workspace.current().assets.lake.recipe), JSON.stringify({ pixelDiv:2, palette:'gb', quant:0, bgTolerance:0 }));
 assert.equal(workspace.current().entities[0].x, 20); assert.equal(workspace.current().background.layers[0].layout, 'tile');
 

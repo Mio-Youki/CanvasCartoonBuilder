@@ -12,6 +12,9 @@
   }
   function create() {
     const free = new Map();
+    const roles = new Map(), roleCanvases = new WeakSet(), identities = new WeakMap();
+    let nextIdentity = 0, roleAllocations = 0;
+    const clearHooks = new Set();
     let peakPixels = 0, acquires = 0, reuses = 0, backingSizeWrites = 0, workPixels = 0, pixelPasses = 0;
     function acquire(width, height) {
       width = Math.max(1, Math.ceil(width)); height = Math.max(1, Math.ceil(height));
@@ -29,14 +32,28 @@
       return canvas;
     }
     function release(canvas) {
-      if (!canvas) return;
+      if (!canvas || roleCanvases.has(canvas)) return;
       const key = `${canvas.width}x${canvas.height}`;
       const bucket = free.get(key) || []; bucket.push(canvas); free.set(key, bucket);
     }
+    function acquireRole(role,width,height){
+      width=Math.max(1,Math.ceil(width));height=Math.max(1,Math.ceil(height));
+      let canvas=roles.get(role);
+      if(!canvas||canvas.width!==width||canvas.height!==height){
+        canvas=makeCanvas(width,height);if(!canvas)throw new Error('当前环境无法创建固定角色 Canvas');
+        roles.set(role,canvas);roleCanvases.add(canvas);roleAllocations++;
+      }else reuses++;
+      acquires++;peakPixels=Math.max(peakPixels,width*height);return canvas;
+    }
+    function describe(canvas){
+      if(!canvas)return null;
+      if(!identities.has(canvas))identities.set(canvas,++nextIdentity);
+      return {id:identities.get(canvas),width:canvas.width,height:canvas.height};
+    }
     function beginFrame(){workPixels=0;pixelPasses=0;}
     function notePixels(width,height,passes){passes=Math.max(1,+passes||1);workPixels+=Math.max(1,Math.round(width))*Math.max(1,Math.round(height))*passes;pixelPasses+=passes;}
-    function clear() { free.clear(); peakPixels = 0; acquires = 0; reuses = 0; backingSizeWrites = 0; beginFrame(); }
-    return Object.freeze({ acquire, release, beginFrame, notePixels, clear, stats: () => ({ peakPixels, acquires, reuses, backingSizeWrites, workPixels, pixelPasses }) });
+    function clear() { for(const hook of clearHooks)hook();clearHooks.clear();free.clear();roles.clear();roleAllocations=0; peakPixels = 0; acquires = 0; reuses = 0; backingSizeWrites = 0; beginFrame(); }
+    return Object.freeze({ acquire, acquireRole, describe, release, beginFrame, notePixels, clear, onClear:hook=>clearHooks.add(hook), stats: () => Object.assign({ peakPixels, acquires, reuses, backingSizeWrites, workPixels, pixelPasses },roles.size?{roleSurfaceCount:roles.size,roleAllocations,rolePixels:[...roles.values()].reduce((sum,c)=>sum+c.width*c.height,0)}:{}) });
   }
   api.modules.surfaces = Object.freeze({ create });
 })(typeof window !== 'undefined' ? window : globalThis);

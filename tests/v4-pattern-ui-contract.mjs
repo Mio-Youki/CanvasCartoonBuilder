@@ -33,6 +33,8 @@ const inspector=read('editor/classic-v4-inspector-controller.js');
 assert.match(inspector,/shape,sides:point\.sides,roundness:point\.roundness/,'纹理叠加必须把 shape 映射为共用编辑器所需的 sides / roundness');
 assert.match(inspector,/staleMotion=panel\.querySelector\('\.v4-inline-texture-motion'\).*staleMotion\.remove/,'图样设置中不得保留未接通的图案运动开关');
 const patternField=read('editor/classic-v4-pattern-field.js');
-assert.match(patternField,/value:'noise',label:'屏幕噪点'/,'图样设置的类型下拉必须提供屏幕噪点');
+assert.match(patternField,/style==='noise'\?\[\{value:'noise',label:'屏幕噪点（旧项目）'\}\]/,'图样设置只应为旧项目提供屏幕噪点选项');
+assert.ok(!Array.from(param(texture,'texture').options).includes('noise'),'新建纹理不得继续暴露旧屏幕噪点');
+assert.ok(registry.effectById['grain-overlay'],'颗粒叠加必须是独立加样效果');
 
 console.log('✓ V4 图样 UI 合同：点形映射、归一化偏移、命名和无效图案运动入口通过');

@@ -1,5 +1,9 @@
 # v4 Parts 迁移合同
 
+> 路径显现增量：普通图元保存`pathRevealEnabled`，默认false，关闭仅旁路显现、保留原参数与对象轨；角点箭头新增shaftMode／shaftAngle／shaftCap，独立与依附路线共用轮廓。详见[实际合同](V4_PATH_REVEAL_AND_ARROW_SHAFT_2026-10-18.md)。
+
+> G3增量：Parts现在额外支持版本化custom图元，首批为角点箭头；仍在vector等对象内部，不拆为多个Scene实体，不新增独立轨。复制、变换、边界及项目恢复沿用现有Parts流程，详见[自定义图元合同](V4_CUSTOM_SHAPES_G3_2026-10-18.md)。
+
 > 状态：Phase 7 实施基线。Runtime、Parts State、树/Inspector、逐层命中、单图元青框变换、同父图元多选、两层旋转/非等比父组变换、组合 parts 保存重开、多帧图片 + parts 绘制顺序、Paint 复合面板与文字字体连接已进入验收；`npm run verify:phase7` 汇总门禁已通过，迁移矩阵仍等待新桌面进程中的字体授权边界验收后再升级。
 
 ## 1. 为什么不能用 Group 替代 Parts

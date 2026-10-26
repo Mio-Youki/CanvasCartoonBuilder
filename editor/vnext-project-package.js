@@ -10,6 +10,7 @@
     'image/png':'png', 'image/jpeg':'jpg', 'image/webp':'webp', 'image/gif':'gif', 'image/svg+xml':'svg', 'font/woff2':'woff2', 'font/woff':'woff',
   })[String(mime || '').toLowerCase()] || 'bin';
   const safeName = value => String(value || 'asset').replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '') || 'asset';
+  const uniqueName=(value,used)=>{const base=safeName(value);let name=base,n=2;while(used.has(name.toLowerCase()))name=base+'-'+n++;used.add(name.toLowerCase());return name;};
   const randomId = () => 'project-' + Math.random().toString(36).slice(2, 10);
 
   function dataUrlBytes(locator) {
@@ -59,6 +60,7 @@
       Object.keys(value).forEach(key => {
         const child=value[key];
         if (key === 'runtimeAssets') return;
+        if (key !== 'sourceAssetId' && /assetid$/i.test(key) && typeof child === 'string') { seen.add(child); return; }
         if (key === 'assets' && root) return;
         if (key === 'assets' && Array.isArray(child)) { child.forEach(item => seen.add(typeof item === 'string' ? item : item && item.id)); return; }
         walk(child, false);
@@ -74,21 +76,27 @@
   }
 
   async function build(scene, options) {
-    options = options || {};
+    options = Object.assign({},options || {});
+    for(const name of['resolveAsset','resolveModule'])if(typeof options[name]==='function'){const resolve=options[name],reads=new Map();options[name]=(locator,descriptor)=>{if(!reads.has(locator))reads.set(locator,Promise.resolve(resolve(locator,descriptor)));return reads.get(locator);};}
     if (!global.EditorVNextScene || !scene || scene.format !== global.EditorVNextScene.FORMAT) throw new Error('项目包只接受 tosampool-scene/v4 Scene');
-    const storedScene = JSON.parse(global.EditorVNextScene.serialize(scene, 0)), projectId = options.projectId || randomId(), displayName = String(options.displayName || 'Untitled').trim() || 'Untitled';
+    const storedScene = global.EditorVNextScene.preparePortable(scene), projectId = options.projectId || randomId(), displayName = String(options.displayName || 'Untitled').trim() || 'Untitled';
     const files = [], manifest = { format:FORMAT, version:1, projectId, displayName, assets:[], modules:[] };
+    if(global.EditorV4Resources)manifest.resources=await global.EditorV4Resources.index(storedScene,options);
+    const assetNames=new Set(),moduleNames=new Set();
     for (const [assetId, descriptor] of Object.entries(storedScene.assets || {})) {
+      const assetBase=uniqueName(assetId,assetNames);
       const asset = clone(descriptor), originalFrames = descriptorFrames(asset), storedFrames = [];
       for (let index = 0; index < originalFrames.length; index += 1) {
-        const frame = originalFrames[index] || {}, resolved = await resolveAsset(frame.locator || asset.locator, options), mime = frame.mime || asset.mime || resolved.mime || 'application/octet-stream', ext = mimeExtension(mime), path = `assets/${safeName(assetId)}/source/${String(index).padStart(4, '0')}.${ext}`;
+        const frame = originalFrames[index] || {}, resolved = await resolveAsset(frame.locator || asset.locator, options), mime = resolved.mime&&resolved.mime!=='application/octet-stream'?resolved.mime:frame.mime || asset.mime || resolved.mime || 'application/octet-stream', ext = mimeExtension(mime), path = `assets/${assetBase}/source/${String(index).padStart(4, '0')}.${ext}`;
         files.push({ path, data:resolved.bytes, mime }); storedFrames.push({ path, mime });
       }
       asset.locator = storedFrames[0].path; asset.mime = storedFrames[0].mime;
       if (storedFrames.length > 1) asset.frames = storedFrames.map(frame => ({ locator:frame.path, mime:frame.mime })); else delete asset.frames;
+      // Alpha sidecars must not retain a host-local file path after save.
+      if(asset.alphaMask?.locator){const mask=await resolveAsset(asset.alphaMask.locator,options);asset.alphaMask.locator=bytesDataUrl(mask.bytes,mask.mime);}
       storedScene.assets[assetId] = asset;
       const assetRecord = { format:ASSET_FORMAT, version:1, id:assetId, kind:storedFrames.length > 1 ? 'sequence' : 'image', mime:asset.mime, width:asset.width, height:asset.height, fps:asset.fps, frameLoop:asset.frameLoop, recipe:asset.recipe || null, sourceAssetId:asset.sourceAssetId || undefined, derivation:asset.derivation || null, source:storedFrames.length === 1 ? storedFrames[0].path : undefined, frames:storedFrames.length > 1 ? storedFrames.map(frame => frame.path) : undefined };
-      const assetPath = `assets/${safeName(assetId)}/asset.json`;
+      const assetPath = `assets/${assetBase}/asset.json`;
       files.push({ path:assetPath, data:JSON.stringify(assetRecord, null, 2), mime:'application/json' });
       manifest.assets.push({ id:assetId, path:assetPath, kind:assetRecord.kind, referenced:references(storedScene).has(assetId) });
     }
@@ -103,7 +111,7 @@
       else if(options && typeof options.resolveModule === 'function') source=await options.resolveModule(sourceRef,descriptor);
       else throw new Error(`项目保存无法读取模块「${moduleId}」`);
       if(typeof source !== 'string' || !source.trim()) throw new Error(`项目模块「${moduleId}」源代码为空`);
-      const base=safeName(moduleId), sourcePath=`modules/${base}.scene.module.js`, manifestPath=`modules/${base}.module.json`;
+      const base=uniqueName(moduleId,moduleNames), sourcePath=`modules/${base}.scene.module.js`, manifestPath=`modules/${base}.module.json`;
       files.push({path:sourcePath,data:source,mime:'text/javascript'});files.push({path:manifestPath,data:JSON.stringify(moduleManifest,null,2),mime:'application/json'});
       modules[moduleId]={id:moduleId,version:+moduleManifest.version,locator:sourcePath,manifestLocator:manifestPath,manifest:moduleManifest};
       manifest.modules.push({id:moduleId,version:+moduleManifest.version,source:sourcePath,manifest:manifestPath});
@@ -139,7 +147,10 @@
       const manifestText=typeof manifestFile.data === 'string' ? manifestFile.data : textDecoder().decode(manifestFile.data);
       descriptor.locator=bytesDataUrl(sourceBytes,'text/javascript');descriptor.manifest=JSON.parse(manifestText);descriptor.manifestLocator=null;
     }
-    return { project, scene, manifest:map.has('assets.manifest.json') ? JSON.parse(typeof map.get('assets.manifest.json').data === 'string' ? map.get('assets.manifest.json').data : textDecoder().decode(map.get('assets.manifest.json').data)) : null };
+    const manifest=map.has('assets.manifest.json') ? JSON.parse(typeof map.get('assets.manifest.json').data === 'string' ? map.get('assets.manifest.json').data : textDecoder().decode(map.get('assets.manifest.json').data)) : null;
+    if(manifest?.resources&&global.EditorV4Resources){const actual=await global.EditorV4Resources.index(scene),expected=new Map(manifest.resources.map(r=>[r.key,r.hash]));if(actual.length!==expected.size||actual.some(r=>expected.get(r.key)!==r.hash))throw new Error('项目资源索引与内容不一致');}
+    global.ToSampoolRuntimeVNext?.modules.patternProviders?.validateScene(scene);
+    return { project, scene, manifest };
   }
 
   global.EditorVNextProjectPackage = Object.freeze({ FORMAT, ASSET_FORMAT, MODULE_FORMAT, build, restore, references, unused, dataUrlBytes, bytesDataUrl, mimeExtension });

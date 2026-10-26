@@ -1,0 +1,1732 @@
+{
+  "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "framesPerCase": 64,
+  "repetitions": 2,
+  "bitmapAlpha": true,
+  "rows": [
+    {
+      "repetition": 0,
+      "size": "640x360",
+      "mode": "canvas-static",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "upload": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 1.2,
+          "p95": 2.1,
+          "max": 2.8
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.7
+        },
+        "completeCall": {
+          "median": 1.4,
+          "p95": 2.4,
+          "max": 3.1
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.128,
+          "p95": 0.142,
+          "max": 0.172,
+          "samples": 64
+        },
+        "draw": {
+          "median": 0.123,
+          "p95": 0.14,
+          "max": 0.149,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 183.1
+      },
+      "over25msPercent": 1.59,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 0,
+      "size": "640x360",
+      "mode": "canvas-redraw-identical",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "sourcePaint": {
+          "median": 0.1,
+          "p95": 0.3,
+          "max": 0.3
+        },
+        "upload": {
+          "median": 0.1,
+          "p95": 0.3,
+          "max": 0.4
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 1.2,
+          "p95": 1.9,
+          "max": 2.2
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "completeCall": {
+          "median": 1.6,
+          "p95": 2.4,
+          "max": 2.7
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.109,
+          "p95": 0.116,
+          "max": 0.117,
+          "samples": 64
+        },
+        "draw": {
+          "median": 0.117,
+          "p95": 0.131,
+          "max": 0.149,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.6,
+        "p95": 16.7,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 0,
+      "size": "640x360",
+      "mode": "canvas-animated",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "sourcePaint": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "upload": {
+          "median": 0.1,
+          "p95": 0.3,
+          "max": 0.4
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 1.1,
+          "p95": 1.4,
+          "max": 1.9
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.3
+        },
+        "completeCall": {
+          "median": 1.4,
+          "p95": 1.8,
+          "max": 2.4
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.106,
+          "p95": 0.112,
+          "max": 0.117,
+          "samples": 64
+        },
+        "draw": {
+          "median": 0.116,
+          "p95": 0.129,
+          "max": 0.157,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.6,
+        "p95": 16.8,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 0,
+      "size": "640x360",
+      "mode": "offscreen-redraw-identical",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "sourcePaint": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "upload": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.4
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 1.2,
+          "p95": 1.8,
+          "max": 2.1
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.3
+        },
+        "completeCall": {
+          "median": 1.6,
+          "p95": 2.3,
+          "max": 2.7
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.11,
+          "p95": 0.121,
+          "max": 0.159,
+          "samples": 64
+        },
+        "draw": {
+          "median": 0.118,
+          "p95": 0.136,
+          "max": 0.142,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 16.9
+      },
+      "over25msPercent": 0,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 0,
+      "size": "640x360",
+      "mode": "bitmap-static",
+      "bitmapPreparationMs": 19,
+      "mainThreadMs": {
+        "upload": {
+          "median": 0.5,
+          "p95": 0.9,
+          "max": 1.3
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 1.4,
+          "p95": 2,
+          "max": 2
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.4
+        },
+        "completeCall": {
+          "median": 2.1,
+          "p95": 2.8,
+          "max": 3.1
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.136,
+          "p95": 0.15,
+          "max": 0.197,
+          "samples": 64
+        },
+        "draw": {
+          "median": 0.119,
+          "p95": 0.135,
+          "max": 0.148,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.8,
+        "max": 33.204
+      },
+      "over25msPercent": 1.59,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 0,
+      "size": "640x360",
+      "mode": "texture-reuse-static",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 0.8,
+          "p95": 1.1,
+          "max": 1.7
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.3
+        },
+        "completeCall": {
+          "median": 1,
+          "p95": 1.3,
+          "max": 1.9
+        }
+      },
+      "deviceMs": {
+        "draw": {
+          "median": 0.126,
+          "p95": 0.16,
+          "max": 0.209,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.6,
+        "p95": 16.7,
+        "max": 17
+      },
+      "over25msPercent": 0,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 64,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 0,
+      "size": "640x360",
+      "mode": "bitmap-premultiplied",
+      "bitmapPreparationMs": 0.2,
+      "mainThreadMs": {
+        "upload": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 1,
+          "p95": 1.4,
+          "max": 1.5
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.5
+        },
+        "completeCall": {
+          "median": 1.2,
+          "p95": 1.6,
+          "max": 2
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.106,
+          "p95": 0.158,
+          "max": 0.187,
+          "samples": 64
+        },
+        "draw": {
+          "median": 0.12,
+          "p95": 0.133,
+          "max": 0.181,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.8,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 0,
+      "size": "1920x1080",
+      "mode": "canvas-static",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "upload": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 0.9,
+          "p95": 1.9,
+          "max": 3.1
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "completeCall": {
+          "median": 1.1,
+          "p95": 2.3,
+          "max": 5.1
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.967,
+          "p95": 1.052,
+          "max": 1.067,
+          "samples": 64
+        },
+        "draw": {
+          "median": 1.05,
+          "p95": 1.127,
+          "max": 1.193,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.6,
+        "p95": 16.7,
+        "max": 16.9
+      },
+      "over25msPercent": 0,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 0,
+      "size": "1920x1080",
+      "mode": "canvas-redraw-identical",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "sourcePaint": {
+          "median": 0.1,
+          "p95": 0.1,
+          "max": 0.3
+        },
+        "upload": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.4
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 1.1,
+          "p95": 2.4,
+          "max": 2.6
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.3,
+          "max": 0.5
+        },
+        "completeCall": {
+          "median": 1.4,
+          "p95": 3,
+          "max": 3.5
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.975,
+          "p95": 1.049,
+          "max": 2.374,
+          "samples": 64
+        },
+        "draw": {
+          "median": 1.054,
+          "p95": 1.131,
+          "max": 1.211,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 33.21
+      },
+      "over25msPercent": 1.59,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 0,
+      "size": "1920x1080",
+      "mode": "canvas-animated",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "sourcePaint": {
+          "median": 0.1,
+          "p95": 0.1,
+          "max": 0.3
+        },
+        "upload": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.5
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 1.1,
+          "p95": 2.3,
+          "max": 2.9
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.7
+        },
+        "completeCall": {
+          "median": 1.4,
+          "p95": 3.2,
+          "max": 3.6
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.966,
+          "p95": 1.048,
+          "max": 1.102,
+          "samples": 64
+        },
+        "draw": {
+          "median": 1.047,
+          "p95": 1.139,
+          "max": 1.189,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.6,
+        "p95": 16.8,
+        "max": 33.176
+      },
+      "over25msPercent": 1.59,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 0,
+      "size": "1920x1080",
+      "mode": "offscreen-redraw-identical",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "sourcePaint": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.3
+        },
+        "upload": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.3
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 1.1,
+          "p95": 2,
+          "max": 2.9
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.3,
+          "max": 0.3
+        },
+        "completeCall": {
+          "median": 1.5,
+          "p95": 2.8,
+          "max": 3.4
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.963,
+          "p95": 1.047,
+          "max": 1.658,
+          "samples": 64
+        },
+        "draw": {
+          "median": 1.042,
+          "p95": 1.085,
+          "max": 1.112,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.6,
+        "p95": 16.7,
+        "max": 33.61
+      },
+      "over25msPercent": 1.59,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 0,
+      "size": "1920x1080",
+      "mode": "bitmap-static",
+      "bitmapPreparationMs": 20.5,
+      "mainThreadMs": {
+        "upload": {
+          "median": 6.9,
+          "p95": 8.1,
+          "max": 8.5
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 1.4,
+          "p95": 1.8,
+          "max": 2.1
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "completeCall": {
+          "median": 8.5,
+          "p95": 9.9,
+          "max": 10.4
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.965,
+          "p95": 1.094,
+          "max": 1.269,
+          "samples": 64
+        },
+        "draw": {
+          "median": 1.062,
+          "p95": 1.13,
+          "max": 1.204,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 116.31
+      },
+      "over25msPercent": 1.59,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 0,
+      "size": "1920x1080",
+      "mode": "texture-reuse-static",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 0.9,
+          "p95": 1.2,
+          "max": 2.9
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.4
+        },
+        "completeCall": {
+          "median": 1.1,
+          "p95": 1.5,
+          "max": 4
+        }
+      },
+      "deviceMs": {
+        "draw": {
+          "median": 1.054,
+          "p95": 1.186,
+          "max": 1.437,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 16.7
+      },
+      "over25msPercent": 0,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 64,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 0,
+      "size": "1920x1080",
+      "mode": "bitmap-premultiplied",
+      "bitmapPreparationMs": 0.2,
+      "mainThreadMs": {
+        "upload": {
+          "median": 0,
+          "p95": 0.2,
+          "max": 0.3
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 0.9,
+          "p95": 1.4,
+          "max": 3.3
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.5
+        },
+        "completeCall": {
+          "median": 1.1,
+          "p95": 1.6,
+          "max": 4.2
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.865,
+          "p95": 0.962,
+          "max": 0.987,
+          "samples": 64
+        },
+        "draw": {
+          "median": 1.066,
+          "p95": 1.14,
+          "max": 1.227,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.8,
+        "max": 34.442
+      },
+      "over25msPercent": 1.59,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 1,
+      "size": "640x360",
+      "mode": "bitmap-premultiplied",
+      "bitmapPreparationMs": 0.1,
+      "mainThreadMs": {
+        "upload": {
+          "median": 0.1,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 0.9,
+          "p95": 1.2,
+          "max": 1.3
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "completeCall": {
+          "median": 1.1,
+          "p95": 1.4,
+          "max": 1.6
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.105,
+          "p95": 0.176,
+          "max": 0.219,
+          "samples": 64
+        },
+        "draw": {
+          "median": 0.119,
+          "p95": 0.146,
+          "max": 0.154,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 1,
+      "size": "640x360",
+      "mode": "texture-reuse-static",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "validation": {
+          "median": 1,
+          "p95": 1.3,
+          "max": 1.3
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.3
+        },
+        "completeCall": {
+          "median": 1.1,
+          "p95": 1.5,
+          "max": 1.8
+        }
+      },
+      "deviceMs": {
+        "draw": {
+          "median": 0.142,
+          "p95": 0.237,
+          "max": 0.246,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.6,
+        "p95": 16.7,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 64,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 1,
+      "size": "640x360",
+      "mode": "bitmap-static",
+      "bitmapPreparationMs": 6.5,
+      "mainThreadMs": {
+        "upload": {
+          "median": 0.6,
+          "p95": 0.9,
+          "max": 1.1
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 1.5,
+          "p95": 2.1,
+          "max": 5.1
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.3
+        },
+        "completeCall": {
+          "median": 2.3,
+          "p95": 3.1,
+          "max": 5.8
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.135,
+          "p95": 0.164,
+          "max": 0.236,
+          "samples": 64
+        },
+        "draw": {
+          "median": 0.123,
+          "p95": 0.143,
+          "max": 0.156,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.8,
+        "max": 33.204
+      },
+      "over25msPercent": 1.59,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 1,
+      "size": "640x360",
+      "mode": "offscreen-redraw-identical",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "sourcePaint": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "upload": {
+          "median": 0.1,
+          "p95": 0.3,
+          "max": 0.3
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 1.1,
+          "p95": 1.5,
+          "max": 1.7
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "completeCall": {
+          "median": 1.4,
+          "p95": 2,
+          "max": 2.1
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.106,
+          "p95": 0.11,
+          "max": 0.153,
+          "samples": 64
+        },
+        "draw": {
+          "median": 0.116,
+          "p95": 0.134,
+          "max": 0.159,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.6,
+        "p95": 16.7,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 1,
+      "size": "640x360",
+      "mode": "canvas-animated",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "sourcePaint": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.4
+        },
+        "upload": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.3
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 1,
+          "p95": 1.4,
+          "max": 2.4
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.4
+        },
+        "completeCall": {
+          "median": 1.5,
+          "p95": 2,
+          "max": 3.3
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.107,
+          "p95": 0.113,
+          "max": 0.181,
+          "samples": 64
+        },
+        "draw": {
+          "median": 0.118,
+          "p95": 0.134,
+          "max": 0.155,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 17.2
+      },
+      "over25msPercent": 0,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 1,
+      "size": "640x360",
+      "mode": "canvas-redraw-identical",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "sourcePaint": {
+          "median": 0.1,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "upload": {
+          "median": 0.1,
+          "p95": 0.3,
+          "max": 0.4
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 1.1,
+          "p95": 1.6,
+          "max": 2.1
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.3
+        },
+        "completeCall": {
+          "median": 1.5,
+          "p95": 2.1,
+          "max": 2.7
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.107,
+          "p95": 0.113,
+          "max": 0.143,
+          "samples": 64
+        },
+        "draw": {
+          "median": 0.118,
+          "p95": 0.124,
+          "max": 0.154,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.8,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 1,
+      "size": "640x360",
+      "mode": "canvas-static",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "upload": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 1,
+          "p95": 1.4,
+          "max": 2.2
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.3
+        },
+        "completeCall": {
+          "median": 1.2,
+          "p95": 1.6,
+          "max": 2.5
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.119,
+          "p95": 0.16,
+          "max": 0.198,
+          "samples": 64
+        },
+        "draw": {
+          "median": 0.118,
+          "p95": 0.143,
+          "max": 0.174,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.6,
+        "p95": 16.7,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 1,
+      "size": "1920x1080",
+      "mode": "bitmap-premultiplied",
+      "bitmapPreparationMs": 0.2,
+      "mainThreadMs": {
+        "upload": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 1,
+          "p95": 1.7,
+          "max": 3.3
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "completeCall": {
+          "median": 1.2,
+          "p95": 2,
+          "max": 3.6
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.883,
+          "p95": 0.963,
+          "max": 1.044,
+          "samples": 64
+        },
+        "draw": {
+          "median": 1.068,
+          "p95": 1.127,
+          "max": 1.251,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.8,
+        "max": 33.17
+      },
+      "over25msPercent": 1.59,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 1,
+      "size": "1920x1080",
+      "mode": "texture-reuse-static",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 0.9,
+          "p95": 1.5,
+          "max": 3.2
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "completeCall": {
+          "median": 1.1,
+          "p95": 2,
+          "max": 3.4
+        }
+      },
+      "deviceMs": {
+        "draw": {
+          "median": 1.099,
+          "p95": 1.163,
+          "max": 1.44,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 64,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 1,
+      "size": "1920x1080",
+      "mode": "bitmap-static",
+      "bitmapPreparationMs": 22.8,
+      "mainThreadMs": {
+        "upload": {
+          "median": 7.8,
+          "p95": 9.2,
+          "max": 9.9
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 1.7,
+          "p95": 2.2,
+          "max": 2.3
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "completeCall": {
+          "median": 9.7,
+          "p95": 11.3,
+          "max": 12
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 1.051,
+          "p95": 1.269,
+          "max": 1.354,
+          "samples": 64
+        },
+        "draw": {
+          "median": 1.093,
+          "p95": 1.282,
+          "max": 1.375,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.6,
+        "p95": 16.8,
+        "max": 116.31
+      },
+      "over25msPercent": 1.59,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 1,
+      "size": "1920x1080",
+      "mode": "offscreen-redraw-identical",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "sourcePaint": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "upload": {
+          "median": 0.1,
+          "p95": 0.3,
+          "max": 0.3
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "validation": {
+          "median": 1.2,
+          "p95": 2.3,
+          "max": 2.9
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.3,
+          "max": 0.4
+        },
+        "completeCall": {
+          "median": 1.6,
+          "p95": 2.8,
+          "max": 3.4
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.989,
+          "p95": 1.074,
+          "max": 2.185,
+          "samples": 64
+        },
+        "draw": {
+          "median": 1.06,
+          "p95": 1.122,
+          "max": 1.146,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 33.076
+      },
+      "over25msPercent": 1.59,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 1,
+      "size": "1920x1080",
+      "mode": "canvas-animated",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "sourcePaint": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "upload": {
+          "median": 0.1,
+          "p95": 0.3,
+          "max": 0.4
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 1.2,
+          "p95": 2.4,
+          "max": 3.2
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.3,
+          "max": 0.4
+        },
+        "completeCall": {
+          "median": 1.6,
+          "p95": 3.1,
+          "max": 3.9
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.984,
+          "p95": 1.109,
+          "max": 1.6,
+          "samples": 64
+        },
+        "draw": {
+          "median": 1.062,
+          "p95": 1.133,
+          "max": 1.212,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 33.142
+      },
+      "over25msPercent": 1.59,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 1,
+      "size": "1920x1080",
+      "mode": "canvas-redraw-identical",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "sourcePaint": {
+          "median": 0.1,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "upload": {
+          "median": 0.2,
+          "p95": 0.3,
+          "max": 0.5
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 2.5,
+          "p95": 3.5,
+          "max": 4.6
+        },
+        "canvasOutput": {
+          "median": 0.2,
+          "p95": 0.3,
+          "max": 0.3
+        },
+        "completeCall": {
+          "median": 2.9,
+          "p95": 4,
+          "max": 5.2
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 1.042,
+          "p95": 1.12,
+          "max": 2.392,
+          "samples": 64
+        },
+        "draw": {
+          "median": 1.098,
+          "p95": 1.157,
+          "max": 1.169,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.6,
+        "p95": 16.8,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    },
+    {
+      "repetition": 1,
+      "size": "1920x1080",
+      "mode": "canvas-static",
+      "bitmapPreparationMs": 0,
+      "mainThreadMs": {
+        "upload": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.3
+        },
+        "draw": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "validation": {
+          "median": 1,
+          "p95": 1.6,
+          "max": 3.2
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.3
+        },
+        "completeCall": {
+          "median": 1.2,
+          "p95": 2,
+          "max": 3.6
+        }
+      },
+      "deviceMs": {
+        "upload": {
+          "median": 0.982,
+          "p95": 1.07,
+          "max": 1.097,
+          "samples": 64
+        },
+        "draw": {
+          "median": 1.06,
+          "p95": 1.138,
+          "max": 1.172,
+          "samples": 64
+        }
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 33.176
+      },
+      "over25msPercent": 1.59,
+      "disjoint": false,
+      "error": 0,
+      "queryCount": 128,
+      "visual": {
+        "rgb": 0,
+        "alpha": 0,
+        "premultipliedMax": 0
+      }
+    }
+  ]
+}

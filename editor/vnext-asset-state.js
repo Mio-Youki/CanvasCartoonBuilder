@@ -64,7 +64,9 @@
     return false;
   }
   function removeAsset(scene, assetId) { if (referenced(scene, assetId)) return false; if (!scene.assets || !scene.assets[assetId]) return false; delete scene.assets[assetId]; return true; }
+  function hideAsset(scene,assetId){if(!scene.assets?.[assetId])return false;scene.assets[assetId].libraryHidden=true;return true;}
+  function validateLibrary(scene){for(const [id,asset]of Object.entries(scene.assets||{}))if(asset?.libraryHidden!=null&&typeof asset.libraryHidden!=='boolean')throw Error('素材库可见性必须为布尔值：'+id);}
   function addImage(scene, options) { const asset = addAsset(scene, options); return Object.assign(asset, placeImage(scene, asset.assetId, options)); }
   function addBackground(scene, options) { const asset = addAsset(scene, options); return Object.assign(asset, placeBackground(scene, asset.assetId, options)); }
-  global.EditorVNextAssetState = Object.freeze({ slug, normalizeFrames, derivation, alphaMask, addAsset, assetInfo, placeImage, placeBackground, referenced, removeAsset, addImage, addBackground });
+  global.EditorVNextAssetState = Object.freeze({ slug, normalizeFrames, derivation, alphaMask, addAsset, assetInfo, placeImage, placeBackground, referenced, removeAsset, hideAsset, validateLibrary, addImage, addBackground });
 })(typeof window !== 'undefined' ? window : globalThis);

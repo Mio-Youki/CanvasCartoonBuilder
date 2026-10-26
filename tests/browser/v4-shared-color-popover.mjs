@@ -1,0 +1,50 @@
+import assert from 'node:assert/strict';
+import {existsSync,mkdirSync,readFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {chromium} from 'playwright-core';
+const root=resolve(import.meta.dirname,'../..'),out=resolve(root,'tests/artifacts/shared-color');mkdirSync(out,{recursive:true});
+const executablePath=['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(existsSync);
+const browser=await chromium.launch({executablePath,headless:true});
+try{
+  const page=await browser.newPage({viewport:{width:1440,height:1000},reducedMotion:'reduce'}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(pathToFileURL(resolve(root,'examples/pattern-proposals/dual-ray/preview.html')).href);await page.waitForFunction(()=>window.patternReview);
+  const color=page.locator('[data-color-alpha="colorA"] .color-swatch'),pop=page.locator('.color-pop');
+  await color.click();assert.equal(await pop.count(),1);assert.equal(await page.locator('.color-mode-tabs').isVisible(),false,'不支持渐变的参数不应获得渐变数据');
+  await page.locator('.color-hex').fill('#ff3300');await page.locator('.color-hex').press('Tab');await page.locator('.color-alpha-input').fill('35');
+  assert.equal(await page.evaluate(()=>patternReview.values().colorA),'#ff3300');assert.equal(await page.evaluate(()=>patternReview.values().alphaA),.35);
+  assert.equal(await page.evaluate(()=>patternReview.review().review.defaults),null,'实时预览不隐式采用新默认值');
+  await page.keyboard.press('Escape');assert.equal(await pop.isHidden(),true);assert.equal(await page.evaluate(()=>patternReview.values().colorA),'#e6dec8');assert.equal(await page.evaluate(()=>patternReview.values().alphaA),1,'取消恢复打开时的颜色与透明度');
+  await page.locator('[data-review-experiment]').check();await page.locator('[data-review-segment="target"]').click();
+  await color.click();await page.locator('.color-pop [data-review-clock="alphaA"]').click();
+  assert.equal(await page.locator('.color-hex').isDisabled(),true);assert.equal(await page.locator('.color-hue').isDisabled(),true);assert.equal(await page.locator('.color-alpha-input').isDisabled(),false);
+  await page.locator('.color-alpha-input').fill('40');await page.locator('.color-pop-close').click();
+  assert.equal(await page.evaluate(()=>patternReview.values().alphaA),.4);assert.equal(await page.evaluate(()=>patternReview.values().colorA),'#e6dec8');
+  await color.click();await page.locator('.color-pop [data-review-clock="alphaA"]').click();await page.locator('.color-pop [data-review-clock="colorA"]').click();
+  assert.equal(await page.locator('.color-hex').isDisabled(),false);assert.equal(await page.locator('.color-alpha-input').isDisabled(),true);
+  await page.locator('.color-hex').fill('#ff3300');await page.locator('.color-hex').press('Tab');await page.locator('.color-pop-close').click();
+  assert.equal(await page.evaluate(()=>patternReview.values().alphaA),1);
+  await page.locator('[data-review-segment="change"]').click();assert.equal(await color.isDisabled(),true);assert.equal(await page.locator('[data-review-clock="colorA"]').isDisabled(),true);assert.equal(await page.locator('[data-review-clock="carrier"]').count(),0);
+  await page.locator('[data-parameter-reset]').click();await color.click();await page.screenshot({path:resolve(out,'review.png')});await page.locator('.color-pop-close').click();
+  const lifecycle=await page.evaluate(()=>{
+    const iframe=document.createElement('iframe');document.body.append(iframe);const doc=iframe.contentDocument,a=EditorV4ColorPopover.forDocument(doc),b=EditorV4ColorPopover.forDocument(document);
+    const swatch=a.field('#123456',1,()=>{},'iframe');doc.body.append(swatch);swatch.querySelector('button').click();const separate=a!==b&&doc.querySelectorAll('.color-pop').length===1;
+    a.dispose();const removed=!doc.querySelector('.color-pop'),fresh=EditorV4ColorPopover.forDocument(doc)!==a;let rejected=false;try{a.field('#fff',1,()=>{});}catch{rejected=true;}
+    EditorV4ColorPopover.forDocument(doc).dispose();iframe.remove();return{separate,removed,fresh,rejected};
+  });assert.deepEqual(lifecycle,{separate:true,removed:true,fresh:true,rejected:true});
+  const editor=await browser.newPage({viewport:{width:1440,height:1000},reducedMotion:'reduce'});editor.on('pageerror',e=>errors.push(e.message));
+  await editor.goto(pathToFileURL(resolve(root,'img2asset-v4-classic.html')).href);await editor.waitForFunction(()=>typeof classicV4Inspector!=='undefined'&&classicV4Inspector);
+  await editor.evaluate(()=>{if(state.playing)togglePlay();ToSampoolV4Workspace.createBlank({width:160,height:90,loop:4});classicV4Changes.run('共用取色验收',scene=>scene.entities.push({id:'shape',type:'rect',x:20,y:10,w:100,h:60,fill:'#e6dec8',fillAlpha:1}));classicV4View.select('shape');});
+  const fill=editor.locator('#inspector-context .v4-paint-field').filter({hasText:'填充'}).first();await fill.locator('.color-swatch').click();
+  const position=await editor.locator('.color-pop').boundingBox();await editor.locator('.color-alpha-input').fill('35');await editor.locator('.color-alpha-input').press('Tab');
+  assert.equal(await editor.evaluate(()=>ToSampoolV4Workspace.current().entities[0].fillAlpha),.35);
+  const after=await editor.locator('.color-pop').boundingBox();assert.ok(Math.abs(position.x-after.x)<1&&Math.abs(position.y-after.y)<1,'Inspector重绘不应把弹层跳到右上角');
+  await editor.locator('.color-pop-close').click();await editor.locator('#stage-meta-bar .stage-meta-title').click();await editor.keyboard.press('Control+z');
+  assert.equal(await editor.evaluate(()=>ToSampoolV4Workspace.current().entities[0].fillAlpha),1,'工程提交继续接入正式撤销');
+  await fill.locator('.color-swatch').click();await editor.locator('[data-paint-mode="linear"]').click();await editor.locator('.gradient-angle').fill('45');await editor.locator('.gradient-angle').press('Tab');
+  assert.equal(await editor.evaluate(()=>ToSampoolV4Workspace.current().entities[0].fillPaint.angle),45);
+  await editor.screenshot({path:resolve(out,'editor.png')});await editor.locator('.color-pop-close').click();
+  const source=readFileSync(resolve(root,'img2asset-v4-classic.html'),'utf8');assert.equal(source.includes('function ensureColorPopover('),false,'HTML不能保留弹层实现副本');
+  for(const p of [page,editor])assert.equal(await p.locator('script[src$="v4-color-popover.js"]').count(),1,'两个宿主加载同一实现');
+  assert.deepEqual(errors,[]);console.log('✓ shared full color popover: preview/commit/cancel, independent color-alpha timing, source reuse, gradients, position, undo and per-document disposal');
+}finally{await browser.close();}

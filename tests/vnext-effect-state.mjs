@@ -8,9 +8,14 @@ const root = resolve(import.meta.dirname, '..'), context = {}, source = path => 
 for (const file of ['editor/effect-registry-vnext.js', 'editor/vnext-inspector-model.js', 'editor/vnext-effect-state.js']) new vm.Script(source(file), { filename: file }).runInNewContext(context);
 const scene = { entities: [{ id: 'bird' }], timeline: { tracks: {} }, sceneEffects: { overlay: {}, sample: {} } }, state = context.EditorVNextEffectState;
 const halftoneDefinition = context.EditorEffectRegistryVNext.effectById.halftone;
+assert.deepEqual(Array.from(context.EditorEffectRegistryVNext.blendOptions), ['normal','multiply','darken','screen','lighten','overlay','soft-light','difference','luminosity','saturation','hue','color'], '通用叠加方式应只列出确认的 12 项原生模式');
+for(const definition of context.EditorEffectRegistryVNext.effects){const blend=definition.params.find(param=>param.key==='blend');if(!blend)continue;const expected=definition.id==='texture-overlay'?[...context.EditorEffectRegistryVNext.blendOptions,'hard-mix']:context.EditorEffectRegistryVNext.blendOptions;assert.deepEqual(Array.from(blend.options),Array.from(expected),`${definition.id} 的混合方式必须与已实现的 Runtime 范围一致`);}
 assert.equal(halftoneDefinition.params.find(param => param.key === 'angle').default, 0, '网点映射默认网格必须正交；旋转只在用户显式设置后启用');
-assert.equal(halftoneDefinition.params.some(param => param.key === 'dark' || param.key === 'light'), false, '网点映射必须只保留原色网点；双色由颜色阈值承担');
-assert.equal(halftoneDefinition.params.find(param => param.key === 'duotone').default, false, '网点映射双色必须是可选的渐进式模式');
+assert.equal(halftoneDefinition.params.some(param => param.key === 'layout' || param.key === 'duotone'), false, '排列和旧双色开关不应继续作为独立参数');
+assert.deepEqual(Array.from(halftoneDefinition.params.find(param => param.key === 'colorMode').options), ['original','single','gradient'], '网点映射色彩应提供原色、单色和双色渐变');
+assert.equal(halftoneDefinition.params.find(param => param.key === 'rowOffset').default, 0, '错列偏移 0 应等于整齐排列');
+assert.equal(halftoneDefinition.params.find(param => param.key === 'threshold').default, .65);
+assert.equal(halftoneDefinition.params.find(param => param.key === 'contrast').default, .75);
 const outline = state.enable(scene, { scope: 'object', ownerId: 'bird', effectId: 'outline' });
 assert.equal(outline.enabled, true); assert.equal(outline.width, 1); assert.equal(outline.includeProjection,false,'描边默认只能取对象本身的 Alpha'); state.setParam(scene, { scope: 'object', ownerId: 'bird', effectId: 'outline', key: 'width', value: 3 }); assert.equal(scene.entities[0].effects.decorate.outline.width, 3);
 state.setParam(scene, { scope: 'object', ownerId: 'bird', effectId: 'outline', key: 'includeProjection', value: true }); assert.equal(scene.entities[0].effects.decorate.outline.includeProjection,true,'描边可显式纳入投影 Alpha');
@@ -19,6 +24,8 @@ assert.throws(() => state.setParam(scene, { scope: 'object', ownerId: 'bird', ef
 state.enable(scene, { scope: 'scene', effectId: 'texture-overlay' }); assert.equal(scene.sceneEffects.overlay['texture-overlay'].enabled, true);
 state.setController(scene, { scope: 'object', ownerId: 'bird', controllerId: 'sampling-grid', key: 'size', value: 300 }); assert.equal(scene.entities[0].effects.sample.controllers['sampling-grid'].size, 128);
 assert.equal(state.controllerValues(scene, { scope: 'object', ownerId: 'bird', controllerId: 'sampling-grid' }).size, 128);
+state.setController(scene, { scope: 'object', ownerId: 'bird', controllerId: 'sampling-grid', key: 'alphaMode', value: 'remove' }); assert.equal(scene.entities[0].effects.sample.controllers['sampling-grid'].alphaMode, 'remove', '边缘透明度应写入共享采样格');
+assert.throws(() => state.setController(scene, { scope: 'object', ownerId: 'bird', controllerId: 'sampling-grid', key: 'alphaMode', value: 'contour' }), /不在选项中|选项/, '边缘透明度不应复用轮廓保护的模式值');
 state.enable(scene, { scope: 'object', ownerId: 'bird', effectId: 'uneven-sampling' });
 state.setParam(scene, { scope: 'object', ownerId: 'bird', effectId: 'uneven-sampling', key: 'field.enabled', value: true });
 state.setParam(scene, { scope: 'object', ownerId: 'bird', effectId: 'uneven-sampling', key: 'edge.mode', value: 'contour' });

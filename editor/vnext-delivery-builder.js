@@ -24,7 +24,22 @@
 
   function pruneScene(input) {
     if (!input || input.format !== FORMAT) throw new Error('交付物只接受 tosampool-scene/v4 Scene');
-    const scene = clone(input), keep = assetIds(scene), assets = {};
+    if(global.EditorV4Resources){const issues=global.EditorV4Resources.inspect(input).filter(i=>i.reason!=='cached');if(issues.length)throw new Error('交付物依赖未解决：'+issues.map(i=>i.kind+'/'+i.id+' ('+i.reason+')').join('，'));}
+    const scene = clone(input),usedModules=new Set((scene.entities||[]).filter(e=>e.type==='procedural').map(e=>e.moduleId));
+    global.ToSampoolRuntimeVNext?.modules.maskContract?.stripSceneTiming(scene);
+    if(scene.modules)scene.modules=Object.fromEntries(Object.entries(scene.modules).filter(([id])=>usedModules.has(id)));
+    delete scene.resourcePins;delete scene.resourceOrigins;delete scene.patternResources;delete scene.patternDefinitions;delete scene.elementPresets;delete scene.materialShares;
+    for(const asset of Object.values(scene.assets||{}))delete asset.libraryHidden;
+    for(const entity of scene.entities||[])delete entity.resourceBindings;
+    for(const entity of scene.entities||[])for(const part of entity.parts||[])if(part.type==='custom'){
+      const shapes=global.ToSampoolRuntimeVNext?.modules.customShapes;
+      if(shapes?.supports(part.recipe))delete part.geometrySnapshot;
+      // Missing static providers must carry the validated outline into HTML.
+      else if(shapes)shapes.normalizePartRecipe(part);
+      delete part.resourceBindings;
+    }
+    const keep = assetIds(scene), assets = {};
+    for(const d of Object.values(scene.modules||{}))for(const ref of d.manifest?.assets||[]){const id=typeof ref==='string'?ref:ref?.id;if(id)keep.add(id);}
     for (const [id, descriptor] of Object.entries(scene.assets || {})) if (keep.has(id)) assets[id] = descriptor;
     scene.assets = assets;
     delete scene.runtimeAssets;
@@ -37,12 +52,16 @@
 
   function hasEnabledMotion(value) {
     if (!value || typeof value !== 'object') return false;
+    if (value.recipe?.definition?.format === 'tosampool-pattern-generator/v1' && value.recipe.params?.motion === true) return true;
+    if(value.definition?.format==='tosampool-pattern-generator/v1'&&value.enabled&&value.params?.motion===true)return true;
     if (Array.isArray(value)) return value.some(hasEnabledMotion);
     if (value.enabled === true && (value.type || value.period != null || value.speed != null || value.steps != null)) return true;
     return Object.values(value).some(hasEnabledMotion);
   }
 
   function isTimeDependent(scene) {
+    if ((scene.entities || []).some(entity => entity && entity.type === 'text' && entity.textCursor &&
+      entity.textCursor.enabled && +entity.textCursor.period !== 0 && +entity.textCompletion !== 100)) return true;
     if (Object.values(scene.assets || {}).some(asset => Array.isArray(asset && asset.frames) && asset.frames.length > 1)) return true;
     if ((scene.timeline && scene.timeline.tracks && Object.keys(scene.timeline.tracks).length) || (scene.timeline && Array.isArray(scene.timeline.scenes) && scene.timeline.scenes.some(segment => segment.transition && segment.transition.type && segment.transition.type !== 'none'))) return true;
     if ((scene.entities || []).some(entity => entity && entity.type === 'procedural')) return true; // Module source is loaded after this static builder; default to the safe continuous path.
@@ -55,6 +74,9 @@
     const instance = safeName(options.instance || options.name || 'scene');
     const assetBase = String(options.assetBase || '');
     const dynamic = isTimeDependent(scene), moduleSources=options.moduleSources || {}, moduleCode=[], scope=`delivery:${instance}`;
+    const hasGeometryBasis=value=>!!value&&typeof value==='object'&&(Object.hasOwn(value,'geometryMatrix')||Object.values(value).some(hasGeometryBasis));
+    const hasObjectMask=value=>!!value&&typeof value==='object'&&(value.type==='element'&&!!value.targetId||Object.values(value).some(hasObjectMask));
+    const hasShapeUnion=value=>!!value&&typeof value==='object'&&(value.type==='shapes'&&value.version===1||Object.values(value).some(hasShapeUnion));
     for(const moduleId of Object.keys(scene.modules || {})) { if(typeof moduleSources[moduleId] !== 'string') throw new Error(`交付物缺少程序构件「${moduleId}」源码`); moduleCode.push(safeScript(moduleSources[moduleId])); }
     const modulePrelude=moduleCode.length?`(function(){const registry=window.ToSampoolRuntimeVNext&&window.ToSampoolRuntimeVNext.modules&&window.ToSampoolRuntimeVNext.modules.sceneModules;if(!registry||!registry.withScope)throw new Error('ToSampool Player 缺少项目 Module 作用域');registry.withScope(${JSON.stringify(scope)},()=>{${moduleCode.join('\n')}});})();\n`:'';
     return modulePrelude + `(function(){
@@ -71,6 +93,14 @@
   const load=src=>new Promise((resolveImage,reject)=>{const image=new Image();image.onload=()=>resolveImage(image);image.onerror=()=>reject(new Error('素材解码失败：'+src));image.src=src;});
   (async()=>{
     if(!window.ToSampoolRuntimeVNext||!window.ToSampoolRuntimeVNext.createRuntime)throw new Error('未加载 ToSampool Player');
+    if(${hasGeometryBasis(scene)}&&!window.ToSampoolRuntimeVNext.modules.masks?.affineGeometry)throw new Error('当前 Player 不支持蒙版几何坐标，请更新公共 Player');
+    if(${hasObjectMask(scene)}&&!window.ToSampoolRuntimeVNext.modules.masks?.completeSources)throw new Error('当前 Player 不支持完整对象蒙版，请更新公共 Player');
+    if(${hasShapeUnion(scene)}&&!window.ToSampoolRuntimeVNext.modules.masks?.shapeUnion)throw new Error('当前 Player 不支持多图形蒙版，请更新公共 Player');
+    if(${(scene.entities||[]).some(e=>e.type==='particle-emitter')}&&!window.ToSampoolRuntimeVNext.modules.particles?.birthRanges)throw new Error('当前 Player 不支持粒子出生范围，请更新公共 Player');
+    if(${(scene.entities||[]).some(e=>e.type==='particle-emitter'&&e.particle?.mode==='layer')}&&!(window.ToSampoolRuntimeVNext.modules.layerFragments?.version>=2))throw new Error('当前 Player 不支持图层切片形状及独立来源显示，请更新公共 Player');
+    if(${(scene.entities||[]).some(e=>e.particle?.mode==='layer'&&e.particle.layerEmission==='continuous')}&&!window.ToSampoolRuntimeVNext.modules.layerStream?.version)throw new Error('当前 Player 不支持持续图层取样，请更新公共 Player');
+    if((scene.entities||[]).some(e=>e.referenceSourceOnly===true)&&!window.ToSampoolRuntimeVNext.modules.renderer.referenceSources)throw new Error('当前 Player 不支持内部引用来源，请更新公共 Player');
+    if((scene.entities||[]).some(e=>(e.parts||[]).some(p=>p.recipe&&p.recipe.definition))&&!window.ToSampoolRuntimeVNext.modules.patternProviders)throw new Error('当前 Player 不支持参数图样，请更新公共 Player；不会覆盖已有实例');
     const runtimeAssets={};
     for(const [id,asset] of Object.entries(scene.assets||{})){
       const descriptors=Array.isArray(asset.frames)&&asset.frames.length?asset.frames:[asset],frames=[];
@@ -95,7 +125,7 @@
   function embedHtml(options) {
     options = options || {};
     if (typeof options.runtimeSource !== 'string' || !options.runtimeSource) throw new Error('scene.embed.html 缺少 Runtime 源码');
-    const scene = pruneScene(options.scene), name = safeName(options.name || 'scene'), runtime = safeScript(options.runtimeSource), boot = bootstrap(scene, { name, instance:name, moduleSources:options.moduleSources });
+    const scene = pruneScene(options.scene), name = safeName(options.name || 'scene'), runtime = `if(!window.ToSampoolRuntimeVNext||!window.ToSampoolRuntimeVNext.createRuntime){\n${safeScript(options.runtimeSource)}\n}`, boot = bootstrap(scene, { name, instance:name, moduleSources:options.moduleSources });
     const html = `<div class="tosampool-scene" data-tosampool-scene="${name}"><canvas aria-label="ToSampool scene"></canvas></div>\n<style>.tosampool-scene{display:grid;place-items:center;max-width:100%;background:transparent}.tosampool-scene canvas{display:block;max-width:100%;height:auto;image-rendering:pixelated;image-rendering:crisp-edges}</style>\n<script>${runtime}\n${boot}</script>\n`;
     return { name:`${name}.embed.html`, mime:'text/html', data:html, meta:{ format:'scene.embed.html', dynamic:isTimeDependent(scene), assets:Object.keys(scene.assets || {}) } };
   }

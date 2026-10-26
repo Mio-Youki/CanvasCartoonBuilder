@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+const ctx=vm.createContext({TextEncoder,TextDecoder});
+for(const file of ['home-scene-vnext.js','editor/vnext-scene.js','editor/vnext-mask-state.js','editor/v4-element-references.js','editor/v4-element-presets.js','editor/v4-module-instances.js','editor/v4-module-baker.js','editor/v4-material-baker.js'])new vm.Script(readFileSync(new URL('../'+file,import.meta.url),'utf8'),{filename:file}).runInContext(ctx);
+const scene=ctx.EditorVNextScene.blank({width:10000,height:10000});scene._moduleScope='material-bake';scene.loop=4;
+scene.entities=[{id:'a',type:'rect',name:'矩形',x:100,y:80,w:18,h:12,fill:'#ff9933',anim:{bob:{amount:8,period:4}}},{id:'other',type:'rect',x:0,y:0,w:100,h:100,fill:'#00ff00'}];
+const id=ctx.EditorV4ElementPresets.add(scene,'a'),before=JSON.stringify(scene),baker=ctx.EditorV4MaterialBaker;
+const frozen=baker.prepare(scene,id,{time:1});assert.equal(frozen.plan.count,1);assert.ok(frozen.plan.width<100,'对象裁切不使用整幅大画布');assert.equal(frozen.scene.entities.length,1);assert.equal(frozen.scene.timeline.tracks.a,undefined);
+const sequence=baker.prepare(scene,id,{mode:'sequence',frames:4});assert.deepEqual([...sequence.plan.times],[0,1,2,3]);assert.equal(sequence.plan.fps,1);assert.ok(sequence.plan.height>=frozen.plan.height,'动态帧使用共同边界');assert.equal(JSON.stringify(scene),before);
+assert.throws(()=>baker.prepare(scene,'missing'),/不存在/);assert.throws(()=>baker.prepare(scene,id,{mode:'sequence',frames:121}),/预算/);
+assert.throws(()=>ctx.EditorV4ModuleBaker.plan(scene,'a'),/可烘焙/,'旧构件入口不隐式扩围');
+console.log('✓ 元素烘焙合同：预设快照／无时序与其他对象／大画布局部裁切／动态共同边界／无重复尾帧／只读与预算');

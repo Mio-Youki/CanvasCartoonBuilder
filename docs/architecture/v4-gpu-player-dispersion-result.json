@@ -1,0 +1,403 @@
+{
+  "rows": [
+    {
+      "grid": 1,
+      "source": "auto",
+      "chain": false,
+      "transparent": false,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 3
+    },
+    {
+      "grid": 1,
+      "source": "auto",
+      "chain": false,
+      "transparent": true,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 3
+    },
+    {
+      "grid": 1,
+      "source": "auto",
+      "chain": true,
+      "transparent": false,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 13
+    },
+    {
+      "grid": 1,
+      "source": "auto",
+      "chain": true,
+      "transparent": true,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 13
+    },
+    {
+      "grid": 1,
+      "source": "contour",
+      "chain": false,
+      "transparent": false,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 3
+    },
+    {
+      "grid": 1,
+      "source": "contour",
+      "chain": false,
+      "transparent": true,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 3
+    },
+    {
+      "grid": 1,
+      "source": "contour",
+      "chain": true,
+      "transparent": false,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 13
+    },
+    {
+      "grid": 1,
+      "source": "contour",
+      "chain": true,
+      "transparent": true,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 13
+    },
+    {
+      "grid": 1,
+      "source": "contrast",
+      "chain": false,
+      "transparent": false,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 3
+    },
+    {
+      "grid": 1,
+      "source": "contrast",
+      "chain": false,
+      "transparent": true,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 3
+    },
+    {
+      "grid": 1,
+      "source": "contrast",
+      "chain": true,
+      "transparent": false,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 13
+    },
+    {
+      "grid": 1,
+      "source": "contrast",
+      "chain": true,
+      "transparent": true,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 13
+    },
+    {
+      "grid": 3,
+      "source": "auto",
+      "chain": false,
+      "transparent": false,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 3
+    },
+    {
+      "grid": 3,
+      "source": "auto",
+      "chain": false,
+      "transparent": true,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 3
+    },
+    {
+      "grid": 3,
+      "source": "auto",
+      "chain": true,
+      "transparent": false,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 13
+    },
+    {
+      "grid": 3,
+      "source": "auto",
+      "chain": true,
+      "transparent": true,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 13
+    },
+    {
+      "grid": 3,
+      "source": "contour",
+      "chain": false,
+      "transparent": false,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 3
+    },
+    {
+      "grid": 3,
+      "source": "contour",
+      "chain": false,
+      "transparent": true,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 3
+    },
+    {
+      "grid": 3,
+      "source": "contour",
+      "chain": true,
+      "transparent": false,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 13
+    },
+    {
+      "grid": 3,
+      "source": "contour",
+      "chain": true,
+      "transparent": true,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 13
+    },
+    {
+      "grid": 3,
+      "source": "contrast",
+      "chain": false,
+      "transparent": false,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 3
+    },
+    {
+      "grid": 3,
+      "source": "contrast",
+      "chain": false,
+      "transparent": true,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 3
+    },
+    {
+      "grid": 3,
+      "source": "contrast",
+      "chain": true,
+      "transparent": false,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 13
+    },
+    {
+      "grid": 3,
+      "source": "contrast",
+      "chain": true,
+      "transparent": true,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "passes": 13
+    }
+  ],
+  "boundaries": [
+    {
+      "strength": 0,
+      "order": "rgb",
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu"
+    },
+    {
+      "strength": 0,
+      "order": "bgr",
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu"
+    },
+    {
+      "strength": 0.3,
+      "order": "rgb",
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu"
+    },
+    {
+      "strength": 0.3,
+      "order": "bgr",
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu"
+    },
+    {
+      "strength": 0.5,
+      "order": "rgb",
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu"
+    },
+    {
+      "strength": 0.5,
+      "order": "bgr",
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu"
+    },
+    {
+      "strength": 1,
+      "order": "rgb",
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu"
+    },
+    {
+      "strength": 1,
+      "order": "bgr",
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu"
+    }
+  ],
+  "timed": [
+    {
+      "t": 1,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "effects": 4
+    },
+    {
+      "t": 5,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "effects": 3
+    },
+    {
+      "t": 1,
+      "rgb": 0,
+      "alpha": 0,
+      "preMax": 0,
+      "alphaMax": 0,
+      "backend": "gpu",
+      "effects": 4
+    }
+  ],
+  "failure": {
+    "rgb": 0,
+    "alpha": 0,
+    "preMax": 0,
+    "alphaMax": 0,
+    "backend": "cpu",
+    "reason": "injected-dispersion"
+  }
+}

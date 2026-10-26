@@ -1,0 +1,36 @@
+{
+  "experiment": "P5 dual-ray proposal and parameter timing",
+  "date": "2026-10-23",
+  "timezone": "Asia/Shanghai",
+  "agent": "Codex main session; not an isolated sub-agent evaluation",
+  "measurement": "Wall-clock checkpoints, including reasoning, tools and verification; intervals contain interleaved work and are not exclusive CPU time",
+  "measuredStartUtc": "2026-10-23T01:39:30Z",
+  "recordCheckpointUtc": "2026-10-23T02:24:19Z",
+  "elapsedToRecordSeconds": 2689,
+  "phases": [
+    {"name":"合同核对与通用时序门控初稿","startLocal":"09:39:30","endLocal":"09:47:11","seconds":461},
+    {"name":"正式参数入口、放射候选与复用预览模板初稿","startLocal":"09:47:11","endLocal":"09:55:23","seconds":492},
+    {"name":"合同测试、浏览器夹具及预览环境排查","startLocal":"09:55:23","endLocal":"10:09:15","seconds":832},
+    {"name":"正式渲染与导出一致性、回归、缓存修整及合同记录","startLocal":"10:09:15","endLocal":"10:24:19","seconds":904}
+  ],
+  "rework": [
+    {"kind":"test assertion","detail":"Linear midpoint has ordinary floating-point error; numerical assertions changed to tolerance, production arithmetic unchanged"},
+    {"kind":"environment","detail":"Screenshot single-file server could not reach sibling shared scripts; sandbox-local server was unreachable from host browser; read-only host localhost service succeeded","exclusiveDurationSeconds":null},
+    {"kind":"test harness","detail":"Inspector is a global lexical binding, not a window property; corrected browser readiness predicate","exclusiveDurationSeconds":null},
+    {"kind":"export parity","detail":"Rebuilt the inline Runtime source as well as the ordinary bundle; explicitly tested generated embed HTML"},
+    {"kind":"performance contract","detail":"Cached production parameter policy by immutable track and definition references; did not serialize the provider definition per frame"}
+  ],
+  "performanceEvidence": "../../../tests/artifacts/p5-dual-ray/performance.json",
+  "tokens": null,
+  "tokensNote": "No trustworthy per-phase token meter available; not estimated",
+  "userReviewWaitSeconds": 0,
+  "pending": ["用户视觉和参数审阅","放射正式生成器与受限交付格式接入","正式工程全链验收","图样文件与共享发布方式确认"],
+  "status": "preview-ready-awaiting-user-review",
+  "published": false,
+  "efficiencyNotes": [
+    "本轮混合了新协议/复用预览模板的首轮建设，不能将总时间当作今后单个图样的生成耗时",
+    "后续纯生成实验应冻结已验收的能力清单和预览壳，先计时交付候选，再单独计时宿主集成与回归",
+    "后续采用预先启动的宿主本地预览服务和已校验的浏览器等待条件，减少环境排查",
+    "用户等待时间从预览交付后另记，不计入Agent生成时间；未开始的注册与发布不能填为已完成"
+  ]
+}

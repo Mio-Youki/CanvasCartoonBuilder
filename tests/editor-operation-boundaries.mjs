@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {createHarnessRegistry} from '../host/harness-registry.mjs';
+import {createEditorOperations} from '../host/editor-operation-service.mjs';
+import {createMcpReadAdapter} from '../host/editor-mcp-read-adapter.mjs';
+const registry=createHarnessRegistry();let executed=0;registry.register({id:'fixture',transport:'test',execute:async()=>{executed++;return{status:'blocked'};}});
+assert.throws(()=>registry.register({id:'fixture',transport:'test',execute(){}}),/重复/);assert.throws(()=>registry.register({id:'fake-all',transport:'universal',execute(){}}),/合同/);
+assert.equal(registry.list()[0].verified,false);assert.equal((await registry.execute('fixture',{},{})).status,'blocked');assert.equal(executed,1);
+const id='job-'+'a'.repeat(32),item={id,record:{subject:{id:'proposal.test'},review:{name:'测试'}},status:'blocked',route:'release',createdAt:'now'};
+let writes=0;const operations=createEditorOperations({harnesses:registry,candidates:new Map(),jobs:{list:()=>[item],get:()=>item,submit(){writes++;}}});
+assert.equal(operations.capabilities().editor.canvasRead,false);assert.equal(operations.capabilities().mcp.canPublish,false);assert.throws(()=>operations.readDelivery(id),/尚未就绪/);
+const mcp=createMcpReadAdapter(operations);assert.equal((await mcp.dispatch({jsonrpc:'2.0',id:1,method:'tools/list'})).error.code,-32002);
+assert.equal((await mcp.dispatch({jsonrpc:'2.0',id:2,method:'initialize',params:{protocolVersion:'2025-06-18'}})).result.protocolVersion,'2025-06-18');
+const list=(await mcp.dispatch({jsonrpc:'2.0',id:3,method:'tools/list'})).result.tools;assert.equal(list.length,4);assert.ok(list.every(t=>t.annotations.readOnlyHint));
+const result=await mcp.dispatch({jsonrpc:'2.0',id:4,method:'tools/call',params:{name:'tosampool_read_review',arguments:{jobId:id}}});assert.equal(result.result.structuredContent.data.id,id);
+assert.equal((await mcp.dispatch({jsonrpc:'2.0',id:5,method:'tools/call',params:{name:'tosampool_publish',arguments:{}}})).error.code,-32602);
+assert.equal((await mcp.dispatch({jsonrpc:'2.0',id:6,method:'tools/call',params:{name:'tosampool_read_review',arguments:{jobId:'../private'}}})).error.code,-32602);assert.equal(writes,0);
+console.log('✓ 编辑器操作服务／Harness边界／MCP只读声明与真实读取／不伪造Canvas能力／非法写入口与路径拒绝');

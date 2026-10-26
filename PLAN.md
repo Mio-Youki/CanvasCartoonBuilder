@@ -1,8 +1,86 @@
 # 工具路线图（tools/PLAN）
 
+> 2026-10-26：[持续图层取样](docs/architecture/V4_CONTINUOUS_LAYER_PARTICLES_2026-10-26.md)：一次碎裂保留，新增持续发射、矩形／圆形、出生／固定取样，原图默认保留并独立控制。静态600粒子共用一张纹理；动态按批次缓存，修复CPU纹理驻留瓶颈。实际UI／工程／HTML与原粒子回归通过；未增加自动消逝蒙版或GPU粒子。
+
+> 2026-10-26：[图层切片接入](docs/architecture/V4_LAYER_PARTICLES_INTEGRATION_2026-10-26.md)：正式粒子实体新增重复实体／图层切片，复用运动与统一显示蒙版；完整来源一次捕获、规则切片、项目与测试HTML通过，默认切片32。大量切片CPU成本仍显著；未新增GPU粒子或完成Tauri验收。
+
+> 2026-10-25：[路径截取、权重分配与图层切片实验](docs/architecture/V4_WEIGHTED_PARTICLES_LAYER_PROBE_2026-10-25.md)：路径起止与命名、普通粒子归一化分布已接正式Runtime；规则切片已验证图片／矢量／文字完整拼回、飞散淡出与倒放。图层模式尚未接正式Inspector；大图动态重效果来源冷启动及大量切片成本仍需后续，不将本批当作U5/U6完成。
+
+> 2026-10-25：[统一蒙版U4](docs/architecture/V4_PARTICLE_MASK_U4_2026-10-25.md)：粒子出生快照、数量／寿命批次共存、灰度密度及显示透明度接统一范围；四类来源／多图形／跟随／预览共用，素材闭包和序列出生取帧定向验收。CPU功能完成；大图重效果来源冷启动仍昂贵，已记录完整与不含采样的S/M/L数据，不自动降级。后续U5生命周期／宿主，U6性能。较早批次“粒子待做”为历史状态。
+
+> 2026-10-25：[统一蒙版第三批](docs/architecture/V4_MASK_PREVIEW_U3_2026-10-25.md)：对象／场景实际黑白灰预览接正式求值，临时View状态；返回／Esc保留选中、时间、轨道、滚动及编辑草稿，保存导出不受影响。补齐暂停静态场景的异步预览调度保护。U3对象／场景完成；下一步U4粒子新模型，U5/U6仍待后续。下方“预览待做”为各批当时状态。
+
+> 2026-10-25：[统一蒙版第二批](docs/architecture/V4_MASK_SHAPES_U1_U3_2026-10-25.md)：对象／场景四类来源共用表单，多图形version1、固定合并、选中／增删复制、逐图形画布编辑、portable坐标及公共Player门禁已实现。16组像素与实际拖动／撤销／保存导出通过；蒙版预览、粒子新模型与完整交付矩阵仍待后续。下方首批“多图形未实施”为当时状态。
+
+> 2026-10-25：[统一蒙版首批与性能](docs/architecture/V4_MASK_SOURCE_U1_U2_2026-10-25.md)：No规则／旧覆层清理、完整对象与组来源、亮度／显隐、静态及同帧缓存、显式来源处理档位、公共Player门禁已实现并定向验收。30+压力组合与配对基线已留证；默认保持完整，不自动删效果。**多图形、四类来源重排、蒙版预览与粒子出生模型尚未实施**，见[阶段状态](docs/architecture/V4_UNIFIED_MASK_EXECUTION_PLAN.md)。
+
+> 2026-10-25：统一蒙版进入U0文档阶段，用户确认四类来源、亮度／透明度、多图形固定合并、完整对象来源、预览／来源显示及粒子出生／显示语义。[目标合同](docs/architecture/V4_UNIFIED_MASK_CONTRACT.md)、[U0–U6计划](docs/architecture/V4_UNIFIED_MASK_EXECUTION_PLAN.md)。本批未改Runtime或UI；下一步U1先定版本化数据与时序能力表，不直接给四个入口各补下拉框。
+
+> 2026-10-25：[循环运动原语](docs/agent/MOTION_CONTRACT_V1.md)首批完成：修复逐帧两帧静止，基础动态／阈值CPU-GPU／染色／网点／双色放射和颗粒接共享时间计算；五类真实像素、保持／闭合和内联镜像通过。Agent manifest补齐选项、渐进条件和时序声明；其他专用动态按算法继续迁入，不宣称全量统一。
+
+> 2026-10-25：[参数合同第九批](docs/agent/PARAMETER_CONTROL_CONTRACT_V1.md)：6种基础动态32字段、17内建字段及Module声明参数接统一时序；补逐帧／周期帧数、简化运动节奏并接入摆动和旋转，修正往返交界。图元动态稳定ID、构件Runtime能力门控及分发／内联镜像已同步；定向合同／浏览器通过。剩余粒子与蒙版领域适配，未做全量或Tauri验收。
+
+> 2026-10-24：[参数合同第八批](docs/agent/PARAMETER_CONTROL_CONTRACT_V1.md)：原生成样57字段声明（20项No边界），对象／组变换、既有路径时序和文字完成度／光标接入统一逐参数入口；稳定图元ID、独立写入、撤销／重开与真实像素验收通过。基础循环动态、程序构件参数、粒子和蒙版仍待领域适配，不新增图元独立轨或扩大No能力。
+
+> 2026-10-24：[参数合同第七批](docs/agent/PARAMETER_CONTROL_CONTRACT_V1.md)：23纹理字段和17种效果动态模式接入逐字段时序；tile宽高／像素结构组、差量codec、动态模式默认参数的原子写入及过期PNG隔离已验收。当前审计范围152可编辑字段＋80动态模式字段绑定完成；基础变换／图元固有参数／粒子／蒙版不计入完成范围。
+
+> 2026-10-24：[参数合同第六批](docs/agent/PARAMETER_CONTROL_CONTRACT_V1.md)：Step／Linear图标改为表达参数能力；移除效果白名单，152效果字段＋2controller字段全量分类，129字段接通。新增全效果浏览器覆盖与只读审计脚本；23纹理编辑字段、动态子编辑器及其他领域的未完成项明确列入清单。
+
+> 2026-10-24：[时序入口第五批](docs/agent/PARAMETER_CONTROL_CONTRACT_V1.md)：共用右端入口和激活样式，未激活悬停／聚焦显示；颜色Alpha合为单一入口，弹层内分别控制。静态阶梯／斜线表示当前Step／Linear；尚未迁入的专用面板不声称完成。
+
+> 2026-10-24：[参数时序第四批](docs/agent/PARAMETER_CONTROL_CONTRACT_V1.md)：十项常规效果接入逐参数时钟与独立基础／效果段写入，颜色Alpha分离、参数能力继承Registry、顶部整段模式兼容，效果卡开关仍全局。纹理、色板、ASCII、CRT及蒙版等专用流程未冒充完成；不修改Runtime/GPU后端。
+
+> 2026-10-24：[参数时序第三批](docs/agent/PARAMETER_CONTROL_CONTRACT_V1.md)：受控附着图样逐参数时钟接通所属对象轨，颜色／Alpha分别定时和清除、多项待写入、稳定图元与图样ID隔离；保留顶部批量入口。基础变换、专用效果面板及蒙版仍待后续，不宣称整个Inspector已完成。
+
+> 2026-10-24：[共用控件第二批](docs/agent/PARAMETER_CONTROL_CONTRACT_V1.md)：完整颜色弹层与样式移出HTML，由编辑器及审阅页共同引用；时序按钮状态组件已接现有正式模板与审阅入口，不改变新附着图样的顶部时序交互。后续仍需统一正式Inspector全部参数入口及蒙版领域适配器，未把局部提取称为全量完成。
+
+> 2026-10-24：[共用参数控件合同首批](docs/agent/PARAMETER_CONTROL_CONTRACT_V1.md)：附着生成图样与审阅页共用参数规划／颜色Alpha绑定，双色放射候选不再维护重复参数表。保留正式编辑器原时序与事务入口；完整取色弹层、全部既有效果迁移和逐参数时序呈现仍待后续。蒙版作为独立领域适配器规划，不在本批冻结当前类型和字段。
+
+> 2026-10-24：[图样归属与验收修正](docs/architecture/PATH_GENERATOR_CORRECTION_2026-10-24.md)：替换B2的custom归属结论。载体保留、附着共存排序、项目卡片再绘、树子条目与顶部统一时序已补齐实际操作验收；状态栏区分渲染耗时和调度间隔。GPU、跨宿主共享库和全量／Tauri验收未做。
+
+> 2026-10-24：[B2正式双色放射](docs/architecture/DUAL_RAY_B2_DELIVERY_2026-10-24.md)完成定向接线与验收：预览／内容共用受控实现，组合颜色、动态调度、对象轨时序、双色缓存、项目／资源往返及确认后共享闭环。示例包可直接导入；未执行真实模型调用／任意JS安装／Tauri或全量测试。旧确认不自动授权新实现，旧服务需要重启。
+
+> 2026-10-23：[B1生成器合同首版](docs/agent/PATTERN_GENERATOR_CONTRACT_V1.md)已实现可信登记、组合颜色声明、显式时序能力与有预算的绘制计划，合同及真实Canvas定向验证通过。闭合载体／无依赖首版；生产内容入口、资源闭包、颜色组件实际接线与双色放射发布仍属于B2，未冒充完成。
+
+> 2026-10-23：[编辑器／MCP／Harness边界B0](docs/architecture/EDITOR_AGENT_BOUNDARIES_2026-10-23.md)完成定向实现：HTTP复用操作服务，新增只读MCP stdio及Harness登记；未注册用户MCP、未接App Server／ACP。双色放射隔离实验证明同一算法可进正式Runtime且无效果快路径低开销，详见[数据](docs/architecture/DUAL_RAY_RUNTIME_COST_2026-10-23.md)；B1生成器合同与B2正式图样接入仍待完成。
+
+> 2026-10-23：[审阅自动化第一批](docs/architecture/EFFECT_REVIEW_AUTOMATION_2026-10-23.md)：本机任务回传、自动分流、受限定义迭代预览、正式资源包与同源共享入库已接通并用模型替身完成真实浏览器闭环。真实Codex调用待明确外发授权；双色放射正式绘制能力仍缺，生产返回blocked；Tauri适配尚未实施。
+
+> RC5-P5审阅页V2已定向验证：[默认修订、保存确认与截图调查](docs/architecture/EFFECT_REVIEW_V2_2026-10-23.md)。待接Agent传输回执、正式放射能力与既有控件绑定；本地确认不代表已经回传或发布。
+
+> RC5-P5进行中：[双色放射交互提案与参数时序合同](docs/architecture/V4_PATTERN_PARAMETER_TIMING_P5_2026-10-23.md)。通用No／Step／Linear门控、声明式模板在原对象轨内的稀疏参数编辑、正式渲染／HTML导出一致性已定向验证；候选预览待用户视觉确认，双色放射尚未注册、未发布正式文件或共享。P4已完成；下方P0～P4待办为历史记录。
+
+> RC5-P2b完成：[路径预设与来源闭包](docs/architecture/V4_PATH_PATTERN_PRESETS_P2B_2026-10-22.md)。五项图样复用patternResources；元素排布内嵌元素／组来源，图片及程序依赖随包，取用重映射、绘制单次提交／撤销。真实图片／组／程序授权路径和原排布回归通过。**下一步P2c统一项目／共享卡片**；旧目录及管理列表尚未替换，P3排序／P4元素携带目录／P5实验仍待执行。
+
+> RC5-P2a已交付：图样复用现有共享发布底座，支持显式更新、取用不建画布、项目保存重开及共享删除隔离；修复P1添加身份被元素入库校验拒绝的问题。下一批P2b补附着图样预设／来源闭包，再P2c统一卡片，详见[分批状态](docs/design/PATTERN_RC5_DECISIONS_2026-10-22.md)。图样前端仍是旧入口，不冒称项目／共享图样卡已完成。
+
+> 2026-10-22：[RC5图样合同／P0～P5实施表](docs/design/PATTERN_RC5_DECISIONS_2026-10-22.md)已确认；P0与P1完成。添加身份、添加式Inspector、停用重开／移除撤销及旧目录绘制定向验收通过。下一步P2完成项目／共享卡片与资源合同，再做树中排序，最后Agent新图样流水线；不能将入口改样式等同全部完成。
+
+> **2026-10-22 当前结论：[RC4四项收口](docs/architecture/V4_RC4_MATERIAL_CLOSEOUT_2026-10-22.md)完成。** 共享素材工程ZIP索引、收藏入口移除及导出画面／工程文件夹提取、组单卡、粒子单卡及来源删除保护均已实现并定向验收。下方旧批次的相反待办均为历史记录；下一项是RC5图样方案讨论，不扩展为算法插件开发。
+
+> 本批：[素材卡烘焙及共享卡对齐](docs/architecture/V4_MATERIAL_CARD_BAKING_2026-10-21.md)完成。普通／程序元素在卡片左下烘焙为位图或序列，支持取消／撤销、局部共同边界；共享卡修复flex覆盖网格，尺寸和按钮位置对齐项目卡；♥hover显示↥更新。下一步回到旧收藏完整包归档／混合包及缺失提示余项；组与粒子仍另行验收。下方“烘焙未完成”为此前批次记录。
+
+> RC3本批：[元素卡统一与单向共享](docs/architecture/V4_MATERIAL_CARDS_RC3_2026-10-21.md)完成。Module根导入转默认元素卡、不建画布实例，移除独立构件栏；卡片图标统一，项目♥只发布／更新，共享页才移除；预览点击编辑。**下一步是素材卡烘焙（普通／程序元素）与旧收藏归档余项**，不是继续实现已移除的构件栏。下方为此前批次记录。
+
+> 本轮2／5／6已落地：[素材回存／移出／导入授权](docs/architecture/V4_MATERIAL_UPDATE_REMOVE_IMPORT_2026-10-21.md)。回存同ID，项目卡移除不连带画布；程序仅导入／取用确认。下一批仍是Module转默认元素卡并移除构件栏、烘焙移到卡片操作区、卡片图标统一及单向共享／预览点击语义；不冒称这些UI已完成。
+
+> RC3当前：a项目入库、b显式共享、c1统一预览、c2a旧素材迁入及[c2b图样／构件／烘焙入口归位](docs/architecture/V4_RESOURCE_ENTRY_PLACEMENT_RC3C2B_2026-10-21.md)完成。图样管理在图样下，构件及选中构件烘焙在素材项目区；复用同一命令和库，信任／预算／取消保留。旧收藏仍承载完整包导出、混合包、移除恢复与缺失提示，未全部归位前不删Tab；不提前执行RC4项目连带删除或普通元素烘焙。
+
+> D3本轮布局更新：标题下同一行左侧项目／共享二态开关，右侧三个导入图标，保留提示与原入口；对应范围复位与键盘门禁已补齐。此处替代先前三文字按钮＋另行两范围Tab，不改变RC3-c2其余迁移顺序或RC4讨论门。
+
+> 2026-10-21产品收口：[素材／图样／效果分阶段计划RC0～RC9](docs/architecture/V4_RESOURCE_PRODUCT_CONSOLIDATION_PLAN_2026-10-21.md)。三原则已确认：定义与实例分离、共享显式发布副本、图样并行读取路径且调序只改覆盖。RC0、RC1及RC2确认数据范围完成，下一步RC3讨论门；图样面板与卡片、删除细则等仍有独立讨论门。加样／采样配方与算法扩展后续单独分批，不作为素材／图样收口前置。
+
+> RC2进度：a／b／c1／c2a及[c2b父组蒙版坐标](docs/architecture/V4_ELEMENT_PARENT_MASK_SPACE_RC2C2B_2026-10-21.md)完成，D1普通／程序元素数据闭环收口。共享MaskState保留脱离父组后的蒙版几何与跟随；44组浏览器及实际拖动／撤销／HTML验证。下一步先确认RC3的D2／D3；组／粒子、素材新面板及删除生命周期未完成。
+
+> 统一资源分批计划：R0／R1／R2／R3a及R3b声明式模板首版已完成；R4a复用实例与R4b显式冻结／烘焙首版完成。缺失源码无缓存时仍须恢复依赖，不自动降级。R3b不代表任意算法插件，复杂绘制继续使用受信Scene Module；附着拓展预设后续补充。自动项目重开仍暂缓。详见[合同及验收落点](docs/architecture/V4_RESOURCE_PACKAGE_CONTRACT_2026-10-18.md)与[R4增量](docs/architecture/V4_MODULE_RESOURCES_R4_2026-10-19.md)。
+
 > 独立于游戏本体的 ROADMAP。按"低成本高确定性 → 体验升级 → 规模化"推进。
 
 ## 文档同步约定
+
+括号／角标真实需求已交付：隔离Agent提案→宿主审阅注册→Agent六例工程→实际编辑验证，见[括号合同](docs/architecture/V4_BRACKET_PATTERN_2026-10-18.md)。这是已审阅图样能力接入，不是任意Agent代码或配方动态注册完成。
+
+图样目录阶段：G1/G2/G3已交付；路径显现及箭杆参数已补充。G4首轮[隔离Agent使用实验](docs/architecture/V4_AGENT_PATTERN_G4_TRIAL_2026-10-18.md)已完成，螺旋、未知配方及内部Skill仍未完成。边界及验收见[图样实施合同](docs/design/PATTERN_LIBRARY_INTERACTION_CONTRACT_2026-10-18.md)和[G3合同](docs/architecture/V4_CUSTOM_SHAPES_G3_2026-10-18.md)，不增加创建后载体切换。
 
 - 目录归档、版本同步与双仓库提交边界以 [DOCUMENTATION_PROTOCOL.md](DOCUMENTATION_PROTOCOL.md) 为准。
 - **README**：只描述用户已经可用的工作流、入口、格式与限制；用户可感知的能力变化必须同步。
@@ -14,10 +92,31 @@
 > Agent 生成试验的过程、共识与待决问题见 [AGENT_WORKFLOW_STATUS.md](docs/agent/AGENT_WORKFLOW_STATUS.md)。
 > 蒙版与局部 FX 的已交付范围、运行顺序与明确非目标见 [MASK_AND_FX_STATUS.md](docs/architecture/MASK_AND_FX_STATUS.md)。
 
+## 场景 GPU 执行器实验（默认后端未切换）
+
+- [x] 隔离验证场景效果、独立范围蒙版、双 Scene 动态转场、低分辨率不均采样与融合路径；性能结果和明确未覆盖部分见 [GPU 验证记录](docs/architecture/V4_GPU_POSTPROCESS_FEASIBILITY_2026-10-13.md)。
+- [x] 首条真实 Player 接线：显式试用独立采样格／不均采样，整链预检与 CPU 回退；暂停／修改／撤销／seek、尺寸、Step、上下文丢失、Player 隔离、转场缓存和释放定向验收通过。边界以 [接线合同](docs/architecture/V4_SCENE_GPU_EXECUTOR_CONTRACT.md) 为准。
+- [x] 首轮真实 Player 全帧预算：640×360／1920×1080，单 Scene、动态引用蒙版、双 Scene 动态蒙版转场，包含对象绘制与最终 Canvas 输出。1080p 双场景主线程 P95 26 ms／RAF P95 33.3 ms，尚不能宣称稳定 60 fps；详细结果见 GPU 验证记录及原始 JSON。
+- [ ] 扩大真实 Player 整链、不同来源／参数、长时运行与重复独立运行预算；分解来源／蒙版准备和 Canvas 最终转场成本，验证 GPU 双源合成后是否改善双场景尾帧。
+- [ ] 宿主预览／导出会话接通明确的文档／素材版本和 Player 释放，完成项目切换、关闭与资源恢复验收。
+- [x] 场景阈值分色真实 GPU 接线：含呼吸／Step、灰阶与彩色边界、独立蒙版；阈值→不均采样保留每卡缩放与范围，中间不回传Canvas。真实1080p两卡单Scene P95 CPU103.4／GPU6.5ms，双Scene范围转场232.9／32.3ms；默认后端不变，未完成全部场景滤镜。
+- [x] 场景杂色真实GPU实验接线：整数xorshift、静态跳跃／舍入表，三卡ping-pong；初轮记录见[杂色记录](docs/architecture/V4_GPU_NOISE_PLAYER_2026-10-15.md)。后续统一预乘字节、Canvas反预乘表与原生范围混合，96组透明／不透明照片逐像素一致，独立Alpha／反相／引用范围与透明转场严格门禁通过；新增混合绘制成本、真实预算及1024帧短版隔离回归见[透明修复](docs/architecture/V4_GPU_ALPHA_BYTES_2026-10-15.md)。仍非默认后端验收完成。
+- [x] 场景染色／色散首轮真实GPU接线：全尺寸染色normal／screen／lighter，其他混合整链CPU；色散auto／contour／contrast及严格亮度临界。48组染色／24组色散照片、CSS／动态／Linear实际求值、Step／seek、故障回退与原回归通过；五卡真实预算1080p单Scene18.7ms、范围43.5ms、双侧范围81.6ms（GPU完整调用P95），仍不稳定30fps。见[接线与边界](docs/architecture/V4_GPU_TINT_DISPERSION_PLAYER_2026-10-15.md)。
+- [ ] 下一实现：补齐染色其余混合及连续颜色／透明度动画预算，再扩展纹理／颗粒／暗角／Hard Mix；保留逐卡范围与透明严格门禁，不夹用CPU/GPU往返、不更换对象管线。
+- [x] 显式 GPU 双源转场实验：fade／四向 wipe／dissolve、透明 Alpha、seek、失败整帧 CPU 重绘已验收。首轮 1080p 完整帧 P95 与 Canvas 最终转场近似（27.6／27.5 ms），显存工作纹理增加，因此默认关闭，不宣称提速。
+- [x] 首轮真实 Player 分项计时及嵌套 API 诊断：长主线程等待集中在 GL 状态查询；缓存不变附件完整性检查后，等待转到错误检查，尚无完整帧收益。不能把来源绘制／上传 API 返回快误认为设备成本低。
+- [ ] 进一步分离 GPU 上传／绘制阶段设备计时与同步等待，并实验安全的异步提交／验证策略；保留 CPU 回退，确认收益后再决定 GPU 缩小／范围缓存和宿主推广。
+- [x] 首轮设备阶段计时与同帧批量验证：上传／field／输出／转场 query 不嵌套；两侧暂缓检查、最终输出前一次验证仍保留当帧 CPU 回退。1080p 完整调用 P95 29.7→26.8 ms，但 RAF 尾帧仍未解决；实验选项不默认启用。
+- [ ] 隔离 Canvas 来源跨上下文传递／转换和调度成本，重复与长时比较同帧批量提交；真正异步验证的安全边界、整链和宿主默认接线尚未完成。
+- [x] 来源传递独立对照：Canvas 静态／重绘／动态、OffscreenCanvas、预乘／非预乘 ImageBitmap 和静态纹理复用，两个尺寸／两轮正反顺序，画质与 query 验收通过。Alpha 表示显著影响位图主线程转换，但普通 Canvas 的独立传递未复现真实 Player 长等待；不替换正式来源。见 [来源传递记录](docs/architecture/V4_GPU_SOURCE_TRANSPORT_2026-10-15.md)。
+- [x] 真实 Player 表面身份与固定角色首轮对照：两轮、两个尺寸、三类工作负载，固定角色消除来源／上一目标复用，但 1080p 双 Scene P95 未明显改善；画质、角色隔离、尺寸替换、清缓存和回退定向验收。默认通用池不变。
+- [x] 同页平衡交错连续压力：四策略各 1800 帧、共 7200 帧／约146秒，区分绘制时间、RAF 参数时间与回调实际到达。持续绘制 P95 仍22–24ms；约一秒极端参数间隔存在时间戳滞后，不等同一秒绘制停顿。画质、资源计数、释放通过；固定角色不推广，细分诊断阶段收束。见 [交错连续记录](docs/architecture/V4_GPU_INTERLEAVED_PLAYBACK_2026-10-15.md)。
+- [ ] 验证 Tauri WebView、导出一致性和长时资源后，再决定 Auto 默认后端与用户可见状态。
+
 ## Phase 9 已完成：处理管线与场景滤镜
 
 - [x] Phase 9.0 合同校准：清理过期迁移状态，冻结 Step / Linear 参数规则，并让 `linear-safe` 颜色获得确定性 sRGB 插值。
-- [x] 统一对象蒙版与场景滤镜范围的状态组件、校验、Runtime 解析和 Inspector；支持矩形 / 椭圆 / 多边形 / Alpha 素材 / 元素或组引用，并以 `sourceVisibility:'keep'|'mask-only'` 显式控制来源显示。元素引用、保存重开及真实 Edge 已验收。
+- [x] 统一对象蒙版与场景滤镜范围的状态组件、校验、Runtime 解析和 Inspector；支持矩形 / 椭圆 / 多边形 / Alpha 素材 / 元素或组引用。引用来源固定仅作蒙版，派生隐藏不污染对象自身 `hidden`；元素引用、保存重开及真实 Edge 已验收。
 - [x] 将统一蒙版接入 Legacy 同款绿色 Canvas 框选 / 点选编辑：矩形、椭圆与 Alpha 范围可重绘、移动、缩放，多边形可点选重绘、拖点、点边插点和删除顶点；对象与场景滤镜共用同一控制器。
 - [x] 接入对象 `mask / decorate / sample` 大阶段排序与左侧效果容器；阶段内部继续使用 Registry 固定顺序。容器仅在 v4 会话显示，与素材库互斥展开；启用效果自动入列，卡片可定位 Inspector / 时间轴并统一停用，Pointer 拖动只改变三大阶段。
 - [x] 将 v4 区域后处理的数据与 Runtime 统一为“场景滤镜 + 范围蒙版”，不再创建 `fx.layers[]` 或伪装继承对象 z；范围蒙版已复用对象蒙版组件并通过 Inspector / 保存往返验收。
@@ -101,7 +200,7 @@ P0 完成后才评估内置对话、桌面项目层与正式仓库改名；内�
 > 语义合同见 [EFFECT_SYSTEM_VNEXT.md](docs/architecture/EFFECT_SYSTEM_VNEXT.md)；Inspector 与左侧容器蓝图见 [INSPECTOR_EFFECTS_VNEXT.md](docs/design/INSPECTOR_EFFECTS_VNEXT.md) / [EFFECTS_PANEL_VNEXT.md](docs/design/EFFECTS_PANEL_VNEXT.md)。`editor/effect-registry-vnext.js` 与派生 [EFFECT_MANIFEST_VNEXT.json](docs/agent/EFFECT_MANIFEST_VNEXT.json) 是 v4 唯一效果元数据源。v4 Runtime、效果卡、时序与统一蒙版已进入 Classic Shell 纵向迁移；Legacy 产品入口和旧 Scene 格式保持冻结，不与 v4 双写。
 
 1. **冻结与验证元数据**：维持 vNext registry → manifest 的确定性派生和 `npm run verify` 过期检查；为 ID 唯一性、参数类型、阶段/作用域、性能等级与配方引用增加静态合同测试。
-2. **统一蒙版 schema**：先重做对象蒙版与场景滤镜范围的共用组件、运行时解析和 `sourceVisibility:'keep'|'mask-only'`，消除旧“引用即隐藏”的隐式规则。
+2. **统一蒙版 schema**：对象蒙版与场景滤镜范围共用组件和运行时解析；当前规则固定为引用源仅作蒙版，不再保存来源显示选项。
 3. **引入新 Scene 效果声明与序列化器**：为 vNext `effects` / `pipeline` 建立新建场景格式、validator、serializer 和 capability 版本；不长期维护旧 `fx.layers` 的双语义，迁移前冻结样例并提供一次性工具或明确新建入口。
 4. **Runtime 管线适配**：先实现对象离屏胶囊、`mask → decorate → sample` 默认流水线、三个阶段整体调序与场景 `overlay → sample`；把纹理、投影、描边、内外光效收敛为共享原语。
 5. **采样原语重做**：按 `color-map → threshold/noise → offset-sampling → halftone → uneven-sampling` 接入；`offset-sampling.boil` 必须是真正的格子级确定性微偏移，`bands` 是条带坐标重取样，不能退化为对象整体 bob。
@@ -155,12 +254,14 @@ P0 完成后才评估内置对话、桌面项目层与正式仓库改名；内�
 
 1. **发布基线**：MIT 许可证已补齐；提交当前独立工具仓库，继续补充贡献/安全说明、截图/GIF、Windows 构建与安装/便携发行方式，并完成原生取消/批量交付检查。正式面向普通用户前，必须把兼容 Scene 的动态对象求值改为纯数据解析，并将 `program.code` 放入受限 Worker/沙箱或迁移为已注册 builtin，避免未知 Scene 在主 WebView 执行代码。
 2. **P0 Agent 协作稳定性与三案例验证**：证明外部 Agent 能交付可修正的结构化初稿，并让预览、保存、自包含运行与导出一致；第三个粗糙拼贴案例尚未开始。
-3. **UI 信息架构与视觉系统收口**：继续梳理 Inspector 渐进披露、图标与交互细节，不改变 Scene / Runtime 合同。
+3. **UI 信息架构与视觉系统收口**：下一轮按 [旧媒介工作台 UI 规则](docs/design/OLD_MEDIA_WORKBENCH_UI_RULES.md) 制作可运行小样并验证四主屏幕、三处嵌入数显区、Inspector 图示效果卡和固定高度时间轴；图标与 Logo 统一设计，不改变 Scene / Runtime 合同。
 4. **桌面项目层**：在 Scene 与 UI 工作流稳定后增加 Project manifest、可重连 `assets/`、处理配方和个人素材库，不采用 IndexedDB 冒充项目系统。
 
 Agent 验证与 UI 设计可以并行；项目层必须建立在当前 Host/Asset 合同之上，不能回到页面内散落文件路径。
 
 #### UI 信息架构 v1（骨架已实施，细节待收口）
+
+以下是早期实施记录。下一轮的视觉和布局规则以 [旧媒介工作台 UI 规则](docs/design/OLD_MEDIA_WORKBENCH_UI_RULES.md) 为准，特别是时间轴固定高度、左侧下屏 Tab 与新版 Inspector 层级。
 
 - 以 [UI_RECONSTRUCTION_V1.md](docs/design/UI_RECONSTRUCTION_V1.md) 为实施合同：左侧“场景结构 + 可收起素材库”、中央“工具 + 固定舞台”、右侧“属性 / 动态 / 效果 Inspector”、下方“场景与上下文编排时间轴”。
 - ✅ 时间轴 Dock 第一阶段：固定于 Canvas + Inspector 下方、可调高度；上轴为全局刻度/播放头，Scene 标签段承载定位、改名与删除；下轴按 Inspector 上下文派生元素 `show`、局部 FX `show`（以元素有效范围为底带）或 `fx.segs`，继续复用原有 Runtime 格式。

@@ -7,8 +7,10 @@ import vm from 'node:vm';
 const FORMAT = 'tosampool-scene/v4';
 const TYPES = new Set(['rect', 'ellipse', 'line', 'poly', 'vector', 'text', 'image', 'group', 'particle-emitter', 'builtin', 'procedural']);
 const builtinSandbox={};
-for(const file of ['00-namespace.js','15-builtin-registry.js'])new vm.Script(readFileSync(resolve(import.meta.dirname,'..','runtime-src','vnext',file),'utf8'),{filename:file}).runInNewContext(builtinSandbox);
+for(const file of ['00-namespace.js','15-builtin-registry.js','21-parameter-timing.js','59g-custom-shapes.js','59i-pattern-snapshot.js','59j-pattern-provider.js'])new vm.Script(readFileSync(resolve(import.meta.dirname,'..','runtime-src','vnext',file),'utf8'),{filename:file}).runInNewContext(builtinSandbox);
 const BUILTIN_REGISTRY=builtinSandbox.ToSampoolRuntimeVNext.modules.builtins;
+new vm.Script(readFileSync(resolve(import.meta.dirname,'..','editor','v4-material-sharing.js'),'utf8'),{filename:'v4-material-sharing.js'}).runInNewContext(builtinSandbox);
+new vm.Script(readFileSync(resolve(import.meta.dirname,'..','editor','vnext-asset-state.js'),'utf8'),{filename:'vnext-asset-state.js'}).runInNewContext(builtinSandbox);
 const BUILTINS = new Map(BUILTIN_REGISTRY.definitions.map(value=>[value.id,value.version]));
 const finite = value => Number.isFinite(+value);
 const object = value => value && typeof value === 'object' && !Array.isArray(value);
@@ -16,6 +18,9 @@ const object = value => value && typeof value === 'object' && !Array.isArray(val
 export function validateVNextScene(scene) {
   const errors = [], fail = message => errors.push(message);
   if (!object(scene)) return { valid: false, errors: ['Scene 必须是对象'] };
+  try{builtinSandbox.EditorV4MaterialSharing.validateScene(scene);}catch(error){fail('素材共享：'+error.message);}
+  try{builtinSandbox.EditorVNextAssetState.validateLibrary(scene);}catch(error){fail('素材库：'+error.message);}
+  try{builtinSandbox.ToSampoolRuntimeVNext.modules.patternProviders.validateScene(scene);}catch(error){fail('图样定义：'+error.message);}
   if (scene.format !== FORMAT) fail(`format 必须为 ${FORMAT}`);
   for (const key of ['width', 'height', 'loop']) if (!finite(scene[key]) || +scene[key] <= 0) fail(`${key} 必须为正数`);
   if (!object(scene.assets || {})) fail('assets 必须是 locator 映射对象');
@@ -49,6 +54,10 @@ export function validateVNextScene(scene) {
       if(!Number.isInteger(+entity.moduleVersion)||+entity.moduleVersion<1)fail(`程序构件「${entity.id}」的 moduleVersion 必须是正整数`);
       if(entity.params!==undefined&&!object(entity.params))fail(`程序构件「${entity.id}」的 params 必须是对象`);
     }
+    for(const part of Array.isArray(entity.parts)?entity.parts:[])if(part?.type==='custom'){
+      try{builtinSandbox.ToSampoolRuntimeVNext.modules.customShapes.normalizePartRecipe({...part});if(part.recipe.params!==undefined&&!object(part.recipe.params))fail(`自定义图元「${part.id}」的 params 必须是对象`);}
+      catch(error){fail(`自定义图元「${part.id}」：${error.message||error}`);}
+    }
     if (entity.type === 'particle-emitter') { const source = byId.get(entity.particle?.sourceId); if (!source || source.type === 'group' || source.type === 'particle-emitter') fail(`粒子发射器「${entity.id}」必须引用普通 sourceId`); }
     const mask = entity.effects?.mask;
     validateMask(mask, `实体「${entity.id}」`, entity.id);
@@ -64,7 +73,7 @@ export function validateVNextScene(scene) {
     if(mask.type==='element'){
       const source=byId.get(mask.targetId);if(!source)fail(`${label}的元素蒙版来源不存在`);else if(source.type==='particle-emitter')fail(`${label}不能引用粒子发射器作为蒙版`);
       if(ownerId&&mask.targetId===ownerId)fail(`${label}不能引用自身作为蒙版`);
-      if(mask.sourceVisibility!==undefined&&!['keep','mask-only'].includes(mask.sourceVisibility))fail(`${label}的 sourceVisibility 必须是 keep 或 mask-only`);
+      if(mask.sourceVisibility!==undefined)fail(`${label}不再支持 sourceVisibility；被引用元素仅作蒙版`);
     }
   }
   for(const [stage,bucket] of Object.entries(scene.sceneEffects||{})){

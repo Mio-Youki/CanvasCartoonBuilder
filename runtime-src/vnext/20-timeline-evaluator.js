@@ -32,6 +32,13 @@
 
   function assign(out, key, value) {
     const parts = String(key || '').split('.');
+    if(parts[0]==='partsById'){
+      let id=parts[1];try{id=decodeURIComponent(id);}catch(_){}
+      const index=(out.parts||[]).findIndex(part=>part.id===id);
+      if(index<0)return;
+      return assign(out,['parts',String(index)].concat(parts.slice(2)).join('.'),value);
+    }
+    for(let i=0;i<parts.length-1;i++)if(parts[i]==='extensionsById'){let id=parts[i+1];try{id=decodeURIComponent(id);}catch(_){}if(['__proto__','prototype','constructor'].includes(id))return;parts.splice(i,2,'extensions',id);i++;}
     if (parts.length === 1) { out[parts[0]] = value; return; }
     let target = out;
     for (let index = 0; index < parts.length - 1; index++) {
@@ -40,6 +47,12 @@
       target = target[part];
     }
     target[parts[parts.length - 1]] = value;
+  }
+
+  function valueAt(base,key){
+    const parts=String(key||'').split('.');let value=base;
+    if(parts[0]==='partsById'){let id=parts[1];try{id=decodeURIComponent(id);}catch(_){}value=(base.parts||[]).find(part=>part.id===id);parts.splice(0,2);}
+    for(let i=0;i<parts.length;i++){let part=parts[i];if(value==null)return undefined;if(part==='extensionsById'){let id=parts[++i];try{id=decodeURIComponent(id);}catch(_){}value=value.extensions?.[id];continue;}if(part==='strokeCompletion'&&['stroke','line','rect','ellipse','poly'].includes(value.type)&&value[part]==null)return 100;if(part==='pathStart'&&value[part]==null)return 0;value=value[part];}return value;
   }
 
   function neighborValues(segments,index,direction) {
@@ -55,8 +68,8 @@
     const index=(segments||[]).indexOf(segment),left=neighborValues(segments||[],index,-1)||{},right=neighborValues(segments||[],index,1)||{},from=Object.assign({},left,segment.from||{}),to=Object.assign({},right,segment.to||{}),out = Object.assign({}, base);
     const allowed=Array.isArray(segment.linearKeys)?new Set(segment.linearKeys):null,keys = new Set(Object.keys(from).concat(Object.keys(to)));
     for (const key of keys) {
-      const a = from[key] !== undefined ? from[key] : base[key];
-      const b = to[key] !== undefined ? to[key] : base[key];
+      const a = from[key] !== undefined ? from[key] : valueAt(base,key);
+      const b = to[key] !== undefined ? to[key] : valueAt(base,key);
       if (!allowed || allowed.has(key)) {
         if (Number.isFinite(+a) && Number.isFinite(+b)) { assign(out, key, linear(a, b, p)); continue; }
         const color = colorAt(a, b, p);
@@ -70,8 +83,8 @@
 
   function valuesFor(scene, ownerId, base, rel) {
     const tracks = scene.timeline && scene.timeline.tracks || {};
-    const track = tracks[ownerId] || tracks[`entity:${ownerId}`];
-    return applyValues(base, track && segmentAt(track.segments, rel), rel, track&&track.segments);
+    const raw=tracks[ownerId]||tracks[`entity:${ownerId}`],input=api.modules.maskContract?api.modules.maskContract.withoutTiming(raw):raw,track=api.modules.parameterTiming?api.modules.parameterTiming.forEntity(base,input,scene):input;
+    const result=applyValues(base, track && segmentAt(track.segments, rel), rel, track&&track.segments);return api.modules.maskContract?api.modules.maskContract.restoreBase(result,base):result;
   }
 
   function visibleFor(scene, ownerId, rel) {
@@ -86,7 +99,7 @@
   }
   function effectValuesFor(scene, scope, ownerId, effectId, base, rel) {
     const tracks = scene.timeline && scene.timeline.tracks || {}, key = effectTrackKey(scope, ownerId, effectId);
-    const track=tracks[key];return applyValues(base, segmentAt(track && track.segments, rel), rel, track&&track.segments);
+    const track=api.modules.maskContract?api.modules.maskContract.withoutTiming(tracks[key],true):tracks[key],result=applyValues(base, segmentAt(track && track.segments, rel), rel, track&&track.segments);return api.modules.maskContract?api.modules.maskContract.restoreBase(result,base,true):result;
   }
 
   function controllerTrackKey(scope, ownerId, controllerId) {

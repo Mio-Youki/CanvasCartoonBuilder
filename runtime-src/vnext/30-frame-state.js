@@ -12,16 +12,12 @@
     return [a, b, c, d, px - a * pivot.x - c * pivot.y, py - b * pivot.x - d * pivot.y];
   }
 
-  /* A small, deterministic motion vocabulary.  These are periodic primitives,
-     not keyframe curves: every mode closes at the loop boundary and costs one
-     O(1) calculation per animated object. */
-  function curve(phase, mode) {
-    const p = ((+phase % 1) + 1) % 1, half = p < .5 ? p * 2 : 2 - p * 2;
-    const ease = mode === 'ease-in' ? half * half : mode === 'ease-out' ? 1 - (1 - half) * (1 - half) : mode === 'ease-in-out' ? (half < .5 ? 2 * half * half : 1 - Math.pow(-2 * half + 2, 2) / 2) : half;
-    if (mode === 'step') return p < .5 ? -1 : 1;
-    if (mode === 'linear' || mode === 'ease-in' || mode === 'ease-out' || mode === 'ease-in-out') return p < .5 ? -1 + ease * 2 : 1 - ease * 2;
-    return Math.sin(p * Math.PI * 2);
-  }
+  /* Deterministic periodic primitives, not keyframe curves. Each motion cycle
+     closes; a scene loop closes only when its duration fits those cycles.
+     Evaluation is O(1) per animated object, without pixel buffers. */
+  const {curve,ease,motionTime}=api.modules.motion;
+  const travel=(spec,time,period)=>api.modules.motion.advance({...spec,period},time);
+  const oscillate=(spec,time)=>api.modules.motion.oscillate(spec,time);
 
   /* Gate is the declaration for a periodic on/off light.  Unlike the normal
      blink amplitude (a two-state dimmer), it retains an explicit duty window
@@ -36,7 +32,7 @@
     }
     if (!Number.isFinite(+spec.amount)) return 1;
     const period=Math.max(.001,+spec.period||1);
-    return 1-Math.max(0,Math.min(1,+spec.amount))*((curve(time/period,spec.curve)+1)/2);
+    return 1-Math.max(0,Math.min(1,+spec.amount))*((oscillate(spec,time)+1)/2);
   }
 
   function motion(scene, values, entity, time) {
@@ -44,19 +40,19 @@
     const out = Object.assign({}, values);
     const enabled = key => api.modules.timeline.visibleFor(scene, `motion:object:${entity.id}:${key}`, time / Math.max(.001, +scene.loop || 1));
     if (anim.bob && enabled('bob') && Number.isFinite(+anim.bob.amount)) {
-      const period = Math.max(.001, +anim.bob.period || 1), angle = (Number.isFinite(+anim.bob.angle) ? +anim.bob.angle : 90) * Math.PI / 180, offset = curve(time / period, anim.bob.curve) * +anim.bob.amount;
+      const angle = (Number.isFinite(+anim.bob.angle) ? +anim.bob.angle : 90) * Math.PI / 180, offset = oscillate(anim.bob,time) * +anim.bob.amount;
       out.x += Math.cos(angle) * offset; out.y += Math.sin(angle) * offset;
     }
     if (anim.scroll && enabled('scroll') && Number.isFinite(+anim.scroll.speed)) {
-      const angle = (+anim.scroll.angle || 0) * Math.PI / 180, span = Math.max(0, +anim.scroll.span || 0), raw = time * +anim.scroll.speed, distance = anim.scroll.repeat !== false && span > 0 ? ((raw % span) + span) % span : raw;
+      const angle = (+anim.scroll.angle || 0) * Math.PI / 180, span = Math.max(0, +anim.scroll.span || 0), repeating=anim.scroll.repeat!==false&&span>0,period=span/Math.abs(+anim.scroll.speed),raw=repeating&&Number.isFinite(period)?travel(anim.scroll,time,period)*span*Math.sign(+anim.scroll.speed):time*+anim.scroll.speed, distance = repeating ? ((raw % span) + span) % span : raw;
       out.x += Math.cos(angle) * distance; out.y += Math.sin(angle) * distance;
     }
     if (anim.pulse && enabled('pulse') && Number.isFinite(+anim.pulse.amount)) {
-      const period = Math.max(.001, +anim.pulse.period || 1), scale = 1 + curve(time / period, anim.pulse.curve) * +anim.pulse.amount;
+      const scale = 1 + oscillate(anim.pulse,time) * +anim.pulse.amount;
       out.scaleX = (Number.isFinite(+out.scaleX) ? +out.scaleX : 1) * scale; out.scaleY = (Number.isFinite(+out.scaleY) ? +out.scaleY : 1) * scale;
     }
-    if (anim.spin && enabled('spin') && Number.isFinite(+anim.spin.speed)) out.rot += time * +anim.spin.speed;
-    if (anim.wave && enabled('wave') && Number.isFinite(+anim.wave.amount)) out.rot += Math.sin(time / Math.max(.001, +anim.wave.period || 1) * Math.PI * 2) * +anim.wave.amount;
+    if (anim.spin && enabled('spin') && Number.isFinite(+anim.spin.speed)){const period=360/Math.abs(+anim.spin.speed);out.rot+=Number.isFinite(period)?travel(anim.spin,time,period)*360*Math.sign(+anim.spin.speed):0;}
+    if (anim.wave && enabled('wave') && Number.isFinite(+anim.wave.amount))out.rot+=oscillate(anim.wave,time)*+anim.wave.amount;
     if (anim.blink && enabled('blink')) out.alpha *= blinkAlpha(anim.blink,time);
     return out;
   }
@@ -90,7 +86,9 @@
     const currentScene=sceneSegmentAt(scene,rel),currentSceneIndex=currentScene.index,sceneRange=currentScene.segment.f||[0,1],sceneStart=Math.max(0,Math.min(1,+sceneRange[0]||0)),sceneEnd=Math.max(sceneStart+.000001,Math.min(1,+sceneRange[1]||1)),sceneProgress=Math.max(0,Math.min(1,(rel-sceneStart)/(sceneEnd-sceneStart)));
     const local = new Map(), byId = new Map(), entities = new Map(scene.entities.map(entity => [entity.id, entity]));
     for (const entity of scene.entities) {
-      const variant=sceneVariant(entity,currentSceneIndex),base=variant?Object.assign({},entity,variant):entity;
+      // Editor projections may evaluate an authored (not yet Runtime-normalized)
+      // document. Match the drawable defaults before motion and parent Alpha.
+      const variant=sceneVariant(entity,currentSceneIndex),base=Object.assign({x:0,y:0,w:1,h:1,scaleX:1,scaleY:1,rot:0,alpha:1},entity,variant||{});
       const values = api.modules.timeline.valuesFor(scene, entity.id, base, rel);
       values.timelineVisible = api.modules.timeline.visibleFor(scene, entity.id, rel);
       local.set(entity.id, snapGeometry(motion(scene, values, entity, time)));
@@ -106,8 +104,8 @@
     }
     for (const entity of scene.entities) resolve(entity);
     const quality=Object.freeze({pixelDivMultiplier:Math.max(1,Math.round(preview&&+preview.pixelDivMultiplier||1))});
-    return Object.freeze({ time, rel, sceneIndex:currentSceneIndex, sceneProgress, preview:quality, valuesFor: entity => byId.get(entity.id) || entity, effectValuesFor: (scope, ownerId, effectId, base) => api.modules.timeline.effectValuesFor(scene, scope, ownerId, effectId, base, rel), controllerValuesFor: (scope, ownerId, controllerId, base) => api.modules.timeline.controllerValuesFor(scene, scope, ownerId, controllerId, base, rel) });
+    return Object.freeze({ scene, time, rel, sceneIndex:currentSceneIndex, sceneProgress, preview:quality, paletteCapture:preview&&preview.paletteCapture, valuesFor: entity => byId.get(entity.id) || entity, effectValuesFor: (scope, ownerId, effectId, base) => api.modules.timeline.effectValuesFor(scene, scope, ownerId, effectId, base, rel), controllerValuesFor: (scope, ownerId, controllerId, base) => api.modules.timeline.controllerValuesFor(scene, scope, ownerId, controllerId, base, rel) });
   }
 
-  api.modules.frame = Object.freeze({ create, matrixFor, multiply, pivotFor, curve, blinkAlpha, snapGeometry, sceneSegmentAt, sceneIndexAt, IDENTITY });
+  api.modules.frame = Object.freeze({ create, matrixFor, multiply, pivotFor, curve, ease, motionTime, travel, blinkAlpha, snapGeometry, sceneSegmentAt, sceneIndexAt, IDENTITY });
 })(typeof window !== 'undefined' ? window : globalThis);

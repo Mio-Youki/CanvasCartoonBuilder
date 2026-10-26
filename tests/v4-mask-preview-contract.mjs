@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+const ctx=vm.createContext({console});vm.runInContext(readFileSync(new URL('../home-scene-vnext.js',import.meta.url),'utf8'),ctx);
+const rt=ctx.ToSampoolRuntimeVNext,raw={format:'tosampool-scene/v4',width:32,height:24,loop:3,entities:[{id:'a',type:'rect',x:0,y:0,w:32,h:24,fill:'#ffffff',effects:{mask:{type:'rect',x:2,y:2,w:10,h:10}}}],sceneEffects:{overlay:{},sample:{}}};
+const before=JSON.stringify(raw),player=rt.createRuntime(raw),fake={getContext(){return{};}};
+assert.equal(rt.modules.renderer.maskPreview,1);
+assert.throws(()=>player.renderTo(fake,0,{maskPreview:{scope:'particle-emission',ownerId:'a'}}),/不存在/);
+assert.throws(()=>player.renderTo(fake,0,{maskPreview:{scope:'unknown',ownerId:'a'}}),/尚不支持/);
+assert.throws(()=>player.renderTo(fake,0,{maskPreview:{scope:'object',ownerId:'missing'}}),/不存在/);
+assert.throws(()=>player.renderTo(fake,0,{maskPreview:{scope:'scene',effectId:'missing'}}),/不存在/);
+assert.throws(()=>player.renderTo(null,0,{maskPreview:{scope:'object',ownerId:'a'}}),/目标 Canvas/);
+assert.equal(JSON.stringify(raw),before);assert.equal(player.scene.entities[0].effects.mask.type,'rect');assert.equal(Object.hasOwn(player.scene,'maskPreview'),false);
+player.dispose();console.log('✓ mask preview scope/missing source guards and view-only unchanged input contract');

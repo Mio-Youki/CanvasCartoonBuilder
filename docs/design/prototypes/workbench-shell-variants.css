@@ -1,0 +1,180 @@
+/* Shell-only alternatives. Display surfaces, contents and application states
+   inherit the original workbench unchanged. */
+body:is(.shell-nasa,.shell-cassette) {
+  --shell-face:#ece5d6;
+  --shell-panel:#e2e3de;
+  --shell-body:#cbd0d0;
+  --shell-ink:#253039;
+  --shell-seam:#53616a;
+  --shell-soft:#b8bcb7;
+  --shell-key:#f1eee4;
+  --shell-key-dark:#333c41;
+  --shell-key-ink:#f0ebde;
+  --shell-accent:#d63a2c;
+  --shell-stencil:Consolas,"Cascadia Mono",monospace;
+  background:var(--shell-body);
+}
+body.shell-cassette {
+  --shell-face:#bfc0a9;
+  --shell-panel:#535d50;
+  --shell-body:#282e2e;
+  --shell-ink:#e5decc;
+  --shell-seam:#131a1a;
+  --shell-soft:#737b69;
+  --shell-key:#c9c6ad;
+  --shell-key-dark:#343c36;
+  --shell-key-ink:#e7e1cd;
+  --shell-accent:#d7a947;
+}
+:is(.shell-nasa,.shell-cassette) .bench { background:var(--shell-body); }
+:is(.shell-nasa,.shell-cassette) :is(.command-deck,.tool-deck) {
+  background:var(--shell-panel); border-color:var(--shell-seam);
+  box-shadow:inset 0 0 0 1px var(--shell-soft); border-radius:3px;
+}
+:is(.shell-nasa,.shell-cassette) .command-deck { position:relative; }
+:is(.shell-nasa,.shell-cassette) .unit {
+  position:relative; background:var(--shell-face); border-color:var(--shell-seam);
+  box-shadow:0 2px 0 var(--shell-seam); border-radius:3px;
+}
+:is(.shell-nasa,.shell-cassette) .unit::before,
+:is(.shell-nasa,.shell-cassette) .unit::after {
+  content:""; position:absolute; top:2px; bottom:2px; width:4px;
+  background:radial-gradient(circle at center 3px,var(--shell-seam) 0 1.4px,var(--shell-soft) 1.5px 2px,transparent 2.1px),
+             radial-gradient(circle at center calc(100% - 3px),var(--shell-seam) 0 1.4px,var(--shell-soft) 1.5px 2px,transparent 2.1px);
+  pointer-events:none;
+}
+:is(.shell-nasa,.shell-cassette) .unit::before { left:1px; }
+:is(.shell-nasa,.shell-cassette) .unit::after { right:1px; }
+:is(.shell-nasa,.shell-cassette) .stage-unit { border-radius:8px; }
+:is(.shell-nasa,.shell-cassette) .hardware-bay {
+  border-color:var(--shell-seam); border-radius:3px;
+  background:var(--shell-face); box-shadow:inset 0 0 0 1px var(--shell-soft);
+}
+:is(.shell-nasa,.shell-cassette) .hardware-bay.tools { background:var(--shell-panel); }
+:is(.shell-nasa,.shell-cassette) .console-key { color:var(--shell-ink); }
+:is(.shell-nasa,.shell-cassette) .console-key .key-cap {
+  border-color:var(--shell-seam); border-radius:3px;
+  background:var(--shell-key); color:#283236;
+  box-shadow:0 0 0 1px var(--shell-soft),inset 0 -2px #0002;
+  transition:transform 85ms steps(1),background 85ms steps(1);
+}
+:is(.shell-nasa,.shell-cassette) .hardware-bay.tools .console-key { color:var(--shell-ink); }
+:is(.shell-nasa,.shell-cassette) .hardware-bay.tools .key-cap {
+  background:var(--shell-key-dark); color:var(--shell-key-ink);
+  box-shadow:0 0 0 1px var(--shell-soft),inset 0 -2px #0004;
+}
+:is(.shell-nasa,.shell-cassette) .console-key:hover .key-cap {
+  transform:translateY(1px); box-shadow:0 0 0 1px var(--shell-soft),inset 0 0 0 1px var(--shell-seam);
+}
+:is(.shell-nasa,.shell-cassette) .console-key:active .key-cap { transform:translateY(2px); }
+:is(.shell-nasa,.shell-cassette) .console-key.selected .key-cap {
+  background:var(--shell-key-dark); color:var(--shell-key-ink);
+  box-shadow:0 0 0 1px var(--shell-soft),inset 0 0 0 2px var(--shell-key-ink);
+}
+:is(.shell-nasa,.shell-cassette) .hardware-bay.tools .console-key.selected .key-cap {
+  background:var(--shell-key); color:#202b2d;
+  box-shadow:0 0 0 1px var(--shell-soft),inset 0 0 0 2px var(--shell-seam);
+}
+:is(.shell-nasa,.shell-cassette) .brand-plaque { color:var(--shell-ink); }
+:is(.shell-nasa,.shell-cassette) .brand-plaque strong {
+  font-family:Arial,Helvetica,sans-serif; font-size:17px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:800;
+}
+:is(.shell-nasa,.shell-cassette) .brand-mark { transform:none; }
+:is(.shell-nasa,.shell-cassette) .brand-mark i { background:var(--shell-ink); }
+:is(.shell-nasa,.shell-cassette) .brand-mark i:nth-child(2) { background:var(--shell-ink); }
+.shell-ident,.shell-markings {
+  position:absolute; top:0; bottom:0; display:flex; align-items:center;
+  gap:10px; color:var(--shell-ink); font:10px/1.3 var(--shell-stencil); letter-spacing:.06em;
+}
+.shell-ident { left:12px; }
+.shell-ident b { font-weight:400; opacity:.8; }
+.shell-markings { right:12px; gap:14px; }
+.mission-badge {
+  width:26px; height:26px; border:1px solid currentColor; border-radius:50%;
+  display:grid; place-content:center; text-align:center; font-weight:700; line-height:10px;
+}
+.mission-stripes { display:flex; width:66px; height:12px; }
+.mission-stripes i { flex:1; background:#4c5a68; }
+.mission-stripes i:nth-child(2) { background:#7a7f4e; }
+.mission-stripes i:nth-child(3) { background:#d2a85e; }
+.mission-stripes i:nth-child(4) { background:#a8432f; }
+.service-note {
+  padding:2px 6px; border:1px solid var(--shell-soft); background:#dedbc5;
+  color:#4b4e46; font:italic 11px Georgia,serif; transform:rotate(-3deg);
+}
+:is(.shell-nasa,.shell-cassette) .stage-bezel { color:var(--shell-ink); }
+:is(.shell-nasa,.shell-cassette) .stage-bezel strong {
+  padding:3px 7px; border:1px solid var(--shell-seam); font:700 11px var(--shell-stencil);
+}
+:is(.shell-nasa,.shell-cassette) .stage-bezel .bezel-slot {
+  background:repeating-linear-gradient(90deg,var(--shell-seam) 0 2px,transparent 2px 6px);
+  height:3px; opacity:.65;
+}
+:is(.shell-nasa,.shell-cassette) .bezel-led {
+  background:#719280; border-color:var(--shell-seam); box-shadow:none;
+}
+:is(.shell-nasa,.shell-cassette) .bezel-led.draft { background:#c8a350; box-shadow:none; }
+:is(.shell-nasa,.shell-cassette) .timeline-dock {
+  background:var(--shell-panel); border-color:var(--shell-seam);
+  box-shadow:inset 0 0 0 1px var(--shell-soft); border-radius:3px;
+}
+:is(.shell-nasa,.shell-cassette) .timeline-head { color:var(--shell-ink); }
+:is(.shell-nasa,.shell-cassette) .play-key {
+  background:var(--shell-key-dark); color:var(--shell-key-ink);
+  border-color:var(--shell-seam); box-shadow:0 0 0 2px var(--shell-soft),inset 0 -2px #0005;
+}
+:is(.shell-nasa,.shell-cassette) .play-key.playing {
+  background:#20292a; box-shadow:0 0 0 2px var(--shell-soft),inset 0 2px 0 #0008;
+}
+:is(.shell-nasa,.shell-cassette) .transport-lights i {
+  background:#444e49; border-color:var(--shell-seam);
+}
+:is(.shell-nasa,.shell-cassette) .transport-lights span:first-child.on i { background:#719280; box-shadow:none; }
+:is(.shell-nasa,.shell-cassette) .transport-lights span:last-child.on i { background:#c8a350; box-shadow:none; }
+:is(.shell-nasa,.shell-cassette) .ruler { color:var(--shell-ink); border-bottom-color:var(--shell-seam); }
+:is(.shell-nasa,.shell-cassette) .ruler .tick::after { background:var(--shell-soft); }
+:is(.shell-nasa,.shell-cassette) .ruler .tick.second::after,
+:is(.shell-nasa,.shell-cassette) .ruler .tick.mid::after,
+:is(.shell-nasa,.shell-cassette) .ruler .tick.major::after { background:var(--shell-ink); }
+:is(.shell-nasa,.shell-cassette) .left-divider::after { background:var(--shell-soft); }
+.shell-nasa .tool-deck>.hardware-bay:first-child .console-key:last-child .key-cap {
+  background:var(--shell-accent); border-color:#792d26; color:#fff7ed; box-shadow:0 0 0 1px #a7a9a3;
+}
+.shell-nasa .command-deck { background:#f2f1ec; border-bottom:3px solid #4c5a68; }
+.shell-nasa .unit { background-color:#ece5d6; }
+.shell-nasa .stage-bezel .bezel-slot {
+  background:repeating-linear-gradient(135deg,#273136 0 3px,#ece5d6 3px 6px);
+  height:5px; background-size:95px 5px; background-repeat:no-repeat;
+}
+.shell-nasa .shell-ident::after {
+  content:""; position:absolute; left:37px; bottom:3px; width:46px; height:1px;
+  background:#626e7455; transform:rotate(-6deg);
+}
+.shell-cassette .command-deck { background:#404a41; border:2px solid #151c1b; }
+.shell-cassette .brand-plaque strong { font:700 16px var(--shell-stencil); letter-spacing:.14em; }
+.shell-cassette .tool-deck { background:#343e36; border-radius:5px; }
+.shell-cassette .hardware-bay { background:#a8ac94; border-width:2px; }
+.shell-cassette .hardware-bay.tools { background:#465044; }
+.shell-cassette .hardware-bay:not(.tools) .key-label { color:#26342f; }
+.shell-cassette .key-label { font-weight:700; }
+.shell-cassette .console-key .key-cap { border-radius:2px; }
+.shell-cassette .hardware-bay.tools .console-key.selected .key-cap { background:#d7a947; }
+.shell-cassette .stage-unit { background:#bfc0a9; border:1px solid #151c1b; }
+.shell-cassette .stage-bezel { color:#26352f; }
+.shell-cassette .stage-bezel strong,
+.shell-cassette .emboss-label { background:#1c2321; color:#e4dfcd; padding:3px 6px; text-shadow:0 1px #000; }
+.shell-cassette .stage-bezel .bezel-slot { background:repeating-linear-gradient(90deg,#26352f 0 2px,transparent 2px 6px); }
+.shell-cassette .timeline-dock { background:#62694f; }
+.shell-cassette .ruler { color:#ece4cb; }
+.shell-cassette .ruler .tick::after { background:#a2a78b; }
+.shell-cassette .ruler .tick.major::after { background:#e4dcc5; }
+.shell-cassette .mission-stripes i { background:#d7a947; }
+.shell-cassette .mission-stripes i:nth-child(2) { background:#c47534; }
+.shell-cassette .mission-stripes i:nth-child(3) { background:#935541; }
+.shell-cassette .mission-stripes i:nth-child(4) { background:#1f2823; }
+@media(max-width:1340px) {
+  .shell-markings .service-note { display:none; }
+  .shell-ident { left:9px; gap:6px; }
+  .shell-markings { right:9px; gap:9px; }
+}

@@ -1,0 +1,16 @@
+.v4-library-tabs { display:flex; align-items:center; flex:1; gap:4px; }
+.asset-head .v4-library-tabs button { font:inherit; color:var(--dim); padding:0 6px; min-height:27px; border-bottom:2px solid transparent; }
+.asset-head .v4-library-tabs [aria-selected="true"] { color:var(--yellow); border-bottom-color:var(--yellow); }
+#asset-pane [hidden] { display:none; }
+#v4-pattern-library { padding:8px 2px; }
+.v4-pattern-card { animation:pattern-enter 120ms ease-out both; }
+.v4-pattern-card button { transition:background 100ms,transform 80ms; }
+.v4-pattern-card button:active { transform:translateY(1px); }
+.v4-pattern-carriers { grid-column:1/-1; display:flex; flex-wrap:wrap; gap:5px; animation:pattern-enter 120ms ease-out both; }
+.v4-pattern-carriers[data-drawing] button { border-color:var(--yellow); }
+#v4-pattern-cards .v4-pattern-actions { display:flex; align-items:center; justify-content:space-between; gap:6px; padding:6px 0; position:sticky; top:0; z-index:2; background:var(--surface,#171b22); }
+#v4-pattern-cards .v4-pattern-group-title { color:var(--dim); margin:8px 0 5px; font:inherit; }
+#v4-pattern-cards .v4-pattern-carriers { grid-column:1/-1; }
+#v4-pattern-cards [data-pattern-maintenance] { margin-top:8px; }
+@keyframes pattern-enter { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:translateY(0); } }
+@media (prefers-reduced-motion:reduce) { .v4-pattern-card,.v4-pattern-carriers { animation:none; } .v4-pattern-card button { transition:none; } }

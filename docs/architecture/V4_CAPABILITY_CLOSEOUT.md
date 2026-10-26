@@ -1,5 +1,7 @@
 # V4 能力收尾台账
 
+> 2026-10-14：场景级ASCII映射首版已接入Registry、Inspector、独立效果轨和统一导出，并加入verify-v4。可选GPU字形合成／CPU回退；1080p边缘强化目前不满足30fps预算，不能标为全质量实时完成。见 [实现合同与性能](V4_ASCII_MAPPING_2026-10-14.md)。
+
 > 目的：管理 **v4 自身能力是否完整可交付**，以及产品入口是否真的只持有 v4 Scene。
 > Legacy 页面与 Legacy → v4 转换器是独立工具；它们不再属于 v4 编辑器会话。
 
@@ -34,7 +36,7 @@ flowchart LR
 | 像素几何 | 持久 `X / Y / W / H` 为整数；Linear 可在数据中插值，但最终绘制帧再次吸附整数像素。旋转、缩放、透明度保持小数。 | `10-scene-normalize.js`、`30-frame-state.js`、Runtime smoke |
 | 画板投影 | v4 画板只按当前 Scene 的宽高等比 `contain` 并居中；不复制 Legacy 的 CSS 尺寸。舞台外侧为深色工作空间，新建 Scene 默认白底。 | `classic-v4-view-controller.js`、浏览器像素画布夹具 |
 | 框选 | 左→右为“完全包含”，右→左为“相交即选”；只在普通对象层级生效，不绕开组/图元下钻语义。 | `classic-v4-view-controller.js`、`verify:pixel-canvas` |
-| 像素铅笔 | 工具栏钢笔位创建声明式 `stroke` 图元（整数路径点 + 路径描线），可保存、命中、下钻与变换；宽度变化与路径显现后置。 | Drawing / Parts / Runtime / Canvas hit 四层 |
+| 像素铅笔 | 工具栏钢笔位创建声明式 `stroke` 图元；原始整数路径保留，支持0–100非破坏平滑；共用端点／转角／虚线，预览与最终描线一致。完成度0–100支持所属对象轨Linear，反向绘制为Step，各笔触数值独立、共用切段。独立绘制为单笔触 vector，选中已有对象时作为附着图元。沿路径的宽度变化后置。 | Drawing / 共用描线控件 / Parts / Runtime / Canvas hit / 路径描线与笔触完成度浏览器夹具 |
 | 斜切变换 | `skewX / skewY`（界面名“水平斜切 / 垂直斜切”）是通用仿射变换：适用于图片、文字、图元、组与导出；它不是四点透视。选择边框跟随实际仿射矩阵，但控制点置于独立屏幕层，始终保持固定像素尺寸；四角等比/自由缩放，四边中点单轴缩放，`Alt` 拖上下/左右中点分别调整水平/垂直斜切。真实透视需缓存/网格渲染，后置为可选高成本能力。 | Frame matrix / Content renderer / Inspector / Runtime smoke / Pixel canvas browser fixture |
 | 素材预处理 | 入库前只固定尺寸、取样色去背景、容差、边缘柔化和边缘连通性；色板、量化、再像素化属于对象/场景采样，不写入素材。 | `vnext-asset-recipe.js`、素材预处理弹窗 |
 

@@ -1,0 +1,44 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {webcrypto} from 'node:crypto';
+import vm from 'node:vm';
+const ctx={TextEncoder,TextDecoder,Buffer,crypto:webcrypto};
+for(const file of['home-scene-vnext.js','editor/vnext-scene.js','editor/vnext-parts-state.js','editor/v4-pattern-registry.js','editor/v4-pattern-lifecycle.js','editor/v4-resource-core.js','editor/vnext-project-package.js','editor/vnext-delivery-builder.js','editor/classic-v4-path-extension-control.js'])new vm.Script(readFileSync(new URL('../'+file,import.meta.url),'utf8')).runInNewContext(ctx);
+const runtime=ctx.ToSampoolRuntimeVNext,{patternProviders:providers,customShapes:shapes}=runtime.modules;
+const lifecycle=ctx.EditorV4PatternLifecycle,core=ctx.EditorV4Resources,plain=v=>JSON.parse(JSON.stringify(v));
+const source=JSON.parse(readFileSync(new URL('../examples/resources/folded-frame.tosampool-pattern.json',import.meta.url),'utf8'));
+for(const edit of[d=>d.code='alert(1)',d=>d.id='brackets',d=>d.paths[0].points[0][0]='eval(1)',d=>d.paths[0].points[0][0]={params:{undeclared:1}},d=>d.parameters[0].max=-1]){
+  const bad=plain(source);edit(bad);assert.throws(()=>providers.validate(bad));
+}
+const tooMany=plain(source);tooMany.paths=Array.from({length:33},()=>source.paths[0]);assert.throws(()=>providers.validate(tooMany),/预算/);
+const unused=plain(source);unused.parameters.push({key:'unused',label:'无作用参数',type:'number',default:1});assert.throws(()=>providers.validate(unused),/未被路径引用/);
+const a=ctx.EditorVNextScene.blank(),installed=lifecycle.install(a,source);assert.ok(a.patternDefinitions['user.folded-frame@1']);assert.ok(installed.presetId);
+const unchanged=JSON.stringify(a);lifecycle.install(a,source);assert.equal(JSON.stringify(a),unchanged,'相同定义安装幂等');
+const p=core.createPatternPart(a,installed.presetId,{id:'p',w:160,h:100});a.entities=[{id:'v',type:'vector',x:20,y:20,w:160,h:100,parts:[p]}];
+const built=shapes.custom(p);assert.equal(built.paths.length,5);assert.equal(shapes.custom(p),built,'模板纯几何应缓存');
+ctx.EditorClassicV4PathExtensions.set(p,'provider.gap',22);assert.equal(p.recipe.params.gap,22);assert.notEqual(shapes.custom(p),built);
+ctx.EditorClassicV4PathExtensions.set(p,'provider.center',false);assert.equal(shapes.custom(p).paths.length,4);
+ctx.EditorClassicV4PathExtensions.set(p,'provider.mode','整框');assert.equal(shapes.custom(p).paths.length,2);
+const conflict=plain(source);conflict.name='另一份相同版本';const before=JSON.stringify(a);assert.throws(()=>lifecycle.install(a,conflict),/冲突/);assert.equal(JSON.stringify(a),before);
+// No global installation: a second document may use another same-ID/version definition.
+const b=ctx.EditorVNextScene.blank();lifecycle.install(b,conflict);assert.notEqual(a.patternDefinitions['user.folded-frame@1'].name,b.patternDefinitions['user.folded-frame@1'].name);
+const v2=plain(source);v2.version=2;v2.paths[0].points[0][0].constant=8;
+lifecycle.install(a,v2);assert.equal(a.entities[0].parts[0].recipe.version,1,'安装新版本不自动更新实例');
+lifecycle.upgrade(a,'user.folded-frame@2');assert.equal(a.entities[0].parts[0].recipe.version,2);assert.equal(a.entities[0].parts[0].recipe.params.gap,22);
+const live=plain(a),removed=lifecycle.remove(a,'user.folded-frame@2');assert.equal(removed.frozen,1);assert.equal(shapes.custom(a.entities[0].parts[0]).snapshot,true);
+assert.throws(()=>ctx.EditorClassicV4PathExtensions.set(a.entities[0].parts[0],'provider.gap',10),/锁定/);
+const wrong=plain(v2);wrong.name='同身份别的实现';const frozen=JSON.stringify(a);assert.throws(()=>lifecycle.install(a,wrong),/绑定/);assert.equal(JSON.stringify(a),frozen);
+lifecycle.install(a,v2);assert.equal(shapes.custom(a.entities[0].parts[0]).provider,true,'重装精确内容恢复参数化');
+const v3=plain(source);v3.version=3;v3.paths[0].points[0][0].params.gap=500;v3.paths[1].points[0][0].params.gap=500;lifecycle.install(a,v3);
+const beforeUpgrade=JSON.stringify(a);assert.throws(()=>lifecycle.upgrade(a,'user.folded-frame@3'),/预算/);assert.equal(JSON.stringify(a),beforeUpgrade,'参数实例超预算时整个热更新应回滚');
+const pack=await ctx.EditorVNextProjectPackage.build(a),reopened=(await ctx.EditorVNextProjectPackage.restore(pack.files)).scene;
+assert.equal(shapes.custom(reopened.entities[0].parts[0]).provider,true);
+const copied=ctx.EditorVNextScene.blank(),resource=await core.capture(a,[{kind:'pattern',id:installed.presetId}]);await core.importInto(copied,resource);
+assert.ok(copied.patternDefinitions['user.folded-frame@2']);assert.equal(core.createPatternPart(copied,installed.presetId).recipe.version,2);
+const blocked=plain(copied);blocked.patternDefinitions['user.folded-frame@2']=wrong;const old=JSON.stringify(blocked);await assert.rejects(()=>core.importInto(blocked,resource),/冲突/);assert.equal(JSON.stringify(blocked),old);
+const pruned=ctx.EditorVNextDeliveryBuilder.pruneScene(a);assert.equal(pruned.patternDefinitions,undefined);assert.ok(pruned.entities[0].parts[0].recipe.definition);assert.equal(pruned.entities[0].parts[0].geometrySnapshot,undefined);
+assert.equal(runtime.modules.scene.normalize(pruned).entities[0].parts[0].recipe.version,2);
+assert.equal(runtime.modules.scene.normalize(live).entities[0].parts[0].recipe.version,2);
+for(let i=0;i<80;i++)shapes.custom({...p,recipe:{...p.recipe,params:{...p.recipe.params,gap:i%100,arm:1+i}}});
+assert.ok(providers.stats().entries<=providers.limits.entries);assert.ok(providers.stats().points<=providers.limits.cachePoints);
+console.log('✓ 图样定义合同：受限模板／共享参数／预算与缓存／幂等安装／冲突原子回滚／跨工程隔离／显式升级／停用快照／精确重装／资源及工程交付');

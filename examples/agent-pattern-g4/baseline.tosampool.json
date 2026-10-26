@@ -1,0 +1,129 @@
+{
+  "format": "tosampool-scene/v4",
+  "name": "角点箭头 · 基础版",
+  "width": 720,
+  "height": 420,
+  "loop": 4,
+  "background": { "color": "#202226", "alpha": 1 },
+  "assets": {},
+  "entities": [
+    {
+      "type": "vector",
+      "id": "rectangle-arrows",
+      "name": "四角向外箭头",
+      "x": 45,
+      "y": 120,
+      "w": 170,
+      "h": 180,
+      "parts": [
+        {
+          "id": "rectangle-corner-pattern",
+          "type": "custom",
+          "x": 0,
+          "y": 0,
+          "w": 170,
+          "h": 180,
+          "stroke": "#eeeeee",
+          "strokeWidth": 8,
+          "strokeAlpha": 1,
+          "recipe": {
+            "id": "corner-arrows",
+            "version": 1,
+            "params": {
+              "size": 30,
+              "length": 50,
+              "inset": 0,
+              "direction": "out",
+              "radius": 0,
+              "shaftMode": "center",
+              "shaftAngle": 0,
+              "shaftCap": "point"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "vector",
+      "id": "triangle-arrows",
+      "name": "三角形角点箭头",
+      "x": 275,
+      "y": 110,
+      "w": 170,
+      "h": 200,
+      "parts": [
+        {
+          "id": "triangle-corner-pattern",
+          "type": "poly",
+          "polygonMode": "regular",
+          "sides": 3,
+          "x": 0,
+          "y": 0,
+          "w": 170,
+          "h": 200,
+          "fill": null,
+          "stroke": "#75d8ef",
+          "strokeWidth": 1,
+          "extensions": {
+            "showSource": false,
+            "corner-arrows": {
+              "enabled": true,
+              "size": 30,
+              "length": 50,
+              "inset": 0,
+              "direction": "out",
+              "radius": 0,
+              "shaftMode": "center",
+              "shaftAngle": 0,
+              "shaftCap": "point",
+              "width": 8,
+              "color": "#75d8ef",
+              "alpha": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "vector",
+      "id": "pentagon-arrows",
+      "name": "五边形角点箭头",
+      "x": 505,
+      "y": 110,
+      "w": 170,
+      "h": 200,
+      "parts": [
+        {
+          "id": "pentagon-corner-pattern",
+          "type": "poly",
+          "polygonMode": "regular",
+          "sides": 5,
+          "x": 0,
+          "y": 0,
+          "w": 170,
+          "h": 200,
+          "fill": null,
+          "stroke": "#f3bd69",
+          "strokeWidth": 1,
+          "extensions": {
+            "showSource": false,
+            "corner-arrows": {
+              "enabled": true,
+              "size": 30,
+              "length": 50,
+              "inset": 0,
+              "direction": "out",
+              "radius": 0,
+              "shaftMode": "center",
+              "shaftAngle": 0,
+              "shaftCap": "point",
+              "width": 8,
+              "color": "#f3bd69",
+              "alpha": 1
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

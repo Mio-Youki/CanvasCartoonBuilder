@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "project": "ToSampool · Inspector 输入组件",
+  "brief": "相同的 11 类输入组件与操作，比较三种印刷复古未来主义的屏内视觉语言。",
+  "round": "02",
+  "candidates": [
+    {
+      "id": "current",
+      "name": "当前样本",
+      "concept": "使用第二轮共同控件合同，保留现有深色数显表面作为比较基线。",
+      "typography": "微软雅黑 UI 正文；Consolas 数据，13–16px 主层级。",
+      "palette": ["#0d1418", "#84d7ce", "#e9b451"],
+      "traits": ["深色屏幕", "细边框控件", "共同百分比与开关语法"],
+      "kind": "html",
+      "source": "inspector-input-lab.html",
+      "interactive": true,
+      "baseline": true
+    },
+    {
+      "id": "print-manual",
+      "name": "A · 印刷说明书",
+      "concept": "像一页可操作的设备说明书：暖纸、深墨、少量红色套印索引。",
+      "typography": "高对比中文标题；Consolas 等宽数值；暖纸上的 13–16px 操作层级。",
+      "palette": ["#f1e8d2", "#1b3033", "#bc5447"],
+      "traits": ["浅底暖纸", "连排纸面枚举", "下划线数值与选择器"],
+      "kind": "html",
+      "source": "inspector-input-print-a.html",
+      "interactive": true
+    },
+    {
+      "id": "overprint-poster",
+      "name": "B · 套印海报",
+      "concept": "把采样、拼贴与三色套印推向前台，形成强烈但可读的操作海报。",
+      "typography": "粗重中文标题和数字；珊瑚、赭黄、青绿承担分区标题。",
+      "palette": ["#131d20", "#e96e5d", "#eabe60", "#83d3c9"],
+      "traits": ["三色标题轮替", "重边框与数字模块", "局部网点"],
+      "kind": "html",
+      "source": "inspector-input-print-b.html",
+      "interactive": true
+    },
+    {
+      "id": "signal-instrument",
+      "name": "C · 信号仪表",
+      "concept": "将复古印刷的网格和索引转译成低照度的工程信号面板。",
+      "typography": "紧凑中文字段；Consolas 数据与编号；以琥珀色突出实际读数。",
+      "palette": ["#07171c", "#70dcd0", "#efd27a"],
+      "traits": ["工程网格", "虚线与信号底线", "数据优先"],
+      "kind": "html",
+      "source": "inspector-input-print-c.html",
+      "interactive": true
+    }
+  ]
+}

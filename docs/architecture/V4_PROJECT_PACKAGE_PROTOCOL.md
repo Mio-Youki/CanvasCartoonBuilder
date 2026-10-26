@@ -1,8 +1,12 @@
 # ToSampool v4 项目包协议
 
-状态：**已确认，P1 进行中。** 浏览器端已能生成/打开 store-only `.tosampool.zip`；内容哈希、真实像素往返验收及 Tauri 原生目录仍未完成。当前单 JSON 保存不等于本协议中的项目保存。
+状态：**P1 浏览器项目包与显式恢复已完成。** store-only `.tosampool.zip` 的素材、配方、序列、未使用素材和模块往返已有单元与浏览器夹具；Tauri 原生目录另行实施。当前单 JSON 保存不等于项目包保存。
+
+公共资源补充见[统一资源包与依赖合同](V4_RESOURCE_PACKAGE_CONTRACT_2026-10-18.md)。项目包携带可重建的 `resources` 内容哈希索引，打开时校验；图样预设 `patternResources` 与收藏意图 `resourcePins` 随 Scene 保存。收藏库不是工程依赖路径，删除收藏不删除工程副本；未使用素材仍保留。R3a已为custom图元及图样预设增加精确版本／参数绑定的静态几何快照，缺失实现时保留外观并锁定内部输入。任意生成器热安装、动态程序冻结及自动重开尚未实现。
 
 项目切换的 Runtime 与素材栏隔离规则见 [v4 项目会话隔离](V4_PROJECT_SESSION_ISOLATION.md)。它不等同于素材持久化库：当前项目素材只属于当前打开的 Scene。
+
+R3b增量：声明式模板定义随`patternDefinitions`及recipe／预设绑定副本保存，属于纯JSON数据。资源索引的pattern负载包含定义与providerKey，恢复时校验；网页交付只保留实际实例需要的绑定副本，裁去工程注册表。模板安装与版本应用不是运行Module代码，详见[合同](V4_PATTERN_PROVIDERS_R3B_2026-10-18.md)。
 
 ## 目的
 

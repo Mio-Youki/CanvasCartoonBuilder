@@ -4,7 +4,7 @@
 
   function finite(value,fallback){value=+value;return Number.isFinite(value)?value:fallback;}
   function clone(value){return value==null?value:JSON.parse(JSON.stringify(value));}
-  function sameTarget(a,b){return!!a&&!!b&&a.scope===b.scope&&a.ownerId===b.ownerId&&a.effectId===b.effectId;}
+  function sameTarget(a,b){return!!a&&!!b&&a.scope===b.scope&&a.ownerId===b.ownerId&&a.effectId===b.effectId&&a.shapeId===b.shapeId;}
 
   function create(options){
     options=options||{};
@@ -13,16 +13,21 @@
     const wrap=root.getElementById('stage-wrap');
     if(!wrap)throw new Error('Classic v4 Mask Controller cannot find the stage');
     const overlay=root.createElement('canvas');overlay.id='v4-mask-overlay';overlay.setAttribute('aria-label','蒙版画布编辑');Object.assign(overlay.style,{position:'absolute',zIndex:'8',display:'none',pointerEvents:'none',cursor:'crosshair',touchAction:'none'});wrap.append(overlay);
-    const listeners=new Set(),imageCache=new Map();
+    const listeners=new Set(),imageCache=new Map(),shade=root.createElement('canvas');
     let active=null,gesture=null,draft=null,hover=null,stopped=false;
     function scene(){return workspace.requireDocument();}
     function emit(){for(const listener of listeners)listener(active&&clone(active));}
-    function current(){return active?maskState.current(scene(),active):null;}
+    function current(){return active?maskState.editable(maskState.current(scene(),active),active.shapeId):null;}
     const identity=[1,0,0,1,0,0];
-    function multiply(left,right){return[left[0]*right[0]+left[2]*right[1],left[1]*right[0]+left[3]*right[1],left[0]*right[2]+left[2]*right[3],left[1]*right[2]+left[3]*right[3],left[0]*right[4]+left[2]*right[5]+left[4],left[1]*right[4]+left[3]*right[5]+left[5]];}
     function inverse(matrix){const m=Array.isArray(matrix)&&matrix.length===6?matrix:identity,d=m[0]*m[3]-m[1]*m[2];return!Number.isFinite(d)||Math.abs(d)<.0000001?identity:[m[3]/d,-m[1]/d,-m[2]/d,m[0]/d,(m[2]*m[5]-m[3]*m[4])/d,(m[1]*m[4]-m[0]*m[5])/d];}
     function transformPoint(matrix,p){return{x:matrix[0]*p.x+matrix[2]*p.y+matrix[4],y:matrix[1]*p.x+matrix[3]*p.y+matrix[5]};}
-    function followMatrix(mask){if(!active)return identity;const particleRange=active.scope==='particle-emission'||active.scope==='particle-motion',owner=(scene().entities||[]).find(item=>item.id===active.ownerId),runtime=global.ToSampoolRuntimeVNext,frame=runtime&&runtime.modules&&runtime.modules.frame&&runtime.modules.frame.create(scene(),typeof options.time==='function'?options.time():0),values=frame&&owner&&frame.valuesFor(owner),currentMatrix=values&&values.worldMatrix;if(particleRange)return Array.isArray(currentMatrix)&&currentMatrix.length===6?currentMatrix:identity;if(!mask||!mask.follow||!active||active.scope!=='object')return identity;const base=mask.followMatrix;if(!Array.isArray(currentMatrix)||currentMatrix.length!==6||!Array.isArray(base)||base.length!==6)return identity;return multiply(currentMatrix,inverse(base));}
+    function followMatrix(mask){
+      if(!active)return identity;
+      const particleRange=active.scope==='particle-emission'||active.scope==='particle-motion',owner=(scene().entities||[]).find(item=>item.id===active.ownerId),runtime=global.ToSampoolRuntimeVNext,
+        frame=runtime?.modules.frame.create(scene(),typeof options.time==='function'?options.time():0),values=frame&&owner&&frame.valuesFor(owner),currentMatrix=values?.worldMatrix;
+      if(!mask||!mask.follow&&!mask.geometryMatrix)return identity;
+      return runtime.modules.masks.placementMatrix(mask,active.scope==='object'||particleRange?owner:null,frame);
+    }
     function point(event){const rect=overlay.getBoundingClientRect(),value=scene(),raw={x:(event.clientX-rect.left)/Math.max(1,rect.width)*value.width,y:(event.clientY-rect.top)/Math.max(1,rect.height)*value.height};return transformPoint(inverse(followMatrix(current())),raw);}
     function screenScale(){const rect=overlay.getBoundingClientRect(),value=scene();return{x:rect.width/Math.max(1,value.width),y:rect.height/Math.max(1,value.height)};}
     function sync(){const rect=view.canvas.getBoundingClientRect(),host=wrap.getBoundingClientRect(),value=scene();overlay.width=Math.max(1,value.width);overlay.height=Math.max(1,value.height);Object.assign(overlay.style,{left:(rect.left-host.left)+'px',top:(rect.top-host.top)+'px',width:rect.width+'px',height:rect.height+'px'});draw();}
@@ -30,10 +35,26 @@
     function maskBounds(mask){if(!mask)return null;if(['rect','ellipse','alpha'].includes(mask.type))return{x:mask.x,y:mask.y,w:mask.w,h:mask.h};if(mask.type==='poly'&&mask.points&&mask.points.length){const xs=mask.points.map(p=>p[0]),ys=mask.points.map(p=>p[1]);return{x:Math.min(...xs),y:Math.min(...ys),w:Math.max(1,Math.max(...xs)-Math.min(...xs)),h:Math.max(1,Math.max(...ys)-Math.min(...ys))};}return null;}
     function alphaPreview(mask,ctx){if(mask.type!=='alpha'||!mask.assetId)return;const asset=scene().assets&&scene().assets[mask.assetId],locator=asset&&(asset.locator||(asset.frames&&asset.frames[0]&&asset.frames[0].locator));if(!locator)return;let image=imageCache.get(locator);if(!image){image=new Image();image.onload=draw;image.src=locator;imageCache.set(locator,image);}if(!image.complete||!image.naturalWidth)return;ctx.save();ctx.globalAlpha=.42;ctx.imageSmoothingEnabled=false;const matrix=followMatrix(mask);if(matrix!==identity)ctx.transform(...matrix);ctx.drawImage(image,mask.x,mask.y,mask.w,mask.h);ctx.restore();}
     function handlePoints(mask){const b=maskBounds(mask);if(!b||mask.type==='poly')return[];return[['nw',b.x,b.y],['ne',b.x+b.w,b.y],['se',b.x+b.w,b.y+b.h],['sw',b.x,b.y+b.h]];}
-    function draw(){const ctx=overlay.getContext('2d'),value=scene();ctx.clearRect(0,0,overlay.width,overlay.height);if(!active)return;const mask=draft&&draft.type==='poly'?{type:'poly',points:draft.points,follow:current()?.follow,followMatrix:current()?.followMatrix}:current();if(!mask)return;const scale=screenScale(),line=Math.max(.5,1.5/Math.max(.001,Math.min(scale.x,scale.y))),handle=Math.max(2.5,6/Math.max(.001,Math.min(scale.x,scale.y))),matrix=followMatrix(mask);alphaPreview(mask,ctx);ctx.save();ctx.fillStyle='rgba(0,0,0,.38)';ctx.beginPath();ctx.rect(0,0,value.width,value.height);if(path(ctx,mask,true,true))ctx.fill('evenodd');ctx.restore();ctx.save();ctx.strokeStyle='#40df88';ctx.lineWidth=line;ctx.setLineDash([5/scale.x,4/scale.x]);if(path(ctx,mask,false,true))ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#40df88';ctx.strokeStyle='#10251a';ctx.lineWidth=Math.max(.5,1/Math.max(.001,Math.min(scale.x,scale.y)));if(mask.type==='poly'){for(let i=0;i<(mask.points||[]).length;i++){const p=transformPoint(matrix,{x:mask.points[i][0],y:mask.points[i][1]}),size=i===hover?handle*1.35:handle;ctx.fillRect(p.x-size/2,p.y-size/2,size,size);ctx.strokeRect(p.x-size/2,p.y-size/2,size,size);}}else for(const [,x,y] of handlePoints(mask)){const p=transformPoint(matrix,{x,y});ctx.beginPath();ctx.arc(p.x,p.y,handle*.58,0,Math.PI*2);ctx.fill();ctx.stroke();}ctx.restore();}
-    function begin(target,options){options=options||{};const mask=maskState.current(scene(),target);if(!mask||mask.type==='element')return false;if(active&&!sameTarget(active,target))end(true);active=Object.assign({},target);gesture=null;hover=null;draft=options.recreate&&mask.type==='poly'?{type:'poly',points:[]}:null;wrap.classList.add('v4-mask-editing');overlay.style.display='block';overlay.style.pointerEvents='auto';sync();emit();return true;}
+    function draw(){
+      const ctx=overlay.getContext('2d'),value=scene();ctx.clearRect(0,0,overlay.width,overlay.height);if(!active)return;
+      const stored=current(),mask=draft&&draft.type==='poly'?Object.assign({},stored,{type:'poly',points:draft.points}):stored;if(!mask)return;
+      const scale=screenScale(),line=Math.max(.5,1.5/Math.max(.001,Math.min(scale.x,scale.y))),handle=Math.max(2.5,6/Math.max(.001,Math.min(scale.x,scale.y))),matrix=followMatrix(mask);
+      alphaPreview(mask,ctx);
+      const whole=maskState.current(value,active);
+      // The dim overlay uses the same nonzero union as Runtime. Evenodd would
+      // incorrectly dim overlaps between two independently editable islands.
+      if(shade.width!==overlay.width)shade.width=overlay.width;if(shade.height!==overlay.height)shade.height=overlay.height;const dim=shade.getContext('2d');dim.clearRect(0,0,shade.width,shade.height);dim.fillStyle='rgba(0,0,0,.38)';dim.fillRect(0,0,shade.width,shade.height);dim.save();dim.transform(...followMatrix(whole));global.ToSampoolRuntimeVNext.modules.masks.clipPath(dim,whole.type==='alpha'?{...whole,type:'rect'}:whole);dim.clip();dim.setTransform(1,0,0,1,0,0);dim.clearRect(0,0,shade.width,shade.height);dim.restore();ctx.drawImage(shade,0,0);
+      if(whole.type==='shapes'){ctx.save();ctx.strokeStyle='rgba(64,223,136,.45)';ctx.lineWidth=line;for(const item of whole.shapes)if(item.id!==mask.id)if(path(ctx,{...whole,...item},false,true))ctx.stroke();ctx.restore();}
+      ctx.save();ctx.strokeStyle='#40df88';ctx.lineWidth=line;ctx.setLineDash([5/scale.x,4/scale.x]);if(path(ctx,mask,false,true))ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='#40df88';ctx.strokeStyle='#10251a';ctx.lineWidth=Math.max(.5,1/Math.max(.001,Math.min(scale.x,scale.y)));
+      if(mask.type==='poly'){
+        for(let i=0;i<(mask.points||[]).length;i++){const p=transformPoint(matrix,{x:mask.points[i][0],y:mask.points[i][1]}),size=i===hover?handle*1.35:handle;ctx.fillRect(p.x-size/2,p.y-size/2,size,size);ctx.strokeRect(p.x-size/2,p.y-size/2,size,size);}
+      }else for(const [,x,y]of handlePoints(mask)){const p=transformPoint(matrix,{x,y});ctx.beginPath();ctx.arc(p.x,p.y,handle*.58,0,Math.PI*2);ctx.fill();ctx.stroke();}
+      ctx.restore();
+    }
+    function begin(target,options){options=options||{};const whole=maskState.current(scene(),target);if(!whole||whole.type==='element')return false;target={...target,...(whole.type==='shapes'?{shapeId:maskState.editable(whole,target.shapeId).id}:{})};const mask=maskState.editable(whole,target.shapeId);if(active&&!sameTarget(active,target))end(true);active=Object.assign({},target);gesture=null;hover=null;draft=options.recreate&&mask.type==='poly'?{type:'poly',points:[]}:null;wrap.classList.add('v4-mask-editing');overlay.style.display='block';overlay.style.pointerEvents='auto';sync();emit();return true;}
     function end(cancel){if(gesture){if(cancel)changes.cancel(gesture.token);else changes.commit(gesture.token);}gesture=null;draft=null;hover=null;active=null;wrap.classList.remove('v4-mask-editing');overlay.style.display='none';overlay.style.pointerEvents='none';draw();emit();return true;}
-    function isEditing(target){return sameTarget(active,target);}
+    function isEditing(target){return!!active&&!!target&&active.scope===target.scope&&active.ownerId===target.ownerId&&active.effectId===target.effectId&&(!target.shapeId||active.shapeId===target.shapeId);}
     function distanceToSegment(p,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],den=dx*dx+dy*dy,t=den?Math.max(0,Math.min(1,((p.x-a[0])*dx+(p.y-a[1])*dy)/den)):0,x=a[0]+dx*t,y=a[1]+dy*t;return{distance:Math.hypot(p.x-x,p.y-y),point:[x,y]};}
     function hit(p,mask){const scale=screenScale(),radius=9/Math.max(.001,Math.min(scale.x,scale.y));if(mask.type==='poly'){
       for(let i=0;i<mask.points.length;i++)if(Math.hypot(p.x-mask.points[i][0],p.y-mask.points[i][1])<=radius)return{kind:'vertex',index:i};
@@ -41,10 +62,12 @@
     }else for(const [corner,x,y] of handlePoints(mask))if(Math.hypot(p.x-x,p.y-y)<=radius)return{kind:'resize',corner};
     const ctx=overlay.getContext('2d');if(path(ctx,mask)&&ctx.isPointInPath(p.x,p.y))return{kind:'move'};return{kind:'new'};
     }
-    function write(next){workspace.mutate(document=>maskState.set(document,active,next));}
+    function write(next){workspace.mutate(document=>maskState.replaceShape(document,active,next));}
     function down(event){if(!active||event.button!==0)return;event.preventDefault();event.stopImmediatePropagation();const p=point(event),mask=current();if(!mask)return;
       if(draft&&mask.type==='poly'){draft.points.push([p.x,p.y]);hover=draft.points.length-1;draw();return;}
-      const found=hit(p,mask),token=changes.begin(found.kind==='move'?'移动蒙版':found.kind==='resize'?'缩放蒙版':found.kind==='vertex'?'调整多边形蒙版':'重绘蒙版');
+      const found=hit(p,mask),whole=maskState.current(scene(),active);
+      if(found.kind==='new'&&whole.type==='shapes')for(const shape of whole.shapes.slice().reverse()){if(shape.id===mask.id)continue;const candidate=maskState.editable(whole,shape.id),ctx=overlay.getContext('2d');if(path(ctx,candidate)&&ctx.isPointInPath(p.x,p.y)){begin({...active,shapeId:shape.id});return;}}
+      const token=changes.begin(found.kind==='move'?'移动蒙版':found.kind==='resize'?'缩放蒙版':found.kind==='vertex'?'调整多边形蒙版':'重绘蒙版');
       if(found.kind==='edge'){const next=clone(mask);next.points.splice(found.index,0,found.point);write(next);found.kind='vertex';found.index=Math.min(found.index,next.points.length-1);}
       gesture={kind:found.kind,corner:found.corner,index:found.index,start:p,before:current(),token,pointerId:event.pointerId,changed:false};overlay.setPointerCapture?.(event.pointerId);
     }
@@ -57,13 +80,23 @@
       gesture.changed=Math.hypot(dx,dy)>.15;if(gesture.changed)write(next);draw();
     }
     function up(event){if(!gesture||event.pointerId!==gesture.pointerId)return;event.preventDefault();event.stopImmediatePropagation();overlay.releasePointerCapture?.(event.pointerId);if(gesture.changed)changes.commit(gesture.token);else changes.cancel(gesture.token);gesture=null;draw();}
-    function completeDraft(){if(!active||!draft)return false;if(draft.points.length<3)return false;const before=current(),next={type:'poly',points:draft.points.map(point=>point.slice()),invert:!!(before&&before.invert),follow:!!(before&&before.follow),followMatrix:before&&before.followMatrix};changes.run('点选重绘多边形蒙版',document=>maskState.set(document,active,next));draft=null;draw();return true;}
+    function completeDraft(){if(!active||!draft)return false;if(draft.points.length<3)return false;const before=current(),next={type:'poly',points:draft.points.map(point=>point.slice()),invert:!!(before&&before.invert),follow:!!(before&&before.follow),followMatrix:before&&before.followMatrix,...(before?.geometryMatrix?{geometryMatrix:before.geometryMatrix}:{})};changes.run('点选重绘多边形蒙版',document=>maskState.replaceShape(document,active,next));draft=null;draw();return true;}
     function doubleClick(event){if(!draft)return;event.preventDefault();event.stopImmediatePropagation();if(draft.points.length>1)draft.points.pop();completeDraft();}
-    function keydown(event){if(!active)return;if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();end(true);return;}if(event.key==='Enter'&&draft){event.preventDefault();event.stopImmediatePropagation();completeDraft();return;}if((event.key==='Delete'||event.key==='Backspace')&&!gesture&&!draft&&current()?.type==='poly'&&hover!=null){const mask=current();if(mask.points.length<=3)return;event.preventDefault();event.stopImmediatePropagation();changes.run('删除多边形蒙版顶点',document=>{const next=maskState.current(document,active);next.points.splice(hover,1);maskState.set(document,active,next);});hover=null;draw();}}
+    function keydown(event){if(!active)return;if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();end(true);return;}if(event.key==='Enter'&&draft){event.preventDefault();event.stopImmediatePropagation();completeDraft();return;}if((event.key==='Delete'||event.key==='Backspace')&&!gesture&&!draft&&current()?.type==='poly'&&hover!=null){const mask=current();if(mask.points.length<=3)return;event.preventDefault();event.stopImmediatePropagation();changes.run('删除多边形蒙版顶点',document=>{const next=maskState.editable(maskState.current(document,active),active.shapeId);next.points.splice(hover,1);maskState.replaceShape(document,active,next);});hover=null;draw();}}
     overlay.addEventListener('pointerdown',down,true);overlay.addEventListener('pointermove',move,true);overlay.addEventListener('pointerup',up,true);overlay.addEventListener('pointercancel',up,true);overlay.addEventListener('dblclick',doubleClick,true);global.addEventListener('keydown',keydown,true);
-    const resize=global.ResizeObserver?new ResizeObserver(sync):null;if(resize)resize.observe(wrap);const unsubscribeWorkspace=workspace.subscribe(()=>{if(active)sync();}),unsubscribeSelection=view.subscribeSelection(()=>{if(active&&['object','particle-emission','particle-motion'].includes(active.scope)&&view.selectedId!==active.ownerId)end(true);});
+    let workspaceScope=workspace.moduleScope;
+    const resize=global.ResizeObserver?new ResizeObserver(sync):null;if(resize)resize.observe(wrap);
+    const unsubscribeWorkspace=workspace.subscribe(event=>{
+      const projectChanged=workspaceScope!==workspace.moduleScope;workspaceScope=workspace.moduleScope;
+      if(event?.type==='replace'&&projectChanged){
+        // The new project is already installed. Drop old gestures without
+        // cancel(token), which would restore a snapshot of the previous one.
+        gesture=null;draft=null;if(active)end(false);
+      }else if(active)sync();
+    }),unsubscribeSelection=view.subscribeSelection(()=>{if(active&&['object','particle-emission','particle-motion'].includes(active.scope)&&view.selectedId!==active.ownerId)end(true);});
     function subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);}
-    function stop(){stopped=true;if(active)end(true);unsubscribeWorkspace();unsubscribeSelection();if(resize)resize.disconnect();global.removeEventListener('keydown',keydown,true);overlay.remove();listeners.clear();}
+    const unsubscribePreview=view.subscribeMaskPreview?view.subscribeMaskPreview(target=>{overlay.style.visibility=target?'hidden':'';}):()=>{};
+    function stop(){stopped=true;if(active)end(true);unsubscribeWorkspace();unsubscribeSelection();unsubscribePreview();if(resize)resize.disconnect();global.removeEventListener('keydown',keydown,true);overlay.remove();listeners.clear();}
     return Object.freeze({begin,end,isEditing,subscribe,stop,refresh:sync,get active(){return active&&clone(active);},get draftPoints(){return draft?draft.points.map(point=>point.slice()):[];},overlay});
   }
   global.EditorClassicV4MaskController=Object.freeze({version:1,create});

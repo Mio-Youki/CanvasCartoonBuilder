@@ -1,0 +1,1173 @@
+{
+  "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "framesPerCase": 64,
+  "canvasTransition": true,
+  "profile": true,
+  "profileApi": true,
+  "rows": [
+    {
+      "size": "640x360",
+      "mode": "single",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 13,
+        "p95": 14.3,
+        "max": 21.4
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 283
+      },
+      "over25msPercent": 1.59,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "phaseMs": {
+        "playerSetup": {
+          "median": 0.9,
+          "p95": 2.1,
+          "max": 3.6
+        },
+        "sourceDraw": {
+          "median": 0.4,
+          "p95": 1,
+          "max": 1.3
+        },
+        "playerPlanning": {
+          "median": 0,
+          "p95": 0,
+          "max": 0.1
+        },
+        "cpuSceneEffects": {
+          "median": 11.3,
+          "p95": 12.7,
+          "max": 17.3
+        },
+        "canvasCopy": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "unaccounted": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.6
+        }
+      },
+      "nestedWebglApiMs": {}
+    },
+    {
+      "size": "640x360",
+      "mode": "single",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 3.2,
+        "p95": 4.1,
+        "max": 4.8
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "gpuContextQueryMs": {
+        "median": 13.59,
+        "p95": 14.45,
+        "max": 15.06
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 1.95,
+      "frameUploads": 1,
+      "framePasses": 2,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "phaseMs": {
+        "playerSetup": {
+          "median": 0.6,
+          "p95": 0.8,
+          "max": 1.5
+        },
+        "sourceDraw": {
+          "median": 0.3,
+          "p95": 0.5,
+          "max": 1.3
+        },
+        "playerPlanning": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "gpuPrepare": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "sourceDownsample": {
+          "median": 0.2,
+          "p95": 0.3,
+          "max": 0.3
+        },
+        "gpuUpload": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.3
+        },
+        "gpuSubmit": {
+          "median": 1.3,
+          "p95": 2,
+          "max": 2.4
+        },
+        "gpuValidation": {
+          "median": 0.4,
+          "p95": 0.6,
+          "max": 0.9
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "canvasCopy": {
+          "median": 0,
+          "p95": 0,
+          "max": 0.1
+        },
+        "unaccounted": {
+          "median": 0,
+          "p95": 0.2,
+          "max": 0.3
+        }
+      },
+      "nestedWebglApiMs": {
+        "texSubImage2D": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.3
+        },
+        "checkFramebufferStatus": {
+          "median": 1.2,
+          "p95": 1.8,
+          "max": 2.2
+        },
+        "getAttribLocation": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "drawArrays": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "getError": {
+          "median": 0.4,
+          "p95": 0.6,
+          "max": 0.9
+        }
+      }
+    },
+    {
+      "size": "640x360",
+      "mode": "single-mask",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 9.6,
+        "p95": 10.3,
+        "max": 11.5
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.8,
+        "max": 116.34
+      },
+      "over25msPercent": 1.59,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "phaseMs": {
+        "playerSetup": {
+          "median": 0.6,
+          "p95": 0.8,
+          "max": 1.1
+        },
+        "sourceDraw": {
+          "median": 0.3,
+          "p95": 0.4,
+          "max": 0.5
+        },
+        "playerPlanning": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "cpuSceneEffects": {
+          "median": 8.7,
+          "p95": 9.3,
+          "max": 10.5
+        },
+        "canvasCopy": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "unaccounted": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        }
+      },
+      "nestedWebglApiMs": {}
+    },
+    {
+      "size": "640x360",
+      "mode": "single-mask",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 3.9,
+        "p95": 5.1,
+        "max": 5.3
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.8,
+        "max": 16.9
+      },
+      "over25msPercent": 0,
+      "gpuContextQueryMs": {
+        "median": 12.61,
+        "p95": 13.34,
+        "max": 13.79
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 1.95,
+      "frameUploads": 3,
+      "framePasses": 2,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "phaseMs": {
+        "playerSetup": {
+          "median": 0.6,
+          "p95": 1,
+          "max": 1.2
+        },
+        "sourceDraw": {
+          "median": 0.3,
+          "p95": 0.4,
+          "max": 0.6
+        },
+        "playerPlanning": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "gpuPrepare": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "sourceDownsample": {
+          "median": 0.2,
+          "p95": 0.3,
+          "max": 0.4
+        },
+        "gpuUpload": {
+          "median": 0.2,
+          "p95": 0.4,
+          "max": 0.6
+        },
+        "maskPrepare": {
+          "median": 0.2,
+          "p95": 0.4,
+          "max": 0.6
+        },
+        "gpuSubmit": {
+          "median": 1.9,
+          "p95": 2.8,
+          "max": 3.1
+        },
+        "gpuValidation": {
+          "median": 0.4,
+          "p95": 0.5,
+          "max": 0.7
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "canvasCopy": {
+          "median": 0,
+          "p95": 0,
+          "max": 0.1
+        },
+        "unaccounted": {
+          "median": 0.1,
+          "p95": 0.3,
+          "max": 0.4
+        }
+      },
+      "nestedWebglApiMs": {
+        "texSubImage2D": {
+          "median": 0.2,
+          "p95": 0.3,
+          "max": 0.5
+        },
+        "checkFramebufferStatus": {
+          "median": 1.8,
+          "p95": 2.6,
+          "max": 3
+        },
+        "getAttribLocation": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "drawArrays": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "getError": {
+          "median": 0.3,
+          "p95": 0.5,
+          "max": 0.7
+        }
+      }
+    },
+    {
+      "size": "640x360",
+      "mode": "dual-mask",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 19.8,
+        "p95": 24.1,
+        "max": 27.2
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 33.4,
+        "max": 199.84
+      },
+      "over25msPercent": 25.4,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": "cpu",
+      "transitionCompositeBackend": "cpu",
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 427,
+      "phaseMs": {
+        "playerSetup": {
+          "median": 0.8,
+          "p95": 1.4,
+          "max": 5.5
+        },
+        "sourceDraw": {
+          "median": 0.3,
+          "p95": 0.5,
+          "max": 0.6
+        },
+        "playerPlanning": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "cpuSceneEffects": {
+          "median": 18.5,
+          "p95": 21.4,
+          "max": 23.6
+        },
+        "canvasCopy": {
+          "median": 0,
+          "p95": 0.2,
+          "max": 0.3
+        },
+        "canvasTransition": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "unaccounted": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        }
+      },
+      "nestedWebglApiMs": {}
+    },
+    {
+      "size": "640x360",
+      "mode": "dual-mask",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 7,
+        "p95": 8.4,
+        "max": 8.8
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 17
+      },
+      "over25msPercent": 0,
+      "gpuContextQueryMs": {
+        "median": 10.61,
+        "p95": 11.51,
+        "max": 11.92
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": "gpu",
+      "transitionCompositeBackend": "cpu",
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 1.95,
+      "frameUploads": 6,
+      "framePasses": 4,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 284,
+      "phaseMs": {
+        "playerSetup": {
+          "median": 1,
+          "p95": 1.3,
+          "max": 2.1
+        },
+        "sourceDraw": {
+          "median": 0.4,
+          "p95": 0.6,
+          "max": 0.7
+        },
+        "playerPlanning": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "gpuPrepare": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.3
+        },
+        "sourceDownsample": {
+          "median": 0.2,
+          "p95": 0.4,
+          "max": 0.6
+        },
+        "gpuUpload": {
+          "median": 0.3,
+          "p95": 0.5,
+          "max": 0.6
+        },
+        "maskPrepare": {
+          "median": 0.3,
+          "p95": 0.5,
+          "max": 0.5
+        },
+        "gpuSubmit": {
+          "median": 3.5,
+          "p95": 4.6,
+          "max": 5
+        },
+        "gpuValidation": {
+          "median": 0.7,
+          "p95": 0.9,
+          "max": 1.2
+        },
+        "canvasOutput": {
+          "median": 0.2,
+          "p95": 0.3,
+          "max": 0.5
+        },
+        "canvasCopy": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "canvasTransition": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "unaccounted": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.3
+        }
+      },
+      "nestedWebglApiMs": {
+        "texSubImage2D": {
+          "median": 0.2,
+          "p95": 0.4,
+          "max": 0.6
+        },
+        "checkFramebufferStatus": {
+          "median": 3.4,
+          "p95": 4.4,
+          "max": 4.9
+        },
+        "getAttribLocation": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "drawArrays": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "getError": {
+          "median": 0.7,
+          "p95": 0.9,
+          "max": 1.2
+        }
+      }
+    },
+    {
+      "size": "1920x1080",
+      "mode": "single",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 39.4,
+        "p95": 46.9,
+        "max": 47.5
+      },
+      "frameGapMs": {
+        "median": 33.4,
+        "p95": 50,
+        "max": 349.57
+      },
+      "over25msPercent": 100,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "phaseMs": {
+        "playerSetup": {
+          "median": 0.4,
+          "p95": 0.7,
+          "max": 0.7
+        },
+        "sourceDraw": {
+          "median": 0.2,
+          "p95": 0.3,
+          "max": 0.4
+        },
+        "playerPlanning": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "cpuSceneEffects": {
+          "median": 38.7,
+          "p95": 46,
+          "max": 46.6
+        },
+        "canvasCopy": {
+          "median": 0.1,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "unaccounted": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        }
+      },
+      "nestedWebglApiMs": {}
+    },
+    {
+      "size": "1920x1080",
+      "mode": "single",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 3.9,
+        "p95": 4.8,
+        "max": 5.7
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "gpuContextQueryMs": {
+        "median": 10.27,
+        "p95": 10.74,
+        "max": 10.88
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 17.58,
+      "frameUploads": 1,
+      "framePasses": 2,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "phaseMs": {
+        "playerSetup": {
+          "median": 0.6,
+          "p95": 0.8,
+          "max": 0.9
+        },
+        "sourceDraw": {
+          "median": 0.3,
+          "p95": 0.4,
+          "max": 0.5
+        },
+        "playerPlanning": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "gpuPrepare": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "sourceDownsample": {
+          "median": 0.2,
+          "p95": 0.3,
+          "max": 0.7
+        },
+        "gpuUpload": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.3
+        },
+        "gpuSubmit": {
+          "median": 1.6,
+          "p95": 2.6,
+          "max": 3.9
+        },
+        "gpuValidation": {
+          "median": 0.7,
+          "p95": 1.1,
+          "max": 1.3
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.6
+        },
+        "canvasCopy": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "unaccounted": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.3
+        }
+      },
+      "nestedWebglApiMs": {
+        "texSubImage2D": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "checkFramebufferStatus": {
+          "median": 1.5,
+          "p95": 2.5,
+          "max": 3.6
+        },
+        "getAttribLocation": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "drawArrays": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "getError": {
+          "median": 0.6,
+          "p95": 1.1,
+          "max": 1.3
+        }
+      }
+    },
+    {
+      "size": "1920x1080",
+      "mode": "single-mask",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 45.4,
+        "p95": 50.6,
+        "max": 55.6
+      },
+      "frameGapMs": {
+        "median": 49.9,
+        "p95": 50.1,
+        "max": 416.11
+      },
+      "over25msPercent": 100,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "phaseMs": {
+        "playerSetup": {
+          "median": 0.5,
+          "p95": 1.1,
+          "max": 13.8
+        },
+        "sourceDraw": {
+          "median": 0.2,
+          "p95": 0.3,
+          "max": 0.5
+        },
+        "playerPlanning": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "cpuSceneEffects": {
+          "median": 44.7,
+          "p95": 49.8,
+          "max": 54.7
+        },
+        "canvasCopy": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "unaccounted": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        }
+      },
+      "nestedWebglApiMs": {}
+    },
+    {
+      "size": "1920x1080",
+      "mode": "single-mask",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 7,
+        "p95": 14.7,
+        "max": 43.5
+      },
+      "frameGapMs": {
+        "median": 16.6,
+        "p95": 16.8,
+        "max": 33.4
+      },
+      "over25msPercent": 1.59,
+      "gpuContextQueryMs": {
+        "median": 6.74,
+        "p95": 8.57,
+        "max": 8.88
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 17.58,
+      "frameUploads": 3,
+      "framePasses": 2,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "phaseMs": {
+        "playerSetup": {
+          "median": 0.7,
+          "p95": 1.4,
+          "max": 1.9
+        },
+        "sourceDraw": {
+          "median": 0.4,
+          "p95": 1,
+          "max": 1.2
+        },
+        "playerPlanning": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "gpuPrepare": {
+          "median": 0.1,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "sourceDownsample": {
+          "median": 0.3,
+          "p95": 0.5,
+          "max": 0.7
+        },
+        "gpuUpload": {
+          "median": 0.3,
+          "p95": 0.7,
+          "max": 1
+        },
+        "maskPrepare": {
+          "median": 0.3,
+          "p95": 0.7,
+          "max": 0.8
+        },
+        "gpuSubmit": {
+          "median": 3.5,
+          "p95": 12.7,
+          "max": 41
+        },
+        "gpuValidation": {
+          "median": 0.7,
+          "p95": 1.1,
+          "max": 1.1
+        },
+        "canvasOutput": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "canvasCopy": {
+          "median": 0,
+          "p95": 0,
+          "max": 0.1
+        },
+        "unaccounted": {
+          "median": 0.1,
+          "p95": 0.3,
+          "max": 0.6
+        }
+      },
+      "nestedWebglApiMs": {
+        "texSubImage2D": {
+          "median": 0.3,
+          "p95": 0.7,
+          "max": 1
+        },
+        "checkFramebufferStatus": {
+          "median": 3.3,
+          "p95": 12.7,
+          "max": 40.9
+        },
+        "getAttribLocation": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "drawArrays": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.1
+        },
+        "getError": {
+          "median": 0.6,
+          "p95": 1.1,
+          "max": 1.1
+        }
+      }
+    },
+    {
+      "size": "1920x1080",
+      "mode": "dual-mask",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 87.2,
+        "p95": 94.4,
+        "max": 96.6
+      },
+      "frameGapMs": {
+        "median": 83.3,
+        "p95": 99.9,
+        "max": 832.47
+      },
+      "over25msPercent": 100,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": "cpu",
+      "transitionCompositeBackend": "cpu",
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 427,
+      "phaseMs": {
+        "playerSetup": {
+          "median": 0.7,
+          "p95": 2.6,
+          "max": 3.4
+        },
+        "sourceDraw": {
+          "median": 0.3,
+          "p95": 0.6,
+          "max": 0.8
+        },
+        "playerPlanning": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "cpuSceneEffects": {
+          "median": 85.7,
+          "p95": 93.2,
+          "max": 95.4
+        },
+        "canvasCopy": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "canvasTransition": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "unaccounted": {
+          "median": 0,
+          "p95": 0.2,
+          "max": 1
+        }
+      },
+      "nestedWebglApiMs": {}
+    },
+    {
+      "size": "1920x1080",
+      "mode": "dual-mask",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 21.8,
+        "p95": 27.4,
+        "max": 117.1
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 33.4,
+        "max": 116.6
+      },
+      "over25msPercent": 38.1,
+      "gpuContextQueryMs": {
+        "median": 6.78,
+        "p95": 7.92,
+        "max": 8.34
+      },
+      "gpuSamples": 63,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": "gpu",
+      "transitionCompositeBackend": "cpu",
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 17.58,
+      "frameUploads": 6,
+      "framePasses": 4,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 284,
+      "phaseMs": {
+        "playerSetup": {
+          "median": 2,
+          "p95": 3.6,
+          "max": 7.1
+        },
+        "sourceDraw": {
+          "median": 1,
+          "p95": 1.6,
+          "max": 2.2
+        },
+        "playerPlanning": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "gpuPrepare": {
+          "median": 0.1,
+          "p95": 0.2,
+          "max": 0.8
+        },
+        "sourceDownsample": {
+          "median": 0.5,
+          "p95": 1,
+          "max": 1.7
+        },
+        "gpuUpload": {
+          "median": 0.7,
+          "p95": 1.5,
+          "max": 3
+        },
+        "maskPrepare": {
+          "median": 0.7,
+          "p95": 1.6,
+          "max": 2.3
+        },
+        "gpuSubmit": {
+          "median": 12.9,
+          "p95": 18,
+          "max": 111.3
+        },
+        "gpuValidation": {
+          "median": 1.9,
+          "p95": 2.8,
+          "max": 4
+        },
+        "canvasOutput": {
+          "median": 0.5,
+          "p95": 0.8,
+          "max": 0.9
+        },
+        "canvasCopy": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.2
+        },
+        "canvasTransition": {
+          "median": 0.2,
+          "p95": 0.4,
+          "max": 0.4
+        },
+        "unaccounted": {
+          "median": 0.3,
+          "p95": 0.6,
+          "max": 1.5
+        }
+      },
+      "nestedWebglApiMs": {
+        "texSubImage2D": {
+          "median": 0.6,
+          "p95": 1.2,
+          "max": 1.5
+        },
+        "checkFramebufferStatus": {
+          "median": 12.4,
+          "p95": 17.2,
+          "max": 110.7
+        },
+        "getAttribLocation": {
+          "median": 0,
+          "p95": 0.2,
+          "max": 0.2
+        },
+        "drawArrays": {
+          "median": 0,
+          "p95": 0.1,
+          "max": 0.3
+        },
+        "getError": {
+          "median": 1.9,
+          "p95": 2.8,
+          "max": 3.9
+        }
+      }
+    }
+  ],
+  "visual": [
+    {
+      "size": "640x360",
+      "mode": "single",
+      "rgb": 0,
+      "alpha": 0
+    },
+    {
+      "size": "640x360",
+      "mode": "single-mask",
+      "rgb": 0.0009,
+      "alpha": 0
+    },
+    {
+      "size": "640x360",
+      "mode": "dual-mask",
+      "rgb": 0.0008,
+      "alpha": 0
+    },
+    {
+      "size": "1920x1080",
+      "mode": "single",
+      "rgb": 0,
+      "alpha": 0
+    },
+    {
+      "size": "1920x1080",
+      "mode": "single-mask",
+      "rgb": 0.0003,
+      "alpha": 0
+    },
+    {
+      "size": "1920x1080",
+      "mode": "dual-mask",
+      "rgb": 0.0003,
+      "alpha": 0
+    }
+  ]
+}

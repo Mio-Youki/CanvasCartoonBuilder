@@ -6,6 +6,7 @@
   function decorate(options) {
     const root=options.root,block=options.block,card=options.card,definition=options.definition;
     block.wrap.dataset.v4EffectId=card.id;
+    block.wrap.dataset.v4EffectScope=options.scope||'object';
     block.wrap.classList.toggle('active',!!options.focused);
     if(!(definition.motion&&definition.motion.length))return Object.freeze({motionButton:null});
     const motionButton=root.createElement('button');

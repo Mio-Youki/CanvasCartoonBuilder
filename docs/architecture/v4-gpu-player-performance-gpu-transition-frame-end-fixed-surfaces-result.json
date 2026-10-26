@@ -1,0 +1,1132 @@
+{
+  "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "framesPerCase": 64,
+  "canvasTransition": false,
+  "profile": false,
+  "profileApi": false,
+  "gpuStages": false,
+  "frameEndValidation": true,
+  "fixedSurfaces": true,
+  "traceSurfaces": true,
+  "repetitions": 2,
+  "rows": [
+    {
+      "size": "640x360",
+      "mode": "single",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 12,
+        "p95": 13.8,
+        "max": 16.2
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 249.8
+      },
+      "over25msPercent": 1.59,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 0
+    },
+    {
+      "size": "640x360",
+      "mode": "single",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 2.9,
+        "p95": 3.7,
+        "max": 4.5
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.8,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "gpuContextQueryMs": {
+        "median": 14.14,
+        "p95": 14.92,
+        "max": 21.18
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 1.95,
+      "frameUploads": 1,
+      "framePasses": 2,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 0,
+      "surfaceTrace": {
+        "distinctIds": {
+          "incoming.source": [
+            1
+          ],
+          "incoming.work": [
+            2
+          ]
+        },
+        "sourceTargetAliases": 0,
+        "fixedRoleAllocationsAdded": 0,
+        "fixedRoleSurfaceCount": 2,
+        "fixedRolePixels": 256080,
+        "previousRolePixels": 0
+      }
+    },
+    {
+      "size": "640x360",
+      "mode": "single-mask",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 10.1,
+        "p95": 11.8,
+        "max": 13.5
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 99.84
+      },
+      "over25msPercent": 1.59,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 0
+    },
+    {
+      "size": "640x360",
+      "mode": "single-mask",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 3.4,
+        "p95": 4.4,
+        "max": 4.6
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 16.9
+      },
+      "over25msPercent": 0,
+      "gpuContextQueryMs": {
+        "median": 13,
+        "p95": 13.75,
+        "max": 15.15
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 1.95,
+      "frameUploads": 3,
+      "framePasses": 2,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 0,
+      "surfaceTrace": {
+        "distinctIds": {
+          "incoming.source": [
+            1
+          ],
+          "incoming.work": [
+            2
+          ],
+          "incoming.range": [
+            3
+          ]
+        },
+        "sourceTargetAliases": 0,
+        "fixedRoleAllocationsAdded": 0,
+        "fixedRoleSurfaceCount": 3,
+        "fixedRolePixels": 486480,
+        "previousRolePixels": 0
+      }
+    },
+    {
+      "size": "640x360",
+      "mode": "dual-mask",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 20,
+        "p95": 25.8,
+        "max": 28.5
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 33.3,
+        "max": 183.07
+      },
+      "over25msPercent": 28.57,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": "cpu",
+      "transitionCompositeBackend": "cpu",
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 427,
+      "repetition": 0
+    },
+    {
+      "size": "640x360",
+      "mode": "dual-mask",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 6,
+        "p95": 7.7,
+        "max": 8.1
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "gpuContextQueryMs": {
+        "median": 10.85,
+        "p95": 12.11,
+        "max": 12.53
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": "gpu",
+      "transitionCompositeBackend": "gpu",
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 3.71,
+      "frameUploads": 6,
+      "framePasses": 5,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 284,
+      "repetition": 0,
+      "surfaceTrace": {
+        "distinctIds": {
+          "incoming.source": [
+            1
+          ],
+          "incoming.work": [
+            2
+          ],
+          "incoming.range": [
+            3
+          ],
+          "outgoing.source": [
+            1
+          ],
+          "outgoing.work": [
+            2
+          ],
+          "outgoing.range": [
+            3
+          ]
+        },
+        "sourceTargetAliases": 0,
+        "fixedRoleAllocationsAdded": 0,
+        "fixedRoleSurfaceCount": 4,
+        "fixedRolePixels": 716880,
+        "previousRolePixels": 486480
+      }
+    },
+    {
+      "size": "1920x1080",
+      "mode": "single",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 45.7,
+        "p95": 53.4,
+        "max": 55.7
+      },
+      "frameGapMs": {
+        "median": 49.9,
+        "p95": 66.5,
+        "max": 399.57
+      },
+      "over25msPercent": 100,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 0
+    },
+    {
+      "size": "1920x1080",
+      "mode": "single",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 3.7,
+        "p95": 4.6,
+        "max": 6.7
+      },
+      "frameGapMs": {
+        "median": 16.6,
+        "p95": 16.7,
+        "max": 17.1
+      },
+      "over25msPercent": 0,
+      "gpuContextQueryMs": {
+        "median": 10.31,
+        "p95": 10.82,
+        "max": 11.77
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 17.58,
+      "frameUploads": 1,
+      "framePasses": 2,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 0,
+      "surfaceTrace": {
+        "distinctIds": {
+          "incoming.source": [
+            1
+          ],
+          "incoming.work": [
+            2
+          ]
+        },
+        "sourceTargetAliases": 0,
+        "fixedRoleAllocationsAdded": 0,
+        "fixedRoleSurfaceCount": 2,
+        "fixedRolePixels": 2304000,
+        "previousRolePixels": 0
+      }
+    },
+    {
+      "size": "1920x1080",
+      "mode": "single-mask",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 48,
+        "p95": 59.8,
+        "max": 66.9
+      },
+      "frameGapMs": {
+        "median": 50,
+        "p95": 66.7,
+        "max": 482.71
+      },
+      "over25msPercent": 100,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 0
+    },
+    {
+      "size": "1920x1080",
+      "mode": "single-mask",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 6.4,
+        "p95": 12.9,
+        "max": 46.9
+      },
+      "frameGapMs": {
+        "median": 16.6,
+        "p95": 16.8,
+        "max": 33.4
+      },
+      "over25msPercent": 1.59,
+      "gpuContextQueryMs": {
+        "median": 7.47,
+        "p95": 8.78,
+        "max": 9
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 17.58,
+      "frameUploads": 3,
+      "framePasses": 2,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 0,
+      "surfaceTrace": {
+        "distinctIds": {
+          "incoming.source": [
+            1
+          ],
+          "incoming.work": [
+            2
+          ],
+          "incoming.range": [
+            3
+          ]
+        },
+        "sourceTargetAliases": 0,
+        "fixedRoleAllocationsAdded": 0,
+        "fixedRoleSurfaceCount": 3,
+        "fixedRolePixels": 4377600,
+        "previousRolePixels": 0
+      }
+    },
+    {
+      "size": "1920x1080",
+      "mode": "dual-mask",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 88.5,
+        "p95": 103,
+        "max": 105.9
+      },
+      "frameGapMs": {
+        "median": 83.3,
+        "p95": 100,
+        "max": 882.34
+      },
+      "over25msPercent": 100,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": "cpu",
+      "transitionCompositeBackend": "cpu",
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 427,
+      "repetition": 0
+    },
+    {
+      "size": "1920x1080",
+      "mode": "dual-mask",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 19.7,
+        "p95": 23.6,
+        "max": 98.7
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 33.3,
+        "max": 83.2
+      },
+      "over25msPercent": 25.4,
+      "gpuContextQueryMs": {
+        "median": 7.49,
+        "p95": 8.59,
+        "max": 10.26
+      },
+      "gpuSamples": 63,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": "gpu",
+      "transitionCompositeBackend": "gpu",
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 33.4,
+      "frameUploads": 6,
+      "framePasses": 5,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 284,
+      "repetition": 0,
+      "surfaceTrace": {
+        "distinctIds": {
+          "incoming.source": [
+            1
+          ],
+          "incoming.work": [
+            2
+          ],
+          "incoming.range": [
+            3
+          ],
+          "outgoing.source": [
+            1
+          ],
+          "outgoing.work": [
+            2
+          ],
+          "outgoing.range": [
+            3
+          ]
+        },
+        "sourceTargetAliases": 0,
+        "fixedRoleAllocationsAdded": 0,
+        "fixedRoleSurfaceCount": 4,
+        "fixedRolePixels": 6451200,
+        "previousRolePixels": 4377600
+      }
+    },
+    {
+      "size": "640x360",
+      "mode": "single",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 2.9,
+        "p95": 3.9,
+        "max": 4.6
+      },
+      "frameGapMs": {
+        "median": 16.6,
+        "p95": 16.8,
+        "max": 49.81
+      },
+      "over25msPercent": 1.59,
+      "gpuContextQueryMs": {
+        "median": 14.19,
+        "p95": 15.05,
+        "max": 15.21
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 1.95,
+      "frameUploads": 1,
+      "framePasses": 2,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 1,
+      "surfaceTrace": {
+        "distinctIds": {
+          "incoming.source": [
+            1
+          ],
+          "incoming.work": [
+            2
+          ]
+        },
+        "sourceTargetAliases": 0,
+        "fixedRoleAllocationsAdded": 0,
+        "fixedRoleSurfaceCount": 2,
+        "fixedRolePixels": 256080,
+        "previousRolePixels": 0
+      }
+    },
+    {
+      "size": "640x360",
+      "mode": "single",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 8.2,
+        "p95": 9.4,
+        "max": 11.9
+      },
+      "frameGapMs": {
+        "median": 16.6,
+        "p95": 16.7,
+        "max": 83.1
+      },
+      "over25msPercent": 1.59,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 1
+    },
+    {
+      "size": "640x360",
+      "mode": "single-mask",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 3.6,
+        "p95": 4.5,
+        "max": 5.1
+      },
+      "frameGapMs": {
+        "median": 16.6,
+        "p95": 16.8,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "gpuContextQueryMs": {
+        "median": 13.04,
+        "p95": 13.95,
+        "max": 14.08
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 1.95,
+      "frameUploads": 3,
+      "framePasses": 2,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 1,
+      "surfaceTrace": {
+        "distinctIds": {
+          "incoming.source": [
+            1
+          ],
+          "incoming.work": [
+            2
+          ],
+          "incoming.range": [
+            3
+          ]
+        },
+        "sourceTargetAliases": 0,
+        "fixedRoleAllocationsAdded": 0,
+        "fixedRoleSurfaceCount": 3,
+        "fixedRolePixels": 486480,
+        "previousRolePixels": 0
+      }
+    },
+    {
+      "size": "640x360",
+      "mode": "single-mask",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 9.4,
+        "p95": 11.8,
+        "max": 16.4
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 83.14
+      },
+      "over25msPercent": 1.59,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 1
+    },
+    {
+      "size": "640x360",
+      "mode": "dual-mask",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 4.9,
+        "p95": 6.6,
+        "max": 7
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.8,
+        "max": 17.2
+      },
+      "over25msPercent": 0,
+      "gpuContextQueryMs": {
+        "median": 11.58,
+        "p95": 12.48,
+        "max": 12.72
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": "gpu",
+      "transitionCompositeBackend": "gpu",
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 3.71,
+      "frameUploads": 6,
+      "framePasses": 5,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 284,
+      "repetition": 1,
+      "surfaceTrace": {
+        "distinctIds": {
+          "incoming.source": [
+            1
+          ],
+          "incoming.work": [
+            2
+          ],
+          "incoming.range": [
+            3
+          ],
+          "outgoing.source": [
+            1
+          ],
+          "outgoing.work": [
+            2
+          ],
+          "outgoing.range": [
+            3
+          ]
+        },
+        "sourceTargetAliases": 0,
+        "fixedRoleAllocationsAdded": 0,
+        "fixedRoleSurfaceCount": 4,
+        "fixedRolePixels": 716880,
+        "previousRolePixels": 486480
+      }
+    },
+    {
+      "size": "640x360",
+      "mode": "dual-mask",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 19.7,
+        "p95": 22.2,
+        "max": 27.9
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 33.3,
+        "max": 183.2
+      },
+      "over25msPercent": 23.81,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": "cpu",
+      "transitionCompositeBackend": "cpu",
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 427,
+      "repetition": 1
+    },
+    {
+      "size": "1920x1080",
+      "mode": "single",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 3.3,
+        "p95": 5,
+        "max": 5.5
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "gpuContextQueryMs": {
+        "median": 10.02,
+        "p95": 10.85,
+        "max": 12.19
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 17.58,
+      "frameUploads": 1,
+      "framePasses": 2,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 1,
+      "surfaceTrace": {
+        "distinctIds": {
+          "incoming.source": [
+            1
+          ],
+          "incoming.work": [
+            2
+          ]
+        },
+        "sourceTargetAliases": 0,
+        "fixedRoleAllocationsAdded": 0,
+        "fixedRoleSurfaceCount": 2,
+        "fixedRolePixels": 2304000,
+        "previousRolePixels": 0
+      }
+    },
+    {
+      "size": "1920x1080",
+      "mode": "single",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 38.2,
+        "p95": 44,
+        "max": 50.6
+      },
+      "frameGapMs": {
+        "median": 33.4,
+        "p95": 50,
+        "max": 349.64
+      },
+      "over25msPercent": 100,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 1
+    },
+    {
+      "size": "1920x1080",
+      "mode": "single-mask",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 7,
+        "p95": 13.5,
+        "max": 38.5
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.8,
+        "max": 33.2
+      },
+      "over25msPercent": 1.59,
+      "gpuContextQueryMs": {
+        "median": 6.62,
+        "p95": 8.25,
+        "max": 10.68
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 17.58,
+      "frameUploads": 3,
+      "framePasses": 2,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 1,
+      "surfaceTrace": {
+        "distinctIds": {
+          "incoming.source": [
+            1
+          ],
+          "incoming.work": [
+            2
+          ],
+          "incoming.range": [
+            3
+          ]
+        },
+        "sourceTargetAliases": 0,
+        "fixedRoleAllocationsAdded": 0,
+        "fixedRoleSurfaceCount": 3,
+        "fixedRolePixels": 4377600,
+        "previousRolePixels": 0
+      }
+    },
+    {
+      "size": "1920x1080",
+      "mode": "single-mask",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 40.4,
+        "p95": 47.1,
+        "max": 51
+      },
+      "frameGapMs": {
+        "median": 49.9,
+        "p95": 50,
+        "max": 449.44
+      },
+      "over25msPercent": 100,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 1
+    },
+    {
+      "size": "1920x1080",
+      "mode": "dual-mask",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 18.8,
+        "p95": 23.8,
+        "max": 113.1
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 33.4,
+        "max": 99.9
+      },
+      "over25msPercent": 22.22,
+      "gpuContextQueryMs": {
+        "median": 7.33,
+        "p95": 8.56,
+        "max": 9.81
+      },
+      "gpuSamples": 63,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": "gpu",
+      "transitionCompositeBackend": "gpu",
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 33.4,
+      "frameUploads": 6,
+      "framePasses": 5,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 284,
+      "repetition": 1,
+      "surfaceTrace": {
+        "distinctIds": {
+          "incoming.source": [
+            1
+          ],
+          "incoming.work": [
+            2
+          ],
+          "incoming.range": [
+            3
+          ],
+          "outgoing.source": [
+            1
+          ],
+          "outgoing.work": [
+            2
+          ],
+          "outgoing.range": [
+            3
+          ]
+        },
+        "sourceTargetAliases": 0,
+        "fixedRoleAllocationsAdded": 0,
+        "fixedRoleSurfaceCount": 4,
+        "fixedRolePixels": 6451200,
+        "previousRolePixels": 4377600
+      }
+    },
+    {
+      "size": "1920x1080",
+      "mode": "dual-mask",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 94,
+        "p95": 107.2,
+        "max": 108.3
+      },
+      "frameGapMs": {
+        "median": 99.8,
+        "p95": 116.6,
+        "max": 849.1
+      },
+      "over25msPercent": 100,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": "cpu",
+      "transitionCompositeBackend": "cpu",
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 427,
+      "repetition": 1
+    }
+  ],
+  "visual": [
+    {
+      "repetition": 0,
+      "size": "640x360",
+      "mode": "single",
+      "rgb": 0,
+      "alpha": 0
+    },
+    {
+      "repetition": 0,
+      "size": "640x360",
+      "mode": "single-mask",
+      "rgb": 0.0009,
+      "alpha": 0
+    },
+    {
+      "repetition": 0,
+      "size": "640x360",
+      "mode": "dual-mask",
+      "rgb": 0.0008,
+      "alpha": 0
+    },
+    {
+      "repetition": 0,
+      "size": "1920x1080",
+      "mode": "single",
+      "rgb": 0,
+      "alpha": 0
+    },
+    {
+      "repetition": 0,
+      "size": "1920x1080",
+      "mode": "single-mask",
+      "rgb": 0.0003,
+      "alpha": 0
+    },
+    {
+      "repetition": 0,
+      "size": "1920x1080",
+      "mode": "dual-mask",
+      "rgb": 0.0003,
+      "alpha": 0
+    },
+    {
+      "repetition": 1,
+      "size": "640x360",
+      "mode": "single",
+      "rgb": 0,
+      "alpha": 0
+    },
+    {
+      "repetition": 1,
+      "size": "640x360",
+      "mode": "single-mask",
+      "rgb": 0.0009,
+      "alpha": 0
+    },
+    {
+      "repetition": 1,
+      "size": "640x360",
+      "mode": "dual-mask",
+      "rgb": 0.0008,
+      "alpha": 0
+    },
+    {
+      "repetition": 1,
+      "size": "1920x1080",
+      "mode": "single",
+      "rgb": 0,
+      "alpha": 0
+    },
+    {
+      "repetition": 1,
+      "size": "1920x1080",
+      "mode": "single-mask",
+      "rgb": 0.0003,
+      "alpha": 0
+    },
+    {
+      "repetition": 1,
+      "size": "1920x1080",
+      "mode": "dual-mask",
+      "rgb": 0.0003,
+      "alpha": 0
+    }
+  ]
+}

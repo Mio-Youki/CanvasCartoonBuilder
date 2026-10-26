@@ -1,0 +1,5 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ToSampool 设备对照</title>
+<style>body{font:15px system-ui;background:#181c23;color:#eee;margin:24px;line-height:1.6}button{padding:8px 16px;margin-right:12px;cursor:pointer}canvas{display:block;width:min(720px,100%);height:auto;background:#fff;margin:20px 0}table{border-collapse:collapse;font-variant-numeric:tabular-nums}td,th{padding:8px 14px;border:1px solid #525b68;text-align:left}p{max-width:900px;color:#bcc6d4}#status{margin:16px 0}</style>
+<h1>设备对照</h1><p>使用同一套程序素材测试正式 Runtime，无需示例照片。请保持浏览器在前台、设备接电，关闭其他重负载应用；各设备使用相同浏览器版本。结果是绘制调用耗时，不是GPU着色器计时或编辑器整帧FPS。</p>
+<button id="run">开始测试</button><button id="save" disabled>下载结果</button><div id="status">尚未运行</div><canvas id="canvas" width="320" height="180"></canvas><table><thead><tr><th>尺寸</th><th>项目</th><th>实际后端</th><th>首次 ms</th><th>中位 ms</th><th>P95 ms</th></tr></thead><tbody id="rows"></tbody></table>
+<script src="../../home-scene-vnext.js"></script><script src="check.js"></script></html>

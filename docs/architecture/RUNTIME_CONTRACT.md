@@ -90,7 +90,11 @@ R15 收口场景范围效果的蒙版基础：静态矩形、椭圆与多边形�
 
 R16 补齐 v4 的 Host→Runtime 素材接线：`EditorVNextAssetLoader` 通过已有 `EditorAssetResolver` 解析持久 locator，再由 `createResolved()` 临时注入 Runtime。它不改变当前编辑器的打开/保存流程，也不让 Runtime 读取路径；正式入口仍需显式切换至这条异步链路。
 
-R17（已替代）：场景管线现为 `overlay → sample`。噪点不再存于独立 `sceneEffects.outputGrain`，而是 `texture-overlay` 的 `noise` 图案类型，以稀疏点绘制复用叠加语义、范围蒙版和混合方式。
+R17（已替代）：场景管线现为 `overlay → sample`，没有独立的 `sceneEffects.outputGrain`。新颗粒使用 `grain-overlay`：确定性 RGB/单色帧经有界缓存复用，按强度裁入对象或场景范围，可配置混合方式和周期刷新。旧 `texture-overlay` 的 `noise` 稀疏图案仅供既有 Scene 读取，不再是新建入口。
+
+R17a：`noise-dither` 是采样效果，不与 `grain-overlay` 共用合成语义。它在颜色映射后、阈值分色前对当前工作面逐像素扰动 RGB，保留 Alpha；`amount` 0–100 映射到最大 ±0–255 像素值，`colorMode` 为单色或彩色，`size` 指采样工作面中的方格尺寸，`seed` 与可选 `noise-refresh(period,steps)` 决定固定时间结果。强度 0 必须直通。单帧只分配一行颗粒值，使用已有采样工作面和像素遍计数，不另建全尺寸颗粒缓存。
+
+R17b：`texture-overlay.blend:'hard-mix'` 是独立 CPU 合成分支，不能通过 `globalCompositeOperation` 冒充已支持。每通道先比较底色与纹理色之和是否达到 255，再用标准 source-over Alpha 权重合成；完全透明纹理直通底色，完全不透明像素使用整数快速路径。对象与场景的纹理叠加均可使用；对象、图元和其它加样效果的混合入口暂不开放 Hard Mix。高分辨率动态使用须参考实测预算，见 `HARD_MIX_PERFORMANCE_2026-10-09.md`。
 
 R18 让 v4 效果卡使用与实体相同的稀疏 Step/Linear 求值器。对象轨道键为 `effect:object:<entityId>:<effectId>`，场景轨道键为 `effect:scene:<stage>:<effectId>`；只有注册表允许的字段应由未来 Inspector 写入。Runtime 在固定时间内覆写当前效果配置，不改变保存的基础值。
 
@@ -151,5 +155,11 @@ R46 建立 v4 对象内图元的首个闭环：`vector.parts` 与 `image.parts` 
 R47 建立 v4 part Paint 首切片：路径描线、纯色填充、纹理填充是三个独立能力，颜色 Alpha 分别保存为 `strokeAlpha / fillAlpha / fillPattern.opacity`，不得写入对象或 part 的整体 `alpha`。`EditorVNextPartsState` 负责把 `lines / dots / checker` 纹理参数归一到确定范围；Runtime 以场景尺寸和纹理参数建立最多 12 项的画布锚定离屏缓存，绘制时只按当前 part 路径裁剪贴图，禁止每帧逐点重建。对象效果胶囊必须传入其场景原点，使直接路径与胶囊路径保持同一纹理相位。Inspector 启停或改型必须经 Scene Mutation 立即刷新画面；View Controller 要先同步选择与结构树，再等待异步 Runtime 重绘，Canvas 成本不能阻塞编辑器结构反馈。多层线纹及 Legacy 复合弹层仍未完成，因此本条不把 `parts-drawing` 升级为 `browser-parity`。
 
 R48 重置偏移采样的 Runtime 合同：`offset-sampling.type='boil'` 不再为图片保留特殊源路径。对象或场景完成高分辨率胶囊栅格化后，Runtime 以中心、左、右、上、下五个微移取样窗生成低分辨率候选面，并按 `boil.bias / boil.coverage / motion.enabled / motion.type(sampling-step|sampling-drift) / motion.frequency / seed` 为每个采样格确定性选取候选；候选选择不混色，也不形成单一方向的整面平移。默认仅 30% 格离开中心候选。偏置为不超过采样格减一的中心对称整数；关闭动态后固定于 seed 对应的静态采样相位。最外一圈采样格始终保护；`edge.mode='contour'` 还固定 Alpha 轮廓及邻域，`'interior'` 还固定不透明内部。`type='breath'` 则使用一个整张对象共享的**小数**采样窗：`origin ∈ [0, breath.bias]`、`sourceSize = 原尺寸 - breath.bias`。这条路径保留旧导出页的格点相位游移；对象级 `breath.edge.mode='contour'` 会回填 Alpha 轮廓，而 `off` 不读写额外像素、保持旧版视觉；不提供“保护内部”。三条路径都在整个对象内容完成栅格化后、最近邻放大前运行，所以文字、图元集合、内建组件与图片具有一致语义。`type='bands'` 则是独立的采样后处理：用有限条完整水平／垂直条带进行复制位移，参数为数量、厚度、位移、通道和 seed；禁止逐像素按条带 hash 重采样。固定时间测试需验证沸腾相邻 tick 改变候选格、格为 1 时无效、图片与矢量都能进入同一采样路径、外缘保持稳定，以及条带故障不影响未选中的区域。
+
+R49 建立显式场景 GPU 实验接线：`createRuntime().renderTo(target,t,{sceneBackend:'gpu-experimental'})` 在整条场景链预检通过时处理独立采样格／阈值分色／不均采样；不支持的卡片／控制器／规则或 WebGL 故障均完整回退既有 CPU 链。场景顺序继续为 overlay → sample。调用方可通过绘制选项 `sceneSourceVersion` 允许同版本／同时间／同配置命中最后输出；版本缺失时保守刷新，编辑、素材更新、撤销和重做必须推进版本。Player 持有并复用上下文／纹理，`clearCaches()`／`dispose()` 释放资源，一次性公共 `renderTo` 自动释放临时 Player。内部上一 Scene Player 共享活的规范化 Scene，离屏池跨帧复用；两侧共用一个执行器。最终转场默认Canvas2D，显式 `sceneGpuTransitions:true` 才尝试同上下文GPU合成；可选帧末检查仍在任何输出前验证，失败当帧CPU重绘。默认编辑器／导出未自动启用，详见 [场景 GPU 执行器接线合同](V4_SCENE_GPU_EXECUTOR_CONTRACT.md)。
+
+R50 场景杂色、阈值与不均采样必须维持每卡独立缩小／处理／放大／范围合成，固定杂色→阈值→不均采样；卡间全尺寸纹理再缩小、不回传Canvas，三卡两张交替读写。GPU来源与中间表示统一预乘RGBA8；需要RGB时使用合成Canvas校准的64KB反预乘数值表，按整数规则写回，范围使用原生预乘source-over，不能用数学近似替代实际舍入。有范围每卡多一道绘制；初始化查表和GPU资源必须纳入成本统计。杂色由GPU整数序列与CPU预备静态算术表实现，不称作零CPU准备。Registry、Inspector及项目参数不变。透明本机96组与独立Alpha／反相／引用范围通过，最终转场保留最大1/255舍入差；默认测试必须限制最大误差与异常点，不能只报平均误差。逐卡、Step／seek、缓存、故障CPU回退与释放分别验收；不能由本机定向通过推断全部宿主已通过。详见[透明字节修复](V4_GPU_ALPHA_BYTES_2026-10-15.md)。
+
+R51 场景GPU染色必须在全尺寸overlay处理，不能先缩小来源再染色；色散固定sample末端，保留每卡范围。染色首轮仅normal／screen／lighter，其他混合方式预检整体CPU回退，不降低既有可用性；动画共用CPU的decorate.animated。合成Canvas的1KB来源Alpha→预乘颜色表、色散6KB亮度乘积与64KB强度表只含数值，无作品引用，首次／改参准备和上传计入成本。色散严格亮度差>24不得用近似边缘集合替代，临界灰阶与照片均需测。默认CPU、UI、项目参数及对象管线不变。详见[染色／色散真实接线](V4_GPU_TINT_DISPERSION_PLAYER_2026-10-15.md)。
 
 每次修改 vNext 源模块后必须运行 `npm run runtime:vnext` 更新分发文件；`npm run verify` 会检查分发未过期并执行基础固定时间冒烟测试。等 vNext 获得完整对象、粒子、场景、素材和导出验收后，才可以修改本合同的“唯一 Runtime”定义。

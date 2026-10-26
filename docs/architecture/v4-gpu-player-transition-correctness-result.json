@@ -1,0 +1,811 @@
+{
+  "hashMismatches": [],
+  "rows": [
+    {
+      "type": "wave",
+      "grid": 3,
+      "mask": "none",
+      "time": 0.2,
+      "rgb": 0,
+      "alpha": 0,
+      "backend": "gpu",
+      "contexts": 1
+    },
+    {
+      "type": "wave",
+      "grid": 3,
+      "mask": "none",
+      "time": 0.6,
+      "rgb": 0,
+      "alpha": 0,
+      "backend": "gpu",
+      "contexts": 1
+    },
+    {
+      "type": "wave",
+      "grid": 1,
+      "mask": "rect",
+      "time": 0.2,
+      "rgb": 0.0582,
+      "alpha": 0,
+      "backend": "gpu",
+      "contexts": 1
+    },
+    {
+      "type": "wave",
+      "grid": 1,
+      "mask": "rect",
+      "time": 0.6,
+      "rgb": 0.0569,
+      "alpha": 0,
+      "backend": "gpu",
+      "contexts": 1
+    },
+    {
+      "type": "radial",
+      "grid": 4,
+      "mask": "ellipse",
+      "time": 0.2,
+      "rgb": 0.0292,
+      "alpha": 0,
+      "backend": "gpu",
+      "contexts": 1
+    },
+    {
+      "type": "radial",
+      "grid": 4,
+      "mask": "ellipse",
+      "time": 0.6,
+      "rgb": 0.0282,
+      "alpha": 0,
+      "backend": "gpu",
+      "contexts": 1
+    },
+    {
+      "type": "noise",
+      "grid": 3,
+      "mask": "element",
+      "time": 0.2,
+      "rgb": 0.077,
+      "alpha": 0,
+      "backend": "gpu",
+      "contexts": 1
+    },
+    {
+      "type": "noise",
+      "grid": 3,
+      "mask": "element",
+      "time": 0.6,
+      "rgb": 0.0789,
+      "alpha": 0,
+      "backend": "gpu",
+      "contexts": 1
+    },
+    {
+      "type": "wave",
+      "grid": 3,
+      "mask": "alpha",
+      "time": 0.2,
+      "rgb": 0.0026,
+      "alpha": 0,
+      "backend": "gpu",
+      "contexts": 1
+    },
+    {
+      "type": "wave",
+      "grid": 3,
+      "mask": "alpha",
+      "time": 0.6,
+      "rgb": 0.0143,
+      "alpha": 0.0181,
+      "backend": "gpu",
+      "contexts": 1
+    },
+    {
+      "type": "radial",
+      "grid": 3,
+      "mask": "ellipse",
+      "time": 0.2,
+      "rgb": 0.065,
+      "alpha": 0,
+      "backend": "gpu",
+      "contexts": 1
+    },
+    {
+      "type": "radial",
+      "grid": 3,
+      "mask": "ellipse",
+      "time": 0.6,
+      "rgb": 0.0634,
+      "alpha": 0,
+      "backend": "gpu",
+      "contexts": 1
+    }
+  ],
+  "timed": [
+    {
+      "time": 0.5,
+      "rgb": 0,
+      "alpha": 0,
+      "backend": "gpu",
+      "contexts": 1,
+      "fieldTick": 0,
+      "samplingAmount": 0.1
+    },
+    {
+      "time": 2.5,
+      "rgb": 0,
+      "alpha": 0,
+      "backend": "gpu",
+      "contexts": 2,
+      "fieldTick": 20,
+      "samplingAmount": 0.7441154273188011
+    }
+  ],
+  "fractionalNoise": {
+    "backend": "cpu",
+    "reason": "unsupported-noise-scale",
+    "allocations": 0,
+    "rgb": 0,
+    "alpha": 0
+  },
+  "lifecycle": {
+    "first": {
+      "contexts": 1,
+      "allocations": 4,
+      "disposals": 0,
+      "sourceUploads": 1,
+      "maskUploads": 0,
+      "cacheHits": 0,
+      "contextLost": false,
+      "textureBytes": 512160,
+      "handled": true,
+      "count": 1,
+      "cacheHit": false,
+      "uploads": 1,
+      "passes": 2,
+      "fieldTick": 2,
+      "samplingAmount": 0.8800000000000001
+    },
+    "paused": {
+      "contexts": 1,
+      "allocations": 4,
+      "disposals": 0,
+      "sourceUploads": 1,
+      "maskUploads": 0,
+      "cacheHits": 1,
+      "contextLost": false,
+      "textureBytes": 512160,
+      "handled": true,
+      "count": 1,
+      "cacheHit": true,
+      "uploads": 0,
+      "passes": 0
+    },
+    "edited": {
+      "contexts": 1,
+      "allocations": 4,
+      "disposals": 0,
+      "sourceUploads": 2,
+      "maskUploads": 0,
+      "cacheHits": 1,
+      "contextLost": false,
+      "textureBytes": 512160,
+      "handled": true,
+      "count": 1,
+      "cacheHit": false,
+      "uploads": 1,
+      "passes": 2,
+      "fieldTick": 2,
+      "samplingAmount": 0.8800000000000001
+    },
+    "editDifference": {
+      "rgb": 10.5911,
+      "alpha": 12.2064
+    },
+    "undo": {
+      "contexts": 1,
+      "allocations": 4,
+      "disposals": 0,
+      "sourceUploads": 3,
+      "maskUploads": 0,
+      "cacheHits": 1,
+      "contextLost": false,
+      "textureBytes": 512160,
+      "handled": true,
+      "count": 1,
+      "cacheHit": false,
+      "uploads": 1,
+      "passes": 2,
+      "fieldTick": 2,
+      "samplingAmount": 0.8800000000000001
+    },
+    "undoDifference": {
+      "rgb": 0,
+      "alpha": 0
+    },
+    "seek": {
+      "contexts": 1,
+      "allocations": 4,
+      "disposals": 0,
+      "sourceUploads": 4,
+      "maskUploads": 0,
+      "cacheHits": 1,
+      "contextLost": false,
+      "textureBytes": 512160,
+      "handled": true,
+      "count": 1,
+      "cacheHit": false,
+      "uploads": 1,
+      "passes": 2,
+      "fieldTick": 6,
+      "samplingAmount": 0.96
+    },
+    "noVersion": {
+      "contexts": 1,
+      "allocations": 4,
+      "disposals": 0,
+      "sourceUploads": 5,
+      "maskUploads": 0,
+      "cacheHits": 1,
+      "contextLost": false,
+      "textureBytes": 512160,
+      "handled": true,
+      "count": 1,
+      "cacheHit": false,
+      "uploads": 1,
+      "passes": 2,
+      "fieldTick": 6,
+      "samplingAmount": 0.96
+    }
+  },
+  "resize": {
+    "rgb": 0,
+    "alpha": 0,
+    "contexts": 2,
+    "allocations": 8,
+    "disposals": 1
+  },
+  "unsupported": {
+    "backend": "cpu",
+    "reason": "unsupported-effect:tint-overlay",
+    "rgb": 0.0003,
+    "alpha": 0,
+    "premultipliedMax": 0
+  },
+  "contextLoss": {
+    "backend": "cpu",
+    "reason": "webgl-context-lost",
+    "rgb": 0.013,
+    "alpha": 0,
+    "premultipliedMax": 0
+  },
+  "recovery": {
+    "backend": "gpu",
+    "contexts": 1
+  },
+  "noWebgl": {
+    "backend": "cpu",
+    "reason": "webgl2-unavailable",
+    "rgb": 0.0132,
+    "alpha": 0,
+    "premultipliedMax": 0
+  },
+  "transitionRows": [
+    {
+      "time": 2.15,
+      "rgb": 0.0124,
+      "alpha": 0,
+      "backend": "gpu",
+      "previousBackend": "gpu",
+      "contexts": 1,
+      "allocations": 6,
+      "frameUploads": 2,
+      "framePasses": 5,
+      "previousSurfaceReuses": 0
+    },
+    {
+      "time": 2.3,
+      "rgb": 0.0089,
+      "alpha": 0,
+      "backend": "gpu",
+      "previousBackend": "gpu",
+      "contexts": 1,
+      "allocations": 6,
+      "frameUploads": 2,
+      "framePasses": 5,
+      "previousSurfaceReuses": 2
+    },
+    {
+      "time": 2.45,
+      "rgb": 0.0075,
+      "alpha": 0,
+      "backend": "gpu",
+      "previousBackend": "gpu",
+      "contexts": 1,
+      "allocations": 6,
+      "frameUploads": 2,
+      "framePasses": 5,
+      "previousSurfaceReuses": 4
+    }
+  ],
+  "outgoingMutation": {
+    "rgb": 0.0077,
+    "alpha": 0
+  },
+  "isolation": {
+    "rgb": 0,
+    "alpha": 0,
+    "cacheHit": true,
+    "backend": "gpu"
+  },
+  "oneShot": {
+    "rgb": 0,
+    "alpha": 0,
+    "backend": "gpu",
+    "released": true
+  },
+  "transitionMatrix": [
+    {
+      "type": "fade",
+      "direction": "right",
+      "time": 1.9,
+      "rgb": 0,
+      "alpha": 0,
+      "premultipliedMax": 0,
+      "composite": null,
+      "allocations": 4
+    },
+    {
+      "type": "fade",
+      "direction": "right",
+      "time": 2.07,
+      "rgb": 0.121,
+      "alpha": 0.0017,
+      "premultipliedMax": 2,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "fade",
+      "direction": "right",
+      "time": 2.3,
+      "rgb": 0.0867,
+      "alpha": 0.003,
+      "premultipliedMax": 1,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "fade",
+      "direction": "right",
+      "time": 2.63,
+      "rgb": 0.118,
+      "alpha": 0.003,
+      "premultipliedMax": 2,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "fade",
+      "direction": "right",
+      "time": 2.8,
+      "rgb": 0,
+      "alpha": 0,
+      "premultipliedMax": 0,
+      "composite": null,
+      "allocations": 6
+    },
+    {
+      "type": "fade",
+      "direction": "right",
+      "time": 2.07,
+      "rgb": 0.121,
+      "alpha": 0.0017,
+      "premultipliedMax": 2,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "fade",
+      "direction": "right",
+      "seek": true,
+      "rgb": 0.1817,
+      "alpha": 0,
+      "premultipliedMax": 0,
+      "cpuDifference": {
+        "rgb": 0.1811,
+        "alpha": 0
+      }
+    },
+    {
+      "type": "wipe",
+      "direction": "right",
+      "time": 1.9,
+      "rgb": 0,
+      "alpha": 0,
+      "premultipliedMax": 0,
+      "composite": null,
+      "allocations": 4
+    },
+    {
+      "type": "wipe",
+      "direction": "right",
+      "time": 2.07,
+      "rgb": 0.4125,
+      "alpha": 0,
+      "premultipliedMax": 2,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "right",
+      "time": 2.3,
+      "rgb": 0.2874,
+      "alpha": 0,
+      "premultipliedMax": 2,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "right",
+      "time": 2.63,
+      "rgb": 0.0681,
+      "alpha": 0,
+      "premultipliedMax": 1,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "right",
+      "time": 2.8,
+      "rgb": 0,
+      "alpha": 0,
+      "premultipliedMax": 0,
+      "composite": null,
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "right",
+      "time": 2.07,
+      "rgb": 0.4125,
+      "alpha": 0,
+      "premultipliedMax": 2,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "right",
+      "seek": true,
+      "rgb": 0.0001,
+      "alpha": 0,
+      "premultipliedMax": 0,
+      "cpuDifference": {
+        "rgb": 0.0001,
+        "alpha": 0
+      }
+    },
+    {
+      "type": "wipe",
+      "direction": "left",
+      "time": 1.9,
+      "rgb": 0,
+      "alpha": 0,
+      "premultipliedMax": 0,
+      "composite": null,
+      "allocations": 4
+    },
+    {
+      "type": "wipe",
+      "direction": "left",
+      "time": 2.07,
+      "rgb": 0.4101,
+      "alpha": 0,
+      "premultipliedMax": 2,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "left",
+      "time": 2.3,
+      "rgb": 0.2128,
+      "alpha": 0,
+      "premultipliedMax": 2,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "left",
+      "time": 2.63,
+      "rgb": 0.0652,
+      "alpha": 0,
+      "premultipliedMax": 1,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "left",
+      "time": 2.8,
+      "rgb": 0,
+      "alpha": 0,
+      "premultipliedMax": 0,
+      "composite": null,
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "left",
+      "time": 2.07,
+      "rgb": 0.4101,
+      "alpha": 0,
+      "premultipliedMax": 2,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "left",
+      "seek": true,
+      "rgb": 0.0001,
+      "alpha": 0,
+      "premultipliedMax": 0,
+      "cpuDifference": {
+        "rgb": 0.0001,
+        "alpha": 0
+      }
+    },
+    {
+      "type": "wipe",
+      "direction": "up",
+      "time": 1.9,
+      "rgb": 0,
+      "alpha": 0,
+      "premultipliedMax": 0,
+      "composite": null,
+      "allocations": 4
+    },
+    {
+      "type": "wipe",
+      "direction": "up",
+      "time": 2.07,
+      "rgb": 0.412,
+      "alpha": 0,
+      "premultipliedMax": 2,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "up",
+      "time": 2.3,
+      "rgb": 0.2375,
+      "alpha": 0,
+      "premultipliedMax": 2,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "up",
+      "time": 2.63,
+      "rgb": 0.0672,
+      "alpha": 0,
+      "premultipliedMax": 1,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "up",
+      "time": 2.8,
+      "rgb": 0,
+      "alpha": 0,
+      "premultipliedMax": 0,
+      "composite": null,
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "up",
+      "time": 2.07,
+      "rgb": 0.412,
+      "alpha": 0,
+      "premultipliedMax": 2,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "up",
+      "seek": true,
+      "rgb": 0.0001,
+      "alpha": 0,
+      "premultipliedMax": 0,
+      "cpuDifference": {
+        "rgb": 0.0001,
+        "alpha": 0
+      }
+    },
+    {
+      "type": "wipe",
+      "direction": "down",
+      "time": 1.9,
+      "rgb": 0,
+      "alpha": 0,
+      "premultipliedMax": 0,
+      "composite": null,
+      "allocations": 4
+    },
+    {
+      "type": "wipe",
+      "direction": "down",
+      "time": 2.07,
+      "rgb": 0.412,
+      "alpha": 0,
+      "premultipliedMax": 2,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "down",
+      "time": 2.3,
+      "rgb": 0.2665,
+      "alpha": 0,
+      "premultipliedMax": 2,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "down",
+      "time": 2.63,
+      "rgb": 0.0677,
+      "alpha": 0,
+      "premultipliedMax": 1,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "down",
+      "time": 2.8,
+      "rgb": 0,
+      "alpha": 0,
+      "premultipliedMax": 0,
+      "composite": null,
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "down",
+      "time": 2.07,
+      "rgb": 0.412,
+      "alpha": 0,
+      "premultipliedMax": 2,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "wipe",
+      "direction": "down",
+      "seek": true,
+      "rgb": 0.0001,
+      "alpha": 0,
+      "premultipliedMax": 0,
+      "cpuDifference": {
+        "rgb": 0.0001,
+        "alpha": 0
+      }
+    },
+    {
+      "type": "dissolve",
+      "direction": "right",
+      "time": 1.9,
+      "rgb": 0,
+      "alpha": 0,
+      "premultipliedMax": 0,
+      "composite": null,
+      "allocations": 4
+    },
+    {
+      "type": "dissolve",
+      "direction": "right",
+      "time": 2.07,
+      "rgb": 0.4307,
+      "alpha": 0,
+      "premultipliedMax": 2,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "dissolve",
+      "direction": "right",
+      "time": 2.3,
+      "rgb": 0.2614,
+      "alpha": 0,
+      "premultipliedMax": 2,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "dissolve",
+      "direction": "right",
+      "time": 2.63,
+      "rgb": 0.0465,
+      "alpha": 0,
+      "premultipliedMax": 2,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "dissolve",
+      "direction": "right",
+      "time": 2.8,
+      "rgb": 0,
+      "alpha": 0,
+      "premultipliedMax": 0,
+      "composite": null,
+      "allocations": 6
+    },
+    {
+      "type": "dissolve",
+      "direction": "right",
+      "time": 2.07,
+      "rgb": 0.4307,
+      "alpha": 0,
+      "premultipliedMax": 2,
+      "composite": "gpu",
+      "allocations": 6
+    },
+    {
+      "type": "dissolve",
+      "direction": "right",
+      "seek": true,
+      "rgb": 0,
+      "alpha": 0,
+      "premultipliedMax": 0,
+      "cpuDifference": {
+        "rgb": 0,
+        "alpha": 0
+      }
+    }
+  ],
+  "transitionFailure": {
+    "rgb": 0,
+    "alpha": 0,
+    "backend": "cpu",
+    "reason": "gpu-transition-failed"
+  },
+  "transitionFallbacks": [
+    {
+      "mode": "default",
+      "rgb": 0,
+      "alpha": 0,
+      "composite": "cpu",
+      "passes": 4
+    },
+    {
+      "mode": "grid-change",
+      "rgb": 0,
+      "alpha": 0,
+      "composite": "cpu",
+      "passes": 4
+    },
+    {
+      "mode": "blackout",
+      "rgb": 0,
+      "alpha": 0,
+      "composite": "cpu",
+      "passes": 2
+    }
+  ]
+}

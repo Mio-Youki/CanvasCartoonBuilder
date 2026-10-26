@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+const ctx={};
+for(const file of ['home-scene-vnext.js','editor/effect-registry-vnext.js','editor/vnext-inspector-model.js','editor/vnext-effect-state.js','editor/vnext-scene.js','editor/classic-v4-inspector-effect-parameters.js'])new vm.Script(readFileSync(new URL('../'+file,import.meta.url),'utf8'),{filename:file}).runInNewContext(ctx);
+const api=ctx.ToSampoolRuntimeVNext.modules,state=ctx.EditorVNextEffectState,def=ctx.EditorEffectRegistryVNext.effectById['color-map'];
+const part={type:'rect',w:120,h:100,fill:'#ff0000',extensions:{nested:{enabled:true,style:'bands',direction:'out',count:3,color:'#0000ff'}}},geometry=api.pathGeometry.full(part);
+const paths=target=>api.pathExtensions.build(target,geometry).paths;
+assert.deepEqual(Array.from(paths(part),p=>p.color),['#aa0055','#5500aa','#0000ff']);
+const gradientPart={...part,fillPaint:{type:'radial',stops:[{offset:1,color:'#00ff00',alpha:.2},{offset:0,color:'#ff0000',alpha:1}]}};
+assert.equal(paths(gradientPart)[0].color,'#00aa55','渐变填充取最大offset的颜色，不是数组顺序或空间角度');
+gradientPart.fillPaint.stops[0].color='#ffffff';assert.equal(paths(gradientPart)[0].color,'#aaaaff','更改端点颜色必须失效缓存');
+assert.ok(paths({...part,extensions:{nested:{...part.extensions.nested,style:'fill'}}}).every(path=>path.color===undefined),'实心填充不引入插值');
+const a=state.defaults(def),b=state.defaults(def);a.gradient.stops[0].color='#ff0000';assert.equal(b.gradient.stops[0].color,'#000000','不同效果不能共享默认色标引用');
+assert.equal(b.mode,'discrete');assert.equal(b.colors,16);
+assert.deepEqual(Array.from(def.params.find(p=>p.key==='colors').options),[2,4,8,16,32,64]);
+for(const [raw,expected]of [[1,2],[3,4],[24,32],[64,64],[256,64]])assert.equal(state.normalizeParam(def,'colors',raw),expected);
+const planner=ctx.EditorClassicV4EffectParameters;
+const visible=values=>Array.from(planner.plan(def,def,{...b,...values}).params,p=>p.key);
+assert.deepEqual(visible({mode:'gradient'}),['mode','gradient']);
+assert.deepEqual(visible({palette:'auto'}),['mode','palette','colors']);
+assert.deepEqual(visible({palette:'pico8'}),['mode','palette']);
+const ramp=api.paint.ramp({type:'linear',stops:[{offset:0,color:'#ff0000',alpha:1},{offset:1,color:'#0000ff',alpha:0}]});
+assert.deepEqual(Array.from(ramp.slice(0,4)),[255,0,0,255]);assert.deepEqual(Array.from(ramp.slice(-4)),[0,0,255,0]);
+assert.ok(Math.abs(ramp[128*4]-127)<=1&&Math.abs(ramp[128*4+2]-128)<=1&&Math.abs(ramp[128*4+3]-127)<=1);
+for(const curve of [0,.06,.12,.2,1]){
+  const s=api.crtScreen.fitScale(curve);assert.ok(s>0&&s<=1);assert.ok(s+.48*curve*s**3<=1+1e-8);
+  if(curve)assert.ok((s+1e-6)+.48*curve*(s+1e-6)**3>1,'必须取最小裁切而非随意放大');
+  assert.equal(api.crtScreen.fitScale(curve,{type:'rect'}),1);
+}
+const scene=ctx.EditorVNextScene.blank();scene.sceneEffects.sample['color-map']={enabled:true,colors:256};
+const normalized=ctx.EditorVNextScene.normalize(scene).sceneEffects.sample['color-map'];assert.equal(normalized.colors,64);assert.equal(normalized.mode,'discrete');
+console.log('✓ 10-20合同：色带终值／渐变末端／缓存／独立默认值／六档减色／互斥参数／渐变LUT／最小CRT裁切与蒙版例外');

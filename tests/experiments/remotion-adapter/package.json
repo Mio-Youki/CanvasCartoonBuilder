@@ -1,0 +1,14 @@
+{
+  "name": "tosampool-remotion-adapter-experiment",
+  "private": true,
+  "type": "module",
+  "description": "Isolated dependency and Canvas adapter experiment; not a product dependency.",
+  "dependencies": {
+    "@remotion/effects": "4.0.538",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}

@@ -1,0 +1,449 @@
+{
+  "date": "2026-10-24",
+  "quick": true,
+  "environment": {
+    "browser": "156.0.4314.42",
+    "os": "win32",
+    "viewport": [
+      1600,
+      1000
+    ],
+    "deviceScaleFactor": 1,
+    "headless": true,
+    "renderer": null
+  },
+  "source": {
+    "photo": "examples/assets/karsten.jpg",
+    "photoSha256": "b20837c8ac5f32639afd905a9c9f362f69a2bd4465d55de0d1175ae3a539a661",
+    "runtimeSha256": "7465072ea18d2ed62ad725ef763c00b7028b8b48dd27f63ad7e21c8350f1a082",
+    "viewSha256": "495d02c7e1160ab272c081470241072d7edb132728fbc490da567c768b24e730"
+  },
+  "method": {
+    "samples": 16,
+    "warmup": 4,
+    "grid": 4,
+    "diagnostic": true,
+    "diagnosticCase": "none",
+    "deviceTiming": "not-collected; GPU submission is not GPU execution",
+    "singleRun": true
+  },
+  "gates": {
+    "visual": true,
+    "resources": true,
+    "pageErrors": true
+  },
+  "errors": [],
+  "limitations": [
+    "Non-divisible Canvas nearest-neighbor rounding remains a known visual blocker; aligned-grid results are not general acceptance."
+  ],
+  "renderer": null,
+  "extensions": null,
+  "rows": [
+    {
+      "size": [
+        1920,
+        1080
+      ],
+      "mode": "none",
+      "dynamic": false,
+      "requested": "cpu",
+      "actual": "cpu",
+      "reason": null,
+      "initial": {
+        "editorRenderMs": 47,
+        "playerPrepareMs": 41.19999998807907,
+        "runtimeCallMs": 5.600000023841858,
+        "playerCreated": true,
+        "backend": "cpu",
+        "initialized": false
+      },
+      "warmup": 4,
+      "samples": 16,
+      "editorRenderMs": {
+        "samples": 16,
+        "p50": 0.9000000357627869,
+        "p95": 3,
+        "max": 3
+      },
+      "runtimeCallMs": {
+        "samples": 16,
+        "p50": 0.699999988079071,
+        "p95": 2.600000023841858,
+        "max": 2.600000023841858
+      },
+      "prepareMs": {
+        "samples": 16,
+        "p50": 0,
+        "p95": 0.10000002384185791,
+        "max": 0.10000002384185791
+      },
+      "outerViewCallMs": {
+        "samples": 16,
+        "p50": 1.5,
+        "p95": 3.5,
+        "max": 3.5
+      },
+      "actualRafArrivalGapMs": {
+        "samples": 15,
+        "p50": 16.69999998807907,
+        "p95": 76,
+        "max": 76
+      },
+      "rafTimestampGapMs": {
+        "samples": 15,
+        "p50": 16.600000000000136,
+        "p95": 66.59999999999991,
+        "max": 66.59999999999991
+      },
+      "deviceGpuMs": null,
+      "deviceTiming": "not-collected",
+      "initializationsDuringSamples": [],
+      "extraTextureAllocations": 0,
+      "uploads": 0,
+      "passes": 0,
+      "textureBytes": 0,
+      "workPixels": 0,
+      "pixelPasses": 0,
+      "sourcePaintStates": [
+        {
+          "smoothing": false,
+          "quality": "low",
+          "alpha": 1,
+          "matrix": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "smoothing": true,
+          "quality": "low",
+          "alpha": 0.85,
+          "matrix": [
+            1,
+            0,
+            0,
+            1,
+            960,
+            540
+          ]
+        }
+      ],
+      "fixedTime": 0.9000000000000004,
+      "raw": [
+        {
+          "editor": 1,
+          "runtime": 0.699999988079071,
+          "prepare": 0,
+          "outer": 1.2000000476837158
+        },
+        {
+          "editor": 1.399999976158142,
+          "runtime": 1.199999988079071,
+          "prepare": 0,
+          "outer": 1.9000000357627869
+        },
+        {
+          "editor": 3,
+          "runtime": 2.600000023841858,
+          "prepare": 0,
+          "outer": 3.5
+        },
+        {
+          "editor": 1.0999999642372131,
+          "runtime": 1,
+          "prepare": 0,
+          "outer": 1.600000023841858
+        },
+        {
+          "editor": 1.300000011920929,
+          "runtime": 0.800000011920929,
+          "prepare": 0,
+          "outer": 1.7000000476837158
+        },
+        {
+          "editor": 0.9000000357627869,
+          "runtime": 0.699999988079071,
+          "prepare": 0,
+          "outer": 1.5
+        },
+        {
+          "editor": 0.699999988079071,
+          "runtime": 0.5,
+          "prepare": 0,
+          "outer": 0.8999999761581421
+        },
+        {
+          "editor": 0.8999999761581421,
+          "runtime": 0.699999988079071,
+          "prepare": 0.10000002384185791,
+          "outer": 1.399999976158142
+        },
+        {
+          "editor": 0.800000011920929,
+          "runtime": 0.6000000238418579,
+          "prepare": 0,
+          "outer": 1.0999999642372131
+        },
+        {
+          "editor": 1.100000023841858,
+          "runtime": 0.8999999761581421,
+          "prepare": 0,
+          "outer": 1.4000000357627869
+        },
+        {
+          "editor": 0.800000011920929,
+          "runtime": 0.5,
+          "prepare": 0,
+          "outer": 1.300000011920929
+        },
+        {
+          "editor": 1.100000023841858,
+          "runtime": 0.9000000357627869,
+          "prepare": 0,
+          "outer": 1.5999999642372131
+        },
+        {
+          "editor": 0.800000011920929,
+          "runtime": 0.699999988079071,
+          "prepare": 0.10000002384185791,
+          "outer": 1.699999988079071
+        },
+        {
+          "editor": 0.9000000357627869,
+          "runtime": 0.6000000238418579,
+          "prepare": 0,
+          "outer": 1.600000023841858
+        },
+        {
+          "editor": 1.300000011920929,
+          "runtime": 1.0999999642372131,
+          "prepare": 0,
+          "outer": 1.899999976158142
+        },
+        {
+          "editor": 0.699999988079071,
+          "runtime": 0.6000000238418579,
+          "prepare": 0,
+          "outer": 1.199999988079071
+        }
+      ],
+      "liveTexturesAfterRelease": 0
+    },
+    {
+      "size": [
+        1920,
+        1080
+      ],
+      "mode": "none",
+      "dynamic": false,
+      "requested": "gpu-experimental",
+      "actual": "cpu",
+      "reason": "no-supported-effect",
+      "initial": {
+        "editorRenderMs": 22.80000001192093,
+        "playerPrepareMs": 16.5,
+        "runtimeCallMs": 5.399999976158142,
+        "playerCreated": true,
+        "backend": "cpu",
+        "initialized": false
+      },
+      "warmup": 4,
+      "samples": 16,
+      "editorRenderMs": {
+        "samples": 16,
+        "p50": 0.699999988079071,
+        "p95": 1.600000023841858,
+        "max": 1.600000023841858
+      },
+      "runtimeCallMs": {
+        "samples": 16,
+        "p50": 0.5,
+        "p95": 1.5,
+        "max": 1.5
+      },
+      "prepareMs": {
+        "samples": 16,
+        "p50": 0,
+        "p95": 0.09999996423721313,
+        "max": 0.09999996423721313
+      },
+      "outerViewCallMs": {
+        "samples": 16,
+        "p50": 0.9000000357627869,
+        "p95": 1.9000000357627869,
+        "max": 1.9000000357627869
+      },
+      "actualRafArrivalGapMs": {
+        "samples": 15,
+        "p50": 16.600000023841858,
+        "p95": 17.400000035762787,
+        "max": 17.400000035762787
+      },
+      "rafTimestampGapMs": {
+        "samples": 15,
+        "p50": 16.600000000000136,
+        "p95": 16.800000000000182,
+        "max": 16.800000000000182
+      },
+      "deviceGpuMs": null,
+      "deviceTiming": "not-collected",
+      "initializationsDuringSamples": [],
+      "extraTextureAllocations": 0,
+      "uploads": 0,
+      "passes": 0,
+      "textureBytes": 0,
+      "workPixels": 0,
+      "pixelPasses": 0,
+      "sourcePaintStates": [
+        {
+          "smoothing": false,
+          "quality": "low",
+          "alpha": 1,
+          "matrix": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ]
+        },
+        {
+          "smoothing": true,
+          "quality": "low",
+          "alpha": 0.85,
+          "matrix": [
+            1,
+            0,
+            0,
+            1,
+            960,
+            540
+          ]
+        }
+      ],
+      "fixedTime": 0.9000000000000004,
+      "raw": [
+        {
+          "editor": 0.699999988079071,
+          "runtime": 0.5,
+          "prepare": 0,
+          "outer": 1
+        },
+        {
+          "editor": 1,
+          "runtime": 0.6000000238418579,
+          "prepare": 0,
+          "outer": 1.4000000357627869
+        },
+        {
+          "editor": 0.699999988079071,
+          "runtime": 0.5,
+          "prepare": 0.09999996423721313,
+          "outer": 1
+        },
+        {
+          "editor": 1.600000023841858,
+          "runtime": 1.5,
+          "prepare": 0,
+          "outer": 1.9000000357627869
+        },
+        {
+          "editor": 0.7000000476837158,
+          "runtime": 0.6000000238418579,
+          "prepare": 0,
+          "outer": 0.9000000357627869
+        },
+        {
+          "editor": 0.6000000238418579,
+          "runtime": 0.5,
+          "prepare": 0,
+          "outer": 0.800000011920929
+        },
+        {
+          "editor": 0.800000011920929,
+          "runtime": 0.6000000238418579,
+          "prepare": 0,
+          "outer": 1.300000011920929
+        },
+        {
+          "editor": 0.5999999642372131,
+          "runtime": 0.3999999761581421,
+          "prepare": 0,
+          "outer": 0.8999999761581421
+        },
+        {
+          "editor": 0.699999988079071,
+          "runtime": 0.5,
+          "prepare": 0,
+          "outer": 0.8999999761581421
+        },
+        {
+          "editor": 0.5999999642372131,
+          "runtime": 0.40000003576278687,
+          "prepare": 0,
+          "outer": 0.8999999761581421
+        },
+        {
+          "editor": 0.6000000238418579,
+          "runtime": 0.5,
+          "prepare": 0,
+          "outer": 0.800000011920929
+        },
+        {
+          "editor": 0.6000000238418579,
+          "runtime": 0.5,
+          "prepare": 0,
+          "outer": 0.800000011920929
+        },
+        {
+          "editor": 0.699999988079071,
+          "runtime": 0.5999999642372131,
+          "prepare": 0,
+          "outer": 0.9000000357627869
+        },
+        {
+          "editor": 0.699999988079071,
+          "runtime": 0.5,
+          "prepare": 0.09999996423721313,
+          "outer": 1.0999999642372131
+        },
+        {
+          "editor": 0.699999988079071,
+          "runtime": 0.5,
+          "prepare": 0,
+          "outer": 0.8999999761581421
+        },
+        {
+          "editor": 0.699999988079071,
+          "runtime": 0.6000000238418579,
+          "prepare": 0,
+          "outer": 1
+        }
+      ],
+      "liveTexturesAfterRelease": 0
+    }
+  ],
+  "visual": [
+    {
+      "size": [
+        1920,
+        1080
+      ],
+      "mode": "none",
+      "dynamic": false,
+      "preMax": 0,
+      "alphaMax": 0,
+      "channelsOver2": 0,
+      "first": []
+    }
+  ],
+  "scheduling": [],
+  "liveTexturesAtEnd": 0,
+  "policy": "full; no source version cache; default Canvas final transitions",
+  "forcedMode": "paused direct editor view.render, one request per RAF; not native playback FPS"
+}

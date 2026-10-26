@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+const box={};new vm.Script(readFileSync(new URL('../home-scene-vnext.js',import.meta.url),'utf8')).runInNewContext(box);
+const {pathStroke:s,pathGeometry:g,pathEndpoints:e,pathExtensions:x}=box.ToSampoolRuntimeVNext.modules;
+const part={type:'rect',x:0,y:0,w:100,h:60,stroke:'#fff',strokeWidth:2,pathRevealEnabled:true,strokeCompletion:25,pathStart:.25,strokeReverse:true,fillReveal:'center',pathEndpoints:{enabled:true,end:true},extensions:{ticks:{enabled:true,count:20},nested:{enabled:true,pathStep:.1}}};
+const before=JSON.stringify(part),off={...part,pathRevealEnabled:false},geometry=g.full(part),visible=p=>g.visible(p,geometry.stroke,true).points;
+assert.ok(s.pathLengths(visible(part)).total<s.pathLengths(visible(off)).total);
+assert.equal(s.progress(off).strokeCompletion,100);assert.equal(s.progress(off).fillReveal,'none');assert.equal(e.placements(off,geometry).length,0);
+assert.equal(x.visible(off,.9,true),true);assert.equal(x.visible(part,.9,true),false);
+assert.equal(JSON.stringify(part),before,'关闭显现不能改写原始值');assert.equal(s.progress({...off,pathRevealEnabled:true}).strokeCompletion,25);
+assert.equal(s.normalize({type:'rect'}).pathRevealEnabled,false);assert.equal(s.normalize({type:'rect',strokeCompletion:20}).pathRevealEnabled,true);
+assert.equal(s.normalize({type:'rect',strokeCompletion:20,pathRevealEnabled:false}).pathRevealEnabled,false);
+console.log('✓ 路径显现合同：缺省关闭／关闭完整显示／保留原值／端点旁路／拓展同步');

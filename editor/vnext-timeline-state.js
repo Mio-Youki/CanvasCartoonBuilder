@@ -91,7 +91,28 @@
     input.segments = merged.length ? merged : [{ f:[0, 1], values:{} }];
     return input;
   }
-  function clearSegment(scene,key,index){const input=track(scene,key),segment=input.segments[index];if(!segment)return false;segment.type='step';segment.values={};delete segment.from;delete segment.to;delete segment.linearKeys;coalesceTrack(input);return true;}
+  function clearSegment(scene,key,index,options){const input=track(scene,key),segment=input.segments[index];if(!segment)return false;segment.type='step';segment.values={};delete segment.from;delete segment.to;delete segment.linearKeys;if(!options?.preserveCut)coalesceTrack(input);return true;}
+  function clearSegmentPrefix(scene,key,index,prefix){
+    const input=track(scene,key),segment=input.segments[index];
+    if(!segment||segment.type==='linear')return false;
+    const values=segment.values||{},matches=Object.keys(values).filter(name=>name===prefix||name.startsWith(prefix+'.'));
+    if(!matches.length)return false;
+    for(const name of matches)delete values[name];
+    segment.values=values;
+    coalesceTrack(input);
+    return true;
+  }
+  function clearSegmentBase(scene,key,index){
+    const input=track(scene,key),segment=input.segments[index];
+    if(!segment)return false;
+    if(segment.type==='linear')return clearSegment(scene,key,index);
+    const values=segment.values||{},names=Object.keys(values).filter(name=>!name.startsWith('anim.'));
+    if(!names.length)return false;
+    for(const name of names)delete values[name];
+    segment.values=values;
+    coalesceTrack(input);
+    return true;
+  }
   function moveBoundary(scene,key,boundaryIndex,rel){const input=track(scene,key),left=input.segments[boundaryIndex],right=input.segments[boundaryIndex+1],position=finiteRel(rel);if(!left||!right)throw new Error('找不到要移动的参数时段边界');if(position<=+left.f[0]+EPSILON||position>=+right.f[1]-EPSILON)return false;left.f[1]=position;right.f[0]=position;return true;}
   function clear(scene, key) { const all = tracks(scene); if (!all[key]) return false; delete all[key]; return true; }
   function visibility(scene, ownerId, create) {
@@ -180,5 +201,5 @@
   // top-level Scene.  Moving Scene boundaries therefore never invalidates a
   // background cut or changes its visual proportion.
   function keyForSceneBackground(sceneId) { if (!sceneId) throw new Error('场景背景时序需要稳定 Scene id'); return `scene-background:${sceneId}`; }
-  global.EditorVNextTimelineState = Object.freeze({ EPSILON, sceneSegments, sceneAt, renameScene, insertScene, moveSceneBoundary, removeScene, track, at, split, setStep, setLinear, clearSegment, coalesceTrack, moveBoundary, clear, visibility, visibilityAt, splitVisibility, alignTrackToVisibility, setVisibility, toggleVisibility, moveVisibilityBoundary, clearVisibility, keyForEntity, keyForEffect, keyForController, keyForSceneBackground });
+  global.EditorVNextTimelineState = Object.freeze({ EPSILON, sceneSegments, sceneAt, renameScene, insertScene, moveSceneBoundary, removeScene, track, at, split, setStep, setLinear, clearSegment, clearSegmentPrefix, clearSegmentBase, coalesceTrack, moveBoundary, clear, visibility, visibilityAt, splitVisibility, alignTrackToVisibility, setVisibility, toggleVisibility, moveVisibilityBoundary, clearVisibility, keyForEntity, keyForEffect, keyForController, keyForSceneBackground });
 })(typeof window !== 'undefined' ? window : globalThis);

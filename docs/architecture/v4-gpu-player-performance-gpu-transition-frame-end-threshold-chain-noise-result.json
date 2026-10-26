@@ -1,0 +1,456 @@
+{
+  "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "framesPerCase": 64,
+  "canvasTransition": false,
+  "profile": false,
+  "profileApi": false,
+  "gpuStages": false,
+  "frameEndValidation": true,
+  "fixedSurfaces": false,
+  "traceSurfaces": false,
+  "repetitions": 1,
+  "withThreshold": true,
+  "withNoise": true,
+  "rows": [
+    {
+      "size": "640x360",
+      "mode": "single",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 23.5,
+        "p95": 26.7,
+        "max": 31.7
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 33.4,
+        "max": 349.7
+      },
+      "over25msPercent": 42.86,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 0
+    },
+    {
+      "size": "640x360",
+      "mode": "single",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 4.4,
+        "p95": 5.2,
+        "max": 6.4
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "gpuContextQueryMs": {
+        "median": 12.55,
+        "p95": 13.78,
+        "max": 14.46
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 3.79,
+      "frameUploads": 1,
+      "framePasses": 8,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 0
+    },
+    {
+      "size": "640x360",
+      "mode": "single-mask",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 35.4,
+        "p95": 38,
+        "max": 47.1
+      },
+      "frameGapMs": {
+        "median": 33.3,
+        "p95": 50,
+        "max": 549.47
+      },
+      "over25msPercent": 100,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 0
+    },
+    {
+      "size": "640x360",
+      "mode": "single-mask",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 8.5,
+        "p95": 11.2,
+        "max": 14.7
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.7,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "gpuContextQueryMs": {
+        "median": 8.78,
+        "p95": 10.34,
+        "max": 11.53
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 3.79,
+      "frameUploads": 5,
+      "framePasses": 8,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 0
+    },
+    {
+      "size": "640x360",
+      "mode": "dual-mask",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 72.1,
+        "p95": 84.1,
+        "max": 116.4
+      },
+      "frameGapMs": {
+        "median": 66.7,
+        "p95": 99.8,
+        "max": 699.17
+      },
+      "over25msPercent": 100,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": "cpu",
+      "transitionCompositeBackend": "cpu",
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 1146,
+      "repetition": 0
+    },
+    {
+      "size": "640x360",
+      "mode": "dual-mask",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 14.7,
+        "p95": 17.3,
+        "max": 19.4
+      },
+      "frameGapMs": {
+        "median": 16.6,
+        "p95": 16.7,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "gpuContextQueryMs": {
+        "median": 4.25,
+        "p95": 6.81,
+        "max": 8.54
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": "gpu",
+      "transitionCompositeBackend": "gpu",
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 5.55,
+      "frameUploads": 10,
+      "framePasses": 17,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 428,
+      "repetition": 0
+    },
+    {
+      "size": "1920x1080",
+      "mode": "single",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 142.3,
+        "p95": 156.3,
+        "max": 185.9
+      },
+      "frameGapMs": {
+        "median": 149.8,
+        "p95": 166.6,
+        "max": 1348.54
+      },
+      "over25msPercent": 100,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 0
+    },
+    {
+      "size": "1920x1080",
+      "mode": "single",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 5.8,
+        "p95": 7.5,
+        "max": 12.3
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 16.8,
+        "max": 16.8
+      },
+      "over25msPercent": 0,
+      "gpuContextQueryMs": {
+        "median": 10.6,
+        "p95": 11.37,
+        "max": 11.85
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 33.52,
+      "frameUploads": 1,
+      "framePasses": 8,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 0
+    },
+    {
+      "size": "1920x1080",
+      "mode": "single-mask",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 162.6,
+        "p95": 185.9,
+        "max": 204.5
+      },
+      "frameGapMs": {
+        "median": 166.5,
+        "p95": 199.8,
+        "max": 1498.34
+      },
+      "over25msPercent": 100,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 0
+    },
+    {
+      "size": "1920x1080",
+      "mode": "single-mask",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 18.1,
+        "p95": 22.2,
+        "max": 92.9
+      },
+      "frameGapMs": {
+        "median": 16.7,
+        "p95": 33.3,
+        "max": 83.3
+      },
+      "over25msPercent": 17.46,
+      "gpuContextQueryMs": {
+        "median": 8.05,
+        "p95": 10.37,
+        "max": 12.02
+      },
+      "gpuSamples": 64,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": null,
+      "transitionCompositeBackend": null,
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 33.52,
+      "frameUploads": 5,
+      "framePasses": 8,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 0,
+      "repetition": 0
+    },
+    {
+      "size": "1920x1080",
+      "mode": "dual-mask",
+      "backend": "cpu",
+      "mainThreadMs": {
+        "median": 312.9,
+        "p95": 345.8,
+        "max": 353.5
+      },
+      "frameGapMs": {
+        "median": 316.3,
+        "p95": 349.7,
+        "max": 2830.21
+      },
+      "over25msPercent": 100,
+      "gpuContextQueryMs": null,
+      "gpuSamples": 0,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "cpu",
+      "previousBackend": "cpu",
+      "transitionCompositeBackend": "cpu",
+      "contexts": 0,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 0,
+      "frameUploads": 0,
+      "framePasses": 0,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 1146,
+      "repetition": 0
+    },
+    {
+      "size": "1920x1080",
+      "mode": "dual-mask",
+      "backend": "gpu",
+      "mainThreadMs": {
+        "median": 37.3,
+        "p95": 45.8,
+        "max": 218.4
+      },
+      "frameGapMs": {
+        "median": 33.4,
+        "p95": 50.1,
+        "max": 216.4
+      },
+      "over25msPercent": 95.24,
+      "gpuContextQueryMs": {
+        "median": 18.31,
+        "p95": 21.21,
+        "max": 23.01
+      },
+      "gpuSamples": 62,
+      "disjoint": false,
+      "error": 0,
+      "actualBackend": "gpu",
+      "previousBackend": "gpu",
+      "transitionCompositeBackend": "gpu",
+      "contexts": 1,
+      "texturesAdded": 0,
+      "gpuTextureMiB": 49.34,
+      "frameUploads": 10,
+      "framePasses": 17,
+      "backingWrites": 0,
+      "previousSurfaceReuses": 428,
+      "repetition": 0
+    }
+  ],
+  "visual": [
+    {
+      "repetition": 0,
+      "size": "640x360",
+      "mode": "single",
+      "rgb": 0.0795,
+      "alpha": 0
+    },
+    {
+      "repetition": 0,
+      "size": "640x360",
+      "mode": "single-mask",
+      "rgb": 0.0195,
+      "alpha": 0
+    },
+    {
+      "repetition": 0,
+      "size": "640x360",
+      "mode": "dual-mask",
+      "rgb": 0.0052,
+      "alpha": 0
+    },
+    {
+      "repetition": 0,
+      "size": "1920x1080",
+      "mode": "single",
+      "rgb": 0,
+      "alpha": 0
+    },
+    {
+      "repetition": 0,
+      "size": "1920x1080",
+      "mode": "single-mask",
+      "rgb": 0.0001,
+      "alpha": 0
+    },
+    {
+      "repetition": 0,
+      "size": "1920x1080",
+      "mode": "dual-mask",
+      "rgb": 0.0001,
+      "alpha": 0
+    }
+  ]
+}

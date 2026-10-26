@@ -1,0 +1,37 @@
+import assert from 'node:assert/strict';
+import {existsSync,mkdirSync,readFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {chromium} from 'playwright-core';
+const root=resolve(import.meta.dirname,'../..'),edge=[process.env.TOSAMPOOL_EDGE_PATH,'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find(p=>p&&existsSync(p)),browser=await chromium.launch({executablePath:edge,headless:true});
+try{
+ const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];page.on('pageerror',e=>errors.push(String(e)));
+ await page.goto(pathToFileURL(resolve(root,'img2asset-v4-classic.html')).href);await page.waitForFunction(()=>window.classicV4Patterns);
+ await page.evaluate(()=>{if(state.playing)togglePlay();ToSampoolV4Workspace.createBlank({width:480,height:300,loop:4});classicV4View.select(null);EditorV4Resources.addPattern(ToSampoolV4Workspace.current(),{id:'legacy-brackets',engineId:'brackets',name:'旧自定义本体',params:{}});});
+ await page.locator('#toolbar-pattern').click();const card=page.locator('[data-pattern-id="brackets"]');await card.locator('.asset-card-action.add').click();assert.equal(await page.locator('[data-pattern-carriers]').count(),0);
+ const canvas=page.locator('#'+await page.evaluate(()=>classicV4View.canvas.id)),box=await canvas.boundingBox();await page.mouse.move(box.x+box.width*.2,box.y+box.height*.2);await page.mouse.down();await page.mouse.move(box.x+box.width*.8,box.y+box.height*.8,{steps:5});await page.mouse.up();
+ let part=await page.evaluate(()=>ToSampoolV4Workspace.current().entities[0].parts[0]);assert.equal(part.type,'custom');assert.equal(part.recipe.id,'brackets');
+ const field=k=>page.locator('[data-extension-param="brackets.'+k+'"]'),image=()=>page.evaluate(async()=>{await classicV4View.render();return classicV4View.canvas.toDataURL();});
+ assert.equal(await field('enabled').count(),0);assert.equal(await field('armY').count(),0);await field('width').fill('12');await field('width').press('Tab');
+ const before=await image();await field('side').selectOption('left');assert.notEqual(await image(),before);await page.evaluate(()=>classicV4Changes.undo());assert.equal(await image(),before);
+ await field('offsetX').fill('-35');await field('offsetX').press('Tab');await field('offsetY').fill('20');await field('offsetY').press('Tab');assert.notEqual(await image(),before);await page.evaluate(()=>classicV4Changes.undo());await page.evaluate(()=>classicV4Changes.undo());assert.equal(await image(),before,'偏移撤销必须恢复真实画面');
+ await field('layout').selectOption('corners');assert.equal(await field('side').count(),0);await field('corners').selectOption('tl');await field('armX').fill('100');await field('armX').press('Tab');await field('armY').fill('70');await field('armY').press('Tab');
+ await field('radius').fill('4');await field('radius').press('Tab');const square=await image();await field('shape').selectOption('round');assert.equal(await field('radius').count(),0);assert.notEqual(await image(),square);await field('shape').selectOption('square');assert.equal(await field('radius').inputValue(),'4');
+ const dir=resolve(root,'docs/design/evidence/brackets-2026-10-18');mkdirSync(dir,{recursive:true});await page.screenshot({path:resolve(dir,'custom.png')});
+ await page.evaluate(()=>document.activeElement?.blur());await page.keyboard.press('Control+c');await page.keyboard.press('Control+v');let copies=await page.evaluate(()=>ToSampoolV4Workspace.current().entities[0].parts);assert.equal(copies.length,2);assert.deepEqual(copies[0].recipe,copies[1].recipe);await page.evaluate(()=>classicV4Changes.undo());
+ const html=await page.evaluate(async()=>{const pkg=await EditorVNextProjectPackage.build(ToSampoolV4Workspace.current()),scene=(await EditorVNextProjectPackage.restore(pkg.files)).scene;if(scene.entities[0].parts[0].recipe.params.corners!=='tl')throw Error('重开丢参数');return EditorVNextDeliveryBuilder.embedHtml({scene,name:'brackets',runtimeSource:window.__TOSAMPOOL_RUNTIME_VNEXT_SOURCE__}).data;});
+ const out=await browser.newPage();out.on('pageerror',e=>errors.push(String(e)));await out.setContent(html);await out.waitForFunction(()=>document.querySelector('[data-tosampool-ready="1"]'));await out.close();
+ await page.evaluate(()=>{ToSampoolV4Workspace.createBlank({width:480,height:300,loop:4});ToSampoolV4Workspace.mutate(s=>s.entities=[{id:'o',type:'vector',x:60,y:50,w:240,h:160,parts:[{id:'p',type:'ellipse',x:0,y:0,w:240,h:160,stroke:'#70b9d0',strokeWidth:2,fill:null}]}]);classicV4View.select('o');});
+ await page.locator('#toolbar-pattern').click();await card.locator('.asset-card-action.add').click();part=await page.evaluate(()=>ToSampoolV4Workspace.current().entities[0].parts[0]);assert.equal(part.type,'ellipse');assert.equal(part.extensions.brackets.enabled,true);await field('layout').selectOption('corners');await field('corners').selectOption('bl-tr');
+ await field('offsetX').fill('-45');await field('offsetX').press('Tab');await field('offsetY').fill('30');await field('offsetY').press('Tab');
+ const offsets=await page.evaluate(async()=>{const p=await EditorVNextProjectPackage.build(ToSampoolV4Workspace.current()),s=(await EditorVNextProjectPackage.restore(p.files)).scene;return s.entities[0].parts[0].extensions.brackets;});assert.equal(offsets.offsetX,-45);assert.equal(offsets.offsetY,30);
+ const saved=await page.evaluate(()=>JSON.stringify(ToSampoolV4Workspace.current().entities[0].parts[0].extensions.brackets));await card.locator('.asset-card-action.add').click();assert.equal(await page.evaluate(()=>JSON.stringify(ToSampoolV4Workspace.current().entities[0].parts[0].extensions.brackets)),saved);
+ await field('enabled').uncheck();await card.locator('.asset-card-action.add').click();assert.equal(await field('corners').inputValue(),'bl-tr');
+ await page.screenshot({path:resolve(dir,'applied.png')});
+ const alpha=await page.evaluate(()=>{const s={format:'tosampool-scene/v4',width:120,height:120,loop:4,background:{alpha:0},entities:[{id:'a',type:'vector',parts:[{id:'p',type:'custom',x:10,y:10,w:100,h:100,stroke:'#fff',strokeWidth:10,strokeAlpha:.5,recipe:{id:'brackets',version:1,params:{layout:'corners',corners:'tl-br',armX:100,armY:100}}}]}]},r=ToSampoolRuntimeVNext.createRuntime(s),c=document.createElement('canvas');r.renderTo(c,0);const a=Array.from(c.getContext('2d').getImageData(0,0,120,120).data).filter((_,i)=>i%4===3);r.dispose();return Math.max(...a);});assert.equal(alpha,128,'交叠处不能重复乘透明度');
+ const text=readFileSync(resolve(root,'examples/agent-brackets-g4/project.tosampool.json'),'utf8');
+ await page.evaluate(text=>{window.showOpenFilePicker=async()=>[{getFile:async()=>new File([text],'brackets.tosampool.json',{type:'application/json'})}];},text);await page.locator('#btn-open').click();await page.waitForFunction(()=>ToSampoolV4Workspace.current().entities.length===6);await page.evaluate(async()=>{if(state.playing)togglePlay();await classicV4View.render();});
+ await page.locator('#'+await page.evaluate(()=>classicV4View.canvas.id)).screenshot({path:resolve(dir,'agent-variations.png')});
+ assert.deepEqual(errors,[]);
+ console.log('✓ 括号浏览器：新建／渐进参数／实际画面／撤销／切换保值／复制／工程HTML／椭圆应用／重复导航与重新启用');
+}finally{await browser.close();}

@@ -30,4 +30,14 @@ const layers=codec.fromEffect({texture:'lines-layers',size:1,spacing:5,angle:0,l
 assert.equal(layers.layers.length,3);
 assert.equal(codec.toEffect(layers).layer3Spacing,11);
 
+const custom={texture:'custom',tileWidth:2,tileHeight:2,tileScale:3,tileScaleMode:'pixel',tilePixels:['#f0f0f0ff','#808080ff','#00000000','#20202080'],phaseX:.25,phaseY:.75};
+const customPattern=codec.fromEffect(custom);
+assert.equal(customPattern.type,'custom');
+assert.deepEqual(plain(codec.toEffect(customPattern)),custom,'自定义格子颜色、透明度、尺寸与偏移必须往返保留');
+const changed=plain(codec.editPatch(codec.fromEffect({texture:'lines-horizontal',size:2,spacing:8}),codec.fromEffect({texture:'lines-horizontal',size:12,spacing:12}),'size'));
+assert.deepEqual(changed,{size:12,spacing:12},'纹理操作仅写变化和联动字段，不提交整份参数快照');
+const resized=codec.fromEffect({...custom,tileWidth:3,tilePixels:[...custom.tilePixels,'#00000000','#00000000']});
+assert.deepEqual(Object.keys(codec.editPatch(customPattern,resized,'tileWidth')).sort(),['tileHeight','tilePixels','tileWidth']);
+assert.deepEqual(plain(codec.editPatch(customPattern,customPattern,'tileWidth')),{},'无变化的操作不产生时序或历史');
+
 console.log('✓ V4 叠加图样编解码：点阵、网格、叠线与相位往返一致');

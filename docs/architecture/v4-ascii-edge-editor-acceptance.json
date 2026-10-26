@@ -1,0 +1,307 @@
+{
+  "host": "edge-editor",
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+    "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00005917) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "tauri": false,
+    "visibility": "visible",
+    "entry": "/img2asset-v4-classic.html"
+  },
+  "nativeShell": null,
+  "runtimeSha256": "c7644f05b095a0be32a1f508029e69528f321369cafa41b3205464ebcf5b44c4",
+  "functional": {
+    "results": [
+      {
+        "kind": "ascii",
+        "first": "1a3e9d2f",
+        "moving": "d7f998a5",
+        "step": "23ba8e1d",
+        "repeat": "1a3e9d2f",
+        "changed": "96473adf",
+        "undone": "1a3e9d2f",
+        "cpuHash": "1a3e9d2f",
+        "cpuFallback": true,
+        "sizes": [
+          6,
+          9
+        ],
+        "analysis": "gpu"
+      },
+      {
+        "kind": "masked",
+        "first": "b100fcbf",
+        "moving": "2a7342d9",
+        "step": "3cd24031",
+        "repeat": "b100fcbf",
+        "changed": "db64d375",
+        "undone": "b100fcbf",
+        "cpuHash": "b100fcbf",
+        "cpuFallback": true,
+        "sizes": [
+          6,
+          9
+        ],
+        "analysis": "gpu"
+      },
+      {
+        "kind": "combo",
+        "first": "727662a9",
+        "moving": "ec5d08ee",
+        "step": "86633d13",
+        "repeat": "727662a9",
+        "changed": "65526605",
+        "undone": "727662a9",
+        "cpuHash": "4c91eed6",
+        "cpuFallback": true,
+        "sizes": [
+          6,
+          9
+        ],
+        "analysis": "gpu"
+      }
+    ],
+    "reopens": 8,
+    "projectRestored": true,
+    "exportReady": true,
+    "runtime": {
+      "assetResolves": 1,
+      "playerCreates": 1,
+      "playerReuses": 1
+    }
+  },
+  "performance": {
+    "results": [
+      {
+        "width": 640,
+        "height": 360,
+        "samples": 30,
+        "median": 10.199999988079071,
+        "p95": 11.100000023841858,
+        "max": 11.200000047683716,
+        "editor": {
+          "renderSamples": 96,
+          "renderP95": 157.19999998807907,
+          "frameSamples": 0,
+          "frameP95": 0,
+          "scheduler": {
+            "requests": 28,
+            "renders": 16,
+            "staticSkips": 0,
+            "budgetSkips": 0,
+            "lastReason": "replace",
+            "dirty": false,
+            "lastSignature": "effect:scene:sample:ascii-mapping:0|scene:scene-0",
+            "reason": "replace"
+          },
+          "runtime": {
+            "assetResolves": 1,
+            "playerCreates": 1,
+            "playerReuses": 36
+          },
+          "quality": {
+            "mode": "full",
+            "effectiveMode": "full",
+            "switches": 0,
+            "samples": 90,
+            "avg": 45.82444444629881,
+            "p95": 114.90000003576279,
+            "interval": 82,
+            "targetFps": 12,
+            "pixelDivMultiplier": 1
+          },
+          "lastRender": {
+            "time": 1.166666666666667,
+            "directObjects": 1,
+            "capsuleObjects": 0,
+            "maskedObjects": 0,
+            "particleEmitters": 0,
+            "particlesDrawn": 0,
+            "particleSpriteBuilds": 0,
+            "sceneEffects": 2,
+            "unsupportedEffects": [],
+            "canvasResized": false,
+            "backingSizeWrites": 0,
+            "sceneBackend": "cpu",
+            "frameGpuUploads": 0,
+            "frameGpuPasses": 0,
+            "previewPixelDivMultiplier": 1,
+            "surfaces": {
+              "peakPixels": 230400,
+              "acquires": 333,
+              "reuses": 327,
+              "backingSizeWrites": 0,
+              "workPixels": 72760,
+              "pixelPasses": 2
+            },
+            "workPixels": 72760,
+            "pixelPasses": 2
+          }
+        }
+      },
+      {
+        "width": 1280,
+        "height": 720,
+        "samples": 30,
+        "median": 29.900000035762787,
+        "p95": 32.10000002384186,
+        "max": 34.69999998807907,
+        "editor": {
+          "renderSamples": 133,
+          "renderP95": 114.90000003576279,
+          "frameSamples": 0,
+          "frameP95": 0,
+          "scheduler": {
+            "requests": 29,
+            "renders": 17,
+            "staticSkips": 0,
+            "budgetSkips": 0,
+            "lastReason": "replace",
+            "dirty": false,
+            "lastSignature": "effect:scene:sample:ascii-mapping:0|scene:scene-0",
+            "reason": "replace"
+          },
+          "runtime": {
+            "assetResolves": 1,
+            "playerCreates": 1,
+            "playerReuses": 36
+          },
+          "quality": {
+            "mode": "full",
+            "effectiveMode": "full",
+            "switches": 0,
+            "samples": 90,
+            "avg": 29.86333334181044,
+            "p95": 101.40000003576279,
+            "interval": 82,
+            "targetFps": 12,
+            "pixelDivMultiplier": 1
+          },
+          "lastRender": {
+            "time": 1.166666666666667,
+            "directObjects": 1,
+            "capsuleObjects": 0,
+            "maskedObjects": 0,
+            "particleEmitters": 0,
+            "particlesDrawn": 0,
+            "particleSpriteBuilds": 0,
+            "sceneEffects": 2,
+            "unsupportedEffects": [],
+            "canvasResized": false,
+            "backingSizeWrites": 0,
+            "sceneBackend": "cpu",
+            "frameGpuUploads": 0,
+            "frameGpuPasses": 0,
+            "previewPixelDivMultiplier": 1,
+            "surfaces": {
+              "peakPixels": 921600,
+              "acquires": 333,
+              "reuses": 327,
+              "backingSizeWrites": 0,
+              "workPixels": 291040,
+              "pixelPasses": 2
+            },
+            "workPixels": 291040,
+            "pixelPasses": 2
+          }
+        }
+      },
+      {
+        "width": 1920,
+        "height": 1080,
+        "samples": 30,
+        "median": 57.30000001192093,
+        "p95": 62.59999996423721,
+        "max": 75.60000002384186,
+        "editor": {
+          "renderSamples": 170,
+          "renderP95": 108.80000001192093,
+          "frameSamples": 0,
+          "frameP95": 0,
+          "scheduler": {
+            "requests": 30,
+            "renders": 18,
+            "staticSkips": 0,
+            "budgetSkips": 0,
+            "lastReason": "replace",
+            "dirty": false,
+            "lastSignature": "effect:scene:sample:ascii-mapping:0|scene:scene-0",
+            "reason": "replace"
+          },
+          "runtime": {
+            "assetResolves": 1,
+            "playerCreates": 1,
+            "playerReuses": 36
+          },
+          "quality": {
+            "mode": "full",
+            "effectiveMode": "full",
+            "switches": 0,
+            "samples": 90,
+            "avg": 38.54222222632832,
+            "p95": 62,
+            "interval": 82,
+            "targetFps": 12,
+            "pixelDivMultiplier": 1
+          },
+          "lastRender": {
+            "time": 1.166666666666667,
+            "directObjects": 1,
+            "capsuleObjects": 0,
+            "maskedObjects": 0,
+            "particleEmitters": 0,
+            "particlesDrawn": 0,
+            "particleSpriteBuilds": 0,
+            "sceneEffects": 2,
+            "unsupportedEffects": [],
+            "canvasResized": false,
+            "backingSizeWrites": 0,
+            "sceneBackend": "cpu",
+            "frameGpuUploads": 0,
+            "frameGpuPasses": 0,
+            "previewPixelDivMultiplier": 1,
+            "surfaces": {
+              "peakPixels": 2073600,
+              "acquires": 333,
+              "reuses": 327,
+              "backingSizeWrites": 0,
+              "workPixels": 652800,
+              "pixelPasses": 2
+            },
+            "workPixels": 652800,
+            "pixelPasses": 2
+          }
+        }
+      }
+    ],
+    "playback": {
+      "duration": 3200,
+      "time": 3.191499999976161,
+      "renders": 32,
+      "rollingRenderP95": 107.30000001192093,
+      "rollingFrameP95": 27.400000035762787,
+      "scheduler": {
+        "requests": 31,
+        "renders": 50,
+        "staticSkips": 0,
+        "budgetSkips": 161,
+        "lastReason": "replace",
+        "dirty": false,
+        "lastSignature": "effect:scene:sample:ascii-mapping:1|scene:scene-0",
+        "reason": "replace"
+      },
+      "quality": {
+        "mode": "full",
+        "effectiveMode": "full",
+        "switches": 0,
+        "samples": 90,
+        "avg": 35.2555555595292,
+        "p95": 61.5,
+        "interval": 82,
+        "targetFps": 12,
+        "pixelDivMultiplier": 1
+      }
+    }
+  },
+  "errors": [],
+  "desktopBoundary": null
+}

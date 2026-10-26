@@ -1,0 +1,31 @@
+{
+  "format": "tosampool-pattern-definition/v1",
+  "id": "user.folded-frame",
+  "version": 1,
+  "name": "折线框标",
+  "parameters": [
+    {"key":"gap","label":"缩进","type":"number","default":12,"min":0,"max":100,"step":1},
+    {"key":"arm","label":"臂长","type":"number","default":28,"min":1,"max":200,"step":1},
+    {"key":"radius","label":"圆角","type":"number","default":0,"min":0,"max":50,"step":0.5},
+    {"key":"mode","label":"布局","type":"select","default":"角标","options":["角标","整框"]},
+    {"key":"center","label":"中心标记","type":"boolean","default":true}
+  ],
+  "paths": [
+    {"mode":"stroke","mirror":"xy","radius":{"params":{"radius":1}},"when":{"key":"mode","equals":"角标"},"points":[
+      [{"params":{"gap":1,"arm":1}},{"params":{"gap":1}}],
+      [{"params":{"gap":1}},{"params":{"gap":1}}],
+      [{"params":{"gap":1}},{"params":{"gap":1,"arm":1}}]
+    ]},
+    {"mode":"stroke","mirror":"x","radius":{"params":{"radius":1}},"when":{"key":"mode","equals":"整框"},"points":[
+      [{"params":{"gap":1,"arm":1}},{"params":{"gap":1}}],
+      [{"params":{"gap":1}},{"params":{"gap":1}}],
+      [{"params":{"gap":1}},{"h":1,"params":{"gap":-1}}],
+      [{"params":{"gap":1,"arm":1}},{"h":1,"params":{"gap":-1}}]
+    ]},
+    {"mode":"fill","when":{"key":"center","equals":true},"points":[
+      [{"w":0.5},{"h":0.5,"constant":-5}],
+      [{"w":0.5,"constant":5},{"h":0.5,"constant":5}],
+      [{"w":0.5,"constant":-5},{"h":0.5,"constant":5}]
+    ]}
+  ]
+}

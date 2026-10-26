@@ -1,5 +1,41 @@
 # 场景工程与参数化脚本规范（SCENE_SPEC）
 
+> RC5-P4：素材及图样的name是可编辑展示名，不是识别键；项目改名走历史，共享改名只改发布元数据，显式更新才回传。元素预设可选patternNames记录其已携带图样的generatorId→展示别名，不包含卡片ID或第二份参数。取用元素补齐缺少的项目图样预设，不覆盖已有剪贴板；私有来源按实际引用保留。详见[P4合同](docs/architecture/V4_PATTERN_ELEMENT_LIFECYCLE_P4_2026-10-23.md)。
+
+> RC5-P2c不新增存储类型：图样卡复用patternResources／materialShares／publication。内置新建箭头／括号采用原生控制路径并令extensions.showSource=false；应用于已有路径不强制隐藏，旧custom本体格式保留。新建的暂存资源在绘制事务内提交，不把待绘制状态序列化进工程。详见[入口、原子性与限制](docs/architecture/V4_PATTERN_CARDS_P2C_2026-10-22.md)。
+
+> RC5-P2b：`patternResources[id]`新增`mode:"path"`分支，字段为name／engineId／engineVersion:1／carrier／params，可选source（元素预设闭包）。五项原生引擎按载体能力校验，外部params.sourceId拒绝；source的图片／Module作为pattern资源依赖，冲突映射重写。取用生成私有来源身份、原几何保留，不新增可见来源卡。旧custom分支不变；path预设不生成custom快照。详见[格式、原子性与限制](docs/architecture/V4_PATH_PATTERN_PRESETS_P2B_2026-10-22.md)。
+
+> RC5-P2a：`materialShares`复用现有结构并接受`pattern:<encoded-id>@1`。图样仍使用patternResources与既有资源包依赖／hash／publication版本机制，不新增共享存储；取用只复制项目定义，不创建画布。元素预设允许`extensions.attached`，校验唯一的已登记身份（当前最多五项），不得将未知字符串当可执行实现。此批仅共享底座，不代表五项附着预设格式或图样卡UI已经完成。[状态](docs/design/PATTERN_RC5_DECISIONS_2026-10-22.md)。
+
+> RC5-P1：`part.extensions.attached?:string[]`区分“已添加”与图样`enabled`；由PatternRegistry写入已登记身份，关闭保留身份及参数，移除删除该项，最后一项移除则解除extensions配置。Runtime归一化默认项不能作为添加依据。本字段暂不定义绘制排序。旧custom本体参数保留；后续资源归属与排序按[RC5合同](docs/design/PATTERN_RC5_DECISIONS_2026-10-22.md)分批，不宣称已完成。
+
+> RC4：元素预设增加可选`children`，支持内部组层级及粒子发射器，内部`parentId`／`sourceId`实例化重映射。引用来源进入`sources`闭包，新增非根图片依赖`libraryHidden`；不生成依赖卡。基础循环动态保留，模板时序舍去；删除发射器来源的保护另保留来源时序。项目包使用大小写不敏感唯一路径，图片实际MIME和模块源码统一规范化后计算索引；严格验证不放宽。详见[四项合同](docs/architecture/V4_RC4_MATERIAL_CLOSEOUT_2026-10-22.md)，替代下方“组／粒子暂缓”。
+
+> 素材生命周期：`assets[id].libraryHidden?:boolean`仅控制素材库展示；项目保留文件和标记，资源portable／正式Runtime交付剥离。`resourceBindings.element`首次入库亦写回来源；回存同一预设ID，名称不作关联键，其他实例不变。移除模板解除来源标记但保留实例与依赖。程序授权仅来自导入／取用／打开时人类确认，不接受JSON信任标记。见[行为与验收](docs/architecture/V4_MATERIAL_UPDATE_REMOVE_IMPORT_2026-10-21.md)。
+
+> RC3-b编辑器元数据：`materialShares`以Resources.key（`asset:<encoded-id>@1`／`element:<encoded-id>@1`）映射`{publicationId,publishedHash,localHash}`，最多1024条；两hash为SHA-256。工程保留、正式网页交付剥离，既有对象／Runtime格式不变。发布关系不等于共享实时联动或程序授信，不凭resourcePins猜测；丢失库记录时显示未共享，不删除工程内容。见[共享合同](docs/architecture/V4_MATERIAL_SHARING_RC3B_2026-10-21.md)。
+
+> 当前RC2-c2b：蒙版新增可选内部`geometryMatrix:[a,b,c,d,e,f]`（有限、可逆仿射基），共享MaskState负责父组基础坐标换基／重定位，Runtime与画布编辑共用placementMatrix。跟随锚点一并转换，不携带父组动画／外观；组／粒子素材仍暂缓。公共Player须支持`masks.affineGeometry`，旧Player明确拒绝。以下是此前分批状态，父组坐标限制由[本合同](docs/architecture/V4_ELEMENT_PARENT_MASK_SPACE_RC2C2B_2026-10-21.md)替代。
+
+> RC2-c2a：`elementPresets`新增可选`sources`，保存蒙版／排布／端点的普通／程序对象闭包；对象和素材身份分域重连。实例内部来源使用`referenceSourceOnly:true`，不单独绘制但仍参与引用，交付必须保留该角色。根的resourceBindings.sources为编辑器来源记录，可随交付剥离。父组蒙版坐标仍拒绝，组／粒子来源仍暂缓。见[对象引用合同](docs/architecture/V4_ELEMENT_REFERENCE_CLOSURE_RC2C2A_2026-10-21.md)。
+
+> RC2-c1：元素预设支持无父级对象的rect／ellipse／poly／alpha（含luma）蒙版。入库局部化与放置重定位共用`EditorVNextMaskState.PORTABLE`／`translate`／带kind的引用适配；followMatrix仅平移锚点。element来源／排布／端点与父组蒙版坐标仍待c2。未来亮度来源／绘制必须更新共享声明和覆盖测试，不在素材层复制逻辑。见[蒙版适配合同](docs/architecture/V4_ELEMENT_PRESET_MASKS_RC2C1_2026-10-21.md)。
+
+> RC2-b：`elementPresets`现支持图片／序列的素材闭包、文字双图集及布局、内嵌原生／声明式图样配方、Module声明素材；`references`供资源包统一捕获与重连。未用预设不解码，普通Runtime实体类型不变；蒙版与外部对象来源仍拒绝。文字缓存保证既有外观，不等于安装字体。见[依赖合同](docs/architecture/V4_ELEMENT_PRESET_DEPENDENCIES_RC2B_2026-10-21.md)。
+
+> RC2-a编辑器数据增量：`elementPresets`保存`tosampool-element-preset/v1`，资源包支持`kind:'element'`及程序实现依赖；实例仍为普通v4实体。基础参数／循环动态保留，时序和父级不携带；网页交付剔除预设集合与来源标记。仅独立无位图依赖元素的数据API，无新面板入口；完整格式、限制见[RC2-a合同](docs/architecture/V4_ELEMENT_PRESETS_RC2A_2026-10-21.md)。
+
+> R3b：`patternDefinitions`为工程内声明式图样注册表；custom recipe／pattern预设可携带`definition`与确定性`providerKey`。格式为`tosampool-pattern-definition/v1`，仅有限参数、路径、线性坐标绑定、镜像／圆角与条件显隐。导入无JS执行，安装／应用版本／停用均可撤销；停用转R3a缓存。详见[实际合同](docs/architecture/V4_PATTERN_PROVIDERS_R3B_2026-10-18.md)及[Agent格式说明](docs/agent/PATTERN_PROVIDER_FORMAT_V1.md)。
+
+> R3a：custom可携带`geometrySnapshot: tosampool-pattern-geometry/v1`，精确绑定recipe ID／version／params与strokeWidth。正式项目保存和图样预设捕获时生成，普通历史序列化不生成。缺失实现时只允许使用匹配轮廓，内部参数锁定，外层变换及效果不变；已知原生网页交付剔除缓存。此为静态图样回退，不是任意代码插件或程序动画冻结。见[实际格式与预算](docs/architecture/V4_PATTERN_SNAPSHOT_R3A_2026-10-18.md)。
+
+> 统一资源R1：Scene仍以`assets`／`modules`为真相；`patternResources`保存原生生成器参数预设，`resourcePins`为收藏意图，`resourceOrigins`为导入来源。它们不是新的运行时图元类型。工程包携带可重建的SHA-256资源索引，交付剥离收藏数据；模块导入不执行代码。见[资源包合同](docs/architecture/V4_RESOURCE_PACKAGE_CONTRACT_2026-10-18.md)。
+
+> V4括号增量：custom配方新增`brackets/v1`，参数shape／layout／side／corners／armX／armY／radius／offsetX／offsetY；样式复用stroke／strokeWidth／strokeAlpha。应用到rect／ellipse／poly写`extensions.brackets`，保留类型、只使用局部框定范围。偏移为整组图样相对载体的局部平移，默认0。仅基础参数，不新增时序。详见[实际字段与几何合同](docs/architecture/V4_BRACKET_PATTERN_2026-10-18.md)。
+
+> V4 G3补充：正式v4工程的`entities[].parts[]`支持自定义图元`type:'custom'`，以`recipe:{id:'corner-arrows',version:1,params:{size,length,inset,direction,radius,shaftMode,shaftAngle,shaftCap}}`保存纯声明配方；描线使用图元stroke／strokeWidth／strokeAlpha。应用到rect／poly时保留原类型，配置为`extensions['corner-arrows']`。普通路径`pathRevealEnabled`控制显现旁路但不清除原值或时序；完成度仍可用所属对象Linear。详见[路径显现](docs/architecture/V4_PATH_REVEAL_AND_ARROW_SHAFT_2026-10-18.md)。本段是v4增量，不扩张下方Legacy格式。完整校验、默认值和边界见[自定义图元合同](docs/architecture/V4_CUSTOM_SHAPES_G3_2026-10-18.md)。
+
 > **唯一数据合同**：供生成 Agent、改写 Agent 与编辑器共同遵循。按本规范生成的场景 js
 > 可被 `tools/img2asset.html` 完整解析为可调图层（打开 → 图层栏调参 → 保存写回）。
 > 新建作品应使用 `GENERIC_SCENE`；`HOME_SCENE` / `DEFAULT_HOME_SCENE` 仅用于已有项目脚本的兼容编辑。
@@ -337,3 +373,6 @@ bob/spin/wave/blink/pulse 五原语参数（开关 + 数值，bob 含角度；sp
 | 「key.xxx」为数值数组（仅展示） | 三（结构数组只读）+ 四.1 |
 | 使用了 show:{scenes} 但未声明 scenes | 四.3 |
 | 「key.mask.type」不是 rect / ellipse / poly，或 mask 几何无效 | 四.5 |
+> 2026-10-21素材卡增量：资源包Module根由宿主按Manifest默认参数／recommendedCanvas转现有`elementPresets`，不创建Canvas对象、不增加格式字段；Module依赖根不额外建卡。详见[元素卡合同](docs/architecture/V4_MATERIAL_CARDS_RC3_2026-10-21.md)。
+
+素材卡烘焙生成现有图片／序列资产。沿用可选`moduleBake`来源元数据；普通元素没有moduleId，`scope: "element-preset"`记录presetId、viewport和采样时刻，但这些不是运行引用。原预设及实现链不被替换；位图／序列可独立使用。见[烘焙合同](docs/architecture/V4_MATERIAL_CARD_BAKING_2026-10-21.md)。

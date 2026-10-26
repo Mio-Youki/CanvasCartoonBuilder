@@ -31,6 +31,13 @@
     // a sparse deterministic dot set each tick, while keeping its footprint
     // and object-alpha clip intact.
     if(raw&&raw.type==='noise'&&(motion.type==='noise-snow'||motion.type==='random-hold'))return Object.assign({},raw,{noiseTick:Math.floor(finite(time,0)/period*steps),motion:Object.assign({},motion)});
+    if(raw&&raw.type==='custom'){
+      const next=Object.assign({},raw),width=Math.max(1,finite(raw.tileWidth,4)*finite(raw.tileScale,1)),height=Math.max(1,finite(raw.tileHeight,4)*finite(raw.tileScale,1)),tick=Math.floor(phase*steps)%steps,at=value=>((value%1)+1)%1;
+      if(motion.type==='pattern-drift'){next.phaseX=at(finite(raw.phaseX,0)+tick/steps*finite(motion.cyclesX,1));next.phaseY=at(finite(raw.phaseY,0)+tick/steps*finite(motion.cyclesY,0));}
+      else if(motion.type==='pattern-step'){next.phaseX=at(finite(raw.phaseX,0)+tick*finite(motion.stepX,1)/width);next.phaseY=at(finite(raw.phaseY,0)+tick*finite(motion.stepY,0)/height);}
+      else if(motion.type==='pattern-random'){const seed=(Math.imul((Math.round(finite(motion.seed,1))+tick+1)|0,1103515245)+12345)>>>0;next.phaseX=at(finite(raw.phaseX,0)+((seed&65535)/65535*2-1)*finite(motion.rangeX,1));next.phaseY=at(finite(raw.phaseY,0)+(((seed>>>16)&65535)/65535*2-1)*finite(motion.rangeY,1));}
+      return next;
+    }
     const layer=raw&&Array.isArray(raw.layers)&&raw.layers[0],fallback=layer?finite(layer.spacing,finite(layer.width,1)+Math.max(0,finite(layer.gap,3))):4,type=motion.type==='texture-drift'?'pattern-drift':motion.type==='random-hold'?'pattern-random':motion.type,spacing=Math.max(1,finite(raw&&raw.spacing,finite(raw&&raw.cell,fallback))),next=Object.assign({},raw,{motion:Object.assign({},motion,{type})});
     if(type==='pattern-drift'){const steps=Math.max(1,Math.round(finite(motion.steps,16))),tick=Math.floor(phase*steps)%steps,progress=tick/steps;next.phaseX=finite(raw.phaseX,0)+progress*Math.round(finite(motion.cyclesX,1))*spacing;next.phaseY=finite(raw.phaseY,0)+progress*Math.round(finite(motion.cyclesY,0))*spacing;}
     else if(type==='pattern-step'){const steps=Math.max(1,Math.round(finite(motion.steps,8))),tick=Math.floor(phase*steps)%steps;next.phaseX=finite(raw.phaseX,0)+tick*Math.round(finite(motion.stepX,1));next.phaseY=finite(raw.phaseY,0)+tick*Math.round(finite(motion.stepY,0));}
@@ -39,7 +46,13 @@
     return next;
   }
   function canonical(raw,color){
-    const source=raw||{},type=['lines','dots','checker','noise'].includes(source.type)?source.type:'lines',result={type,color:source.color&&source.color!=='inherit'?source.color:(color||'#ffffff'),phaseX:finite(source.phaseX,0),phaseY:finite(source.phaseY,0)};
+    const source=raw||{},type=['lines','dots','checker','noise','custom'].includes(source.type)?source.type:'lines',result={type,color:source.color&&source.color!=='inherit'?source.color:(color||'#ffffff'),phaseX:finite(source.phaseX,0),phaseY:finite(source.phaseY,0)};
+    if(type==='custom'){
+      result.tileWidth=clamp(Math.round(finite(source.tileWidth,4)),1,64);result.tileHeight=clamp(Math.round(finite(source.tileHeight,4)),1,64);
+      result.tileScale=clamp(Math.round(finite(source.tileScale,1)),1,128);result.tileScaleMode=source.tileScaleMode==='sampling'?'sampling':'pixel';
+      const pixels=Array.isArray(source.tilePixels)?source.tilePixels:[];
+      result.tilePixels=Array.from({length:result.tileWidth*result.tileHeight},(_,index)=>/^#[0-9a-f]{8}$/i.test(pixels[index]||'')?pixels[index].toLowerCase():'#00000000');return result;
+    }
     if(type==='noise'){result.density=clamp(finite(source.density,.15),0,1);result.size=Math.max(1,Math.round(finite(source.size,1)));result.seed=Math.round(finite(source.seed,1));result.noiseTick=Math.round(finite(source.noiseTick,0));return result;}
     if(type==='lines'){
       result.layers=(Array.isArray(source.layers)&&source.layers.length?source.layers:[{angle:45,width:1,gap:3}]).slice(0,3).map(layer=>{const width=Math.max(1,finite(layer&&layer.width,1)),spacing=Math.max(width,finite(layer&&layer.spacing,width+Math.max(0,finite(layer&&layer.gap,3))));return{angle:finite(layer&&layer.angle,45),width,spacing,gap:Math.max(0,spacing-width)};});
@@ -54,6 +67,7 @@
   function integerPeriod(value){const n=Math.round(value);return Math.abs(value-n)<.001&&n>0?n:null;}
   function tileSpec(raw,color){
     const pattern=canonical(raw,color);
+    if(pattern.type==='custom')return{pattern,width:pattern.tileWidth,height:pattern.tileHeight,kind:'custom'};
     if(pattern.type==='dots'||pattern.type==='checker'){
       const angle=axisAngle(pattern.angle);if(angle!==0||pattern.layout==='stagger')return null;
       const step=integerPeriod(pattern.cell||Math.max(pattern.size+1,pattern.size+pattern.gap));if(!step)return null;
@@ -75,6 +89,14 @@
   function tileKey(spec){const pattern=Object.assign({},spec.pattern,{phaseX:0,phaseY:0});return JSON.stringify({width:spec.width,height:spec.height,pattern});}
   function paintTile(ctx,spec){
     const pattern=spec.pattern,W=spec.width,H=spec.height;ctx.clearRect(0,0,W,H);ctx.fillStyle=pattern.color;
+    if(spec.kind==='custom'){
+      const cell=1;
+      for(let y=0;y<pattern.tileHeight;y++)for(let x=0;x<pattern.tileWidth;x++){
+        const hex=pattern.tilePixels[y*pattern.tileWidth+x],a=parseInt(hex.slice(7,9),16);if(!a)continue;
+        ctx.fillStyle=hex.slice(0,7);ctx.globalAlpha=a/255;ctx.fillRect(x*cell,y*cell,cell,cell);
+      }
+      ctx.globalAlpha=1;return;
+    }
     if(spec.kind==='lines'){
       for(const layer of pattern.layers){const angle=axisAngle(layer.angle);if(angle===0)ctx.fillRect(0,0,W,layer.width);else ctx.fillRect(0,0,layer.width,H);}
       return;
@@ -90,11 +112,17 @@
     const key=tileKey(spec);let tile=tileCache.get(key);
     if(!tile){tile=makeCanvas(spec.width,spec.height);const tileCtx=tile&&tile.getContext&&tile.getContext('2d');if(!tileCtx)return null;paintTile(tileCtx,spec);tileCache.set(key,tile);if(tileCache.size>32)tileCache.delete(tileCache.keys().next().value);}
     const result=makeCanvas(width,height),ctx=result&&result.getContext&&result.getContext('2d');if(!ctx||typeof ctx.createPattern!=='function')return null;
-    const brush=ctx.createPattern(tile,'repeat');if(!brush)return null;
-    const pattern=spec.pattern;ctx.save();ctx.translate(finite(pattern.phaseX,0),finite(pattern.phaseY,0));ctx.fillStyle=brush;ctx.fillRect(-finite(pattern.phaseX,0),-finite(pattern.phaseY,0),width,height);ctx.restore();return result;
+    let brush=ctx.createPattern(tile,'repeat');if(!brush)return null;
+    const pattern=spec.pattern,scale=pattern.type==='custom'?pattern.tileScale:1;
+    if(scale>1){
+      if(typeof brush.setTransform==='function'&&typeof global.DOMMatrix==='function'){brush.setTransform(new global.DOMMatrix().scale(scale));ctx.imageSmoothingEnabled=false;}
+      else{const expanded=makeCanvas(spec.width*scale,spec.height*scale),expandedCtx=expanded&&expanded.getContext&&expanded.getContext('2d');if(!expandedCtx)return null;expandedCtx.imageSmoothingEnabled=false;expandedCtx.drawImage(tile,0,0,expanded.width,expanded.height);brush=ctx.createPattern(expanded,'repeat');if(!brush)return null;}
+    }
+    const dx=pattern.type==='custom'?Math.round(clamp(pattern.phaseX,0,1)*spec.width*scale):finite(pattern.phaseX,0),dy=pattern.type==='custom'?Math.round(clamp(pattern.phaseY,0,1)*spec.height*scale):finite(pattern.phaseY,0);ctx.save();ctx.translate(dx,dy);ctx.fillStyle=brush;ctx.fillRect(-dx,-dy,width,height);ctx.restore();return result;
   }
   function paint(ctx,width,height,raw,color){
     const pattern=canonical(raw,color),extent=Math.ceil(Math.hypot(width,height))+24;ctx.fillStyle=pattern.color;
+    if(pattern.type==='custom'){const stamp=repeatingTexture(width,height,pattern,color);if(stamp)ctx.drawImage(stamp,0,0);return pattern;}
     if(pattern.type==='noise'){
       /* Screen noise is intentionally a dense, low-cost raster field rather
          than a few floating "dust" squares.  It uses a deterministic cap so
@@ -115,11 +143,17 @@
   function texture(width,height,pattern,color,options){const W=Math.max(1,Math.round(width)),H=Math.max(1,Math.round(height)),source=options&&options.time!=null?motionStep(pattern,options.time):pattern,dynamic=!!(options&&options.dynamic),key=keyFor(W,H,source,color);if(!dynamic&&cache.has(key))return cache.get(key);const repeated=repeatingTexture(W,H,source,color);const canvas=repeated||makeCanvas(W,H),ctx=canvas&&canvas.getContext&&canvas.getContext('2d');if(!ctx)return null;if(!repeated){ctx.clearRect(0,0,W,H);paint(ctx,W,H,source,color);}if(!dynamic){cache.set(key,canvas);if(cache.size>16)cache.delete(cache.keys().next().value);}return canvas;}
   function overlay(config){
     const value=config||{},scale=Math.max(.1,finite(value.scale,1)),spacing=Math.max(1,Math.round(finite(value.spacing,4)*scale)),size=Math.min(spacing,Math.max(1,Math.round(finite(value.size,1)*scale))),style=value.texture||'lines-horizontal',angle=finite(value.angle,0),phaseX=finite(value.phaseX,0),phaseY=finite(value.phaseY,0),common={color:value.color||'#ffffff',phaseX,phaseY,motion:value.motion};
+    if(style==='custom')return Object.assign(common,{type:'custom',tileWidth:value.tileWidth,tileHeight:value.tileHeight,tileScale:value.tileScaleMode==='sampling'?value._samplingSize||1:value.tileScale,tileScaleMode:value.tileScaleMode,tilePixels:value.tilePixels});
     if(style==='noise')return Object.assign(common,{type:'noise',density:clamp(finite(value.noiseDensity,.15),0,1),size:Math.max(1,Math.round(finite(value.noiseSize,1))),seed:Math.round(finite(value.noiseSeed,1))});
     if(style==='dots')return Object.assign(common,{type:'dots',size,spacing,cell:spacing,angle,phase:clamp(finite(value.rowPhase,.5),0,1),shape:value.shape||'circle',layout:value.layout==='stagger'?'stagger':'regular'});
     if(style==='checker')return Object.assign(common,{type:'checker',size:spacing,gap:0,cell:spacing,angle,phase:.5,layout:'checker'});
     const layers=[{angle,width:size,spacing}];if(style==='grid')layers.push({angle:angle+90,width:size,spacing});if(style==='lines-layers'){layers.push({angle:finite(value.layer2Angle,angle+90),width:Math.min(Math.max(1,finite(value.layer2Width,1)),Math.max(1,finite(value.layer2Spacing,spacing))),spacing:Math.max(1,finite(value.layer2Spacing,spacing))});layers.push({angle:finite(value.layer3Angle,angle+135),width:Math.min(Math.max(1,finite(value.layer3Width,1)),Math.max(1,finite(value.layer3Spacing,spacing))),spacing:Math.max(1,finite(value.layer3Spacing,spacing))});}return Object.assign(common,{type:'lines',layers});
   }
   function clear(){cache.clear();tileCache.clear();}
-  api.modules.pattern=Object.freeze({ canonical, paint, texture, overlay, motionStep, clear });
+  function bayer(size){
+    const n=[2,4,8].includes(+size)?+size:4;let rank=[[0,2],[3,1]];
+    for(let side=2;side<n;side*=2){const next=Array.from({length:side*2},()=>Array(side*2));for(let y=0;y<side;y++)for(let x=0;x<side;x++){const base=rank[y][x]*4;next[y][x]=base;next[y][x+side]=base+2;next[y+side][x]=base+3;next[y+side][x+side]=base+1;}rank=next;}
+    return{type:'custom',tileWidth:n,tileHeight:n,tileScale:1,tileScaleMode:'pixel',phaseX:0,phaseY:0,tilePixels:rank.flat().map(value=>{const tone=Math.round(255*(1-(value+.5)/(n*n))).toString(16).padStart(2,'0');return`#${tone}${tone}${tone}ff`;})};
+  }
+  api.modules.pattern=Object.freeze({ canonical, paint, texture, overlay, motionStep, bayer, clear });
 })(typeof window !== 'undefined' ? window : globalThis);

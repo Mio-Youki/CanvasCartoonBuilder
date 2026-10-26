@@ -3,8 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pixel Loom · UI 重构 v1（功能副本）</title>
+<title>ToSampool · 图森破</title>
+<link rel="stylesheet" href="./editor/v4-color-popover.css">
 <style>
+  @font-face {
+    font-family:"ToSampool Display";
+    src:url("./assets/fonts/PressStart2P-Regular.ttf") format("truetype");
+    font-weight:400;
+    font-style:normal;
+    font-display:swap;
+  }
   :root { --bg:#0b1026; --panel:#141b3d; --ink:#e8ecff; --dim:#8b93c7; --yellow:#ffd23f; --cyan:#4dc3ff; }
   * { box-sizing: border-box; }
   body { background: var(--bg); color: var(--ink); font-family: monospace; margin: 0; padding: 14px; }
@@ -253,23 +261,8 @@
   .cf-row input[type=number] { width: 76px; }
   .cf-row input[type=text] { width: 110px; }
   .cf-row input[type=color] { width: 44px; height: 26px; padding: 0; border: 2px solid var(--dim); }
-  .color-field { display:flex; align-items:center; gap:6px; min-width:0; }
-  .color-swatch { width:28px; height:22px; min-height:22px; padding:0; margin:0; border:1px solid var(--line); box-shadow:inset 0 0 0 1px #000; }
-  .color-alpha { color:var(--dim); font-size:10px; min-width:32px; }
-  .color-pop { position:fixed; z-index:1000; width:228px; padding:10px; border:1px solid #4b5260; background:#20242c; box-shadow:0 10px 28px #000b; color:var(--ink); }
-  .color-pop[hidden] { display:none; }
-  .color-pop-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:11px; }
-  .color-pop-close { margin:0; min-height:20px; padding:1px 6px; border:0; background:transparent; color:var(--dim); }
-  .color-sv { position:relative; height:122px; cursor:crosshair; background:linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,hsl(0,100%,50%)); }
-  .color-sv-dot { position:absolute; width:12px; height:12px; border:1px solid #fff; border-radius:50%; box-shadow:0 0 0 1px #000; transform:translate(-50%,-50%); pointer-events:none; }
-  .color-slider-row { display:grid; grid-template-columns:18px 1fr; align-items:center; gap:6px; margin-top:8px; }
-  .color-slider-row input[type=range] { margin:0; width:100%; height:10px; accent-color:var(--yellow); }
-  .color-eyedropper { width:18px; height:18px; min-height:18px; padding:0; margin:0; border:0; background:transparent; color:var(--dim); font-size:12px; line-height:1; }
-  .color-eyedropper:hover { color:var(--ink); }
-  .color-pop-values { display:grid; grid-template-columns:1fr 72px; gap:6px; margin-top:8px; }
-  .color-pop.no-alpha .color-alpha-row, .color-pop.no-alpha .color-alpha-input { display:none; }
-  .color-pop.no-alpha .color-pop-values { grid-template-columns:1fr; }
-  .color-pop-values input { min-width:0; width:100%; padding:4px 6px; font-size:10px; background:#151820; color:var(--ink); border:1px solid var(--line); }
+  .v4-control-with-action > select { flex:1; min-width:0; width:0; }
+  .v4-control-with-action > button { flex:none; white-space:nowrap; }
   .paint-row { display:flex; align-items:center; gap:5px; min-width:0; justify-content:flex-end; }
   .paint-row input[type=checkbox] { width:14px; margin:0; accent-color:var(--yellow); }
   .paint-row input[type=number] { width:42px; height:22px; padding:2px 4px; }
@@ -283,6 +276,13 @@
   .texture-pop-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
   .texture-pop-grid label { margin:0; font-size:9px; color:var(--dim); }
   .texture-pop-grid input, .texture-pop-grid select { width:100%; height:23px; margin-top:3px; padding:2px 4px; background:#151820; color:var(--ink); border:1px solid var(--line); font:inherit; }
+  .v4-custom-tile-tools, .v4-custom-tile-paint { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:7px 0; }
+  .v4-custom-tile-tools select, .v4-custom-tile-tools button, .v4-custom-tile-paint input { min-height:25px; background:#151820; color:var(--ink); border:1px solid var(--line); }
+  .v4-custom-tile-editor { display:block; max-width:100%; height:auto; margin:7px auto; border:1px solid var(--line); image-rendering:pixelated; cursor:crosshair; touch-action:none; }
+  .v4-custom-tile-paint label { display:flex; align-items:center; gap:4px; font-size:10px; color:var(--dim); }
+  .v4-custom-tile-paint input[type=number] { width:50px; }
+  .v4-custom-tile-paint input[type=color] { width:28px; padding:1px; }
+  .v4-inline-texture > small { display:block; color:var(--dim); line-height:1.4; }
   .cf-row input[type=checkbox] { width: auto; }
   .cf-arr { display: flex; gap: 3px; flex-wrap: wrap; }
   .cf-arr input[type=color] { width: 22px; height: 22px; padding: 0; border: 2px solid var(--dim); }
@@ -296,8 +296,15 @@
     --shell:#111319; --surface:#1a1d24; --surface-hi:#222630; --surface-low:#151820;
     --line:#303642; --line-soft:#252a34; --ink:#f1f3f6; --dim:#9aa3b2;
     --yellow:#f4c84b; --cyan:#55c7e9; --green:#5dc58a; --magenta:#bc92ee; --red:#eb6c73;
+    /* Interface scale: readable CJK first; display faces remain decorative only. */
+    --ui-xs:11px; --ui-sm:12px; --ui-md:13px; --ui-lg:14px; --ui-xl:16px;
+    --font-ui:"Microsoft YaHei UI", "PingFang SC", "Noto Sans CJK SC", "Segoe UI", sans-serif;
+    --font-mono:"Cascadia Mono", "Sarasa Mono SC", Consolas, monospace;
+    --font-display:"ToSampool Display", "Press Start 2P", "Cascadia Mono", monospace;
+    --left-rail-w:clamp(264px, 18vw, 304px);
+    --right-rail-w:clamp(320px, 22vw, 360px);
   }
-  body { background:var(--shell); padding:0; min-width:1080px; font-family:ui-monospace, "Cascadia Mono", Consolas, monospace; font-size:13px; }
+  body { background:var(--shell); padding:0; min-width:1120px; font-family:var(--font-ui); font-size:var(--ui-md); }
   * { scrollbar-width:thin; scrollbar-color:#555c68 transparent; }
   *::-webkit-scrollbar { width:5px; height:5px; }
   *::-webkit-scrollbar-track { background:transparent; }
@@ -306,20 +313,19 @@
   h1 { display:none; }
   .sub { display:none; }
   .workbench-header { height:42px; display:flex; align-items:center; gap:14px; padding:0 14px; border-bottom:1px solid var(--line); background:#171a21; }
-  .workbench-brand { color:var(--yellow); font-size:13px; letter-spacing:.12em; }
-  .workbench-name { color:var(--ink); font-size:12px; padding:6px 10px; border:1px solid var(--line); background:#20242d; min-width:170px; }
-  .workbench-note { color:var(--dim); font-size:10px; }
-  .workbench-note b { color:var(--cyan); font-weight:400; }
-  .workbench-tools { height:46px; margin-right:324px; display:flex; align-items:center; gap:7px; padding:0 10px; border-bottom:1px solid var(--line); background:#20242b; }
+  .workbench-brand { color:var(--yellow); font-family:var(--font-display); font-size:12px; letter-spacing:.08em; }
+  .workbench-name { color:var(--ink); font-size:var(--ui-sm); padding:6px 10px; border:1px solid var(--line); background:#20242d; min-width:170px; }
+  .workbench-tools { height:46px; display:grid; grid-template-columns:var(--left-rail-w) minmax(640px, 1fr) var(--right-rail-w); gap:0; padding:0; border-bottom:1px solid var(--line); background:#20242b; }
   .workbench-tools button { min-height:30px; padding:5px 9px; border-color:transparent; background:transparent; font-size:12px; }
   .workbench-tools button:hover { border-color:var(--line); background:#252a34; }
-  .scene-file-actions { align-self:stretch; width:250px; display:grid; grid-template-columns:repeat(3,1fr); gap:1px; padding:7px 0; border-right:1px solid var(--line); }
+  .scene-file-actions { align-self:stretch; width:auto; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:3px; padding:7px 10px; border-right:1px solid var(--line); }
   .scene-file-actions button { min-width:0; padding:4px 3px; font-size:11px; }
+  .toolbar-main { min-width:0; display:flex; align-items:center; gap:7px; padding:0 10px; border-right:1px solid var(--line); }
   .tool-slots { display:flex; align-items:center; gap:2px; }
   .tool-slots button { min-width:30px; font-size:0; }
   .tool-slots button::first-letter { font-size:12px; }
-  .toolbar-output-actions { margin-left:auto; display:flex; align-items:center; gap:2px; }
-  .toolbar-output-actions button { font-size:11px; }
+  .toolbar-output-actions { min-width:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:center; gap:3px; padding:7px 10px; }
+  .toolbar-output-actions button { min-width:0; margin:0; padding:4px 3px; overflow:hidden; font-size:var(--ui-xs); text-overflow:ellipsis; white-space:nowrap; }
   .workbench-tools .tool-sep { width:1px; height:18px; margin:0 4px; background:var(--line); }
   .tool-slots { display:flex; align-items:center; gap:1px; }
   .tool-slots button { min-width:30px; padding:4px 7px; font-size:15px; line-height:1; }
@@ -327,23 +333,24 @@
   .tool-menu { position:fixed; z-index:50; min-width:130px; padding:4px; border:1px solid #414956; background:#20242b; box-shadow:0 8px 20px #0008; }
   .tool-menu button { display:block; width:100%; text-align:left; min-height:27px; font-size:11px; }
   .round-handle { position:absolute; width:10px; height:10px; transform:translate(-50%,-50%); border:1px solid #16191d; background:#ffd23f; box-shadow:0 0 0 1px #ffd23f; pointer-events:none; z-index:4; }
-  .workbench-tools .tool-note { margin-left:auto; color:var(--dim); font-size:9px; }
+  .workbench-tools .tool-note { margin-left:auto; color:var(--dim); font-size:var(--ui-xs); }
   :root { --timeline-dock-h:132px; }
-  .cols { display:grid; grid-template-columns:270px minmax(500px, 1fr) 324px; gap:0; height:calc(100vh - 88px - var(--timeline-dock-h)); min-height:360px; align-items:stretch; flex-wrap:nowrap; }
+  .cols { display:grid; grid-template-columns:var(--left-rail-w) minmax(640px, 1fr) var(--right-rail-w); gap:0; height:calc(100vh - 88px - var(--timeline-dock-h)); min-height:360px; align-items:stretch; flex-wrap:nowrap; }
   .panel { border:0; border-radius:0; padding:10px; background:var(--surface); min-width:0; background-image:none; }
   /* 左栏是独立工作区：底部编排器只占用画布+ Inspector，不再截断素材区。*/
-  .p-import { position:fixed; z-index:21; grid-column:1; top:88px; bottom:0; left:0; width:270px; box-sizing:border-box; border-right:1px solid var(--line); height:auto; align-self:auto; overflow:hidden; display:flex; flex-direction:column; }
+  .p-import { position:fixed; z-index:21; grid-column:1; top:88px; bottom:0; left:0; width:var(--left-rail-w); box-sizing:border-box; border-right:1px solid var(--line); height:auto; align-self:auto; overflow:hidden; display:flex; flex-direction:column; }
   .p-stage { grid-column:2; min-width:0; border-right:1px solid var(--line); display:flex; flex-direction:column; }
   /* Inspector 占用工具栏右侧的整列，从工具栏起点到底部编排器均保持齐平。*/
-  .p-props { position:fixed; z-index:19; top:42px; right:0; bottom:var(--timeline-dock-h); width:324px; box-sizing:border-box; background:var(--surface-low); height:auto; overflow:hidden; display:flex; flex-direction:column; }
-  .panel > .panel-caption { color:var(--dim); font-size:10px; letter-spacing:.1em; text-transform:uppercase; margin:0 0 8px; }
-  button { min-height:30px; margin-top:0; padding:5px 8px; border:1px solid var(--line); background:#252a34; color:var(--ink); font-size:10px; }
+  .p-props { position:fixed; z-index:19; top:88px; right:0; bottom:var(--timeline-dock-h); width:var(--right-rail-w); box-sizing:border-box; background:var(--surface-low); height:auto; overflow:hidden; display:flex; flex-direction:column; }
+  .p-props > .panel-caption, .p-props > .props-head { display:none; }
+  .panel > .panel-caption { color:var(--dim); font-size:var(--ui-xs); letter-spacing:.1em; text-transform:uppercase; margin:0 0 8px; }
+  button { min-height:30px; margin-top:0; padding:5px 8px; border:1px solid var(--line); background:#252a34; color:var(--ink); font-family:inherit; font-size:var(--ui-sm); }
   button:hover { background:#303746; border-color:#596474; }
   button.primary { background:var(--yellow); color:#17191e; border-color:#d7ad36; }
   button:active { transform:none; background:#11151d; }
   button:disabled, .future-tool { opacity:.42; cursor:not-allowed; }
-  label { font-size:10px; }
-  input[type=text], input[type=number], select { border:1px solid var(--line); background:#13161d; padding:6px 7px; color:var(--ink); font-size:11px; }
+  label { font-size:var(--ui-sm); }
+  input[type=text], input[type=number], select { border:1px solid var(--line); background:#13161d; padding:6px 7px; color:var(--ink); font-family:inherit; font-size:var(--ui-sm); }
   .side-tabs { gap:0; margin-bottom:8px; border-bottom:1px solid var(--line); }
   .side-tab { border:0; border-bottom:2px solid transparent; background:transparent; color:var(--dim); border-radius:0; min-height:27px; }
   .side-tab.active { color:var(--ink); border-color:var(--yellow); background:transparent; }
@@ -426,8 +433,8 @@
   .asset-process-controls .row { margin:0; }
   .asset-process-preview { min-height:220px; display:flex; align-items:center; justify-content:center; border:1px solid var(--line); background:#11141a; overflow:hidden; }
   .asset-process-preview canvas { image-rendering:pixelated; max-width:100%; max-height:300px; }
-  @media (max-width:1280px) { .workbench-tools { margin-right:300px; } .scene-file-actions { width:228px; } }
-  .struct-node { display:flex; align-items:center; gap:5px; min-height:30px; padding:4px 7px; font-size:11px; color:var(--dim); border-left:2px solid transparent; cursor:pointer; user-select:none; }
+  @media (max-width:1280px) { .scene-file-actions { padding-left:7px; padding-right:7px; } .toolbar-output-actions { padding-left:7px; padding-right:7px; } }
+  .struct-node { display:flex; align-items:center; gap:5px; min-height:30px; padding:4px 7px; font-size:var(--ui-md); color:var(--dim); border-left:2px solid transparent; cursor:pointer; user-select:none; }
   .struct-node:hover { background:#282e39; color:var(--ink); }
   .struct-node.sel { color:var(--ink); border-left-color:var(--yellow); background:#2c2a1c; }
   .struct-node.group { color:#d7b8ff; }
@@ -439,7 +446,7 @@
   .struct-node .struct-expander { cursor:pointer; }
   .struct-node .struct-icon[aria-disabled="true"] { pointer-events:none; }
   .struct-node .struct-label { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
-  .struct-node .struct-meta { color:var(--dim); font-size:9px; }
+  .struct-node .struct-meta { color:var(--dim); font-size:var(--ui-xs); }
   .struct-actions { display:flex; align-items:center; gap:1px; }
   .struct-action { min-width:18px; min-height:20px; padding:0 2px; border:0; background:transparent; color:#a7afbb; font-size:9px; line-height:1; }
   .struct-action:disabled { opacity:.78; }
@@ -448,14 +455,14 @@
   .struct-node.insert-before { box-shadow:inset 0 2px 0 var(--yellow); }
   .struct-node.insert-after { box-shadow:inset 0 -2px 0 var(--yellow); }
   .struct-node.group-target { background:#332b16; outline:1px solid var(--yellow); outline-offset:-1px; }
-  .struct-empty { padding:9px 7px; color:var(--dim); font-size:10px; line-height:1.5; }
+  .struct-empty { padding:9px 7px; color:var(--dim); font-size:var(--ui-sm); line-height:1.5; }
   .stage-wrap { flex:1; min-height:260px; height:auto; margin-top:8px; border:1px solid var(--line); background:#0d1016; }
-  .stage-meta-bar { flex:0 0 27px; min-height:27px; display:flex; align-items:center; gap:6px; padding:0 7px; border-bottom:1px solid var(--line); background:#1b2028; color:var(--dim); font-size:10px; }
+  .stage-meta-bar { flex:0 0 27px; min-height:27px; display:flex; align-items:center; gap:6px; padding:0 7px; border-bottom:1px solid var(--line); background:#1b2028; color:var(--dim); font-size:var(--ui-sm); }
   .stage-meta-bar .stage-meta-title { color:var(--ink); }
   .stage-meta-bar .stage-meta-spacer { flex:1; }
   .stage-zoom-value { color:var(--ink); min-width:38px; text-align:right; font-variant-numeric:tabular-nums; }
   .stage-meta-bar .struct-action { font-size:11px; }
-  .stage-wrap::before { content:"STAGE  ·  按 Alt + 滚轮缩放"; position:absolute; top:6px; left:7px; z-index:6; font-size:8px; color:var(--dim); background:#11151cdd; padding:2px 4px; pointer-events:none; }
+  .stage-wrap::before { content:none; display:none; }
   .draw-row { min-height:34px; padding:4px 0 7px; margin-top:0; border-bottom:1px solid var(--line); }
   .draw-row .small { min-height:24px; padding:3px 6px; border-color:transparent; background:transparent; }
   .draw-row .dbtn.active { color:#15171d; background:var(--yellow); border-color:var(--yellow); }
@@ -472,11 +479,11 @@
   .sf-l { color:var(--dim); }
   .sf-l.nm { color:var(--cyan); }
   .sf-sep { background:var(--line); }
-  #timeline-dock { position:fixed; z-index:20; left:270px; right:0; bottom:0; height:var(--timeline-dock-h); padding:8px 10px 9px; border-top:1px solid var(--line); background:#171a20; box-shadow:0 -8px 20px #0005; }
+  #timeline-dock { position:fixed; z-index:20; left:var(--left-rail-w); right:0; bottom:0; height:var(--timeline-dock-h); padding:8px 10px 9px; border-top:1px solid var(--line); background:#171a20; box-shadow:0 -8px 20px #0005; }
   #timeline-splitter { position:absolute; left:0; right:0; top:-4px; height:8px; cursor:row-resize; }
   #timeline-splitter::after { content:""; position:absolute; top:3px; left:45%; right:45%; height:1px; background:var(--line); }
   #timeline-splitter:hover::after { background:var(--yellow); }
-  .timeline-dock-head { height:18px; display:flex; align-items:center; gap:8px; color:var(--dim); font-size:9px; }
+  .timeline-dock-head { height:18px; display:flex; align-items:center; gap:8px; color:var(--dim); font-size:var(--ui-xs); }
   .timeline-dock-head b { color:var(--ink); font-weight:400; }
   .timeline-play { min-width:22px; min-height:20px; padding:0; border:0; background:transparent; color:var(--dim); font-size:11px; line-height:1; }
   .timeline-play.active { color:var(--yellow); background:#332b16; }
@@ -504,9 +511,10 @@
   .inspector-context::-webkit-scrollbar { width:5px; }
   .inspector-context::-webkit-scrollbar-track { background:transparent; }
   .inspector-context::-webkit-scrollbar-thumb { background:#555c68; border-radius:0; }
-  .inspector-context .inspector-kicker { color:var(--cyan); font-size:9px; letter-spacing:.1em; margin-bottom:3px; }
-  .inspector-context .inspector-name { color:var(--ink); font-size:12px; }
-  .inspector-context .inspector-note { margin-top:4px; color:var(--dim); font-size:9px; line-height:1.45; }
+  .inspector-context .inspector-kicker { color:var(--cyan); font-family:var(--font-mono); font-size:var(--ui-xs); letter-spacing:.08em; margin-bottom:3px; }
+  .inspector-context .inspector-name { color:var(--ink); font-size:var(--ui-lg); }
+  .inspector-context .inspector-note { margin-top:4px; color:var(--dim); font-size:var(--ui-xs); line-height:1.45; }
+  .inspector-context .inspector-note:empty { display:none; }
   .global-inspector-tabs { display:none; gap:0; margin:0 0 7px; border-bottom:1px solid var(--line); }
   .global-inspector-tabs button { min-height:29px; padding:4px 9px; border:0; border-bottom:2px solid transparent; border-radius:0; background:transparent; color:var(--dim); font-size:10px; }
   .global-inspector-tabs button.active { color:var(--ink); border-color:var(--yellow); }
@@ -515,10 +523,12 @@
   #btn-timing-mode.has-data:not(.active) { color:var(--yellow); border-color:#7a6730; }
   .global-inspector { margin:0 0 7px; border-top:1px solid var(--line); }
   .global-section { border-bottom:1px solid var(--line); padding:0 0 7px; }
-  .global-section-title { padding:7px 2px 6px; color:#c9ced6; font-size:10px; font-weight:700; letter-spacing:.02em; }
+  .global-section-title { padding:7px 2px 6px; color:#c9ced6; font-size:var(--ui-sm); font-weight:700; letter-spacing:.02em; }
   .global-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px 8px; padding:0 2px; }
   .global-grid .wide { grid-column:1 / -1; }
-  .global-field { min-width:0; display:grid; grid-template-columns:minmax(0,1fr) 76px; align-items:center; gap:5px; color:var(--dim); font-size:9px; }
+  .global-grid .v4-group-field { grid-template-columns:auto minmax(0,1fr); }
+  .v4-group-field .color-mode-tabs { margin:0; }
+  .global-field { min-width:0; display:grid; grid-template-columns:minmax(0,1fr) 76px; align-items:center; gap:5px; color:var(--dim); font-size:var(--ui-xs); }
   .global-field input, .global-field select { min-width:0; width:100%; height:23px; padding:2px 4px; border:1px solid #3b424d; border-radius:2px; background:#252a32; color:var(--ink); font:inherit; }
   .global-field input[type="color"] { padding:1px; }
   .global-field input[type="checkbox"] { width:14px; justify-self:end; accent-color:var(--yellow); }
@@ -529,6 +539,29 @@
   .v4-motion-head { display:flex; justify-content:flex-end; align-items:center; gap:5px; }
   .global-section-title { display:flex; align-items:center; justify-content:space-between; gap:6px; }
   .v4-motion-title-button { min-width:32px; min-height:20px; border-color:transparent; background:transparent; }
+  .v4-panel-heading { display:flex; align-items:center; justify-content:space-between; min-height:31px; margin:3px 2px 9px; padding:2px 0 5px; border-bottom:1px solid var(--line); color:var(--ink); font-size:var(--ui-sm); font-weight:700; }
+  .v4-formation-toggle { width:28px; height:26px; border:0; background:transparent; color:var(--cyan); font-size:21px; line-height:1; cursor:pointer; }
+  .v4-formation-toggle:hover,.v4-formation-toggle:focus-visible { background:#24424a; outline:1px solid var(--cyan); }
+  .v4-formation-toggle.active { color:var(--yellow); }
+  .v4-transform-card { margin:0 2px 9px; padding:0 7px 8px; border:1px solid var(--line); background:#1c2429; }
+  .v4-transform-card .global-grid { display:block; padding:0; }
+  .v4-transform-row { display:grid; grid-template-columns:54px repeat(2,minmax(0,1fr)); gap:5px; align-items:center; min-height:31px; }
+  .v4-transform-label { color:var(--ink); font-size:var(--ui-xs); }
+  .v4-transform-row .global-field { grid-template-columns:auto minmax(0,1fr); gap:3px; }
+  .v4-transform-row .global-field>span { white-space:nowrap; }
+  .v4-transform-row .global-field input,.v4-transform-row .global-field select { width:100%; }
+  .v4-transform-row .global-field .small { min-width:0; width:100%; white-space:nowrap; }
+  .v4-transform-row .v4-transform-pivot-field { display:block; min-width:0; }
+  .v4-transform-divider { height:1px; margin:6px 0; background:var(--line); }
+  .v4-motion-gallery { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; padding:2px 2px 10px; }
+  .v4-motion-card { min-height:54px; position:relative; display:flex; align-items:flex-end; padding:8px; border:1px solid #4c5663; border-radius:2px; color:var(--ink); background:#252a32; font-size:var(--ui-sm); cursor:pointer; }
+  .v4-motion-card:hover,.v4-motion-card:focus-visible { border-color:var(--cyan); outline:none; }
+  .v4-motion-card.selected { border:2px solid var(--cyan); padding:7px; }
+  .v4-motion-card.enabled { background:#3b361f; }
+  .v4-motion-power { position:absolute; top:4px; right:4px; width:25px; height:25px; border:0; background:transparent; color:var(--dim); font-size:16px; cursor:pointer; }
+  .v4-motion-power.active { color:var(--yellow); }
+  .v4-motion-timing { min-width:25px; min-height:25px; border:0; background:transparent; color:var(--dim); font-size:17px; cursor:pointer; }
+  .v4-motion-timing.active { color:#009944; }
   .v4-paint-field { grid-template-columns:minmax(0,1fr) minmax(128px,1.6fr); }
   .v4-paint-row { min-width:0; display:flex; align-items:center; justify-content:flex-end; gap:4px; }
   .v4-paint-row input[type="checkbox"] { flex:0 0 14px; width:14px; }
@@ -538,7 +571,7 @@
   /* V4_CLASSIC_PAINT_STYLE_END */
   .global-slider { display:grid; grid-template-columns:minmax(0,1fr) 30px; align-items:center; gap:5px; }
   .global-slider input[type="range"] { height:4px; padding:0; accent-color:var(--yellow); }
-  .global-slider output { min-width:30px; color:var(--ink); font-size:9px; text-align:right; }
+  .global-slider output { min-width:30px; color:var(--ink); font-family:var(--font-mono); font-size:var(--ui-xs); text-align:right; }
   .global-note { padding:0 2px; color:var(--dim); font-size:9px; line-height:1.5; }
   .props-tools { padding:6px 0; border-bottom:1px solid var(--line-soft); }
   #cfgform { max-height:none; border:0; background:transparent; padding:0; margin:5px 0; flex:1 1 0; height:0; min-height:80px; }
@@ -549,35 +582,38 @@
   .layer-card.img .layer-name { color:var(--ink); }
   .props-actions { border-top:1px solid var(--line); padding-top:8px; }
   .hint { display:none; }
-  @media (max-width:1280px) { .cols { grid-template-columns:248px minmax(430px,1fr) 300px; } .draw-style { display:none; } }
+  @media (max-width:1280px) { :root { --left-rail-w:256px; --right-rail-w:312px; } .cols { grid-template-columns:var(--left-rail-w) minmax(560px,1fr) var(--right-rail-w); } .draw-style { display:none; } }
 </style>
+<script src="./editor/v4-color-popover.js"></script>
 <script src="./editor/classic-v4-color-control.js"></script>
+<script src="./editor/classic-v4-color-map-control.js"></script>
 <script src="./editor/classic-v4-pattern-field.js"></script>
 <script src="./editor/classic-v4-inspector-effect-card.js"></script>
 <script src="./editor/classic-v4-inspector-effect-parameters.js"></script>
+<script src="./editor/classic-v4-ascii-control.js"></script>
 <script src="./editor/classic-v4-overlay-pattern-codec.js"></script>
 <script src="./editor/sprite-sheet-layout.js"></script>
 <script src="./editor/asset-folder-plan.js"></script>
 </head>
 <body>
 <div class="workbench-header">
-  <span class="workbench-brand">PIXEL LOOM</span>
+  <span class="workbench-brand" title="ToSampool · 图森破">TOSAMPOOL</span>
   <span class="workbench-name">未命名场景</span>
-  <span class="workbench-note"><b>UI 重构 v1</b> · 功能副本 · 原始编辑器未改动</span>
 </div>
 <div class="workbench-tools" aria-label="场景与绘制工具栏">
   <div class="scene-file-actions"><button id="btn-new" class="small">新建场景</button><button id="btn-open" class="small">打开场景</button><button id="btn-generate" class="small" title="基于描述、所选素材或当前画布与 Agent 共同创作">Agent创作</button></div>
   <input id="jsfile" type="file" accept=".js,text/javascript,.json" hidden>
-  <span class="tool-sep"></span>
-  <div class="tool-slots" aria-label="绘制工具">
-    <button class="small toolbar-tool active" data-toolbar-mode="select" title="选择 / 移动 / 旋转 / 缩放">↖</button>
-    <button class="small toolbar-tool" data-toolbar-mode="rect" title="矩形">▬</button>
-    <button class="small toolbar-tool" data-toolbar-mode="line" title="直线">━</button>
-    <button class="small toolbar-tool" data-toolbar-mode="ellipse" title="椭圆">●</button>
-    <button class="small toolbar-tool" data-toolbar-mode="poly" title="多边形">⬇</button>
+  <div class="toolbar-main">
+    <div class="tool-slots" aria-label="绘制工具">
+      <button class="small toolbar-tool active" data-toolbar-mode="select" title="选择 / 移动 / 旋转 / 缩放">↖</button>
+      <button class="small toolbar-tool" data-toolbar-mode="rect" title="矩形">▬</button>
+      <button class="small toolbar-tool" data-toolbar-mode="line" title="直线">━</button>
+      <button class="small toolbar-tool" data-toolbar-mode="ellipse" title="椭圆">●</button>
+      <button class="small toolbar-tool" data-toolbar-mode="poly" title="多边形">⬇</button>
         <button class="small toolbar-tool" data-toolbar-mode="pencil" title="像素铅笔">✎</button>
-    <button id="toolbar-text" class="small" title="位图文字">T</button>
-    <button id="toolbar-image" class="small" title="图片：打开素材库">▣</button>
+      <button id="toolbar-text" class="small" title="位图文字">T</button>
+      <button id="toolbar-image" class="small" title="图片：打开素材库">▣</button>
+    </div>
   </div>
   <div class="toolbar-output-actions"><button id="btn-save" class="small primary">保存场景</button><button id="btn-test-scene" class="small">测试场景</button><button id="btn-export" class="small">导出其他格式</button></div>
 </div>
@@ -599,7 +635,15 @@
     <!-- V4_CLASSIC_EFFECT_PANEL_HTML_END -->
     <div id="asset-splitter" class="asset-splitter" title="拖动调整场景结构与素材库高度"></div>
     <section id="asset-pane" class="asset-pane" aria-label="素材库">
-      <div id="asset-head" class="asset-head"><span class="asset-title">素材</span><span class="asset-import-actions"><button id="btn-import-folder" title="导入文件夹（批量入库）">▤</button><button id="btn-import-sprite" title="导入精灵图">▦</button><button id="btn-import" title="导入素材">+</button></span></div>
+      <div id="asset-head" class="asset-head"><span class="asset-title">素材</span></div>
+      <div class="asset-import-actions">
+        <div class="asset-import-buttons">
+          <button id="btn-export-material" type="button" class="small asset-import-icon" title="导出所选素材画面" aria-label="导出画面" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v7h16v-7 M12 3v12m-4-4 4 4 4-4"/></svg></button>
+          <button id="btn-import-folder" type="button" class="small asset-import-icon" title="导入文件夹（批量入库）" aria-label="导入文件夹"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V5h6l2 2h10v13H3V7Z M12 10v7m-3-3 3 3 3-3"/></svg></button>
+          <button id="btn-import-sprite" type="button" class="small asset-import-icon" title="导入精灵图" aria-label="导入精灵图"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v18H3Z M9 3v18M15 3v18M3 9h18M3 15h18"/></svg></button>
+          <button id="btn-import" type="button" class="small asset-import-icon" title="导入素材" aria-label="导入素材"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H3v18h18V10 M3 17l6-6 5 5 3-3 4 4 M18 2v6m-3-3h6"/><circle cx="8" cy="7" r="1"/></svg></button>
+        </div>
+      </div>
       <div id="side-import" class="asset-content">
         <div id="lib" class="lib"></div>
         <div class="meta" id="m-import"></div>
@@ -609,7 +653,7 @@
         <div id="asset-legacy-controls" hidden>
       <label>导入素材（任意图片，非8bit 亦可。</label>
       <div id="drop" class="drop">拖入图片 / 点击选择</div>
-      <input id="file" type="file" accept="image/*" multiple hidden>
+      <input id="file" type="file" accept="image/*,application/json,.json" multiple hidden>
       <label><input type="checkbox" id="style-on" checked> 样式化（关= 原样 1:1 显示。</label>
       <label>采样数（原图 ÷ N；像素化 = 缩小 N 倍采样，整数。</label>
       <div class="row">
@@ -672,8 +716,9 @@
       <select id="draw-target" hidden><option value="new">新建元素</option><option value="sel">当前选中</option></select>
       <span class="hint-inline" id="draw-hint"></span>
     </div>
-    <div id="stage-meta-bar" class="stage-meta-bar" aria-label="舞台状态栏"><span class="stage-meta-title">舞台</span><span class="stage-meta-spacer"></span><label title="只改变编辑器预览预算，不写入场景"><span>预览</span><select id="preview-quality"><option value="auto">Auto</option><option value="full">Full</option><option value="draft">Draft</option></select></label><span id="preview-perf" title="Runtime 绘制 P95 / 目标帧率">等待采样</span><span id="stage-zoom-value" class="stage-zoom-value">100%</span><button id="btn-reset-zoom" class="struct-action" title="重置缩放与平移">🔄</button></div>
-    <div id="stage-wrap" class="stage-wrap">
+    <div id="stage-meta-bar" class="stage-meta-bar" aria-label="舞台状态栏"><span class="stage-meta-title">舞台</span><span class="stage-meta-spacer"></span><label title="仅当前会话；场景GPU与受限对象采样试点分开选择，不写入作品"><span>预览后端</span><select id="preview-backend"><option value="cpu">CPU 基准</option><option value="gpu-experimental">实验 GPU（场景）</option><option value="gpu-object-pilot">对象采样试点</option></select></label><button type="button" id="preview-backend-status" popovertarget="preview-backend-details" title="查看实际后端与回退诊断">等待绘制</button><label title="只改变编辑器预览预算，不写入场景"><span>预览</span><select id="preview-quality"><option value="auto">Auto</option><option value="full">Full</option><option value="draft">Draft</option></select></label><span id="preview-perf" title="编辑器渲染 P95 / 目标帧率">等待采样</span><span id="stage-zoom-value" class="stage-zoom-value">100%</span><button id="btn-reset-zoom" class="struct-action" title="重置缩放与平移">🔄</button></div>
+    <div id="preview-backend-details" popover aria-label="预览后端诊断"><pre id="preview-backend-report" style="white-space:pre-wrap;max-width:75vw">等待绘制</pre></div>
+    <div id="stage-wrap" class="stage-wrap" title="按 Alt + 滚轮缩放舞台">
       <canvas id="home-scene"></canvas>
       <canvas id="stage" class="stage"></canvas>
       <canvas id="editor-overlay" class="editor-overlay"></canvas>
@@ -723,6 +768,7 @@
 <script src="runtime-vnext-inline.js"></script>
 <script src="editor/vnext-runtime-adapter.js"></script>
 <script src="editor/vnext-preview-scheduler.js"></script>
+<script src="editor/v4-preview-backend.js"></script>
 <script src="editor/vnext-canvas-hit.js"></script>
 <script src="editor/classic-v4-view-controller.js"></script>
 <script src="editor/vnext-scene-mutation.js"></script>
@@ -734,6 +780,18 @@
 <script src="editor/classic-v4-font-controller.js"></script>
 <script src="editor/classic-v4-transform-controller.js"></script>
 <script src="editor/classic-v4-part-transform-controller.js"></script>
+<script src="editor/classic-v4-stroke-style-control.js"></script>
+<link rel="stylesheet" href="editor/classic-v4-pattern-library.css">
+<script src="editor/v4-pattern-registry.js"></script>
+<script src="editor/v4-path-pattern-presets.js"></script>
+<script src="editor/classic-v4-pattern-library.js"></script>
+<script src="editor/classic-v4-resource-name.js"></script>
+<script src="editor/classic-v4-pattern-cards.js"></script>
+<script src="editor/v4-parameter-controls.js"></script>
+<script src="editor/classic-v4-effect-parameter-timing.js"></script>
+<script src="editor/classic-v4-formation-parameters.js"></script>
+<script src="editor/classic-v4-path-extension-control.js"></script>
+<script src="editor/classic-v4-path-instance-editor.js"></script>
 <script src="editor/classic-v4-inspector-controller.js"></script>
 <script src="editor/classic-v4-drawing-controller.js"></script>
 <script src="editor/classic-v4-shortcut-controller.js"></script>
@@ -764,6 +822,24 @@
 <script src="editor/geometry.js"></script>
 <script src="editor/scene-model.js"></script>
 <script src="editor/vnext-scene.js"></script>
+<script src="editor/v4-resource-core.js"></script>
+<script src="editor/v4-element-references.js"></script>
+<script src="editor/v4-element-presets.js"></script>
+<script src="editor/classic-v4-material-controller.js"></script>
+<script src="editor/v4-material-preview.js"></script>
+<script src="editor/v4-pattern-lifecycle.js"></script>
+<script src="editor/v4-module-instances.js"></script>
+<script src="editor/v4-module-baker.js"></script>
+<script src="editor/v4-project-material-transfer.js"></script>
+<script src="editor/v4-material-baker.js"></script>
+<script src="editor/v4-material-export.js"></script>
+<script src="editor/classic-v4-material-bake-controller.js"></script>
+<script src="editor/v4-resource-library.js"></script>
+<script src="editor/v4-material-sharing.js"></script>
+<script src="editor/classic-v4-material-sharing-controller.js"></script>
+<link rel="stylesheet" href="editor/classic-v4-resource-library.css">
+<script src="editor/classic-v4-resource-controller.js"></script>
+<script src="editor/classic-v4-resource-entry-controller.js"></script>
 <script src="editor/vnext-project-package.js"></script>
 <script src="editor/vnext-project-archive.js"></script>
 <script src="editor/vnext-agent-draft-package.js"></script>
@@ -1264,11 +1340,12 @@ function addSource(img, name, frames, options) {
 }
 let libPreviewVersion = 0;
 function renderLib() {
+  if(classicV4Vertical)window.classicV4MaterialPreviews?.stop();
   const previewVersion = ++libPreviewVersion;
   const lib = $('lib');
   lib.innerHTML = '';
-  if (!state.sources.length) {
-    lib.innerHTML = '<div class="asset-empty">尚无素材<br>点击右上视<b>+</b> 导入图片或多帧序列。</div>';
+  if (!state.sources.length && !(classicV4Vertical && Object.keys(window.ToSampoolV4Workspace?.current()?.elementPresets||{}).length)) {
+    lib.innerHTML = '<div class="asset-empty">尚无素材<br>从右侧导入图片或多帧序列。</div>';
     $('asset-pane').classList.remove('has-assets');
     $('btn-import').classList.add('pulse');
     return;
@@ -1286,20 +1363,22 @@ function renderLib() {
     cv.width = sz.w; cv.height = sz.h;
     previews.push({ cv, s, sz });
     const del = document.createElement('button'); del.className = 'asset-card-action delete'; del.textContent = '×'; del.title = '从当前素材库移除';
-    del.addEventListener('click', ev => { ev.stopPropagation(); if (classicV4Vertical && s.assetId) { if (window.ToSampoolV4Assets) ToSampoolV4Assets.select(s.assetId); const removed=classicAssets.removeSelected(); if (!removed) $('m-import').textContent='该素材仍被场景对象、背景或蒙版引用，不能直接删除。'; } else removeSource(s); });
+    del.addEventListener('click', ev => { ev.stopPropagation(); if (classicV4Vertical && s.assetId) { window.classicV4Materials?.remove(s.assetId,'asset'); } else removeSource(s); });
     const add = document.createElement('button'); add.className = 'asset-card-action add'; add.textContent = '→'; add.title = '添加到场景';
+    if(s.previewError){add.disabled=true;add.title='素材不可读取，请先重新导入或修复路径';}
     add.addEventListener('click', ev => { ev.stopPropagation(); state.selSrc=s.id; if (classicV4Vertical && s.assetId && window.ToSampoolV4Assets) ToSampoolV4Assets.select(s.assetId); classicAssets.addToScene(classicV4Vertical && s.assetId ? s.assetId : s); });
     const nm = document.createElement('div');
     nm.className = 'nm'; nm.textContent = s.name;
     if (classicV4Vertical && s.assetId) {
       const alpha = document.createElement('button'); alpha.className = 'asset-card-action alpha'; alpha.textContent = 'α'; alpha.title = 'Alpha 修边：生成透明派生素材';
+      alpha.disabled=!!s.previewError;
       alpha.addEventListener('click', ev => { ev.stopPropagation(); if (!classicV4AlphaRepair) return; classicV4AlphaRepair.open(s.assetId).catch(error => { $('m-import').textContent = 'Alpha 修边无法打开：' + (error && error.message || error); }); });
       d.append(alpha);
     }
     d.append(cv, del, add);
     d.appendChild(nm);
-    d.title = '单击选择；再次单击修改预处理';
-    d.onclick = () => { const reopen = state.selSrc === s.id; state.selSrc = s.id; if (classicV4Vertical && s.assetId && window.ToSampoolV4Assets) ToSampoolV4Assets.select(s.assetId); renderLib(); renderStyleCtl(); if (classicV4Vertical && reopen && s.assetId) openClassicV4AssetProcess(s.assetId).catch(error => { $('m-import').textContent='素材预处理无法打开：'+(error&&error.message||error); }); else if (!classicV4Vertical && reopen) openAssetProcessModal(s, { discardOnCancel:false }); };
+    d.title = '单击选择；选中后点击预览修改预处理';
+    d.onclick = event => { const reopen = state.selSrc === s.id && (!classicV4Vertical || event.target===cv); state.selSrc = s.id; if (classicV4Vertical && s.assetId && window.ToSampoolV4Assets) ToSampoolV4Assets.select(s.assetId); renderLib(); renderStyleCtl(); if (classicV4Vertical && reopen && s.assetId) openClassicV4AssetProcess(s.assetId).catch(error => { $('m-import').textContent='素材预处理无法打开：'+(error&&error.message||error); }); else if (!classicV4Vertical && reopen) openAssetProcessModal(s, { discardOnCancel:false }); };
     d.addEventListener('dragstart', ev => { ev.dataTransfer.effectAllowed = 'copy'; ev.dataTransfer.setData('text/plain', 'asset:' + s.id); });
     lib.appendChild(d);
   }
@@ -1308,8 +1387,15 @@ function renderLib() {
     previews.forEach(({ cv, s, sz }) => { const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, sz.w, sz.h); drawSourceFrame(g, s, 0, 0, sz.w, sz.h, Math.floor(now / 500)); });
     if (previews.some(p => p.s.frames > 1)) requestAnimationFrame(paint);
   };
-  requestAnimationFrame(paint);
+  if(classicV4Vertical&&window.classicV4MaterialPreviews){
+    for(const {cv,s,sz}of previews){cv.width=160;cv.height=96;const card=cv.closest('.lib-item');
+      const note=document.createElement('small');note.className='v4-material-note';card.append(note);
+      classicV4MaterialPreviews.bind({card,canvas:cv,load:async()=>{if(s.previewError)throw Error(s.previewError);return{animated:s.frames>1,interval:500,draw(canvas,time){const ctx=canvas.getContext('2d'),scale=Math.min(canvas.width/sz.w,canvas.height/sz.h),w=sz.w*scale,h=sz.h*scale;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.imageSmoothingEnabled=false;drawSourceFrame(ctx,s,(canvas.width-w)/2,(canvas.height-h)/2,w,h,Math.floor(time*2));}};},error:error=>{note.textContent=error?'预览不可用：'+error.message:'';}});
+    }
+  }else requestAnimationFrame(paint);
   $('btn-add').disabled = !state.sources.length;
+  window.classicV4Materials?.renderElements();
+  window.classicV4Sharing?.renderProject();
 }
 function removeSource(s) {
   if (!s) return;
@@ -1978,7 +2064,15 @@ const previewPerformance=window.EditorPerformance.create();let previewPerfUiAt=0
 function syncPreviewRuntimeOptions(){const mult=previewPerformance.pixelDivMultiplier();if(mult===previewRuntimeMultiplier)return;previewRuntimeMultiplier=mult;if(window.HomeScene&&HomeScene.setPreviewOptions)HomeScene.setPreviewOptions({pixelDivMultiplier:mult});}
 function updatePreviewPerformanceUi(now,force){if(!force&&now-previewPerfUiAt<500)return;previewPerfUiAt=now;const s=previewPerformance.snapshot(),el=$('preview-perf'),est=window.EditorPerformance.estimate(window.HOME_SCENE,s.pixelDivMultiplier),actual=window.HomeScene&&HomeScene.getLastFrameStats?HomeScene.getLastFrameStats():null,pixels=actual?actual.workPixels:est.workPixels,passes=actual?actual.pixelPasses:est.passes;if(el){const work=pixels>=1e6?(pixels/1e6).toFixed(1)+'MP':Math.round(pixels/1000)+'KP';el.textContent=(s.samples?('P95 '+s.p95.toFixed(1)+'ms · '):'')+s.targetFps+'fps · '+work;el.title='Runtime 绘制 P95 / 目标帧率 / 本帧 CPU 像素工作量（'+passes+' 遍）'+(actual?' / 缓存 '+actual.cacheHits+' 命中 '+actual.cacheMisses+' 未命中 / 最大离屏 '+Math.round(actual.offscreenPeakPixels/1000)+'KP':'（估算）');}}
 /* V4_CLASSIC_PERFORMANCE_UI_BEGIN */
-function updateClassicV4PerformanceUi(now,force){if(!classicV4View||!classicV4View.performance||!force&&now-previewPerfUiAt<500)return;previewPerfUiAt=now;const s=classicV4View.performance(),el=$('preview-perf'),last=s.lastRender||{},surface=last.surfaces||{},quality=s.quality||previewPerformance.snapshot(),work=last.workPixels>=1e6?(last.workPixels/1e6).toFixed(1)+'MP':Math.round((last.workPixels||0)/1000)+'KP';if(el){el.textContent=`${quality.effectiveMode||quality.mode} · ${quality.targetFps}fps · ${work} · P95 ${s.frameP95.toFixed(1)}ms`;el.title=`v4 ${quality.mode}→${quality.effectiveMode||quality.mode} / Runtime 绘制 P95 ${s.renderP95.toFixed(1)}ms / 绘制 ${s.scheduler?s.scheduler.renders:0} 跳过 ${s.scheduler?s.scheduler.staticSkips:0} / 像素遍数 ${last.pixelPasses||0} / backing ${last.backingSizeWrites||0} / 离屏峰值 ${Math.round((surface.peakPixels||0)/1000)}KP / Player ${s.runtime?s.runtime.playerCreates:0}`;}}
+function updateClassicV4PerformanceUi(now,force){if(!classicV4View||!classicV4View.performance||!force&&now-previewPerfUiAt<500)return;previewPerfUiAt=now;const s=classicV4View.performance(),el=$('preview-perf'),last=s.lastRender||{},surface=last.surfaces||{},quality=s.quality||previewPerformance.snapshot(),work=last.workPixels>=1e6?(last.workPixels/1e6).toFixed(1)+'MP':Math.round((last.workPixels||0)/1000)+'KP';if(el){el.textContent=`${quality.effectiveMode||quality.mode} · 目标${quality.targetFps}fps · ${work} · 渲染P95 ${s.renderP95.toFixed(1)}ms`;el.title=`v4 ${quality.mode}→${quality.effectiveMode||quality.mode} / 编辑器渲染（含准备和选择框）P95 ${s.renderP95.toFixed(1)}ms，最近${s.renderSamples}次 / 调度回调间隔 P95 ${s.frameP95.toFixed(1)}ms（非绘制耗时、非实际输出帧率） / 绘制 ${s.scheduler?s.scheduler.renders:0} 跳过 ${s.scheduler?s.scheduler.staticSkips:0} / 像素遍数 ${last.pixelPasses||0} / backing ${last.backingSizeWrites||0} / 离屏峰值 ${Math.round((surface.peakPixels||0)/1000)}KP / Player ${s.runtime?s.runtime.playerCreates:0}`;}}
+function syncClassicV4BackendUi(){
+  const controller=window.classicV4PreviewBackend;if(!controller)return;
+  const snapshot=controller.snapshot(),last=snapshot.last,status=$('preview-backend-status');
+  $('preview-backend').value=snapshot.policy;
+  status.textContent=last?(snapshot.policy==='gpu-object-pilot'?'对象采样 '+(last.objectSampling?.handled?'GPU':last.objectSampling?.reason==='no-object-sampling-candidate'?'CPU · 无可用对象':'CPU · 回退'):'场景 '+last.scene.toUpperCase()+(snapshot.policy==='gpu-experimental'&&last.scene!=='gpu'?(last.reason==='no-supported-effect'?' · 无需处理':' · 回退'):'')):'等待绘制';
+  status.title=controller.description();$('preview-backend-report').textContent=controller.description();
+}
+$('preview-backend').addEventListener('change',event=>window.classicV4PreviewBackend?.setPolicy(event.target.value));
 /* V4_CLASSIC_PERFORMANCE_UI_END */
 function paintRuntimePreview(t,now){if(!(window.HomeScene&&HomeScene.seek))return;syncPreviewRuntimeOptions();const started=performance.now();HomeScene.seek(t);previewPerformance.record(performance.now()-started);syncPreviewRuntimeOptions();state.runtimePaintAt=now==null?performance.now():now;updatePreviewPerformanceUi(performance.now(),false);}
 function loop(now) {
@@ -3290,16 +3384,19 @@ async function syncClassicV4AssetShelf(){
   if(!classicV4Vertical||!window.ToSampoolV4Workspace||!ToSampoolV4Workspace.hasDocument)return;
   const token=++classicV4AssetShelfToken,sceneDocument=ToSampoolV4Workspace.current(),sources=[],selectedAsset=window.ToSampoolV4Assets&&ToSampoolV4Assets.selected(),selectedId=selectedAsset&&selectedAsset.id,previousId=(state.sources||[]).find(source=>source.id===state.selSrc)?.assetId;
   for(const [assetId,descriptor] of Object.entries(sceneDocument.assets||{})){
+    // Editable text owns a portable raster fallback. It belongs to the project
+    // payload, but is implementation detail rather than a user-library asset.
+    if(descriptor&&(descriptor.libraryHidden||descriptor.internal||descriptor.generated==='text-raster'))continue;
     try{
       const resolved=await EditorVNextAssetLoader.resolve({assets:{[assetId]:descriptor}},{host:EditorHost,sceneLocator:ToSampoolV4Workspace.locator,baseUrl:location.href}),images=resolved[assetId].frames;
       const width=Math.max(...images.map(image=>image.naturalWidth||image.width)),height=Math.max(...images.map(image=>image.naturalHeight||image.height)),edge=192,scale=Math.min(1,edge/Math.max(width,height)),thumbW=Math.max(1,Math.round(width*scale)),thumbH=Math.max(1,Math.round(height*scale)),sheet=document.createElement('canvas');sheet.width=thumbW*images.length;sheet.height=thumbH;const context=sheet.getContext('2d');context.imageSmoothingEnabled=false;images.forEach((image,index)=>context.drawImage(image,index*thumbW,0,thumbW,thumbH));
       sources.push({id:`v4-${assetId}`,assetId,name:descriptor.name||assetId,img:sheet,frames:images.length,fps:Math.max(.1,+descriptor.fps||8),frameLoop:descriptor.frameLoop!==false,v4Recipe:descriptor.recipe||null,frozen:true,previewOnly:true,_canvas:null,_dataUrl:null});
-    }catch(_){/* An unreadable project asset must not reveal a prior project's preview card. */}
+    }catch(error){const placeholder=document.createElement('canvas');placeholder.width=placeholder.height=1;sources.push({id:`v4-${assetId}`,assetId,name:descriptor.name||assetId,img:placeholder,frames:1,frozen:true,previewOnly:true,previewError:error.message||String(error)});}
   }
   if(token!==classicV4AssetShelfToken)return;
   state.sources=sources;const preferred=selectedId||previousId;state.selSrc=(sources.find(source=>source.assetId===preferred)||sources[0]||{}).id||null;renderLib();renderStyleCtl();
 }
-function classicV4AssetSignature(scene){return Object.entries(scene&&scene.assets||{}).map(([id,asset])=>`${id}:${asset&&asset.locator?String(asset.locator).length:0}:${Array.isArray(asset&&asset.frames)?asset.frames.length:0}:${JSON.stringify(asset&&asset.recipe||{})}:${Math.max(0,+(asset&&asset.alphaMaskRevision)||0)}`).sort().join('|');}
+function classicV4AssetSignature(scene){return Object.entries(scene&&scene.assets||{}).map(([id,asset])=>`${id}:${asset&&asset.locator?String(asset.locator).length:0}:${Array.isArray(asset&&asset.frames)?asset.frames.length:0}:${JSON.stringify(asset&&asset.recipe||{})}:${Math.max(0,+(asset&&asset.alphaMaskRevision)||0)}:${!!asset?.libraryHidden}`).sort().join('|');}
 if(classicV4Vertical&&window.ToSampoolV4Workspace)ToSampoolV4Workspace.subscribe(event=>{const next=classicV4AssetSignature(ToSampoolV4Workspace.current());if(event.type==='replace'||next!==classicV4AssetShelfSignature){classicV4AssetShelfSignature=next;syncClassicV4AssetShelf();}});
 async function openClassicV4AssetProcess(assetId){
   const scene=ToSampoolV4Workspace.requireDocument(),descriptor=scene.assets&&scene.assets[assetId];if(!descriptor)throw new Error('素材已不存在');
@@ -3342,11 +3439,31 @@ drop.addEventListener('click', () => $('file').click());
 drop.addEventListener('dragover', ev => { ev.preventDefault(); drop.classList.add('over'); });
 drop.addEventListener('dragleave', () => drop.classList.remove('over'));
 drop.addEventListener('drop', ev => { ev.preventDefault(); drop.classList.remove('over'); classicAssets.importFiles(ev.dataTransfer.files); });
-$('file').addEventListener('change', () => classicAssets.importFiles($('file').files));
+$('file').addEventListener('change', () => {const files=[...$('file').files];$('file').value='';importMaterialFiles(files).catch(error=>{$('m-import').textContent='导入失败：'+error.message;});});
+async function importMaterialFiles(files){
+  const images=[];
+  for(const file of files||[]){if(classicV4Vertical&&(/\.json$/i.test(file.name)||file.type==='application/json'))await classicV4Resources.importFile(file);else images.push(file);}
+  if(images.length)await classicAssets.importFiles(images);
+}
 async function importAssetsThroughHost(){
   if(!(window.EditorHost&&EditorHost.pickAssets)){$('file').click();return;}
-  try{const files=await EditorHost.pickAssets({accept:'image/*',multiple:true});if(files&&files.length)classicAssets.importFiles(files);}
+  try{const files=await EditorHost.pickAssets({accept:'image/*,application/json,.json',multiple:true});if(files&&files.length)await importMaterialFiles(files);}
   catch(error){$('m-import').textContent='导入失败：'+(error&&error.message?error.message:error);}
+}
+async function importAlphaMaskAssetFromFile(){
+  const files=await EditorHost.pickAssets({accept:'image/*',multiple:false}),file=files&&files[0];
+  if(!file)return null;
+  const dataUrl=await EditorHost.readDataUrl(file),image=await classicV4Image(dataUrl);
+  const imported=ToSampoolV4Assets.importPrepared({
+    name:file.name||'Alpha 图片',
+    locator:dataUrl,
+    mime:file.type||'image/png',
+    width:image.naturalWidth||image.width,
+    height:image.naturalHeight||image.height
+  });
+  $('asset-pane').classList.add('open');
+  $('m-import').textContent='已入库 Alpha 素材「'+(file.name||'图片')+'」';
+  return imported[0].assetId;
 }
 async function spriteImageFromFile(file){
   const dataUrl=window.EditorHost&&EditorHost.readDataUrl?await EditorHost.readDataUrl(file):await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(new Error('无法读取精灵图'));reader.onload=()=>resolve(reader.result);reader.readAsDataURL(file);});
@@ -3380,6 +3497,7 @@ function composeFolderFrames(images){const frameW=Math.max(...images.map(image=>
 function finishFolderSource(sheet,name,frames,meta){const src=addSource(sheet,name,frames,{skipProcess:true,fps:meta.fps,frameLoop:meta.frameLoop});src.v4Recipe=EditorVNextAssetRecipe.normalize(meta.recipe||{width:Math.max(1,Math.floor(sheet.width/frames)),height:sheet.height});src.frozen=true;invalidateSource(src);if(classicV4Vertical)commitClassicV4PreparedSource(src);return src;}
 async function importFolderThroughInput(){
   const files=[...($('folder-file').files||[])];if(!files.length)return;
+  if(classicV4Vertical){const imported=await classicV4Resources.importProjectFiles(files);if(imported){await syncClassicV4AssetShelf();classicV4Patterns.open('assets');classicV4Sharing.setScope('project');renderLib();$('m-import').textContent='已从项目文件夹复制 '+imported.count+' 项素材／图样；未导入画布或共享关系';return;}}
   const planner=window.ToSampoolAssetFolderPlan;if(!planner){$('m-import').textContent='文件夹素材模块未加载';return;}
   const records=await Promise.all(files.map(async file=>({path:folderPath(file),name:file.name,type:file.type,text:/\.json$/i.test(file.name)?await file.text():undefined,file}))),plan=planner.plan(records),fileByPath=new Map(records.map(record=>[planner.slash(record.path),record.file]));
   let count=0;const failures=[];
@@ -3400,12 +3518,13 @@ function openAssetProcessModal(src, options) {
   const mask=document.createElement('div'); mask.className='wizard-mask'; const box=document.createElement('div'); box.className='wizard'; box.innerHTML='<h2>素材预处理</h2><div class="hint">入库前只固定尺寸与透明边缘。调色、色板、量化、再像素化会在对象的「采样」中继续编辑。</div>';
   const grid=document.createElement('div'); grid.className='asset-process-grid'; const controls=document.createElement('div'); controls.className='asset-process-controls'; controls.innerHTML='<section><strong>尺寸</strong><label><span>处理后尺寸</span><span class="row"><input class="sw" type="number" min="1"><span>×</span><input class="sh" type="number" min="1"><label style="margin:0"><input class="lock" type="checkbox"> 锁比</label></span></label></section><section><label class="row"><input class="bg-enabled" type="checkbox"> <strong>去背景</strong></label><div class="bg-options"><label><span>取样色</span><span class="row"><input class="bg-color" type="color"><button type="button" class="sample-color">从预览取样</button></span></label><label><span>容差 <output class="tol-value"></output></span><input class="bgtol" type="range" min="0" max="255"></label><label><span>边缘柔化 <output class="feather-value"></output></span><input class="bgfeather" type="range" min="0" max="64"></label><label class="row"><input class="connected" type="checkbox"> 仅移除与画面边缘相连的区域</label></div></section>';
   const q=s=>controls.querySelector(s),background=initial.backgroundRemoval;q('.sw').value=initial.width||raw0.width;q('.sh').value=initial.height||raw0.height;q('.lock').checked=true;q('.bg-enabled').checked=background.enabled;q('.bg-color').value=toHex(background.color&&background.color.length?background.color:pixel);q('.bgtol').value=background.tolerance;q('.bgfeather').value=background.feather;q('.connected').checked=background.connected;
+  const sampleColor=colorField(q('.bg-color').value,1,(next)=>{q('.bg-color').value=next;renderPreview();},'去背景取样色',{alpha:false});q('.bg-color').hidden=true;q('.bg-color').after(sampleColor);
   const preview=document.createElement('div'); preview.className='asset-process-preview'; const cv=document.createElement('canvas'); preview.append(cv); grid.append(controls,preview); box.append(grid);
   const readColor=()=>q('.bg-color').value.match(/[a-f\d]{2}/gi).map(value=>parseInt(value,16)); let recipe=initial,previewFrame=0;
   const syncLabels=()=>{q('.tol-value').textContent=q('.bgtol').value;q('.feather-value').textContent=q('.bgfeather').value;q('.bg-options').hidden=!q('.bg-enabled').checked;};
   const buildRecipe=axis=>{let width=Math.max(1,+q('.sw').value||raw0.width),height=Math.max(1,+q('.sh').value||raw0.height);if(q('.lock').checked){if(axis==='w')height=Math.max(1,Math.round(width*raw0.height/raw0.width));else if(axis==='h')width=Math.max(1,Math.round(height*raw0.width/raw0.height));}q('.sw').value=width;q('.sh').value=height;return EditorVNextAssetRecipe.normalize({width,height,backgroundRemoval:{enabled:q('.bg-enabled').checked,color:readColor(),tolerance:+q('.bgtol').value||0,feather:+q('.bgfeather').value||0,connected:q('.connected').checked}});};
   const renderPreview=axis=>{recipe=buildRecipe(axis);syncLabels();const output=EditorVNextAssetRecipe.apply(frameCanvas(previewFrame),recipe),scale=Math.min(1,420/output.width,260/output.height);cv.width=output.width;cv.height=output.height;cv.style.width=Math.round(output.width*scale)+'px';cv.style.height=Math.round(output.height*scale)+'px';const ctx=cv.getContext('2d');ctx.imageSmoothingEnabled=false;ctx.clearRect(0,0,cv.width,cv.height);ctx.drawImage(output,0,0);};
-  ['bg-enabled','bg-color','connected'].forEach(key=>q('.'+key).addEventListener('change',()=>renderPreview()));['bgtol','bgfeather'].forEach(key=>q('.'+key).addEventListener('input',()=>renderPreview()));q('.sw').addEventListener('change',()=>renderPreview('w'));q('.sh').addEventListener('change',()=>renderPreview('h'));q('.lock').addEventListener('change',()=>renderPreview());q('.sample-color').addEventListener('click',()=>{q('.sample-color').classList.toggle('active');});cv.addEventListener('pointerdown',event=>{if(!q('.sample-color').classList.contains('active'))return;const rect=cv.getBoundingClientRect(),raw=frameCanvas(previewFrame),x=Math.max(0,Math.min(raw.width-1,Math.floor((event.clientX-rect.left)/Math.max(1,rect.width)*raw.width))),y=Math.max(0,Math.min(raw.height-1,Math.floor((event.clientY-rect.top)/Math.max(1,rect.height)*raw.height))),rgb=raw.getContext('2d',{willReadFrequently:true}).getImageData(x,y,1,1).data;q('.bg-color').value=toHex(rgb);q('.sample-color').classList.remove('active');renderPreview();});
+  ['bg-enabled','bg-color','connected'].forEach(key=>q('.'+key).addEventListener('change',()=>renderPreview()));['bgtol','bgfeather'].forEach(key=>q('.'+key).addEventListener('input',()=>renderPreview()));q('.sw').addEventListener('change',()=>renderPreview('w'));q('.sh').addEventListener('change',()=>renderPreview('h'));q('.lock').addEventListener('change',()=>renderPreview());q('.sample-color').addEventListener('click',()=>{q('.sample-color').classList.toggle('active');});cv.addEventListener('pointerdown',event=>{if(!q('.sample-color').classList.contains('active'))return;const rect=cv.getBoundingClientRect(),raw=frameCanvas(previewFrame),x=Math.max(0,Math.min(raw.width-1,Math.floor((event.clientX-rect.left)/Math.max(1,rect.width)*raw.width))),y=Math.max(0,Math.min(raw.height-1,Math.floor((event.clientY-rect.top)/Math.max(1,rect.height)*raw.height))),rgb=raw.getContext('2d',{willReadFrequently:true}).getImageData(x,y,1,1).data;q('.bg-color').value=toHex(rgb);sampleColor.setPaint(q('.bg-color').value,1,null);q('.sample-color').classList.remove('active');renderPreview();});
   let stopped=false,previewTick=0; const animate=now=>{if(stopped)return;if(count>1&&now-previewTick>=500){previewTick=now;previewFrame=(previewFrame+1)%count;renderPreview();}requestAnimationFrame(animate);};
   const actions=document.createElement('div'); actions.className='row'; const confirm=document.createElement('button'); confirm.className='primary'; confirm.textContent='确认入库'; confirm.onclick=()=>{stopped=true;src.v4Recipe=recipe;src.frozen=true;state.selSrc=src.id;if(typeof options.onConfirm==='function')options.onConfirm(src,recipe);else if(classicV4Vertical)commitClassicV4PreparedSource(src);$('asset-pane').classList.add('open');renderLib();renderStyleCtl();$('m-import').textContent='已入库「'+src.name+'」'+(src.frames>1?' · '+src.frames+' 帧': '')+'；预处理已冻结。';mask.remove();}; const cancel=document.createElement('button');cancel.textContent='取消';cancel.onclick=()=>{stopped=true;if(options.discardOnCancel!==false)removeSource(src);mask.remove();};actions.append(confirm,cancel);box.append(actions);mask.append(box);document.body.append(mask);renderPreview();requestAnimationFrame(animate);
 }
@@ -3833,7 +3952,7 @@ window.addEventListener('keydown', ev => {
     }
     return;
   }
-  if (ev.code === 'Space') { ev.preventDefault(); togglePlay(); return; }
+  if (ev.code === 'Space') { if(ev.target?.closest?.('button'))return;ev.preventDefault(); togglePlay(); return; }
   if (ev.key === 'Delete' || ev.key === 'Backspace') {
     ev.preventDefault();
     runEditorCommand('selection.delete', {}, 'shortcut');
@@ -4364,37 +4483,11 @@ const rowS = {};       // 参数行[s] 开关： key = cardKey|path（开=改动
 const normColor = c => (c && c.length === 4 ? '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3] : c);
 /* 统一取色器：颜色仍以 #RRGGBB 保存，透明度作为相邻可选字段保存。
    这样不会破坏既有色板/导出逻辑，也明确区别「某一笔颜色透明度」与元素整体 alpha。*/
-function colorRgb(hex) { hex=normColor(hex||'#ffffff'); const n=parseInt(hex.slice(1),16); return {r:(n>>16)&255,g:(n>>8)&255,b:n&255}; }
-function rgbHex(r,g,b) { return '#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join(''); }
-function rgbHsv(r,g,b) { r/=255;g/=255;b/=255; const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn; let h=0; if(d){if(mx===r)h=((g-b)/d+6)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h*=60;} return {h,s:mx?d/mx:0,v:mx}; }
-function hsvRgb(h,s,v) { const c=v*s,x=c*(1-Math.abs((h/60)%2-1)),m=v-c; let q=h<60?[c,x,0]:h<120?[x,c,0]:h<180?[0,c,x]:h<240?[0,x,c]:h<300?[x,0,c]:[c,0,x]; return {r:(q[0]+m)*255,g:(q[1]+m)*255,b:(q[2]+m)*255}; }
-let colorPopover, colorBinding;
-function ensureColorPopover() {
-  if (colorPopover) return colorPopover;
-  const pop=document.createElement('div'); pop.className='color-pop'; pop.hidden=true;
-  pop.innerHTML='<div class="color-pop-head"><span>纯色</span><button class="color-pop-close" type="button">×</button></div><div class="color-sv"><i class="color-sv-dot"></i></div><div class="color-slider-row"><button class="color-eyedropper" type="button" title="从屏幕取色">☰</button><input class="color-hue" type="range" min="0" max="360" step="1"></div><div class="color-slider-row color-alpha-row"><button class="color-eyedropper" type="button" title="从屏幕取色">☰</button><input class="color-alpha-range" type="range" min="0" max="100" step="1"></div><div class="color-pop-values"><input class="color-hex" maxlength="7" spellcheck="false"><input class="color-alpha-input" type="number" min="0" max="100" step="1"></div>';
-  document.body.appendChild(pop); colorPopover=pop;
-  const sv=pop.querySelector('.color-sv'), hue=pop.querySelector('.color-hue'), ar=pop.querySelector('.color-alpha-range'), hex=pop.querySelector('.color-hex'), ai=pop.querySelector('.color-alpha-input');
-  const apply=(final)=>{ if(!colorBinding)return; const rgb=hsvRgb(+hue.value,colorBinding.hsv.s,colorBinding.hsv.v), color=rgbHex(rgb.r,rgb.g,rgb.b), alpha=colorBinding.alphaEnabled===false?colorBinding.alpha:Math.max(0,Math.min(1,(+ar.value||0)/100)); colorBinding.hsv.h=+hue.value;colorBinding.color=color;colorBinding.alpha=alpha;colorBinding.change(color,alpha,final); updateColorPopover(); };
-  const svAt=e=>{const r=sv.getBoundingClientRect();colorBinding.hsv.s=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));colorBinding.hsv.v=Math.max(0,Math.min(1,1-(e.clientY-r.top)/r.height));apply(false);};
-  let drag=false; sv.addEventListener('pointerdown',e=>{drag=true;sv.setPointerCapture(e.pointerId);svAt(e);});sv.addEventListener('pointermove',e=>{if(drag)svAt(e);});sv.addEventListener('pointerup',e=>{if(drag){drag=false;svAt(e);apply(true);}});
-  hue.addEventListener('input',()=>apply(false)); hue.addEventListener('change',()=>apply(true)); ar.addEventListener('input',()=>apply(false)); ar.addEventListener('change',()=>apply(true));
-  hex.addEventListener('change',()=>{const val=normColor(hex.value.trim());if(/^#[0-9a-f]{6}$/i.test(val)){const rgb=colorRgb(val);colorBinding.hsv=rgbHsv(rgb.r,rgb.g,rgb.b);colorBinding.change(val,(+ar.value||0)/100,true);updateColorPopover();}});
-  ai.addEventListener('input',()=>{ar.value=Math.max(0,Math.min(100,+ai.value||0));apply(false);});ai.addEventListener('change',()=>apply(true));
-  pop.querySelectorAll('.color-eyedropper').forEach(btn=>btn.addEventListener('click',async()=>{if(!window.EyeDropper){btn.title='当前浏览器不支持屏幕取色';return;}try{const picked=await new EyeDropper().open();const rgb=colorRgb(picked.sRGBHex);colorBinding.hsv=rgbHsv(rgb.r,rgb.g,rgb.b);colorBinding.change(picked.sRGBHex,(+ar.value||0)/100,true);updateColorPopover();}catch(_){}}));
-  const close=()=>{if(colorBinding&&colorBinding.finish)colorBinding.finish();pop.hidden=true;colorBinding=null;};
-  pop.querySelector('.color-pop-close').addEventListener('click',close);
-  document.addEventListener('pointerdown',e=>{if(!pop.hidden&&!pop.contains(e.target)&&(!colorBinding||!colorBinding.button.contains(e.target)))close();},true);
-  return pop;
-}
-function updateColorPopover() { if(!colorPopover||!colorBinding)return; const {h,s,v}=colorBinding.hsv, pop=colorPopover, dot=pop.querySelector('.color-sv-dot'), hue=pop.querySelector('.color-hue'), ar=pop.querySelector('.color-alpha-range'), hex=pop.querySelector('.color-hex'), ai=pop.querySelector('.color-alpha-input'); const color='hsl('+h+',100%,50%)';pop.classList.toggle('no-alpha',colorBinding.alphaEnabled===false); pop.querySelector('.color-sv').style.background='linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,'+color+')'; dot.style.left=(s*100)+'%';dot.style.top=((1-v)*100)+'%';hue.value=h;ar.value=Math.round(colorBinding.alpha*100);ar.style.background='linear-gradient(to right,transparent,'+color+'),repeating-conic-gradient(#777 0 25%,#444 0 50%) 0/8px 8px'; hex.value=colorBinding.color.toUpperCase();ai.value=Math.round(colorBinding.alpha*100); }
 function colorField(color, alpha, change, label, options) {
-  const alphaEnabled=!(options&&options.alpha===false),wrap=document.createElement('div');wrap.className='color-field'; const button=document.createElement('button');button.type='button'; button.className='color-swatch'; button.title=label||'选择颜色';const pct=document.createElement('span');pct.className='color-alpha';if(!alphaEnabled)pct.hidden=true; wrap.append(button,pct);
-  const redraw=()=>{button.style.background=color||'#ffffff'; pct.textContent=Math.round((alpha==null?1:alpha)*100)+'%';}; redraw();
-  button.addEventListener('click',()=>{const rgb=colorRgb(color), pop=ensureColorPopover();colorBinding={button,color:color||'#ffffff',alpha:alpha==null?1:alpha,alphaEnabled,hsv:rgbHsv(rgb.r,rgb.g,rgb.b),change:(next,a,final)=>{color=next;alpha=a;redraw();change(next,a,final);},finish:()=>{if(change.finish)change.finish();}};const r=button.getBoundingClientRect();pop.style.left=Math.min(window.innerWidth-238,Math.max(8,r.left))+'px'; pop.style.top=Math.min(window.innerHeight-250,Math.max(8,r.bottom+6))+'px'; pop.hidden=false;updateColorPopover();});
-  return wrap;
+  return EditorV4ColorPopover.forDocument(document).field(color, alpha, change, label, options);
 }
 function solidColorField(color, change, label) { return colorField(color,1,(next,_alpha,final)=>change(next,final),label,{alpha:false}); }
+function paintField(color,alpha,paint,change,label,options){return colorField(color,alpha,change,label,Object.assign({paintEnabled:true,paint,alpha:true},options));}
 function defaultTexture(type, color) { return type==='lines'?{type:'lines',mode:'replace',opacity:1,color:color||'#ffffff',layers:[{angle:45,width:1,gap:3}]}:type==='checker'?{type:'checker',mode:'replace',opacity:1,color:color||'#ffffff',size:3,gap:2,phase:.5,angle:0}:{type:'dots',mode:'replace',opacity:1,color:color||'#ffffff',sides:4,roundness:0,size:3,gap:2,phase:0,angle:0,layout:'regular'}; }
 function drawTexturePreview(canvas, pat, color) { const ctx=canvas.getContext('2d'),w=canvas.width=120,h=canvas.height=72;ctx.clearRect(0,0,w,h);ctx.fillStyle='#11151c'; ctx.fillRect(0,0,w,h);if(!pat)return;ctx.fillStyle=color||pat.color||'#fff'; if(pat.type==='lines'){((pat.layers&&pat.layers.length?pat.layers:[{angle:45,width:1,gap:3}]).slice(0,3)).forEach(l=>{const step=Math.max(2,(+l.width||1)+(+l.gap||3)),ang=(+l.angle||0)*Math.PI/180;ctx.save();ctx.translate(w/2,h/2);ctx.rotate(ang);for(let y=-100;y<100;y+=step)ctx.fillRect(-130,y,260,Math.max(1,+l.width||1));ctx.restore();});return;}const size=Math.max(2,+pat.size||3),step=Math.max(size+1,size+(+pat.gap||2)),checker=pat.type==='checker'; for(let y=-step;y<h+step;y+=step){for(let x=-step;x<w+step;x+=step){const odd=((Math.round(y/step)+Math.round(x/step))&1);if(checker&&odd)continue;ctx.fillRect(Math.round(x+(checker?0:((Math.round(y/step)&1)*(+pat.phase||0)*step))),Math.round(y),size,size);}} }
 let texturePopover, textureBinding;
@@ -5931,7 +6024,7 @@ function renderStructureTree(cfg) {
   });
   const orphanFx = localLayers.filter(fx => fx && (!fx.bind || !fx.bind.targetId || !byId.has(fx.bind.targetId)));
   orphanFx.forEach(fx => add('fx', fx.name || '未绑定局部效果', 0, { icon: '✜', structureKey:'fx:'+fx.id, meta: '未绑定', selected:state.selectedOrphanFxId===fx.id, onClick: () => { clearElementSelection(false);state.selectedOrphanFxId=fx.id;elementInspectorTab='fx';_inspectorCtxKey='';buildLayerList(cfg);renderTimeline();refreshStage(); }, onRename: () => {const name=window.prompt('局部效果名称：',fx.name||'局部效果');if(!name||!name.trim())return;runSceneMutation('structure.rename.fx',()=>{fx.name=name.trim();return true;},{entity:fx,layers:true});} }));
-  if (!tree.children.length) tree.innerHTML = '<div class="struct-empty">空场景：从素材库拖入图片，或用绘制工具创建元素。</div>';
+  if (!tree.children.length) tree.innerHTML = '<div class="struct-empty">暂无图层</div>';
 }
 function toggleHidden(el, cfg) {
   // 独立于场景可见性的「调试隐藏」：只切数 el.hidden（全局覆盖，不影响 show 窗口）；
@@ -6776,8 +6869,8 @@ function v4CurrentExportTime(scene) {
 function v4GifFrameLimit(scene) {
   return window.EditorVNextExporter && EditorVNextExporter.gifFrameLimit ? EditorVNextExporter.gifFrameLimit(scene, { width:scene.width, height:scene.height }) : 600;
 }
-function openV4ExportPanel() {
-  const scene = ToSampoolV4Workspace.requireDocument();
+function openV4ExportPanel(context) {
+  const scene = context?.scene||ToSampoolV4Workspace.requireDocument(),currentTime=()=>context?.time??v4CurrentExportTime(scene);
   if (!window.EditorVNextExporter) throw new Error('v4 固定时间导出器不可用');
   const mask = document.createElement('div'); mask.className = 'wizard-mask';
   const box = document.createElement('div'); box.className = 'wizard';
@@ -6794,10 +6887,21 @@ function openV4ExportPanel() {
   segments.forEach((segment,index)=>{const label=document.createElement('label');label.className='export-range';label.innerHTML='<input type="checkbox" data-v4-export-scene="'+index+'" checked> <span>'+(index+1)+' · '+String(segment.name||('场景 '+(index+1))).replace(/[&<>]/g,'')+'</span><span class="hint-inline">'+(segment.f[0]*scene.loop).toFixed(2)+'…'+(segment.f[1]*scene.loop).toFixed(2)+'s</span>';ranges.append(label);});
   const count=document.createElement('div');count.className='export-count';const actions=document.createElement('div');actions.className='row';const submit=document.createElement('button');submit.className='primary';submit.textContent='开始导出';const cancel=document.createElement('button');cancel.textContent='取消';cancel.onclick=()=>mask.remove();actions.append(submit,cancel);box.append(modes,controls,ranges,count,actions);mask.append(box);document.body.append(mask);
   const mode=()=>box.querySelector('input[name=v4-export-mode]:checked').value, fps=()=>Math.max(1,Math.min(30,parseInt(controls.querySelector('.export-fps').value,10)||1)), picked=()=>segments.map((_,index)=>!!ranges.querySelector('[data-v4-export-scene="'+index+'"]').checked), maxFor=value=>value==='sprite'?240:value==='frames'?120:value==='gif'?v4GifFrameLimit(scene):Infinity;
-  const update=recommend=>{const value=mode(),cover=value==='cover';controls.style.display=ranges.style.display=cover?'none':'';if(!cover&&recommend){const seconds=v4ExportRanges(scene,picked()).reduce((sum,range)=>sum+range[1]-range[0],0),ceiling=value==='gif'?20:30;controls.querySelector('.export-fps').value=Math.max(1,Math.min(ceiling,Math.floor(maxFor(value)/Math.max(.001,seconds))));}if(cover){count.textContent='将导出播放头 t='+v4CurrentExportTime(scene).toFixed(2)+'s 的单帧。';submit.disabled=false;return;}const selected=v4ExportRanges(scene,picked());let total=0;try{total=EditorVNextExporter.frameTimes(scene,{fps:fps(),ranges:selected}).length;}catch(_){}const max=maxFor(value),ok=selected.length&&total<=max;count.textContent=selected.length?('所选时段：'+total+' 帧（'+fps()+' fps，最大 '+max+' 帧）'+(ok?'':' · 超出上限，请降低帧率或取消部分时段')):'请至少选择一个时段。';submit.disabled=!ok;};
+  const update=recommend=>{const value=mode(),cover=value==='cover';controls.style.display=ranges.style.display=cover?'none':'';if(!cover&&recommend){const seconds=v4ExportRanges(scene,picked()).reduce((sum,range)=>sum+range[1]-range[0],0),ceiling=value==='gif'?20:30;controls.querySelector('.export-fps').value=Math.max(1,Math.min(ceiling,Math.floor(maxFor(value)/Math.max(.001,seconds))));}if(cover){count.textContent='将导出播放头 t='+currentTime().toFixed(2)+'s 的单帧。';submit.disabled=false;return;}const selected=v4ExportRanges(scene,picked());let total=0;try{total=EditorVNextExporter.frameTimes(scene,{fps:fps(),ranges:selected}).length;}catch(_){}const max=maxFor(value),ok=selected.length&&total<=max;count.textContent=selected.length?('所选时段：'+total+' 帧（'+fps()+' fps，最大 '+max+' 帧）'+(ok?'':' · 超出上限，请降低帧率或取消部分时段')):'请至少选择一个时段。';submit.disabled=!ok;};
   modes.addEventListener('change',()=>update(true));controls.addEventListener('input',()=>update(false));ranges.addEventListener('change',()=>update(false));update(false);
-  submit.onclick=async()=>{const value=mode(),rate=fps(),selected=v4ExportRanges(scene,picked()),assets=await ToSampoolV4Workspace.runtimeAssets(),opt={fps:rate,ranges:selected,width:scene.width,height:scene.height,runtimeAssets:assets},base=String(ToSampoolV4Workspace.locator||'scene').split(/[\\/]/).pop().replace(/\.tosampool\.json$/i,'').replace(/\.[^.]+$/,'')||'scene';try{mask.remove();$('m-props').textContent='正在以 v4 Runtime 离线渲染…';let artifacts,detail;if(value==='cover'){const time=v4CurrentExportTime(scene);artifacts=[EditorArtifactBuilder.png(base+'-cover.png',await EditorVNextExporter.png(scene,time,opt),{t:time,format:'v4'})];detail='当前帧 PNG';}else if(value==='sprite'){const times=EditorVNextExporter.frameTimes(scene,opt,240);artifacts=[EditorArtifactBuilder.png(base+'-sprite-'+rate+'fps.png',await EditorVNextExporter.spriteSheet(scene,opt),{fps:rate,frames:times.length,format:'v4'})];detail=times.length+' 帧精灵图 PNG';}else if(value==='frames'){const frames=await EditorVNextExporter.pngFrames(scene,opt);artifacts=frames.map((frame,index)=>EditorArtifactBuilder.png(base+'-frame-'+String(index+1).padStart(3,'0')+'-t'+frame.t.toFixed(2)+'s.png',frame.blob,{fps:rate,frame:index,t:frame.t,format:'v4'}));detail=frames.length+' 帧 PNG（浏览器可能要求允许多文件下载）';}else{const times=EditorVNextExporter.frameTimes(scene,opt,600);artifacts=[EditorArtifactBuilder.gif(base+'-'+rate+'fps.gif',await EditorVNextExporter.gif(scene,opt),{fps:rate,frames:times.length,format:'v4'})];detail=times.length+' 帧 GIF（256 色 / 二值透明）';}const delivered=artifacts.length===1?await saveArtifact(artifacts[0],true):await saveArtifacts(artifacts);$('m-props').textContent=delivered?'已导出 '+detail:'已取消导出';}catch(error){$('m-props').textContent='导出失败：'+(error&&error.message||error);}};
+  submit.onclick=async()=>{const value=mode(),rate=fps(),selected=v4ExportRanges(scene,picked()),assets=context?.assets||await ToSampoolV4Workspace.runtimeAssets(),opt={fps:rate,ranges:selected,width:scene.width,height:scene.height,runtimeAssets:assets},base=context?.base||String(ToSampoolV4Workspace.locator||'scene').split(/[\\/]/).pop().replace(/\.tosampool\.json$/i,'').replace(/\.[^.]+$/,'')||'scene';try{context?.assertCurrent?.();mask.remove();$('m-props').textContent='正在以 v4 Runtime 离线渲染…';let artifacts,detail;if(value==='cover'){const time=currentTime();artifacts=[EditorArtifactBuilder.png(base+'-cover.png',await EditorVNextExporter.png(scene,time,opt),{t:time,format:'v4'})];detail='当前帧 PNG';}else if(value==='sprite'){const times=EditorVNextExporter.frameTimes(scene,opt,240);artifacts=[EditorArtifactBuilder.png(base+'-sprite-'+rate+'fps.png',await EditorVNextExporter.spriteSheet(scene,opt),{fps:rate,frames:times.length,format:'v4'})];detail=times.length+' 帧精灵图 PNG';}else if(value==='frames'){const frames=await EditorVNextExporter.pngFrames(scene,opt);artifacts=frames.map((frame,index)=>EditorArtifactBuilder.png(base+'-frame-'+String(index+1).padStart(3,'0')+'-t'+frame.t.toFixed(2)+'s.png',frame.blob,{fps:rate,frame:index,t:frame.t,format:'v4'}));detail=frames.length+' 帧 PNG（浏览器可能要求允许多文件下载）';}else{const times=EditorVNextExporter.frameTimes(scene,opt,600);artifacts=[EditorArtifactBuilder.gif(base+'-'+rate+'fps.gif',await EditorVNextExporter.gif(scene,opt),{fps:rate,frames:times.length,format:'v4'})];detail=times.length+' 帧 GIF（256 色 / 二值透明）';}context?.assertCurrent?.();const delivered=artifacts.length===1?await saveArtifact(artifacts[0],true):await saveArtifacts(artifacts);$('m-props').textContent=delivered?'已导出 '+detail:'已取消导出';}catch(error){$('m-props').textContent='导出失败：'+(error&&error.message||error);}};
 }
+async function exportSelectedV4Material(){
+  const source=ToSampoolV4Workspace.current(),revision=ToSampoolV4Workspace.revision,id=classicV4Materials.selected,asset=ToSampoolV4Assets.selected();
+  if(classicV4Sharing.scope!=='project'||!id&&!asset)throw Error('请先选择项目素材');
+  const assertCurrent=()=>{if(ToSampoolV4Workspace.current()!==source||ToSampoolV4Workspace.revision!==revision)throw Error('工程已变化，请重新选择素材导出');};
+  const snapshot=JSON.parse(JSON.stringify(source));snapshot._moduleScope=ToSampoolV4Workspace.moduleScope;
+  const context=await EditorV4MaterialExport.prepare(snapshot,id?{kind:'element',id}:{kind:'asset',id:asset.id},{time:state.t,sceneLocator:ToSampoolV4Workspace.locator,assertCurrent});
+  context.base=String(context.base||'material').replace(/[\\/:*?"<>|]/g,'-');
+  if(context.isStill){const blob=await EditorVNextExporter.png(context.scene,0,{runtimeAssets:context.assets});assertCurrent();const saved=await saveArtifact(EditorArtifactBuilder.png(context.base+'.png',blob),true);$('m-import').textContent=saved?'已导出处理后的 PNG':'已取消导出';}
+  else openV4ExportPanel(context);
+}
+$('btn-export-material').onclick=()=>exportSelectedV4Material().catch(error=>{$('m-import').textContent='导出失败：'+error.message;});
 function openExportPanel() {
   if (classicV4Vertical && window.ToSampoolSession && ToSampoolSession.activeId === 'v4') return openV4ExportPanel();
   const cfg = window.HOME_SCENE;
@@ -7685,14 +7789,16 @@ if(classicV4Vertical){
   classicV4DerivedAssets=EditorClassicV4DerivedAssetController.create({workspace:ToSampoolV4Workspace,changes:classicV4Changes,referenceSource:classicV4ReferenceSource});
   window.ToSampoolV4DerivedAssets=classicV4DerivedAssets;
   classicV4PreviewScheduler=EditorVNextPreviewScheduler.create();
+  window.classicV4PreviewBackend=EditorV4PreviewBackend.create({invalidate:reason=>{ToSampoolV4Workspace.releasePlayer();classicV4View?.resetPerformance();classicV4View?.scheduleRender(reason);syncClassicV4BackendUi();}});
+  ToSampoolV4Workspace.subscribe(event=>{if(event.type==='replace'){classicV4PreviewBackend.reset();syncClassicV4BackendUi();}});
   $('stage-wrap').style.height='';
-  classicV4View=EditorClassicV4ViewController.create({workspace:ToSampoolV4Workspace,changes:classicV4Changes,scheduler:classicV4PreviewScheduler,time:()=>state.t,active:()=>ToSampoolSession.activeId==='v4',viewport:()=>({zoom:state.zoom,pan:state.pan}),selectionOverlay:false,renderInterval:()=>previewPerformance.interval(),previewOptions:()=>{const scene=ToSampoolV4Workspace.current();previewPerformance.setWorkload(scene.width*scene.height);return{pixelDivMultiplier:previewPerformance.pixelDivMultiplier()};},qualitySnapshot:()=>previewPerformance.snapshot(),recordRender:ms=>previewPerformance.record(ms),onError:error=>{$('m-stage').textContent='v4 预览失败：'+(error&&error.message?error.message:error);}});
+  classicV4View=EditorClassicV4ViewController.create({workspace:ToSampoolV4Workspace,changes:classicV4Changes,scheduler:classicV4PreviewScheduler,time:()=>state.t,active:()=>ToSampoolSession.activeId==='v4',viewport:()=>({zoom:state.zoom,pan:state.pan}),selectionOverlay:false,onPatternFocus:(ownerId,partId,id)=>classicV4Inspector?.focusExtension(ownerId,partId,id),renderInterval:()=>previewPerformance.interval(),previewOptions:()=>{const scene=ToSampoolV4Workspace.current();previewPerformance.setWorkload(scene.width*scene.height);return Object.assign({pixelDivMultiplier:previewPerformance.pixelDivMultiplier()},classicV4PreviewBackend.previewOptions());},qualitySnapshot:()=>previewPerformance.snapshot(),recordRender:(ms,stats,timing)=>{previewPerformance.record(ms);classicV4PreviewBackend.observeFrame(stats,timing);syncClassicV4BackendUi();},onError:error=>{$('m-stage').textContent='v4 预览失败：'+(error&&error.message?error.message:error);}});
   classicV4View.start();
   classicV4Fonts=EditorClassicV4FontController.create({workspace:ToSampoolV4Workspace,changes:classicV4Changes,host:EditorHost});
   classicV4Timeline=EditorClassicV4TimelineController.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,time:()=>state.t,playing:()=>state.playing,seek:value=>{state.t=value;state.last=performance.now();if(classicV4Inspector)classicV4Inspector.render();},togglePlay});
   classicV4Masks=EditorClassicV4MaskController.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,time:()=>state.t});
   classicV4AlphaRepair=EditorClassicV4AlphaRepairController.create({workspace:ToSampoolV4Workspace,changes:classicV4Changes,view:classicV4View,root:document,referenceSource:classicV4ReferenceSource});
-  classicV4Inspector=EditorClassicV4InspectorController.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,fonts:classicV4Fonts,timeline:classicV4Timeline,maskEditor:classicV4Masks,transformController:()=>classicV4Transforms,time:()=>state.t,externalPanel:context=>classicV4AlphaRepair&&classicV4AlphaRepair.renderInspector(context.host)});
+  classicV4Inspector=EditorClassicV4InspectorController.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,fonts:classicV4Fonts,timeline:classicV4Timeline,maskEditor:classicV4Masks,transformController:()=>classicV4Transforms,time:()=>state.t,importMaskAsset:importAlphaMaskAssetFromFile,externalPanel:context=>classicV4AlphaRepair&&classicV4AlphaRepair.renderInspector(context.host)});
   classicV4AlphaRepair.subscribe(()=>classicV4Inspector&&classicV4Inspector.render());
   $('effect-pane').hidden=false;
   classicV4Effects=EditorClassicV4EffectPanelController.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,inspector:classicV4Inspector});
@@ -7700,6 +7806,14 @@ if(classicV4Vertical){
   classicV4Transforms=EditorClassicV4TransformController.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,time:()=>state.t,timing:classicV4Inspector,duplicate:options=>classicV4Shortcuts&&classicV4Shortcuts.duplicate(options)});
   classicV4PartTransforms=EditorClassicV4PartTransformController.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,time:()=>state.t});
   classicV4Drawing=EditorClassicV4DrawingController.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,fonts:classicV4Fonts});
+  window.classicV4Patterns=EditorClassicV4PatternLibrary.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,drawing:classicV4Drawing,inspector:classicV4Inspector});
+  window.classicV4Resources=EditorClassicV4ResourceController.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,patterns:classicV4Patterns,drawing:classicV4Drawing,inspector:classicV4Inspector,time:()=>state.t,resolveOptions:{resolveAsset:v4ProjectAsset,resolveModule:locator=>v4ProjectModule(locator)}});
+  window.classicV4MaterialPreviews=EditorV4MaterialPreview.create({root:document});
+  window.classicV4MaterialBaking=EditorClassicV4MaterialBakeController.create({workspace:ToSampoolV4Workspace,changes:classicV4Changes,time:()=>state.t,onAdded:id=>{classicV4Materials.clearElementSelection();ToSampoolV4Assets.select(id);},renderLibrary:()=>renderLib()});
+  window.classicV4Materials=EditorClassicV4MaterialController.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,patterns:classicV4Patterns,baking:classicV4MaterialBaking,previews:classicV4MaterialPreviews,renderLibrary:()=>renderLib(),resolveOptions:{host:EditorHost,sceneLocator:ToSampoolV4Workspace.locator,baseUrl:location.href}});
+  window.classicV4Sharing=EditorClassicV4MaterialSharingController.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,patterns:classicV4Patterns,previews:classicV4MaterialPreviews,materials:classicV4Materials,renderLibrary:()=>renderLib(),resolveAsset:v4ProjectAsset,resolveModule:locator=>v4ProjectModule(locator)});
+  window.classicV4ResourceEntries=EditorClassicV4ResourceEntryController.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,patterns:classicV4Patterns,resources:classicV4Resources,sharing:classicV4Sharing,inspector:classicV4Inspector,resolveOptions:{resolveAsset:v4ProjectAsset,resolveModule:locator=>v4ProjectModule(locator)}});
+  renderLib();
   classicV4Shortcuts=EditorClassicV4ShortcutController.create({workspace:ToSampoolV4Workspace,view:classicV4View,changes:classicV4Changes,active:()=>ToSampoolSession.activeId==='v4',togglePlay});
   classicV4Timeline.start();
   const legacyRenderTimeline=renderTimeline,legacyRenderSceneBar=renderSceneBar;

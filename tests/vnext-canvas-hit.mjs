@@ -5,7 +5,8 @@ import vm from 'node:vm';
 
 const root = resolve(import.meta.dirname, '..');
 const values = new Map();
-const context = { ToSampoolRuntimeVNext:{ modules:{ frame:{ create:() => ({ valuesFor:entity => values.get(entity.id) }) } } } };
+const instanceSources = new Set();
+const context = { ToSampoolRuntimeVNext:{ modules:{ pathInstances:{hiddenSources:()=>instanceSources},frame:{ create:() => ({ valuesFor:entity => values.get(entity.id) }) } } } };
 new vm.Script(readFileSync(resolve(root, 'editor/vnext-canvas-hit.js'), 'utf8')).runInNewContext(context);
 const hit = context.EditorVNextCanvasHit;
 const scene = { entities:[{ id:'back', type:'rect' }, { id:'front', type:'ellipse' }] };
@@ -14,6 +15,7 @@ values.set('front', { w:20, h:20, alpha:1, parentAlpha:1, worldMatrix:[0,1,-1,0,
 assert.equal(hit.pick(scene, 5, 5, 0).id, 'back');
 assert.equal(hit.pick(scene, 20, 10, 0).id, 'front', 'rotated entity uses Runtime world matrix rather than an axis-aligned local box');
 assert.equal(hit.pick(scene, 50, 50, 0), null);
+instanceSources.add('front');assert.equal(hit.pick(scene,20,10,0).id,'back','an instance-only source is not independently selectable');instanceSources.clear();
 scene.entities.push({id:'group',type:'group',locked:true},{id:'child',type:'rect',parentId:'group'});
 values.set('group',{w:20,h:20,alpha:1,parentAlpha:1,worldMatrix:[1,0,0,1,40,40]});
 values.set('child',{w:10,h:10,alpha:1,parentAlpha:1,worldMatrix:[1,0,0,1,40,40]});

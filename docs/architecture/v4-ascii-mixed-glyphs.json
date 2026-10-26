@@ -1,0 +1,76 @@
+{
+  "builtinsPreserved": 14,
+  "extensions": [
+    "A",
+    "a",
+    "中",
+    "界"
+  ],
+  "fixedCell": [
+    8,
+    8
+  ],
+  "atlasBytes": 1152,
+  "baselineBytes": 896,
+  "densities": [
+    {
+      "char": " ",
+      "density": 0
+    },
+    {
+      "char": ".",
+      "density": 0.03125
+    },
+    {
+      "char": ":",
+      "density": 0.0625
+    },
+    {
+      "char": "-",
+      "density": 0.078125
+    },
+    {
+      "char": "a",
+      "density": 0.125
+    },
+    {
+      "char": "+",
+      "density": 0.140625
+    },
+    {
+      "char": "=",
+      "density": 0.15625
+    },
+    {
+      "char": "A",
+      "density": 0.171875
+    },
+    {
+      "char": "%",
+      "density": 0.21875
+    },
+    {
+      "char": "*",
+      "density": 0.265625
+    },
+    {
+      "char": "#",
+      "density": 0.3125
+    },
+    {
+      "char": "@",
+      "density": 0.328125
+    },
+    {
+      "char": "中",
+      "density": 0.359375
+    },
+    {
+      "char": "界",
+      "density": 0.421875
+    }
+  ],
+  "fontCallsDuring20Frames": 0,
+  "glyphUploadsDuring20Frames": 1,
+  "portable": true
+}

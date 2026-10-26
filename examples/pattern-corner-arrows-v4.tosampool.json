@@ -1,0 +1,23 @@
+{
+  "format":"tosampool-scene/v4",
+  "name":"角点箭头 · G3",
+  "width":960,"height":540,"loop":4,
+  "background":{"color":"#171c24","alpha":1},"assets":{},
+  "entities":[
+    {"id":"custom-arrows","name":"独立图样 · 自定义","type":"vector","x":50,"y":55,"w":230,"h":160,"parts":[
+      {"id":"arrows","name":"角点箭头","type":"custom","x":0,"y":0,"w":230,"h":160,"stroke":"#ffd23f","strokeWidth":5,"strokeAlpha":1,"recipe":{"id":"corner-arrows","version":1,"params":{"size":34,"length":50,"inset":0,"direction":"out","radius":3}}}
+    ]},
+    {"id":"triangle-arrows","name":"三角形 · 应用","type":"vector","x":365,"y":55,"w":180,"h":160,"parts":[
+      {"id":"path","name":"三角形","type":"poly","polygonMode":"regular","sides":3,"x":0,"y":0,"w":180,"h":160,"fill":null,"stroke":"#60c8c0","strokeWidth":1,"extensions":{"showSource":true,"corner-arrows":{"enabled":true,"size":30,"length":42,"inset":0,"direction":"out","radius":2,"width":4,"color":"#60c8c0","alpha":1}}}
+    ]},
+    {"id":"pentagon-arrows","name":"五边形 · 应用","type":"vector","x":675,"y":55,"w":180,"h":160,"parts":[
+      {"id":"path","name":"五边形","type":"poly","polygonMode":"regular","sides":5,"x":0,"y":0,"w":180,"h":160,"fill":null,"stroke":"#f06060","strokeWidth":1,"extensions":{"showSource":true,"corner-arrows":{"enabled":true,"size":24,"length":32,"inset":0,"direction":"out","radius":2,"width":4,"color":"#f06060","alpha":1}}}
+    ]},
+    {"id":"rounded-arrows","name":"圆角矩形 · 四个语义角点","type":"vector","x":50,"y":325,"w":230,"h":150,"parts":[
+      {"id":"path","name":"圆角矩形","type":"rect","radius":22,"x":0,"y":0,"w":230,"h":150,"fill":null,"stroke":"#9fa8d0","strokeWidth":1,"extensions":{"showSource":true,"corner-arrows":{"enabled":true,"size":28,"length":42,"inset":10,"direction":"out","radius":3,"width":4,"color":"#9fa8d0","alpha":1}}}
+    ]},
+    {"id":"concave-arrows","name":"自由凹多边形 · 面积重心","type":"vector","x":380,"y":325,"w":200,"h":150,"parts":[
+      {"id":"path","name":"自由多边形","type":"poly","x":0,"y":0,"w":200,"h":150,"points":[[0,0],[1,0],[0.5,0.4],[1,1],[0,1]],"fill":null,"stroke":"#f0a860","strokeWidth":1,"extensions":{"showSource":true,"corner-arrows":{"enabled":true,"size":20,"length":26,"inset":0,"direction":"out","radius":1,"width":3,"color":"#f0a860","alpha":1}}}
+    ]}
+  ]
+}

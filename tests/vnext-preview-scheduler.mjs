@@ -31,7 +31,7 @@ const localSceneBackground = { loop:10, timeline:{ scenes:[{id:'early',f:[0,.5]}
 const localBackground = schedulerApi.create();
 request = localBackground.shouldRender(localSceneBackground, 5.5); localBackground.rendered(request.state);
 assert.equal(localBackground.shouldRender(localSceneBackground, 6.5).render, false, '新增 Scene 的本地背景 Step 同段内不得连续重绘');
-assert.equal(localBackground.shouldRender(localSceneBackground, 8).render, true, '新增 Scene 的本地背景轨跨段必须重绘，不能沿用全局时间索引');
+assert.equal(localBackground.shouldRender(localSceneBackground, 8).render, false, '旧 Scene 内背景轨不再改变画面，也不得触发无效重绘');
 
 const baseSceneOnly = { loop:10, timeline:{ scenes:[{id:'base-a',f:[0,.5],background:{color:'#112233'}},{id:'base-b',f:[.5,1],background:{color:'#445566'}}], tracks:{} }, entities:[] };
 const baseSceneScheduler = schedulerApi.create();
@@ -47,4 +47,11 @@ assert.equal(schedulerApi.profile({ loop:4, entities:[{ id:'star', type:'builtin
 assert.equal(schedulerApi.profile({ loop:4, entities:[{ id:'cloud', type:'builtin', builtin:{id:'pixel-cloud',version:1} }] }, 1).continuous, false, '静态内建构件必须保持跳绘能力');
 assert.equal(schedulerApi.profile({ loop:4, assets:{ loop:{ frames:[{},{}], fps:8 } }, entities:[{ id:'image', type:'image', assetId:'loop' }] }, 1).continuous, true, '多帧图片必须视为时间相关');
 assert.equal(schedulerApi.profile({ loop:4, timeline:{ scenes:[{ id:'scene-a', f:[0,1], transition:{type:'scan',duration:.4} }], tracks:{} }, entities:[] }, 1).continuous, true, '静态 Scene 的入口过渡也必须持续重绘，不能残留上一帧');
+const typingScene={loop:4,entities:[{id:'typing',type:'text',textCompletion:50,textCursor:{enabled:true,period:1}}]};
+assert.equal(schedulerApi.profile(typingScene,.2).continuous,true,'未完成文字光标必须连续闪烁');
+typingScene.entities[0].textCompletion=100;
+assert.equal(schedulerApi.profile(typingScene,.2).continuous,false,'完成文字隐藏光标后应恢复静态跳绘');
+typingScene.timeline={tracks:{typing:{segments:[{f:[0,.5],values:{textCompletion:25}},{f:[.5,1],values:{textCompletion:100}}]}}};
+assert.equal(schedulerApi.profile(typingScene,.2).continuous,true,'Step 覆层中的未完成文字也必须闪烁');
+assert.equal(schedulerApi.profile(typingScene,3).continuous,false,'Step 覆层完成后应静止');
 console.log('✓ v4 Preview Scheduler：静态跳绘、Step 边界、Linear/粒子/多帧连续重绘合同通过');

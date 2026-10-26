@@ -1,0 +1,96 @@
+{
+  "versions": {
+    "effects": "4.0.538",
+    "react": "19.2.0",
+    "esbuild": "0.25.12"
+  },
+  "trial": {
+    "bytes": 291561,
+    "gzipBytes": 91456
+  },
+  "brightnessOnly": {
+    "bytes": 274422,
+    "gzipBytes": 86749
+  },
+  "standalone": {
+    "bytes": 607742,
+    "gzipBytes": 198160
+  },
+  "existingRuntimeReference": {
+    "sourceBytes": 485266,
+    "minifiedBytes": 315236,
+    "minifiedGzipBytes": 106181,
+    "warning": "No product file rewritten; included only in experimental standalone HTML"
+  },
+  "contributions": [
+    {
+      "input": "node_modules/remotion/dist/esm/index.mjs",
+      "bytes": 259736
+    },
+    {
+      "input": "node_modules/react/cjs/react.production.js",
+      "bytes": 7616
+    },
+    {
+      "input": "node_modules/@remotion/effects/dist/esm/blur.mjs",
+      "bytes": 7379
+    },
+    {
+      "input": "node_modules/@remotion/effects/dist/esm/wave.mjs",
+      "bytes": 6028
+    },
+    {
+      "input": "entry.js",
+      "bytes": 3755
+    },
+    {
+      "input": "node_modules/react-dom/cjs/react-dom.production.js",
+      "bytes": 3342
+    },
+    {
+      "input": "node_modules/@remotion/effects/dist/esm/brightness.mjs",
+      "bytes": 1512
+    },
+    {
+      "input": "node_modules/react/cjs/react-jsx-runtime.production.js",
+      "bytes": 364
+    },
+    {
+      "input": "node_modules/react-dom/index.js",
+      "bytes": 253
+    },
+    {
+      "input": "node_modules/react/index.js",
+      "bytes": 50
+    },
+    {
+      "input": "node_modules/react/jsx-runtime.js",
+      "bytes": 50
+    }
+  ],
+  "inputs": [
+    "node_modules/react/cjs/react.production.js",
+    "node_modules/react/index.js",
+    "node_modules/react-dom/cjs/react-dom.production.js",
+    "node_modules/react-dom/index.js",
+    "node_modules/react/cjs/react-jsx-runtime.production.js",
+    "node_modules/react/jsx-runtime.js",
+    "node_modules/remotion/dist/esm/index.mjs",
+    "node_modules/@remotion/effects/dist/esm/brightness.mjs",
+    "node_modules/@remotion/effects/dist/esm/blur.mjs",
+    "node_modules/@remotion/effects/dist/esm/wave.mjs",
+    "entry.js"
+  ],
+  "singleInputs": [
+    "node_modules/react/cjs/react.production.js",
+    "node_modules/react/index.js",
+    "node_modules/react-dom/cjs/react-dom.production.js",
+    "node_modules/react-dom/index.js",
+    "node_modules/react/cjs/react-jsx-runtime.production.js",
+    "node_modules/react/jsx-runtime.js",
+    "node_modules/remotion/dist/esm/index.mjs",
+    "node_modules/@remotion/effects/dist/esm/brightness.mjs",
+    "<stdin>"
+  ],
+  "effectsLicense": "UNLICENSED"
+}

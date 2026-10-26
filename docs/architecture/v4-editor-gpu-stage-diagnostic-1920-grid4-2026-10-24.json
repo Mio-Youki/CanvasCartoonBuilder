@@ -1,0 +1,326 @@
+{
+  "date": "2026-10-24",
+  "browser": "156.0.4314.42",
+  "diagnostic": true,
+  "productModified": false,
+  "errors": [],
+  "size": [
+    1920,
+    1080
+  ],
+  "grid": 4,
+  "rows": [
+    {
+      "source": "native",
+      "prefix": 0,
+      "resetTarget": true,
+      "cpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "gpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "actual": "cpu",
+      "reason": "no-supported-effect",
+      "cpuTime": 0.9000000000000004,
+      "gpuTime": 0.9000000000000004,
+      "trace": null,
+      "preMax": 0,
+      "alphaMax": 0,
+      "channelsOver2": 0,
+      "first": []
+    },
+    {
+      "source": "native",
+      "prefix": 1,
+      "resetTarget": true,
+      "cpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "gpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "actual": "gpu",
+      "reason": null,
+      "cpuTime": 0.9000000000000004,
+      "gpuTime": 0.9000000000000004,
+      "trace": null,
+      "preMax": 0,
+      "alphaMax": 0,
+      "channelsOver2": 0,
+      "first": []
+    },
+    {
+      "source": "native",
+      "prefix": 2,
+      "resetTarget": true,
+      "cpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "gpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "actual": "gpu",
+      "reason": null,
+      "cpuTime": 0.9000000000000004,
+      "gpuTime": 0.9000000000000004,
+      "trace": null,
+      "preMax": 0,
+      "alphaMax": 0,
+      "channelsOver2": 0,
+      "first": []
+    },
+    {
+      "source": "native",
+      "prefix": 3,
+      "resetTarget": true,
+      "cpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "gpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "actual": "gpu",
+      "reason": null,
+      "cpuTime": 0.9000000000000004,
+      "gpuTime": 0.9000000000000004,
+      "trace": null,
+      "preMax": 0,
+      "alphaMax": 0,
+      "channelsOver2": 0,
+      "first": []
+    },
+    {
+      "source": "native",
+      "prefix": 4,
+      "resetTarget": true,
+      "cpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "gpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "actual": "gpu",
+      "reason": null,
+      "cpuTime": 0.9000000000000004,
+      "gpuTime": 0.9000000000000004,
+      "trace": null,
+      "preMax": 0,
+      "alphaMax": 0,
+      "channelsOver2": 0,
+      "first": []
+    },
+    {
+      "source": "native",
+      "prefix": 5,
+      "resetTarget": true,
+      "cpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "gpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "actual": "gpu",
+      "reason": null,
+      "cpuTime": 0.9000000000000004,
+      "gpuTime": 0.9000000000000004,
+      "trace": null,
+      "preMax": 0,
+      "alphaMax": 0,
+      "channelsOver2": 0,
+      "first": []
+    },
+    {
+      "source": "frozen",
+      "prefix": 0,
+      "resetTarget": true,
+      "cpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "gpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "actual": "cpu",
+      "reason": "no-supported-effect",
+      "cpuTime": 0.9000000000000004,
+      "gpuTime": 0.9000000000000004,
+      "trace": null,
+      "preMax": 0,
+      "alphaMax": 0,
+      "channelsOver2": 0,
+      "first": []
+    },
+    {
+      "source": "frozen",
+      "prefix": 1,
+      "resetTarget": true,
+      "cpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "gpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "actual": "gpu",
+      "reason": null,
+      "cpuTime": 0.9000000000000004,
+      "gpuTime": 0.9000000000000004,
+      "trace": null,
+      "preMax": 0,
+      "alphaMax": 0,
+      "channelsOver2": 0,
+      "first": []
+    },
+    {
+      "source": "frozen",
+      "prefix": 2,
+      "resetTarget": true,
+      "cpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "gpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "actual": "gpu",
+      "reason": null,
+      "cpuTime": 0.9000000000000004,
+      "gpuTime": 0.9000000000000004,
+      "trace": null,
+      "preMax": 0,
+      "alphaMax": 0,
+      "channelsOver2": 0,
+      "first": []
+    },
+    {
+      "source": "frozen",
+      "prefix": 3,
+      "resetTarget": true,
+      "cpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "gpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "actual": "gpu",
+      "reason": null,
+      "cpuTime": 0.9000000000000004,
+      "gpuTime": 0.9000000000000004,
+      "trace": null,
+      "preMax": 0,
+      "alphaMax": 0,
+      "channelsOver2": 0,
+      "first": []
+    },
+    {
+      "source": "frozen",
+      "prefix": 4,
+      "resetTarget": true,
+      "cpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "gpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "actual": "gpu",
+      "reason": null,
+      "cpuTime": 0.9000000000000004,
+      "gpuTime": 0.9000000000000004,
+      "trace": null,
+      "preMax": 0,
+      "alphaMax": 0,
+      "channelsOver2": 0,
+      "first": []
+    },
+    {
+      "source": "frozen",
+      "prefix": 5,
+      "resetTarget": true,
+      "cpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "gpuSelf": {
+        "preMax": 0,
+        "alphaMax": 0,
+        "channelsOver2": 0,
+        "first": []
+      },
+      "actual": "gpu",
+      "reason": null,
+      "cpuTime": 0.9000000000000004,
+      "gpuTime": 0.9000000000000004,
+      "trace": null,
+      "preMax": 0,
+      "alphaMax": 0,
+      "channelsOver2": 0,
+      "first": []
+    }
+  ]
+}
